@@ -60,54 +60,53 @@ echo ">>> Process is running healthy with PID: $PID"
 adb shell screencap -p /data/local/tmp/01_file_explorer_main.png
 adb pull /data/local/tmp/01_file_explorer_main.png screenshots/01_file_explorer_main.png || true
 
-# Helper function to trigger action, capture screen, and safely reset to FileListActivity
+# Helper function to launch a screen fresh via am start, wait for layout, capture, and pull
 capture_screen() {
-    local action="$1"
+    local cmd="$1"
     local filename="$2"
     local desc="$3"
     echo ">>> Capturing $desc ($filename)..."
-    adb shell am broadcast -a me.zhanghai.android.files.action.DEMO -p me.zhanghai.android.files --es action "$action"
+    eval "$cmd"
     sleep 3
     adb shell screencap -p "/data/local/tmp/$filename"
     adb pull "/data/local/tmp/$filename" "screenshots/$filename" || true
-    adb shell input keyevent 4
-    sleep 1
-    adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity > /dev/null 2>&1 || true
-    sleep 1
 }
 
 # 2. Navigation Drawer (Side Menu with Storage & Bookmarks)
-echo ">>> 2. Capturing Navigation Drawer (02_navigation_drawer.png)..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO -p me.zhanghai.android.files --es action drawer
-sleep 3
-adb shell screencap -p /data/local/tmp/02_navigation_drawer.png
-adb pull /data/local/tmp/02_navigation_drawer.png screenshots/02_navigation_drawer.png || true
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO -p me.zhanghai.android.files --es action close_drawer
-sleep 1
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG drawer" \
+    "02_navigation_drawer.png" "Navigation Drawer"
 
 # 3. Create Item Choice Bottom Sheet
-capture_screen "create_choice" "03_create_choice_bottom_sheet.png" "Create Item Choice Bottom Sheet"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG create_choice" \
+    "03_create_choice_bottom_sheet.png" "Create Item Choice Bottom Sheet"
 
 # 4. KeyStore Generator Dialog (.jks / .bks / pk8+pem)
-capture_screen "keystore" "04_keystore_generator_dialog.png" "KeyStore Generator Dialog"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG keystore" \
+    "04_keystore_generator_dialog.png" "KeyStore Generator Dialog"
 
 # 5. Installed Apps Manager (InstalledAppsActivity)
-capture_screen "apps" "05_installed_apps_manager.png" "Installed Apps Manager"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhanghai.android.files.appmanager.InstalledAppsActivity" \
+    "05_installed_apps_manager.png" "Installed Apps Manager"
 
 # 6. Fast Code / Text Editor (TextEditorActivity)
-capture_screen "editor" "06_fast_code_editor.png" "Fast Code Editor"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor" \
+    "06_fast_code_editor.png" "Fast Code Editor"
 
 # 7. Settings Panel (SettingsActivity)
-capture_screen "settings" "07_settings_screen.png" "Settings Panel"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhanghai.android.files.settings.SettingsActivity" \
+    "07_settings_screen.png" "Settings Panel"
 
 # 8. Add Storage Dialog (AddStorageDialogActivity)
-capture_screen "add_storage" "08_add_storage_dialog.png" "Add Storage Dialog"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhanghai.android.files.storage.AddStorageDialogActivity" \
+    "08_add_storage_dialog.png" "Add Storage Dialog"
 
 # 9. FTP Wireless Server (FtpServerActivity)
-capture_screen "ftp" "09_ftp_server.png" "FTP Wireless Server"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhanghai.android.files.ftpserver.FtpServerActivity" \
+    "09_ftp_server.png" "FTP Wireless Server"
 
 # 10. About Screen (AboutActivity)
-capture_screen "about" "10_about_openmanager.png" "About OpenManager"
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhanghai.android.files.about.AboutActivity" \
+    "10_about_openmanager.png" "About OpenManager"
 
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."

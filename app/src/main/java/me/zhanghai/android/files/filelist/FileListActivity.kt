@@ -255,6 +255,7 @@ class FileListActivity : AppActivity() {
         syncBottomBarSelectionState()
         observePanelPathsAndStats()
         updateDrawerStats()
+        handleDemoIntent(intent)
     }
 
     override fun onResume() {
