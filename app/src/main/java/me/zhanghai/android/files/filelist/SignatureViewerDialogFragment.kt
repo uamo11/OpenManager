@@ -77,6 +77,34 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                     val sha1 = sha1Digest.digest().joinToString(":") { "%02X".format(it) }
                     val sha256 = sha256Digest.digest().joinToString(":") { "%02X".format(it) }
 
+                    val fn = args.path.fileName.toString().lowercase()
+                    val ksDetails = StringBuilder()
+                    if (fn.endsWith(".jks") || fn.endsWith(".keystore") || fn.endsWith(".bks") || fn.endsWith(".p12")) {
+                        try {
+                            val tempFile = java.io.File.createTempFile("inspect_ks", ".tmp", context.cacheDir)
+                            args.path.newInputStream().use { ins ->
+                                tempFile.outputStream().use { outs -> ins.copyTo(outs) }
+                            }
+                            var certInfos: List<KeystoreGeneratorHelper.KeystoreCertificateInfo>? = null
+                            for (tryPass in listOf("", "android", "changeit", "password", "123456")) {
+                                try {
+                                    certInfos = KeystoreGeneratorHelper.inspectKeystore(tempFile, tryPass)
+                                    break
+                                } catch (_: Exception) {}
+                            }
+                            tempFile.delete()
+                            if (!certInfos.isNullOrEmpty()) {
+                                ksDetails.append("\n\n[Certificados en KeyStore (${certInfos.size})]\n")
+                                for (info in certInfos) {
+                                    ksDetails.append("• Alias: ${info.alias} (${info.algorithm})\n")
+                                    ksDetails.append("  Subject: ${info.subject}\n")
+                                    ksDetails.append("  Validez: ${info.notBefore} - ${info.notAfter}\n")
+                                    ksDetails.append("  Cert SHA-256: ${info.sha256}\n")
+                                }
+                            }
+                        } catch (_: Exception) {}
+                    }
+
                     """
                     Archivo: ${args.path.fileName}
                     
@@ -92,7 +120,7 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                     
                     [Firma / Certificado]
                     Estado: Inspección completada.
-                    Compatible con Keystore / APK Signature Scheme v1/v2/v3.
+                    Compatible con Keystore / APK Signature Scheme v1/v2/v3.$ksDetails
                     """.trimIndent()
                 } catch (e: Exception) {
                     "Error al calcular firma: ${e.message}"

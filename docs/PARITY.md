@@ -79,6 +79,7 @@ Este documento contiene la matriz exhaustiva de paridad de funciones entre **MT 
 | Decodificador de AndroidManifest binario (AXML) | ✅ | `file/AxmlDecoder.kt` | Descompilación de binario AXML a XML legible en TextEditor y visualizador. |
 | Compilador de XML a binario AXML | ✅ | `file/AxmlEngine.kt` | Re-ensamblado directo de StringPool y cabeceras binarias AXML sin necesidad de recompilación pesada. |
 | Visor / Editor de `resources.arsc` | ✅ | `viewer/arsc/ArscEditorActivity.kt`, `ArscEngine.kt` | Explorador y editor completo de tablas de recursos binarios de Android (cadenas, recursos y paquetes). |
+| Generador de Keystores (.jks) | ✅ | `filelist/KeystoreGeneratorHelper.kt`, `KeystoreGeneratorDialogFragment.kt`, `dialog_keystore_generator.xml` | Diálogo interactivo para crear llaves de firma personalizadas (.jks / PKCS12, .bks, pk8+pem) sin consola de comandos; configuración de RSA 2048/4096, validez, alias, contraseñas y datos del certificado (CN, OU, O, L, ST, C) con cálculo de huellas SHA-256 e inspección de certificados. |
 
 ---
 

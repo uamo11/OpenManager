@@ -236,6 +236,16 @@
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
                     android:backgroundTint="#424242" />
+
+                <Button
+                    android:id="@+id/btnCreateKeystore"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="6dp"
+                    android:text="@string/keystore_btn_create"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:backgroundTint="#2E7D32" />
             </LinearLayout>
 
             <TextView

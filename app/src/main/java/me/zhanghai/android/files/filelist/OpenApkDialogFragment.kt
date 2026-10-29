@@ -314,6 +314,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 getString(R.string.toast_dialog_inject_title),
                 getString(R.string.toast_dialog_clean_title),
                 getString(R.string.apk_sign),
+                "Generar clave KeyStore (.jks)",
                 "Verificar firma",
                 "Copiar nombre del paquete",
                 "Extraer APK",
@@ -380,6 +381,17 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                 if (targetPath != null) {
                                     (activity as? FileListActivity)?.activeFragment?.reload()
                                 }
+                            }
+                        }
+                        "Generar clave KeyStore (.jks)" -> {
+                            dialog.dismiss()
+                            val parentDir = try {
+                                file.path.parent?.toFile()?.absolutePath ?: "/storage/emulated/0/Download"
+                            } catch (_: Exception) {
+                                "/storage/emulated/0/Download"
+                            }
+                            KeystoreGeneratorDialogFragment.show(requireActivity(), parentDir) {
+                                (activity as? FileListActivity)?.activeFragment?.reload()
                             }
                         }
                         "Verificar firma" -> {

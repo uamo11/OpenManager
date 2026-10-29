@@ -1121,7 +1121,8 @@ class FileListActivity : AppActivity() {
             currentPath = currentPathStr,
             onFolder = { activeFragment.showCreateDirectoryDialog() },
             onFile = { activeFragment.showCreateFileDialog() },
-            onZip = { activeFragment.showCreateArchiveDialog(fileItemSetOf()) }
+            onZip = { activeFragment.showCreateArchiveDialog(fileItemSetOf()) },
+            onKeystore = { activeFragment.showKeystoreGeneratorDialog() }
         )
     }
 

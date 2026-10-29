@@ -1329,4 +1329,29 @@
     <string name="shizuku_not_running_message">Shizuku is installed but the service is currently not running. Open Shizuku and start it via Wireless Debugging or ADB to gain elevated access.</string>
     <string name="root_shizuku_not_detected_title">Elevated Access Required</string>
     <string name="root_shizuku_not_detected_message">To access protected directories (such as Android/data, /data, or /system), OpenManager requires Superuser (Root) or Shizuku.</string>
+    <!-- Keystore Generator Strings -->
+    <string name="keystore_generator_title">KeyStore Generator</string>
+    <string name="keystore_generator_subtitle">Create custom signing keys (.jks, .bks, pk8+pem) without console commands</string>
+    <string name="keystore_create_option">Signing key (KeyStore / JKS)</string>
+    <string name="keystore_create_option_desc">Create .jks or .bks key to sign APKs</string>
+    <string name="keystore_dest_path">Destination path:</string>
+    <string name="keystore_file_name">KeyStore file name:</string>
+    <string name="keystore_alias">Key alias:</string>
+    <string name="keystore_password">KeyStore password:</string>
+    <string name="keystore_key_password">Key password:</string>
+    <string name="keystore_same_password">Use same password for key</string>
+    <string name="keystore_key_size">Key size (RSA):</string>
+    <string name="keystore_validity_years">Validity (years):</string>
+    <string name="keystore_common_name">First and last name / Author (CN):</string>
+    <string name="keystore_advanced_details">Advanced certificate details (Optional)</string>
+    <string name="keystore_org_unit">Organizational unit (OU):</string>
+    <string name="keystore_org_name">Organization (O):</string>
+    <string name="keystore_locality">City or Locality (L):</string>
+    <string name="keystore_state">State or Province (ST):</string>
+    <string name="keystore_country">Country code (C, 2-letter):</string>
+    <string name="keystore_generate_btn">Generate Key</string>
+    <string name="keystore_generating">Generating KeyStore and Certificate…</string>
+    <string name="keystore_success_title">KeyStore Generated</string>
+    <string name="keystore_error_title">KeyStore Generation Failed</string>
+    <string name="keystore_btn_create">Create</string>
 </resources>

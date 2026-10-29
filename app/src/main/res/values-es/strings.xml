@@ -1225,4 +1225,29 @@
     <string name="shizuku_not_running_message">Shizuku está instalado pero su servicio no está activo. Abre Shizuku e inícialo mediante Depuración inalámbrica o ADB para obtener acceso administrativo.</string>
     <string name="root_shizuku_not_detected_title">Acceso administrativo requerido</string>
     <string name="root_shizuku_not_detected_message">Para acceder a directorios protegidos (como Android/data, /data o /system), OpenManager requiere Superusuario (Root) o Shizuku.</string>
+    <!-- Cadenas para el Generador de KeyStore -->
+    <string name="keystore_generator_title">Generador de KeyStore (.jks)</string>
+    <string name="keystore_generator_subtitle">Crea llaves de firma personalizadas (.jks, .bks, pk8+pem) sin consola</string>
+    <string name="keystore_create_option">Clave de firma (KeyStore / JKS)</string>
+    <string name="keystore_create_option_desc">Crear llave .jks o .bks para firmar APKs</string>
+    <string name="keystore_dest_path">Ruta de destino:</string>
+    <string name="keystore_file_name">Nombre del archivo KeyStore:</string>
+    <string name="keystore_alias">Alias de la clave:</string>
+    <string name="keystore_password">Contraseña del KeyStore:</string>
+    <string name="keystore_key_password">Contraseña de la clave:</string>
+    <string name="keystore_same_password">Usar la misma contraseña para la clave</string>
+    <string name="keystore_key_size">Tamaño de clave (RSA):</string>
+    <string name="keystore_validity_years">Validez (años):</string>
+    <string name="keystore_common_name">Nombre y apellidos / Autor (CN):</string>
+    <string name="keystore_advanced_details">Detalles avanzados del certificado (Opcional)</string>
+    <string name="keystore_org_unit">Unidad organizacional (OU):</string>
+    <string name="keystore_org_name">Organización (O):</string>
+    <string name="keystore_locality">Ciudad o Localidad (L):</string>
+    <string name="keystore_state">Estado o Provincia (ST):</string>
+    <string name="keystore_country">Código de país (C, 2 letras):</string>
+    <string name="keystore_generate_btn">Generar Clave</string>
+    <string name="keystore_generating">Generando KeyStore y Certificado…</string>
+    <string name="keystore_success_title">KeyStore Generado</string>
+    <string name="keystore_error_title">Error al generar KeyStore</string>
+    <string name="keystore_btn_create">Crear</string>
 </resources>

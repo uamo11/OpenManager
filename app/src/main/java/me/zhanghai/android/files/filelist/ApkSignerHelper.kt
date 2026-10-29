@@ -87,14 +87,37 @@ object ApkSignerHelper {
         alias: String,
         keyPass: String
     ): Pair<PrivateKey, X509Certificate> {
-        val ksType = if (file.name.endsWith(".p12", true) || file.name.endsWith(".pfx", true)) "PKCS12" else "JKS"
-        val ks = KeyStore.getInstance(ksType)
-        FileInputStream(file).use { ks.load(it, storePass.toCharArray()) }
-        val privateKey = ks.getKey(alias, keyPass.toCharArray()) as? PrivateKey
-            ?: throw IllegalArgumentException("No se encontró la clave privada para el alias: $alias")
-        val cert = ks.getCertificate(alias) as? X509Certificate
-            ?: throw IllegalArgumentException("No se encontró el certificado para el alias: $alias")
-        return Pair(privateKey, cert)
+        val types = mutableListOf<String>()
+        if (file.name.endsWith(".p12", true) || file.name.endsWith(".pfx", true)) {
+            types.add("PKCS12")
+            types.add("JKS")
+        } else {
+            types.add("PKCS12")
+            types.add("JKS")
+        }
+        types.add("BKS")
+
+        var lastException: Exception? = null
+        for (ksType in types.distinct()) {
+            try {
+                val ks = try {
+                    if (ksType == "BKS") {
+                        try { KeyStore.getInstance("BKS", "BC") } catch (_: Throwable) { KeyStore.getInstance("BKS") }
+                    } else {
+                        KeyStore.getInstance(ksType)
+                    }
+                } catch (_: Throwable) {
+                    continue
+                }
+                FileInputStream(file).use { ks.load(it, storePass.toCharArray()) }
+                val privateKey = ks.getKey(alias, keyPass.toCharArray()) as? PrivateKey ?: continue
+                val cert = ks.getCertificate(alias) as? X509Certificate ?: continue
+                return Pair(privateKey, cert)
+            } catch (e: Exception) {
+                lastException = e
+            }
+        }
+        throw lastException ?: IllegalArgumentException("No se encontró la clave privada o certificado para el alias: $alias")
     }
 
     fun signFileDirect(
@@ -203,6 +226,25 @@ object ApkSignerHelper {
                 editKeystorePath.setText("$defaultPath/my-release-key.jks")
             }
             Toast.makeText(context, "Ingresa la ruta absoluta de tu archivo .jks o .keystore", Toast.LENGTH_SHORT).show()
+        }
+
+        val btnCreateKeystore = view.findViewById<Button>(R.id.btnCreateKeystore)
+        btnCreateKeystore?.setOnClickListener {
+            val parentDir = try {
+                apkPath.parent?.toFile()?.absolutePath ?: "/storage/emulated/0/Download"
+            } catch (_: Exception) {
+                "/storage/emulated/0/Download"
+            }
+            if (activity is androidx.fragment.app.FragmentActivity) {
+                KeystoreGeneratorDialogFragment.show(activity, parentDir) { result ->
+                    val target = result.jksFile ?: result.bksFile
+                    target?.let { editKeystorePath.setText(it.absolutePath) }
+                    editKeystorePass.setText(result.storePassword)
+                    editKeyAlias.setText(result.alias)
+                    editKeyPass.setText(result.keyPassword)
+                    rbKeyCustom.isChecked = true
+                }
+            }
         }
 
         btnCancelSign.setOnClickListener {

@@ -21,6 +21,7 @@ class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
     var onFolderSelected: (() -> Unit)? = null
     var onFileSelected: (() -> Unit)? = null
     var onZipSelected: (() -> Unit)? = null
+    var onKeystoreSelected: (() -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,6 +61,11 @@ class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
             dismiss()
             onZipSelected?.invoke()
         }
+
+        view.findViewById<LinearLayout>(R.id.btnOptionKeystore).setOnClickListener {
+            dismiss()
+            onKeystoreSelected?.invoke()
+        }
     }
 
     companion object {
@@ -71,7 +77,8 @@ class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
             currentPath: String,
             onFolder: () -> Unit,
             onFile: () -> Unit,
-            onZip: () -> Unit
+            onZip: () -> Unit,
+            onKeystore: (() -> Unit)? = null
         ): CreateChoiceBottomSheetDialogFragment {
             val fragment = CreateChoiceBottomSheetDialogFragment().apply {
                 arguments = Bundle().apply {
@@ -80,6 +87,7 @@ class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
                 this.onFolderSelected = onFolder
                 this.onFileSelected = onFile
                 this.onZipSelected = onZip
+                this.onKeystoreSelected = onKeystore
             }
             fragment.show(fragmentManager, TAG)
             return fragment

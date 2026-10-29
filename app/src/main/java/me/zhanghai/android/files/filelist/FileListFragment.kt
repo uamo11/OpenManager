@@ -2248,6 +2248,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         FileJobService.create(path, true, requireContext())
     }
 
+    fun showKeystoreGeneratorDialog() {
+        val destDir = try {
+            currentPath.toFile().absolutePath
+        } catch (_: Exception) {
+            "/storage/emulated/0/Download"
+        }
+        KeystoreGeneratorDialogFragment.show(this, destDir) {
+            viewModel.reload()
+        }
+    }
+
     fun copyFilesTo(files: FileItemSet, targetDirectory: Path) {
         FileJobService.copy(makePathListForJob(files), targetDirectory, requireContext())
         viewModel.selectFiles(files, false)
