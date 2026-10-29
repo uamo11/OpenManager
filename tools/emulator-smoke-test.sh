@@ -15,7 +15,10 @@ echo ">>> Android Emulator is online and fully booted!"
 
 # Locate APK
 echo ">>> Locating OpenManager Debug APK..."
-APK_FILE=$(find . -type f \( -name "*.apk" \) | head -n 1)
+APK_FILE=$(find apk-to-test -type f -name "*.apk" 2>/dev/null | head -n 1)
+if [ -z "$APK_FILE" ]; then
+    APK_FILE=$(find . -type f \( -name "*.apk" \) | head -n 1)
+fi
 if [ -z "$APK_FILE" ]; then
     echo "ERROR: Could not find any APK file in current workspace!"
     ls -la
