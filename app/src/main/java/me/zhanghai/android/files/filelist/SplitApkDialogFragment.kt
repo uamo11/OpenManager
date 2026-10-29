@@ -149,14 +149,7 @@ class SplitApkDialogFragment : AppCompatDialogFragment() {
                         Snackbar.LENGTH_LONG
                     )
                     snackbar.setAction(R.string.install) {
-                        val mergedPath = Paths.get(outputApk.absolutePath)
-                        val mergedFileItem = (activity as? FileListActivity)?.activeFragment?.currentFileList
-                            ?.find { it.path.fileName.toString() == outputApk.name }
-                        if (mergedFileItem != null) {
-                            listener.installApk(mergedFileItem)
-                        } else {
-                            (activity as? FileListActivity)?.activeFragment?.reload()
-                        }
+                        (activity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
                     }
                     snackbar.show()
                 } else {

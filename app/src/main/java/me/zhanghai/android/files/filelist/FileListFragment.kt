@@ -51,6 +51,9 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.leinardi.android.speeddial.SpeedDialView
+import java.io.File
+import java.io.FileOutputStream
+import android.widget.Toast
 import java8.nio.file.Path
 import java8.nio.file.Paths
 import kotlin.math.roundToInt
@@ -1398,8 +1401,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 true
             }
             R.id.action_antisplit_merge -> {
-                val selected = overlayActionMode.selectedFiles.toList()
-                overlayActionMode.finish()
+                val selected = viewModel.selectedFiles.toList()
+                clearSelectedFiles()
                 showAntiSplitDialogForFiles(selected)
                 true
             }
