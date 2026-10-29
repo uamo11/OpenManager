@@ -1320,4 +1320,13 @@
     <string name="toast_dialog_clean_success">Cleaned %1$d toasts and %2$d dialogs across %3$d DEX files: %4$s</string>
     <string name="toast_dialog_error">Operation failed: %1$s</string>
     <string name="toast_dialog_no_calls_found">No Toast or Dialog calls were found in this APK.</string>
+    <!-- Shizuku Explorer Support -->
+    <string name="action_use_shizuku">Access with Shizuku</string>
+    <string name="action_open_shizuku">Open Shizuku</string>
+    <string name="shizuku_connecting_toast">Connecting with Shizuku…</string>
+    <string name="shizuku_permission_denied">Shizuku permission was denied</string>
+    <string name="shizuku_not_running_title">Shizuku service not running</string>
+    <string name="shizuku_not_running_message">Shizuku is installed but the service is currently not running. Open Shizuku and start it via Wireless Debugging or ADB to gain elevated access.</string>
+    <string name="root_shizuku_not_detected_title">Elevated Access Required</string>
+    <string name="root_shizuku_not_detected_message">To access protected directories (such as Android/data, /data, or /system), OpenManager requires Superuser (Root) or Shizuku.</string>
 </resources>

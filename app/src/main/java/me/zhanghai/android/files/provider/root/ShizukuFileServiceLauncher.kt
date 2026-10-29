@@ -7,6 +7,7 @@ package me.zhanghai.android.files.provider.root
 
 import android.annotation.SuppressLint
 import android.content.ComponentName
+import android.content.Context
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.IBinder
@@ -30,7 +31,7 @@ import rikka.shizuku.ShizukuApiConstants
 object ShizukuFileServiceLauncher {
     private val lock = Any()
 
-    fun isAvailable(): Boolean = Shizuku.pingBinder()
+    fun isAvailable(): Boolean = ShizukuManager.isAvailable()
 
     @Throws(RemoteFileSystemException::class)
     fun launchService(): IRemoteFileService {
@@ -39,32 +40,7 @@ object ShizukuFileServiceLauncher {
                 throw RemoteFileSystemException("Shizuku isn't available")
             }
             if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-                val granted = try {
-                    runBlocking<Boolean> {
-                        suspendCancellableCoroutine { continuation ->
-                            val listener = object : Shizuku.OnRequestPermissionResultListener {
-                                override fun onRequestPermissionResult(
-                                    requestCode: Int,
-                                    grantResult: Int
-                                ) {
-                                    Shizuku.removeRequestPermissionResultListener(this)
-                                    val granted = grantResult == PackageManager.PERMISSION_GRANTED
-                                    continuation.resume(granted)
-                                }
-                            }
-                            Shizuku.addRequestPermissionResultListener(listener)
-                            continuation.invokeOnCancellation {
-                                Shizuku.removeRequestPermissionResultListener(listener)
-                            }
-                            Shizuku.requestPermission(listener.hashCode())
-                        }
-                    }
-                } catch (e: InterruptedException) {
-                    throw RemoteFileSystemException(e)
-                }
-                if (!granted) {
-                    throw RemoteFileSystemException("Shizuku permission isn't granted")
-                }
+                throw RemoteFileSystemException("Shizuku permission isn't granted")
             }
             return try {
                 runBlocking {
@@ -135,9 +111,22 @@ object ShizukuFileServiceLauncher {
 }
 
 @Keep
-class ShizukuFileServiceInterface : RemoteFileServiceInterface() {
-    init {
-        RootFileService.main()
+class ShizukuFileServiceInterface : RemoteFileServiceInterface {
+
+    constructor() : super() {
+        initService()
+    }
+
+    constructor(context: Context) : super() {
+        initService()
+    }
+
+    private fun initService() {
+        try {
+            RootFileService.main()
+        } catch (e: Throwable) {
+            e.printStackTrace()
+        }
     }
 
     override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {

@@ -130,6 +130,7 @@ class FileListActivity : AppActivity() {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.file_list_activity)
+        me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
 
         drawerLayout = findViewById(R.id.drawerLayout)
         mainToolbar = findViewById(R.id.mainToolbar)

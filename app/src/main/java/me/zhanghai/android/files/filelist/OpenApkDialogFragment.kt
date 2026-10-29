@@ -263,6 +263,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
 
         val isRootAvailable = ApkInstallHelper.isRootAvailable()
+        val isShizukuAvailable = ApkInstallHelper.isShizukuAvailable()
         btnRootInstall.isVisible = isRootAvailable
 
         val dialog = MaterialAlertDialogBuilder(context)
@@ -283,6 +284,8 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             dialog.dismiss()
             if (isRootAvailable && Settings.USE_ROOT_INSTALL.valueCompat) {
                 listener.installApkWithRoot(file)
+            } else if (isShizukuAvailable && Settings.USE_SHIZUKU_INSTALL.valueCompat) {
+                installApkWithShizuku(file)
             } else {
                 listener.installApk(file)
             }
@@ -299,6 +302,9 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             )
             if (isRootAvailable) {
                 optionsList.add(getString(R.string.install_root))
+            }
+            if (isShizukuAvailable) {
+                optionsList.add("Instalar con Shizuku")
             }
             optionsList.addAll(listOf(
                 getString(R.string.apk_quick_edit),
@@ -326,6 +332,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         getString(R.string.install_root) -> {
                             dialog.dismiss()
                             listener.installApkWithRoot(file)
+                        }
+                        "Instalar con Shizuku" -> {
+                            dialog.dismiss()
+                            installApkWithShizuku(file)
                         }
                         getString(R.string.apk_quick_edit) -> {
                             dialog.dismiss()
@@ -396,6 +406,30 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
 
         return dialog
+    }
+
+    private fun installApkWithShizuku(file: FileItem) {
+        val context = requireContext()
+        val progressDialog = MaterialAlertDialogBuilder(context)
+            .setTitle("Instalando con Shizuku…")
+            .setMessage("Por favor espere mientras Shizuku instala la aplicación…")
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
+
+        lifecycleScope.launch {
+            val (success, message) = ApkInstallHelper.installWithShizuku(context, file)
+            progressDialog.dismiss()
+            if (success) {
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            } else {
+                MaterialAlertDialogBuilder(context)
+                    .setTitle("Fallo al instalar con Shizuku")
+                    .setMessage(message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+        }
     }
 
     private fun decompileApkToJava(file: FileItem) {

@@ -165,6 +165,7 @@ import me.zhanghai.android.files.file.asDocumentTreeUriOrNull
 import me.zhanghai.android.files.provider.common.createDirectories
 import me.zhanghai.android.files.provider.document.isDocumentPath
 import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
+import me.zhanghai.android.files.provider.root.ShizukuManager
 import me.zhanghai.android.files.provider.root.RootStrategy
 import me.zhanghai.android.files.settings.SettingsActivity
 import me.zhanghai.android.files.storage.DocumentTree
@@ -423,6 +424,16 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.errorText.setOnClickListener { viewModel.reload() }
         binding.btnErrorHome.setOnClickListener { navigateToHome() }
         binding.btnErrorBack.setOnClickListener { goBackSafely() }
+        ShizukuManager.init(activity)
+        ShizukuManager.addBinderListener {
+            if (isAdded && !isDetached) {
+                activity.runOnUiThread {
+                    if (binding.layoutError.isVisible) {
+                        viewModel.reload()
+                    }
+                }
+            }
+        }
         layoutManager = GridLayoutManager(activity, 1)
         binding.recyclerView.layoutManager = layoutManager
         adapter = FileListAdapter(this)
@@ -843,13 +854,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 when {
                     isAndroidDataOrObbCurrent -> {
                         val isObb = isAndroidObb(currentPath)
-                        if (LibSuFileServiceLauncher.isSuAvailable()) {
+                        val hasElevatedAccess = LibSuFileServiceLauncher.isSuAvailable() || ShizukuManager.ready()
+                        if (hasElevatedAccess) {
                             if (Settings.ROOT_STRATEGY.valueCompat != RootStrategy.ALWAYS) {
                                 Settings.ROOT_STRATEGY.putValue(RootStrategy.AUTOMATIC)
                             }
                             if (lastPromptedSafPath != currentPath) {
                                 lastPromptedSafPath = currentPath
-                                showToast(getString(R.string.root_requesting_toast))
+                                showToast(if (LibSuFileServiceLauncher.isSuAvailable()) getString(R.string.root_requesting_toast) else getString(R.string.shizuku_connecting_toast))
                                 viewModel.reload()
                                 return
                             }
@@ -862,13 +874,37 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                         binding.btnGrantSafPermission.setOnClickListener {
                             launchSafPermissionForAndroidDataOrObb(currentPath)
                         }
-                        binding.btnErrorAction.visibility = View.VISIBLE
+
+                        if (ShizukuManager.isAvailable() && !ShizukuManager.hasPermission()) {
+                            binding.btnGrantShizukuPermission.visibility = View.VISIBLE
+                            binding.btnGrantShizukuPermission.setText(R.string.action_use_shizuku)
+                            binding.btnGrantShizukuPermission.setOnClickListener {
+                                ShizukuManager.requestPermission(requireActivity()) { granted ->
+                                    if (granted) {
+                                        Settings.ROOT_STRATEGY.putValue(RootStrategy.AUTOMATIC)
+                                        viewModel.reload()
+                                    } else {
+                                        showToast(getString(R.string.shizuku_permission_denied))
+                                    }
+                                }
+                            }
+                        } else if (ShizukuManager.isInstalled(requireContext()) && !ShizukuManager.isAvailable()) {
+                            binding.btnGrantShizukuPermission.visibility = View.VISIBLE
+                            binding.btnGrantShizukuPermission.setText(R.string.action_open_shizuku)
+                            binding.btnGrantShizukuPermission.setOnClickListener {
+                                ShizukuManager.openShizukuApp(requireContext())
+                            }
+                        } else {
+                            binding.btnGrantShizukuPermission.visibility = View.GONE
+                        }
+
+                        binding.btnErrorAction.visibility = if (LibSuFileServiceLauncher.isSuAvailable()) View.VISIBLE else View.GONE
                         binding.btnErrorAction.setText(R.string.action_retry_root)
                         binding.btnErrorAction.setIconResource(R.drawable.shield_icon_white_24dp)
                         binding.btnErrorAction.setOnClickListener {
                             retryWithRoot()
                         }
-                        if (lastPromptedSafPath != currentPath) {
+                        if (lastPromptedSafPath != currentPath && !hasElevatedAccess) {
                             lastPromptedSafPath = currentPath
                             showSafPermissionPromptDialog(currentPath)
                         }
@@ -879,6 +915,30 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                         binding.tvErrorTitle.setText(R.string.path_access_denied_title)
                         binding.errorText.text = getString(R.string.path_access_denied_error, displayPathStr)
                         binding.btnGrantSafPermission.visibility = View.GONE
+
+                        if (ShizukuManager.isAvailable() && !ShizukuManager.hasPermission()) {
+                            binding.btnGrantShizukuPermission.visibility = View.VISIBLE
+                            binding.btnGrantShizukuPermission.setText(R.string.action_use_shizuku)
+                            binding.btnGrantShizukuPermission.setOnClickListener {
+                                ShizukuManager.requestPermission(requireActivity()) { granted ->
+                                    if (granted) {
+                                        Settings.ROOT_STRATEGY.putValue(RootStrategy.AUTOMATIC)
+                                        viewModel.reload()
+                                    } else {
+                                        showToast(getString(R.string.shizuku_permission_denied))
+                                    }
+                                }
+                            }
+                        } else if (ShizukuManager.isInstalled(requireContext()) && !ShizukuManager.isAvailable()) {
+                            binding.btnGrantShizukuPermission.visibility = View.VISIBLE
+                            binding.btnGrantShizukuPermission.setText(R.string.action_open_shizuku)
+                            binding.btnGrantShizukuPermission.setOnClickListener {
+                                ShizukuManager.openShizukuApp(requireContext())
+                            }
+                        } else {
+                            binding.btnGrantShizukuPermission.visibility = View.GONE
+                        }
+
                         binding.btnErrorAction.visibility = View.VISIBLE
                         binding.btnErrorAction.setText(R.string.action_retry_root)
                         binding.btnErrorAction.setIconResource(R.drawable.shield_icon_white_24dp)
@@ -1043,19 +1103,45 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun retryWithRoot() {
-        if (LibSuFileServiceLauncher.isSuAvailable()) {
-            Settings.ROOT_STRATEGY.putValue(RootStrategy.AUTOMATIC)
-            showToast(getString(R.string.root_requesting_toast))
-            viewModel.reload()
-        } else {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.root_not_detected_title)
-                .setMessage(R.string.root_not_detected_message)
-                .setPositiveButton(R.string.settings_title) { _, _ ->
-                    startActivity(Intent(requireContext(), SettingsActivity::class.java))
+        when {
+            LibSuFileServiceLauncher.isSuAvailable() || ShizukuManager.ready() -> {
+                Settings.ROOT_STRATEGY.putValue(RootStrategy.AUTOMATIC)
+                showToast(if (LibSuFileServiceLauncher.isSuAvailable()) getString(R.string.root_requesting_toast) else getString(R.string.shizuku_connecting_toast))
+                viewModel.reload()
+            }
+            ShizukuManager.isAvailable() -> {
+                ShizukuManager.requestPermission(requireActivity()) { granted ->
+                    if (granted) {
+                        Settings.ROOT_STRATEGY.putValue(RootStrategy.AUTOMATIC)
+                        viewModel.reload()
+                    } else {
+                        showToast(getString(R.string.shizuku_permission_denied))
+                    }
                 }
-                .setNegativeButton(android.R.string.ok, null)
-                .show()
+            }
+            ShizukuManager.isInstalled(requireContext()) -> {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.shizuku_not_running_title)
+                    .setMessage(R.string.shizuku_not_running_message)
+                    .setPositiveButton(R.string.action_open_shizuku) { _, _ ->
+                        ShizukuManager.openShizukuApp(requireContext())
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            else -> {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle(R.string.root_shizuku_not_detected_title)
+                    .setMessage(R.string.root_shizuku_not_detected_message)
+                    .setPositiveButton(R.string.settings_install_shizuku_title) { _, _ ->
+                        ShizukuManager.openShizukuApp(requireContext())
+                    }
+                    .setNeutralButton(R.string.settings_title) { _, _ ->
+                        startActivity(Intent(requireContext(), SettingsActivity::class.java))
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
         }
     }
 
