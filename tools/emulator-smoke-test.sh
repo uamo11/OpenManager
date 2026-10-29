@@ -60,96 +60,54 @@ echo ">>> Process is running healthy with PID: $PID"
 adb shell screencap -p /data/local/tmp/01_file_explorer_main.png
 adb pull /data/local/tmp/01_file_explorer_main.png screenshots/01_file_explorer_main.png || true
 
+# Helper function to trigger action, capture screen, and safely reset to FileListActivity
+capture_screen() {
+    local action="$1"
+    local filename="$2"
+    local desc="$3"
+    echo ">>> Capturing $desc ($filename)..."
+    adb shell am broadcast -a me.zhanghai.android.files.action.DEMO -p me.zhanghai.android.files --es action "$action"
+    sleep 3
+    adb shell screencap -p "/data/local/tmp/$filename"
+    adb pull "/data/local/tmp/$filename" "screenshots/$filename" || true
+    adb shell input keyevent 4
+    sleep 1
+    adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity > /dev/null 2>&1 || true
+    sleep 1
+}
+
 # 2. Navigation Drawer (Side Menu with Storage & Bookmarks)
-echo ">>> 2. Capturing Navigation Drawer..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action drawer
-sleep 2
+echo ">>> 2. Capturing Navigation Drawer (02_navigation_drawer.png)..."
+adb shell am broadcast -a me.zhanghai.android.files.action.DEMO -p me.zhanghai.android.files --es action drawer
+sleep 3
 adb shell screencap -p /data/local/tmp/02_navigation_drawer.png
 adb pull /data/local/tmp/02_navigation_drawer.png screenshots/02_navigation_drawer.png || true
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action close_drawer
+adb shell am broadcast -a me.zhanghai.android.files.action.DEMO -p me.zhanghai.android.files --es action close_drawer
 sleep 1
 
 # 3. Create Item Choice Bottom Sheet
-echo ">>> 3. Capturing Create Item Choice Bottom Sheet..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action create_choice
-sleep 2
-adb shell screencap -p /data/local/tmp/03_create_choice_bottom_sheet.png
-adb pull /data/local/tmp/03_create_choice_bottom_sheet.png screenshots/03_create_choice_bottom_sheet.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "create_choice" "03_create_choice_bottom_sheet.png" "Create Item Choice Bottom Sheet"
 
 # 4. KeyStore Generator Dialog (.jks / .bks / pk8+pem)
-echo ">>> 4. Capturing KeyStore Generator Dialog..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action keystore
-sleep 2
-adb shell screencap -p /data/local/tmp/04_keystore_generator_dialog.png
-adb pull /data/local/tmp/04_keystore_generator_dialog.png screenshots/04_keystore_generator_dialog.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "keystore" "04_keystore_generator_dialog.png" "KeyStore Generator Dialog"
 
 # 5. Installed Apps Manager (InstalledAppsActivity)
-echo ">>> 5. Capturing Installed Apps Manager (InstalledAppsActivity)..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action apps
-sleep 3
-PID=$(adb shell pidof me.zhanghai.android.files | tr -d '\r')
-if [ -z "$PID" ]; then
-    echo "ERROR: Process crashed when navigating to InstalledAppsActivity!"
-    exit 1
-fi
-adb shell screencap -p /data/local/tmp/05_installed_apps_manager.png
-adb pull /data/local/tmp/05_installed_apps_manager.png screenshots/05_installed_apps_manager.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "apps" "05_installed_apps_manager.png" "Installed Apps Manager"
 
 # 6. Fast Code / Text Editor (TextEditorActivity)
-echo ">>> 6. Capturing Fast Code Editor (TextEditorActivity)..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action editor
-sleep 3
-PID=$(adb shell pidof me.zhanghai.android.files | tr -d '\r')
-if [ -z "$PID" ]; then
-    echo "ERROR: Process crashed when navigating to TextEditorActivity!"
-    exit 1
-fi
-adb shell screencap -p /data/local/tmp/06_fast_code_editor.png
-adb pull /data/local/tmp/06_fast_code_editor.png screenshots/06_fast_code_editor.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "editor" "06_fast_code_editor.png" "Fast Code Editor"
 
 # 7. Settings Panel (SettingsActivity)
-echo ">>> 7. Capturing Settings Panel (SettingsActivity)..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action settings
-sleep 2
-adb shell screencap -p /data/local/tmp/07_settings_screen.png
-adb pull /data/local/tmp/07_settings_screen.png screenshots/07_settings_screen.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "settings" "07_settings_screen.png" "Settings Panel"
 
 # 8. Add Storage Dialog (AddStorageDialogActivity)
-echo ">>> 8. Capturing Add Storage Dialog..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action add_storage
-sleep 2
-adb shell screencap -p /data/local/tmp/08_add_storage_dialog.png
-adb pull /data/local/tmp/08_add_storage_dialog.png screenshots/08_add_storage_dialog.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "add_storage" "08_add_storage_dialog.png" "Add Storage Dialog"
 
 # 9. FTP Wireless Server (FtpServerActivity)
-echo ">>> 9. Capturing FTP Wireless Server (FtpServerActivity)..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action ftp
-sleep 2
-adb shell screencap -p /data/local/tmp/09_ftp_server.png
-adb pull /data/local/tmp/09_ftp_server.png screenshots/09_ftp_server.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "ftp" "09_ftp_server.png" "FTP Wireless Server"
 
 # 10. About Screen (AboutActivity)
-echo ">>> 10. Capturing About Screen (AboutActivity)..."
-adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action about
-sleep 2
-adb shell screencap -p /data/local/tmp/10_about_openmanager.png
-adb pull /data/local/tmp/10_about_openmanager.png screenshots/10_about_openmanager.png || true
-adb shell input keyevent 4
-sleep 1
+capture_screen "about" "10_about_openmanager.png" "About OpenManager"
 
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."

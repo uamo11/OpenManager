@@ -493,6 +493,14 @@
 
         <receiver android:name="me.zhanghai.android.files.filejob.FileJobReceiver" />
 
+        <receiver
+            android:name="me.zhanghai.android.files.filelist.DemoActionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="me.zhanghai.android.files.action.DEMO" />
+            </intent-filter>
+        </receiver>
+
         <receiver android:name="me.zhanghai.android.files.ftpserver.FtpServerReceiver" />
     </application>
 </manifest>

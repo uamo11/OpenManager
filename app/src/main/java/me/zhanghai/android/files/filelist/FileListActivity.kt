@@ -286,7 +286,7 @@ class FileListActivity : AppActivity() {
 
     fun handleDemoAction(action: String) {
         android.util.Log.i("DemoReceiver", "Executing demo action: $action")
-        window.decorView.post {
+        window.decorView.postDelayed({
             when (action) {
                 "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
                 "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
@@ -313,7 +313,7 @@ class FileListActivity : AppActivity() {
                 "ftp" -> startActivity(Intent(this, me.zhanghai.android.files.ftpserver.FtpServerActivity::class.java))
                 "about" -> startActivity(Intent(this, me.zhanghai.android.files.about.AboutActivity::class.java))
             }
-        }
+        }, 300)
     }
 
     private fun checkAndRequestStoragePermissions() {
