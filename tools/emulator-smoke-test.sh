@@ -75,9 +75,9 @@ capture_screen() {
     adb pull "/data/local/tmp/$filename" "screenshots/$filename" || true
 }
 
-# 2. Navigation Drawer (Side Menu with Storage & Bookmarks)
-capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG drawer" \
-    "02_navigation_drawer.png" "Navigation Drawer"
+# 2. MT More Options Menu (3-dots overflow popup)
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG more_menu" \
+    "02_more_options_menu.png" "MT More Options Menu"
 
 # 3. Create Item Choice Bottom Sheet
 capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG create_choice" \

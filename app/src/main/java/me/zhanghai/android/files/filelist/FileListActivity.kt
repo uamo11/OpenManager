@@ -135,10 +135,9 @@ class FileListActivity : AppActivity() {
         me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
 
         drawerLayout = findViewById(R.id.drawerLayout)
+        // Permanently lock closed activity drawer so swipe gestures to right never trigger a drawer
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         mainToolbar = findViewById(R.id.mainToolbar)
-        mainToolbar.setNavigationOnClickListener {
-            drawerLayout.openDrawer(GravityCompat.START)
-        }
 
         btnMainMore = findViewById(R.id.btnMainMore)
         btnMainMore.setOnClickListener {
@@ -289,8 +288,8 @@ class FileListActivity : AppActivity() {
         android.util.Log.i("DemoReceiver", "Executing demo action: $action")
         window.decorView.postDelayed({
             when (action) {
-                "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
-                "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
+                "drawer", "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
+                "close_drawer" -> {}
                 "create_choice" -> showCreateDialog()
                 "keystore" -> activeFragment.showKeystoreGeneratorDialog()
                 "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
@@ -690,8 +689,45 @@ class FileListActivity : AppActivity() {
                     }
                     true
                 }
+                R.id.mt_menu_ftp -> {
+                    startActivity(Intent(this, FtpServerActivity::class.java))
+                    true
+                }
+                R.id.mt_menu_text_editor -> {
+                    startActivity(Intent(this, TextEditorActivity::class.java))
+                    true
+                }
+                R.id.mt_menu_installed_apps -> {
+                    startActivity(Intent(this, InstalledAppsActivity::class.java))
+                    true
+                }
+                R.id.mt_menu_apktool -> {
+                    ApktoolHelper.showApktoolHubDialog(this, activeFragment.currentPath)
+                    true
+                }
+                R.id.mt_menu_keystore_generator -> {
+                    activeFragment.showKeystoreGeneratorDialog()
+                    true
+                }
+                R.id.mt_menu_add_storage -> {
+                    startActivity(AddStorageDialogActivity::class.createIntent())
+                    true
+                }
+                R.id.mt_menu_recycle_bin -> {
+                    val recyclePath = Settings.recycleBinDirectory
+                    val recycleDir = java.io.File(recyclePath.toString())
+                    if (!recycleDir.exists()) {
+                        recycleDir.mkdirs()
+                    }
+                    activeFragment.navigateTo(recyclePath)
+                    true
+                }
                 R.id.mt_menu_preferences -> {
                     startActivity(Intent(this, SettingsActivity::class.java))
+                    true
+                }
+                R.id.mt_menu_about -> {
+                    startActivity(Intent(this, AboutActivity::class.java))
                     true
                 }
                 R.id.mt_menu_exit -> {
@@ -1003,6 +1039,32 @@ class FileListActivity : AppActivity() {
             ) {
                 editText.setText("/")
                 editText.setSelection(editText.text?.length ?: 0)
+            })
+
+            val detectedVolumes = StorageVolumeListLiveData.valueCompat.filter {
+                !it.isPrimaryCompat && it.isMounted
+            }
+            for (volume in detectedVolumes) {
+                val volName = volume.getDescriptionCompat(context)
+                val volPath = volume.pathCompat
+                buttonBar.addView(createChip(
+                    volName,
+                    iconRes = R.drawable.sd_card_icon_white_24dp,
+                    iconTint = android.graphics.Color.parseColor("#AB47BC"),
+                    chipTextColor = android.graphics.Color.parseColor("#CE93D8")
+                ) {
+                    editText.setText(if (volPath.endsWith("/")) volPath else "$volPath/")
+                    editText.setSelection(editText.text?.length ?: 0)
+                })
+            }
+
+            buttonBar.addView(createChip(
+                "+ Almacenamiento",
+                iconRes = R.drawable.add_icon_white_24dp,
+                iconTint = android.graphics.Color.parseColor("#29B6F6"),
+                chipTextColor = android.graphics.Color.parseColor("#81D4FA")
+            ) {
+                startActivity(AddStorageDialogActivity::class.createIntent())
             })
 
             val hsv = android.widget.HorizontalScrollView(context).apply {

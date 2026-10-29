@@ -32,6 +32,41 @@
         android:title="Abrir terminal" />
 
     <item
+        android:id="@+id/mt_menu_ftp"
+        android:icon="@drawable/computer_icon_white_24dp"
+        android:title="Servidor FTP" />
+
+    <item
+        android:id="@+id/mt_menu_text_editor"
+        android:icon="@drawable/file_text_icon"
+        android:title="Editor de código" />
+
+    <item
+        android:id="@+id/mt_menu_installed_apps"
+        android:icon="@drawable/file_apk_icon"
+        android:title="Aplicaciones instaladas" />
+
+    <item
+        android:id="@+id/mt_menu_apktool"
+        android:icon="@drawable/ic_open_as_apk"
+        android:title="Herramientas APK / Apktool" />
+
+    <item
+        android:id="@+id/mt_menu_keystore_generator"
+        android:icon="@drawable/ic_open_as_signature"
+        android:title="Generador de Keystores (.jks)" />
+
+    <item
+        android:id="@+id/mt_menu_add_storage"
+        android:icon="@drawable/add_icon_white_24dp"
+        android:title="Añadir almacenamiento…" />
+
+    <item
+        android:id="@+id/mt_menu_recycle_bin"
+        android:icon="@drawable/delete_icon_white_24dp"
+        android:title="Papelera de reciclaje" />
+
+    <item
         android:id="@+id/mt_menu_hidden_files"
         android:icon="@drawable/visibility_icon_white_24dp"
         android:title="Archivos ocultos" />
@@ -60,6 +95,11 @@
         android:id="@+id/mt_menu_preferences"
         android:icon="@drawable/settings_icon_white_24dp"
         android:title="Ajustes" />
+
+    <item
+        android:id="@+id/mt_menu_about"
+        android:icon="@drawable/about_icon_white_24dp"
+        android:title="Acerca de OpenManager" />
 
     <item
         android:id="@+id/mt_menu_exit"

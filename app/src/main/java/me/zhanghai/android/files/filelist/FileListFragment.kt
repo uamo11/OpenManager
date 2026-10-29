@@ -384,13 +384,18 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         super.onActivityCreated(savedInstanceState)
 
         if (savedInstanceState == null) {
-            navigationFragment = NavigationFragment()
-            childFragmentManager.commit { add(R.id.navigationFragment, navigationFragment) }
+            if (activity !is FileListActivity) {
+                navigationFragment = NavigationFragment()
+                childFragmentManager.commit { add(R.id.navigationFragment, navigationFragment) }
+            }
         } else {
-            navigationFragment = childFragmentManager.findFragmentById(R.id.navigationFragment)
-                as NavigationFragment
+            childFragmentManager.findFragmentById(R.id.navigationFragment)?.let {
+                navigationFragment = it as NavigationFragment
+            }
         }
-        navigationFragment.listener = this
+        if (::navigationFragment.isInitialized) {
+            navigationFragment.listener = this
+        }
         val activity = requireActivity() as AppCompatActivity
         activity.setTitle(R.string.file_list_title)
         if (activity !is FileListActivity && activity.supportActionBar == null) {
@@ -399,8 +404,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (activity is FileListActivity) {
             setDualPaneUiMode(true)
         }
+        // Permanently lock closed any fragment drawer so swipe gestures to right never trigger a drawer
+        binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         binding.toolbar.setNavigationOnClickListener {
-            binding.drawerLayout?.openDrawer(GravityCompat.START)
+            if (activity !is FileListActivity) {
+                binding.drawerLayout?.openDrawer(GravityCompat.START)
+            }
         }
         overlayActionMode = OverlayToolbarActionMode(binding.overlayToolbar, binding.toolbar)
         bottomActionMode = PersistentBarLayoutToolbarActionMode(
@@ -2312,6 +2321,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.appBarLayout.isVisible = !enabled
         if (enabled) {
             binding.recyclerView.setPadding(0, 0, 0, 0)
+            binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
+            binding.navigationFragment?.isVisible = false
         }
     }
 
