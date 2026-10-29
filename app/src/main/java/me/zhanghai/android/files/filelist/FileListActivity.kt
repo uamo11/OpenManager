@@ -135,9 +135,10 @@ class FileListActivity : AppActivity() {
         me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
 
         drawerLayout = findViewById(R.id.drawerLayout)
-        // Permanently lock closed activity drawer so swipe gestures to right never trigger a drawer
-        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         mainToolbar = findViewById(R.id.mainToolbar)
+        mainToolbar.setNavigationOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
 
         btnMainMore = findViewById(R.id.btnMainMore)
         btnMainMore.setOnClickListener {
@@ -288,8 +289,9 @@ class FileListActivity : AppActivity() {
         android.util.Log.i("DemoReceiver", "Executing demo action: $action")
         window.decorView.postDelayed({
             when (action) {
-                "drawer", "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
-                "close_drawer" -> {}
+                "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
+                "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
+                "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
                 "create_choice" -> showCreateDialog()
                 "keystore" -> activeFragment.showKeystoreGeneratorDialog()
                 "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))

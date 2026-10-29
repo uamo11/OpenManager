@@ -26,7 +26,10 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:background="#151515"
-            app:contentInsetStart="12dp"
+            app:navigationIcon="@drawable/menu_icon_control_normal_24dp"
+            app:navigationIconTint="@android:color/white"
+            app:navigationContentDescription="@string/open_navigation_drawer"
+            app:contentInsetStartWithNavigation="0dp"
             app:contentInsetEnd="0dp">
 
             <LinearLayout
@@ -34,14 +37,6 @@
                 android:layout_height="match_parent"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
-
-                <ImageView
-                    android:id="@+id/ivAppLogo"
-                    android:layout_width="26dp"
-                    android:layout_height="26dp"
-                    android:layout_marginEnd="8dp"
-                    android:src="@drawable/ic_openmanager_logo"
-                    android:contentDescription="OpenManager" />
 
                 <LinearLayout
                     android:id="@+id/layoutPathTitle"
@@ -298,7 +293,6 @@
     <!-- MT-Style Navigation Drawer (Sliding 300dp from start) -->
     <LinearLayout
         android:id="@+id/navigationDrawerView"
-        android:visibility="gone"
         android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
