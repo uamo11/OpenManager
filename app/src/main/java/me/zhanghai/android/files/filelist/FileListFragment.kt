@@ -2322,7 +2322,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (enabled) {
             binding.recyclerView.setPadding(0, 0, 0, 0)
             binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-            binding.navigationFragment?.isVisible = false
+            binding.root.findViewById<View>(R.id.navigationFragment)?.isVisible = false
         }
     }
 
