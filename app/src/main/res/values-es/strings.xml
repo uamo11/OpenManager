@@ -1168,4 +1168,24 @@
     <string name="dex_copy_java">Copiar Java</string>
     <string name="dex_java_copied">Código Java copiado al portapapeles</string>
     <string name="dex_smali_copied">Código Smali copiado al portapapeles</string>
+    <!-- APK Quick Edit -->
+    <string name="apk_quick_edit">Edición rápida</string>
+    <string name="apk_quick_edit_desc">Modifica nombre, paquete, versión, SDKs e icono del APK</string>
+    <string name="apk_quick_edit_app_name">Nombre de la aplicación</string>
+    <string name="apk_quick_edit_package_name">Nombre del paquete</string>
+    <string name="apk_quick_edit_version_code">Código de versión</string>
+    <string name="apk_quick_edit_version_name">Nombre de versión</string>
+    <string name="apk_quick_edit_min_sdk">SDK Mínimo</string>
+    <string name="apk_quick_edit_target_sdk">SDK Objetivo</string>
+    <string name="apk_quick_edit_install_location">Ubicación de instalación</string>
+    <string name="apk_quick_edit_install_auto">Automático</string>
+    <string name="apk_quick_edit_install_internal">Solo interna</string>
+    <string name="apk_quick_edit_install_external">Preferir externa (SD)</string>
+    <string name="apk_quick_edit_install_default">Por defecto (Sin especificar)</string>
+    <string name="apk_quick_edit_change_icon">Cambiar icono del launcher</string>
+    <string name="apk_quick_edit_auto_sign">Firmar APK automáticamente</string>
+    <string name="apk_quick_edit_saving">Guardando modificaciones en APK…</string>
+    <string name="apk_quick_edit_success">APK modificado con éxito: %1$s</string>
+    <string name="apk_quick_edit_error">Error al modificar APK: %1$s</string>
+    <string name="apk_quick_edit_invalid_package">Nombre de paquete inválido. Debe tener el formato com.ejemplo.app</string>
 </resources>

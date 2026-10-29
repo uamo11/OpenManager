@@ -363,6 +363,18 @@ object MtFileMenuHelper {
         val isApk = !isDirectory && file.name.endsWith(".apk", ignoreCase = true)
         val isApktoolProj = isDirectory && ApktoolHelper.isApktoolProject(file.path)
 
+        // Edición Rápida de APK
+        val toolQuickEditApk = view.findViewById<LinearLayout>(R.id.toolQuickEditApk)
+        if (isApk && isSingleFile) {
+            toolQuickEditApk.isVisible = true
+            toolQuickEditApk.setOnClickListener {
+                dialog.dismiss()
+                ApkQuickEditDialogFragment.show(file, fragment)
+            }
+        } else {
+            toolQuickEditApk.isVisible = false
+        }
+
         // Descompilar APK (Apktool)
         val toolDecompileApk = view.findViewById<LinearLayout>(R.id.toolDecompileApk)
         if (isApk && isSingleFile) {

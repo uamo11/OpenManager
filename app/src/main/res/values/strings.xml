@@ -1272,4 +1272,24 @@
     <string name="dex_copy_java">Copy Java</string>
     <string name="dex_java_copied">Java code copied to clipboard</string>
     <string name="dex_smali_copied">Smali code copied to clipboard</string>
+    <!-- APK Quick Edit -->
+    <string name="apk_quick_edit">Quick Edit</string>
+    <string name="apk_quick_edit_desc">Modify package name, app label, version, SDK and launcher icon</string>
+    <string name="apk_quick_edit_app_name">App name</string>
+    <string name="apk_quick_edit_package_name">Package name</string>
+    <string name="apk_quick_edit_version_code">Version code</string>
+    <string name="apk_quick_edit_version_name">Version name</string>
+    <string name="apk_quick_edit_min_sdk">Minimum SDK</string>
+    <string name="apk_quick_edit_target_sdk">Target SDK</string>
+    <string name="apk_quick_edit_install_location">Install location</string>
+    <string name="apk_quick_edit_install_auto">Auto</string>
+    <string name="apk_quick_edit_install_internal">Internal only</string>
+    <string name="apk_quick_edit_install_external">Prefer external</string>
+    <string name="apk_quick_edit_install_default">Default (Unspecified)</string>
+    <string name="apk_quick_edit_change_icon">Change launcher icon</string>
+    <string name="apk_quick_edit_auto_sign">Sign APK automatically</string>
+    <string name="apk_quick_edit_saving">Saving APK modifications…</string>
+    <string name="apk_quick_edit_success">APK modified successfully: %1$s</string>
+    <string name="apk_quick_edit_error">Failed to modify APK: %1$s</string>
+    <string name="apk_quick_edit_invalid_package">Invalid package name. Must be in format com.example.app</string>
 </resources>

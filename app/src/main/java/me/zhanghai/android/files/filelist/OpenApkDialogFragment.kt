@@ -295,6 +295,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 optionsList.add(getString(R.string.install_root))
             }
             optionsList.addAll(listOf(
+                getString(R.string.apk_quick_edit),
                 "AntiSplit (Fusionar Splits)",
                 "Descompilar APK a Java (JADX)",
                 "Descompilar APK (Apktool)",
@@ -317,6 +318,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         getString(R.string.install_root) -> {
                             dialog.dismiss()
                             listener.installApkWithRoot(file)
+                        }
+                        getString(R.string.apk_quick_edit) -> {
+                            dialog.dismiss()
+                            ApkQuickEditDialogFragment.show(file, this)
                         }
                         "AntiSplit (Fusionar Splits)" -> {
                             dialog.dismiss()

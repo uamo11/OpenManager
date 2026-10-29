@@ -387,6 +387,35 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
+            <!-- Edición Rápida de APK -->
+            <LinearLayout
+                android:id="@+id/toolQuickEditApk"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivQuickEditApkIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/edit_icon"
+                    app:tint="#4CAF50" />
+
+                <TextView
+                    android:id="@+id/tvQuickEditApkLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:text="@string/apk_quick_edit"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
             <!-- Descompilar APK (Apktool) -->
             <LinearLayout
                 android:id="@+id/toolDecompileApk"
