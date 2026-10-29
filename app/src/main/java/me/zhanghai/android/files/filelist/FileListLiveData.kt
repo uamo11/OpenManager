@@ -8,12 +8,13 @@ package me.zhanghai.android.files.filelist
 import android.os.AsyncTask
 import java8.nio.file.DirectoryIteratorException
 import java8.nio.file.Path
+import java8.nio.file.Paths
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.file.loadFileItem
-import me.zhanghai.android.files.provider.common.Paths
 import me.zhanghai.android.files.provider.common.newDirectoryStream
 import me.zhanghai.android.files.provider.common.toByteString
+import me.zhanghai.android.files.provider.common.toFile
 import me.zhanghai.android.files.provider.linux.LinuxPath
 import me.zhanghai.android.files.util.CloseableLiveData
 import me.zhanghai.android.files.util.Failure
@@ -71,7 +72,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                 val files = localFile?.listFiles()
                 if (files != null && files.isNotEmpty()) {
                     for (file in files) {
-                        val childPath = (path as? LinuxPath)?.resolve(file.name.toByteString())
+                        val childPath: Path = (path as? LinuxPath)?.resolve(file.name.toByteString())
                             ?: Paths.get(file.absolutePath)
                         try {
                             fallbackList.add(childPath.loadFileItem())

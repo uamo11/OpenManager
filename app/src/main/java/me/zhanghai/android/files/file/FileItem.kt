@@ -51,16 +51,14 @@ data class FileItem(
 
 @Parcelize
 class FallbackBasicFileAttributes(
-    private val lastModified: FileTime,
-    private val lastAccess: FileTime,
-    private val creation: FileTime,
+    private val lastModifiedMillis: Long,
     private val fileType: BasicFileType,
     private val fileSize: Long,
     private val key: ByteString
 ) : AbstractBasicFileAttributes() {
-    override val lastModifiedTime: FileTime get() = lastModified
-    override val lastAccessTime: FileTime get() = lastAccess
-    override val creationTime: FileTime get() = creation
+    override val lastModifiedTime: FileTime get() = FileTime.fromMillis(lastModifiedMillis)
+    override val lastAccessTime: FileTime get() = FileTime.fromMillis(lastModifiedMillis)
+    override val creationTime: FileTime get() = FileTime.fromMillis(lastModifiedMillis)
     override val type: BasicFileType get() = fileType
     override val size: Long get() = fileSize
     override val fileKey: Parcelable get() = key
@@ -81,12 +79,9 @@ fun Path.createFallbackFileItem(localFile: java.io.File? = null): FileItem? {
             else -> BasicFileType.REGULAR_FILE
         }
         val lastModMs = file.lastModified().takeIf { it > 0 } ?: System.currentTimeMillis()
-        val fileTime = FileTime.fromMillis(lastModMs)
         val size = if (isDir) 0L else file.length()
         val attrs = FallbackBasicFileAttributes(
-            lastModified = fileTime,
-            lastAccess = fileTime,
-            creation = fileTime,
+            lastModifiedMillis = lastModMs,
             fileType = type,
             fileSize = size,
             key = this.toString().toByteString()
