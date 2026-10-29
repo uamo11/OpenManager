@@ -135,7 +135,7 @@ class DexClassEditorActivity : AppActivity() {
         binding.btnCopySmali.setOnClickListener {
             val code = binding.etSmaliCode.text.toString()
             clipboardManager.copyText(code, this)
-            Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.dex_smali_copied, Toast.LENGTH_SHORT).show()
         }
 
         binding.btnSaveSmali.setOnClickListener {
@@ -293,7 +293,7 @@ class DexClassEditorActivity : AppActivity() {
                 } else {
                     val code = binding.etSmaliCode.text.toString()
                     clipboardManager.copyText(code, this)
-                    Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.dex_smali_copied, Toast.LENGTH_SHORT).show()
                 }
                 return true
             }

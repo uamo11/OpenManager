@@ -312,7 +312,7 @@ class DexEditorActivity : AppActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dex_export_java_sources)
             .setMessage("¿Deseas descompilar y exportar todas las clases (${allClasses.size}) a código fuente Java (.zip) usando JADX?")
-            .setPositiveButton(R.string.ok) { _, _ ->
+            .setPositiveButton(android.R.string.ok) { _, _ ->
                 val baseName = path.fileName.toString().removeSuffix(".dex").removeSuffix(".apk")
                 val parentDir = if (path.isLinuxPath) path.toFile().parentFile ?: cacheDir else cacheDir
                 val outZip = File(parentDir, "${baseName}_java_sources.zip")

@@ -1167,4 +1167,5 @@
     <string name="dex_decompile_success">Fuentes Java exportadas con éxito: %1$s</string>
     <string name="dex_copy_java">Copiar Java</string>
     <string name="dex_java_copied">Código Java copiado al portapapeles</string>
+    <string name="dex_smali_copied">Código Smali copiado al portapapeles</string>
 </resources>

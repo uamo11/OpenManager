@@ -1271,4 +1271,5 @@
     <string name="dex_decompile_success">Java sources exported successfully: %1$s</string>
     <string name="dex_copy_java">Copy Java</string>
     <string name="dex_java_copied">Java code copied to clipboard</string>
+    <string name="dex_smali_copied">Smali code copied to clipboard</string>
 </resources>
