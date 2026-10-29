@@ -1147,4 +1147,13 @@
     <string name="hex_editor_count_hint">Cantidad de bytes</string>
     <string name="hex_editor_start_offset_hint">Desplazamiento inicial (0x…)</string>
     <string name="hex_editor_end_offset_hint">Desplazamiento final (0x…)</string>
+    <!-- AntiSplit / Merge APKs -->
+    <string name="antisplit_title">AntiSplit (Fusionar APKs)</string>
+    <string name="antisplit_merge">AntiSplit (Fusionar en APK único)</string>
+    <string name="action_antisplit_merge">AntiSplit / Fusionar APKs</string>
+    <string name="antisplit_extract_merged">AntiSplit (Fusionar y Guardar APK)</string>
+    <string name="antisplit_extract_apks">Extraer como APKS (Dividido)</string>
+    <string name="antisplit_merging_progress">Fusionando APKs divididas en un APK autónomo…</string>
+    <string name="antisplit_success">APK fusionado creado con éxito: %1$s</string>
+    <string name="antisplit_dialog_prompt">¿Deseas fusionar los %1$d archivos APK seleccionados en un único archivo APK?</string>
 </resources>

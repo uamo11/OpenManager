@@ -97,6 +97,27 @@ object ApkSignerHelper {
         return Pair(privateKey, cert)
     }
 
+    fun signFileDirect(
+        inputFile: File,
+        outputFile: File,
+        scheme: SignScheme = SignScheme.V1_AND_V2,
+        customKey: Pair<PrivateKey, X509Certificate>? = null
+    ) {
+        val (privateKey, cert) = customKey ?: getTestKeyPair()
+        val signerConfig = ApkSigner.SignerConfig.Builder("CERT", privateKey, listOf(cert)).build()
+        val v1 = scheme == SignScheme.V1_AND_V2 || scheme == SignScheme.V1_ONLY
+        val v2 = scheme == SignScheme.V1_AND_V2 || scheme == SignScheme.V2_ONLY
+        val v3 = scheme == SignScheme.V1_AND_V2
+        ApkSigner.Builder(listOf(signerConfig))
+            .setInputApk(inputFile)
+            .setOutputApk(outputFile)
+            .setV1SigningEnabled(v1)
+            .setV2SigningEnabled(v2)
+            .setV3SigningEnabled(v3)
+            .build()
+            .sign()
+    }
+
     fun signApk(
         activity: Activity,
         apkPath: Path,

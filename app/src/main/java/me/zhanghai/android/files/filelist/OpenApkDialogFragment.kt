@@ -288,6 +288,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 optionsList.add(getString(R.string.install_root))
             }
             optionsList.addAll(listOf(
+                "AntiSplit (Fusionar Splits)",
                 "Descompilar APK (Apktool)",
                 getString(R.string.apk_sign),
                 "Verificar firma",
@@ -308,6 +309,19 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         getString(R.string.install_root) -> {
                             dialog.dismiss()
                             listener.installApkWithRoot(file)
+                        }
+                        "AntiSplit (Fusionar Splits)" -> {
+                            dialog.dismiss()
+                            val fragment = (activity as? FileListActivity)?.activeFragment
+                            if (fragment != null) {
+                                val allApks = (0 until fragment.itemCountSafe()).mapNotNull { fragment.getItemSafe(it) }
+                                    .filter { it.name.endsWith(".apk", ignoreCase = true) }
+                                if (allApks.size > 1) {
+                                    fragment.showAntiSplitDialogForFiles(allApks)
+                                } else {
+                                    Toast.makeText(context, "No se encontraron otros splits en este directorio", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         }
                         "Descompilar APK (Apktool)" -> {
                             dialog.dismiss()

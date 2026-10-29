@@ -639,15 +639,50 @@ class InstalledAppsActivity : AppActivity() {
         }
 
         val safeLabel = app.label.replace(Regex("[\\\\/:*?\"<>|\\s]"), "_")
-        val extension = if (app.isSplit) "apks" else "apk"
+
+        if (app.isSplit) {
+            val options = arrayOf(
+                getString(R.string.antisplit_extract_merged),
+                getString(R.string.antisplit_extract_apks)
+            )
+            MaterialAlertDialogBuilder(this)
+                .setTitle(app.label)
+                .setItems(options) { _, which ->
+                    performExtractApp(app, targetDir, safeLabel, mergeAntiSplit = (which == 0))
+                }
+                .show()
+            return
+        }
+
+        performExtractApp(app, targetDir, safeLabel, mergeAntiSplit = false)
+    }
+
+    private fun performExtractApp(
+        app: AppModel,
+        targetDir: File,
+        safeLabel: String,
+        mergeAntiSplit: Boolean
+    ) {
+        val extension = if (app.isSplit && !mergeAntiSplit) "apks" else "apk"
         val destFile = File(targetDir, "${safeLabel}_v${app.versionName}.$extension")
 
-        Toast.makeText(this, "Extrayendo ${app.label}...", Toast.LENGTH_SHORT).show()
+        val message = if (mergeAntiSplit) {
+            getString(R.string.antisplit_merging_progress)
+        } else {
+            "Extrayendo ${app.label}..."
+        }
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         binding.progressBar.visibility = View.VISIBLE
 
         lifecycleScope.launch(Dispatchers.IO) {
             val success = try {
-                if (app.isSplit) {
+                if (mergeAntiSplit) {
+                    me.zhanghai.android.files.filelist.AntiSplitEngine.mergeInstalledApp(
+                        context = this@InstalledAppsActivity,
+                        app = app,
+                        outputFile = destFile
+                    )
+                } else if (app.isSplit) {
                     extractSplitApk(app, destFile)
                 } else {
                     extractSingleApk(app.sourceDir, destFile)

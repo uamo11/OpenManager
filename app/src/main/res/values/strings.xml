@@ -1251,4 +1251,13 @@
     <string name="hex_editor_count_hint">Byte count</string>
     <string name="hex_editor_start_offset_hint">Start offset (0x…)</string>
     <string name="hex_editor_end_offset_hint">End offset (0x…)</string>
+    <!-- AntiSplit / Merge APKs -->
+    <string name="antisplit_title">AntiSplit (Merge APKs)</string>
+    <string name="antisplit_merge">AntiSplit (Merge to APK)</string>
+    <string name="action_antisplit_merge">AntiSplit / Merge APKs</string>
+    <string name="antisplit_extract_merged">AntiSplit (Merge and Save APK)</string>
+    <string name="antisplit_extract_apks">Extract as APKS (Splits)</string>
+    <string name="antisplit_merging_progress">Merging split APKs into standalone APK…</string>
+    <string name="antisplit_success">Merged APK successfully created: %1$s</string>
+    <string name="antisplit_dialog_prompt">Do you want to merge %1$d selected APK splits into a single APK?</string>
 </resources>

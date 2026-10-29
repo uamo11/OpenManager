@@ -169,7 +169,7 @@ import me.zhanghai.android.files.storage.Storages
 import me.zhanghai.android.files.viewer.image.ImageViewerActivity
 
 class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.Listener,
-    ConfirmReplaceFileDialogFragment.Listener, OpenApkDialogFragment.Listener,
+    ConfirmReplaceFileDialogFragment.Listener, OpenApkDialogFragment.Listener, SplitApkDialogFragment.Listener,
     ConfirmDeleteFilesDialogFragment.Listener, CreateArchiveDialogFragment.Listener,
     RenameFileDialogFragment.Listener, CreateFileDialogFragment.Listener,
     CreateDirectoryDialogFragment.Listener, NavigateToPathDialogFragment.Listener,
@@ -1321,6 +1321,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             menu.findItem(R.id.action_archive).isVisible = !isCurrentPathReadOnly
             menu.findItem(R.id.action_swap_file_names)?.isVisible = !isAnyFileReadOnly && (files.size == 2 || files.size == 1)
             menu.findItem(R.id.action_export_file_list)?.isVisible = true
+            val areAllFilesApk = files.isNotEmpty() && files.all { it.name.endsWith(".apk", ignoreCase = true) }
+            val hasSplitArchive = files.any {
+                it.name.endsWith(".apks", true) || it.name.endsWith(".xapk", true) || it.name.endsWith(".apkm", true)
+            }
+            menu.findItem(R.id.action_antisplit_merge)?.isVisible = !isCurrentPathReadOnly && (areAllFilesApk || hasSplitArchive)
         }
         if (!overlayActionMode.isActive) {
             binding.appBarLayout.setExpanded(true)
@@ -1390,6 +1395,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             }
             R.id.action_select_all -> {
                 selectAllFiles()
+                true
+            }
+            R.id.action_antisplit_merge -> {
+                val selected = overlayActionMode.selectedFiles.toList()
+                overlayActionMode.finish()
+                showAntiSplitDialogForFiles(selected)
                 true
             }
             R.id.action_swap_file_names -> {
@@ -1703,6 +1714,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val fileName = file.name
         val pathName = file.path.fileName?.toString() ?: ""
         val pathString = file.path.toString()
+        val ext = file.extension.lowercase()
+
+        val isSplitApk = ext in setOf("apks", "xapk", "apkm") ||
+            fileName.endsWith(".apks", ignoreCase = true) ||
+            fileName.endsWith(".xapk", ignoreCase = true) ||
+            fileName.endsWith(".apkm", ignoreCase = true)
+        if (isSplitApk) {
+            SplitApkDialogFragment.show(file, this)
+            return
+        }
+
         val isApk = file.mimeType.isApk ||
             fileName.endsWith(".apk", ignoreCase = true) ||
             pathName.endsWith(".apk", ignoreCase = true) ||
@@ -2372,6 +2394,124 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (isGranted) {
             viewModel.isNotificationPermissionRequested = false
         }
+    }
+
+    fun itemCountSafe(): Int = if (::adapter.isInitialized) adapter.itemCount else 0
+
+    fun getItemSafe(position: Int): FileItem? =
+        if (::adapter.isInitialized && position in 0 until adapter.itemCount) adapter.getItem(position) else null
+
+    fun showAntiSplitDialogForFiles(selectedFiles: List<FileItem>) {
+        if (selectedFiles.isEmpty()) return
+        if (selectedFiles.size == 1) {
+            val single = selectedFiles.first()
+            if (single.name.endsWith(".apks", true) || single.name.endsWith(".xapk", true) || single.name.endsWith(".apkm", true)) {
+                SplitApkDialogFragment.show(single, this)
+                return
+            }
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.antisplit_title)
+            .setMessage(getString(R.string.antisplit_dialog_prompt, selectedFiles.size))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.antisplit_merge) { _, _ ->
+                performMergeApkFiles(selectedFiles)
+            }
+            .show()
+    }
+
+    private fun performMergeApkFiles(selectedFiles: List<FileItem>) {
+        val activity = requireActivity()
+        val progressDialog = MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.antisplit_title)
+            .setMessage(getString(R.string.antisplit_merging_progress))
+            .setCancelable(false)
+            .show()
+
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+            val tempDir = File(activity.cacheDir, "antisplit_batch_${System.currentTimeMillis()}")
+            tempDir.mkdirs()
+            try {
+                val localFiles = mutableListOf<File>()
+                for (item in selectedFiles) {
+                    val localFile = if (!item.path.isLinuxPath) {
+                        val temp = File(tempDir, item.name)
+                        item.path.newInputStream().use { ins ->
+                            FileOutputStream(temp).use { outs -> ins.copyTo(outs) }
+                        }
+                        temp
+                    } else {
+                        File(item.path.toString())
+                    }
+                    localFiles.add(localFile)
+                }
+
+                val parentDir = if (selectedFiles.first().path.isLinuxPath) {
+                    File(selectedFiles.first().path.toString()).parentFile ?: activity.cacheDir
+                } else {
+                    activity.cacheDir
+                }
+
+                val baseName = selectedFiles.find { it.name.contains("base", ignoreCase = true) }?.name?.substringBeforeLast('.')
+                    ?: selectedFiles.first().name.substringBeforeLast('.')
+                val outputFile = File(parentDir, "${baseName}_merged.apk")
+
+                val success = AntiSplitEngine.mergeFiles(
+                    context = activity,
+                    apkFiles = localFiles,
+                    outputFile = outputFile,
+                    logger = { msg ->
+                        activity.runOnUiThread {
+                            progressDialog.setMessage(msg)
+                        }
+                    }
+                )
+
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    if (success && outputFile.exists() && outputFile.length() > 0) {
+                        reload()
+                        val snackbar = com.google.android.material.snackbar.Snackbar.make(
+                            activity.findViewById(android.R.id.content),
+                            getString(R.string.antisplit_success, outputFile.name),
+                            com.google.android.material.snackbar.Snackbar.LENGTH_LONG
+                        )
+                        snackbar.setAction(R.string.install) {
+                            installApkFile(outputFile)
+                        }
+                        snackbar.show()
+                    } else {
+                        Toast.makeText(activity, "Error durante la fusión AntiSplit", Toast.LENGTH_LONG).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(activity, "Fallo: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } finally {
+                tempDir.deleteRecursively()
+            }
+        }
+    }
+
+    fun installApkFile(file: File) {
+        val uri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+            androidx.core.content.FileProvider.getUriForFile(
+                requireContext(),
+                requireContext().packageName + ".file_provider",
+                file
+            )
+        } else {
+            android.net.Uri.fromFile(file)
+        }
+        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, "application/vnd.android.package-archive")
+            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        startActivitySafe(intent)
     }
 
     companion object {

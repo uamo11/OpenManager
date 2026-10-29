@@ -70,6 +70,7 @@ Este documento contiene la matriz exhaustiva de paridad de funciones entre **MT 
 | Firma de APK (V1, V2, V3) y Zipalign | ✅ | `filelist/ApkSignerHelper.kt` | Firma integrada con Android v1/v2/v3 y alineación a 4 bytes. |
 | Visor de información detallada de APK | ✅ | `filelist/OpenApkDialogFragment.kt` | Package, versionCode, versionName, SDKs, permisos, UID y rutas. |
 | Extracción y visor de icono de APK | ✅ | `filelist/OpenApkDialogFragment.kt#showAppIconViewer` | Permite visualizar y guardar el icono original en PNG. |
+| AntiSplit / Fusionar Split APKs a APK único | ✅ | `filelist/AntiSplitEngine.kt`, `SplitApkDialogFragment.kt` | Fusión completa de recursos, dex y manifiesto con saneamiento y firma V1-V3 automática. |
 | Instalador integrado de APK y APKS divididos | ✅ | `filelist/ApkInstallHelper.kt` | Uso de `PackageInstaller.Session` con soporte para Split APKs y Root. |
 | Editor DEX / DEX Plus (Smali) | ✅ | `viewer/dex/DexEditorActivity.kt`, `DexEngine.kt` | Desensamblado a Smali con Baksmali, navegación de clases/métodos/campos/strings, edición y reensamblado con Smali. |
 | Decodificador de AndroidManifest binario (AXML) | ✅ | `file/AxmlDecoder.kt` | Descompilación de binario AXML a XML legible en TextEditor y visualizador. |

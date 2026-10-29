@@ -65,6 +65,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_antisplit_merge"
+        android:orderInCategory="100"
+        android:title="@string/action_antisplit_merge"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_swap_file_names"
         android:orderInCategory="100"
         android:title="@string/action_swap_file_names"

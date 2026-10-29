@@ -68,6 +68,10 @@
         android:title="@string/action_split_file" />
 
     <item
+        android:id="@+id/action_antisplit_merge"
+        android:title="@string/action_antisplit_merge" />
+
+    <item
         android:id="@+id/action_merge_files"
         android:title="@string/action_merge_files" />
 
