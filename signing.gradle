@@ -1,5 +1,10 @@
 android {
     signingConfigs {
+        def defaultStoreFile = rootProject.file('keystore/openmanager.jks')
+        def defaultStorePassword = 'openmanager'
+        def defaultKeyAlias = 'openmanager'
+        def defaultKeyPassword = 'openmanager'
+
         release {
             def properties
             def propertiesFile = rootProject.file('signing.properties')
@@ -12,14 +17,26 @@ android {
             }
 
             def storeFilePath = getString('storeFile', 'STORE_FILE')
-            if (storeFilePath) {
-                def file = rootProject.file(storeFilePath)
-                if (file.exists()) {
-                    storeFile file
-                    storePassword getString('storePassword', 'STORE_PASSWORD')
-                    keyAlias getString('keyAlias', 'KEY_ALIAS')
-                    keyPassword getString('keyPassword', 'KEY_PASSWORD')
-                }
+            if (storeFilePath && rootProject.file(storeFilePath).exists()) {
+                storeFile rootProject.file(storeFilePath)
+                storePassword getString('storePassword', 'STORE_PASSWORD')
+                keyAlias getString('keyAlias', 'KEY_ALIAS')
+                keyPassword getString('keyPassword', 'KEY_PASSWORD')
+            } else if (defaultStoreFile.exists()) {
+                storeFile defaultStoreFile
+                storePassword defaultStorePassword
+                keyAlias defaultKeyAlias
+                keyPassword defaultKeyPassword
+            }
+        }
+
+        debug {
+            // Share the same permanent project key for debug so installs/updates never conflict
+            if (defaultStoreFile.exists()) {
+                storeFile defaultStoreFile
+                storePassword defaultStorePassword
+                keyAlias defaultKeyAlias
+                keyPassword defaultKeyPassword
             }
         }
     }
