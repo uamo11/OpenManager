@@ -363,6 +363,30 @@ object MtFileMenuHelper {
         val isApk = !isDirectory && file.name.endsWith(".apk", ignoreCase = true)
         val isApktoolProj = isDirectory && ApktoolHelper.isApktoolProject(file.path)
 
+        // Inyector de Toast y Diálogo
+        val toolInjectToast = view.findViewById<LinearLayout>(R.id.toolInjectToast)
+        if (isApk && isSingleFile) {
+            toolInjectToast.isVisible = true
+            toolInjectToast.setOnClickListener {
+                dialog.dismiss()
+                ToastDialogInjectDialogFragment.show(file, fragment)
+            }
+        } else {
+            toolInjectToast.isVisible = false
+        }
+
+        // Limpiador de Toasts y Diálogos
+        val toolCleanToasts = view.findViewById<LinearLayout>(R.id.toolCleanToasts)
+        if (isApk && isSingleFile) {
+            toolCleanToasts.isVisible = true
+            toolCleanToasts.setOnClickListener {
+                dialog.dismiss()
+                ToastDialogCleanDialogFragment.show(file, fragment)
+            }
+        } else {
+            toolCleanToasts.isVisible = false
+        }
+
         // Edición Rápida de APK
         val toolQuickEditApk = view.findViewById<LinearLayout>(R.id.toolQuickEditApk)
         if (isApk && isSingleFile) {

@@ -1190,4 +1190,30 @@
     <string name="apk_quick_edit_success">APK modificado con éxito: %1$s</string>
     <string name="apk_quick_edit_error">Error al modificar APK: %1$s</string>
     <string name="apk_quick_edit_invalid_package">Nombre de paquete inválido. Debe tener el formato com.ejemplo.app</string>
+    <!-- Inyector y Limpiador de Toasts / Diálogos -->
+    <string name="toast_dialog_inject_title">Inyectar Toast / Diálogo</string>
+    <string name="toast_dialog_clean_title">Limpiar Toasts y Diálogos</string>
+    <string name="toast_dialog_tab_toast">Toast</string>
+    <string name="toast_dialog_tab_dialog">Diálogo</string>
+    <string name="toast_dialog_toast_message">Mensaje del Toast</string>
+    <string name="toast_dialog_duration">Duración</string>
+    <string name="toast_dialog_duration_short">Corta (2s)</string>
+    <string name="toast_dialog_duration_long">Larga (3.5s)</string>
+    <string name="toast_dialog_dialog_title">Título del diálogo</string>
+    <string name="toast_dialog_dialog_message">Mensaje del diálogo</string>
+    <string name="toast_dialog_positive_btn">Botón positivo</string>
+    <string name="toast_dialog_positive_url">Enlace / URL del botón (Opcional)</string>
+    <string name="toast_dialog_negative_btn">Botón negativo (Opcional)</string>
+    <string name="toast_dialog_cancelable">Cancelable</string>
+    <string name="toast_dialog_target_activity">Actividad objetivo</string>
+    <string name="toast_dialog_inject_btn">Inyectar y Guardar APK</string>
+    <string name="toast_dialog_clean_toasts">Limpiar llamadas a Toasts (Toast.show)</string>
+    <string name="toast_dialog_clean_dialogs">Limpiar alertas emergentes (AlertDialog.show)</string>
+    <string name="toast_dialog_clean_desc">Neutraliza toasts molestos, publicidad, ventanas de Telegram y alertas emergentes directamente del bytecode.</string>
+    <string name="toast_dialog_inject_progress">Inyectando en APK…</string>
+    <string name="toast_dialog_clean_progress">Escaneando y neutralizando Toasts y Diálogos…</string>
+    <string name="toast_dialog_inject_success">Inyección completada con éxito: %1$s</string>
+    <string name="toast_dialog_clean_success">Se neutralizaron %1$d toasts y %2$d diálogos en %3$d archivos DEX: %4$s</string>
+    <string name="toast_dialog_error">Error en la operación: %1$s</string>
+    <string name="toast_dialog_no_calls_found">No se encontraron llamadas a Toasts ni Diálogos en este APK.</string>
 </resources>

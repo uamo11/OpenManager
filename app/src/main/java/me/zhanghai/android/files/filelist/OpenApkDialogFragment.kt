@@ -305,6 +305,8 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 "AntiSplit (Fusionar Splits)",
                 "Descompilar APK a Java (JADX)",
                 "Descompilar APK (Apktool)",
+                getString(R.string.toast_dialog_inject_title),
+                getString(R.string.toast_dialog_clean_title),
                 getString(R.string.apk_sign),
                 "Verificar firma",
                 "Copiar nombre del paquete",
@@ -353,6 +355,14 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                     (activity as? FileListActivity)?.activeFragment?.reload()
                                 }
                             }
+                        }
+                        getString(R.string.toast_dialog_inject_title) -> {
+                            dialog.dismiss()
+                            ToastDialogInjectDialogFragment.show(file, this)
+                        }
+                        getString(R.string.toast_dialog_clean_title) -> {
+                            dialog.dismiss()
+                            ToastDialogCleanDialogFragment.show(file, this)
                         }
                         getString(R.string.apk_sign) -> {
                             dialog.dismiss()

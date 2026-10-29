@@ -1294,4 +1294,30 @@
     <string name="apk_quick_edit_success">APK modified successfully: %1$s</string>
     <string name="apk_quick_edit_error">Failed to modify APK: %1$s</string>
     <string name="apk_quick_edit_invalid_package">Invalid package name. Must be in format com.example.app</string>
+    <!-- Toast & Dialog Injector & Cleaner -->
+    <string name="toast_dialog_inject_title">Inject Toast / Dialog</string>
+    <string name="toast_dialog_clean_title">Clean Toasts &amp; Dialogs</string>
+    <string name="toast_dialog_tab_toast">Toast</string>
+    <string name="toast_dialog_tab_dialog">Dialog</string>
+    <string name="toast_dialog_toast_message">Toast message</string>
+    <string name="toast_dialog_duration">Duration</string>
+    <string name="toast_dialog_duration_short">Short (2s)</string>
+    <string name="toast_dialog_duration_long">Long (3.5s)</string>
+    <string name="toast_dialog_dialog_title">Dialog title</string>
+    <string name="toast_dialog_dialog_message">Dialog message</string>
+    <string name="toast_dialog_positive_btn">Positive button</string>
+    <string name="toast_dialog_positive_url">Button URL / Link (Optional)</string>
+    <string name="toast_dialog_negative_btn">Negative button (Optional)</string>
+    <string name="toast_dialog_cancelable">Cancelable</string>
+    <string name="toast_dialog_target_activity">Target activity</string>
+    <string name="toast_dialog_inject_btn">Inject and Save APK</string>
+    <string name="toast_dialog_clean_toasts">Clean all Toasts (Toast.show)</string>
+    <string name="toast_dialog_clean_dialogs">Clean all Dialogs (AlertDialog.show)</string>
+    <string name="toast_dialog_clean_desc">Removes unwanted startup toasts, ads, telegram popups and nagging alerts directly from bytecode.</string>
+    <string name="toast_dialog_inject_progress">Injecting into APK…</string>
+    <string name="toast_dialog_clean_progress">Scanning and neutralizing Toasts &amp; Dialogs…</string>
+    <string name="toast_dialog_inject_success">Injected successfully: %1$s</string>
+    <string name="toast_dialog_clean_success">Cleaned %1$d toasts and %2$d dialogs across %3$d DEX files: %4$s</string>
+    <string name="toast_dialog_error">Operation failed: %1$s</string>
+    <string name="toast_dialog_no_calls_found">No Toast or Dialog calls were found in this APK.</string>
 </resources>

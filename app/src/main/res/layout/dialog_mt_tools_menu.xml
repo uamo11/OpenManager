@@ -387,6 +387,64 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
+            <!-- Inyector de Toast y Diálogo -->
+            <LinearLayout
+                android:id="@+id/toolInjectToast"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivInjectToastIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/notification_icon_white_24dp"
+                    app:tint="#FFCA28" />
+
+                <TextView
+                    android:id="@+id/tvInjectToastLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:text="@string/toast_dialog_inject_title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <!-- Limpiador de Toasts y Diálogos -->
+            <LinearLayout
+                android:id="@+id/toolCleanToasts"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivCleanToastsIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/delete_icon_white_24dp"
+                    app:tint="#EF5350" />
+
+                <TextView
+                    android:id="@+id/tvCleanToastsLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:text="@string/toast_dialog_clean_title"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
             <!-- Edición Rápida de APK -->
             <LinearLayout
                 android:id="@+id/toolQuickEditApk"
