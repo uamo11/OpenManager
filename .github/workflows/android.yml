@@ -9,6 +9,7 @@ on:
 
 jobs:
   build:
+    name: Build & Unit Tests
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository
@@ -69,3 +70,56 @@ jobs:
         name: unit-test-results
         path: app/build/reports/tests/testDebugUnitTest/
         retention-days: 5
+
+  emulator-test:
+    name: Android Emulator Verification & Performance
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Download Debug APK
+      uses: actions/download-artifact@v4
+      with:
+        name: OpenManager-debug.apk
+        path: apk-to-test/
+
+    - name: Grant execute permission for test scripts
+      run: chmod +x tools/emulator-smoke-test.sh
+
+    - name: Enable KVM group perms
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    - name: Run Verification on Android Emulator
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 29
+        target: default
+        arch: x86_64
+        profile: pixel_6
+        disable-animations: true
+        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
+        script: ./tools/emulator-smoke-test.sh
+
+    - name: Upload Live Emulator Screenshot
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: emulator-screenshot
+        path: emulator-screenshot.png
+        retention-days: 10
+
+    - name: Upload Performance Report & Logcat
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: emulator-performance-and-logs
+        path: |
+          emulator-performance.txt
+          emulator-logcat.log
+        retention-days: 10
