@@ -259,16 +259,16 @@ class FileListActivity : AppActivity() {
         window.decorView.postDelayed({
             when (action) {
                 "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
-                "create_choice" -> showCreateChoiceDialog()
+                "create_choice" -> showCreateDialog()
                 "keystore" -> activeFragment.showKeystoreGeneratorDialog()
                 "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
                 "editor" -> {
                     try {
-                        val samplePath = java8.nio.file.Paths.get("/sdcard/Download/sample_test.kt")
-                        if (!java8.nio.file.Files.exists(samplePath)) {
-                            val code = "// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n"
-                            java8.nio.file.Files.write(samplePath, code.toByteArray())
+                        val sampleFile = java.io.File(filesDir, "sample_test.kt")
+                        if (!sampleFile.exists()) {
+                            sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
                         }
+                        val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
                         val editIntent = Intent(this, me.zhanghai.android.files.viewer.text.TextEditorActivity::class.java).apply {
                             extraPath = samplePath
                         }
