@@ -14,7 +14,6 @@ import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.file.loadFileItem
 import me.zhanghai.android.files.provider.common.newDirectoryStream
 import me.zhanghai.android.files.provider.common.toByteString
-import me.zhanghai.android.files.provider.common.toFile
 import me.zhanghai.android.files.provider.linux.LinuxPath
 import me.zhanghai.android.files.util.CloseableLiveData
 import me.zhanghai.android.files.util.Failure

@@ -86,7 +86,6 @@ import me.zhanghai.android.files.file.isImage
 import me.zhanghai.android.files.file.isPdf
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.isWritable
-import me.zhanghai.android.files.provider.common.toFile
 import me.zhanghai.android.files.provider.linux.LinuxPath
 import me.zhanghai.android.files.viewer.audio.AudioPlayerDialogFragment
 import me.zhanghai.android.files.viewer.binary.ArscInfoDialogFragment
