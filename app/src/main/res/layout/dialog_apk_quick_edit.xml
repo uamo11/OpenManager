@@ -237,6 +237,24 @@
                 android:textColor="?android:attr/textColorPrimary"
                 android:textSize="14sp" />
 
+            <!-- Debuggable checkbox -->
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbDebuggable"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/apk_quick_edit_debuggable"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp" />
+
+            <!-- Extract native libs checkbox -->
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbExtractNativeLibs"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/apk_quick_edit_extract_native_libs"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="14sp" />
+
         </LinearLayout>
 
     </LinearLayout>

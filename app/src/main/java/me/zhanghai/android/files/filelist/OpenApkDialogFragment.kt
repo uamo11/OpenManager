@@ -90,6 +90,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         val tvUid = view.findViewById<TextView>(R.id.tvApkUid)
 
         val btnFunction = view.findViewById<Button>(R.id.btnApkFunction)
+        val btnQuickEdit = view.findViewById<Button>(R.id.btnApkQuickEdit)
         val btnView = view.findViewById<Button>(R.id.btnApkView)
         val btnRootInstall = view.findViewById<Button>(R.id.btnApkRootInstall)
         val btnInstall = view.findViewById<Button>(R.id.btnApkInstall)
@@ -285,6 +286,11 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             } else {
                 listener.installApk(file)
             }
+        }
+
+        btnQuickEdit?.setOnClickListener {
+            dialog.dismiss()
+            ApkQuickEditDialogFragment.show(file, this)
         }
 
         btnFunction.setOnClickListener {

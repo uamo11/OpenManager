@@ -23,7 +23,9 @@ object ApkQuickEditEngine {
         val minSdkVersion: Int,
         val targetSdkVersion: Int,
         val installLocation: Int?,
-        val iconResourceId: Int = 0
+        val iconResourceId: Int = 0,
+        val isDebuggable: Boolean = false,
+        val isExtractNativeLibs: Boolean? = null
     )
 
     data class QuickEditOptions(
@@ -35,6 +37,8 @@ object ApkQuickEditEngine {
         val targetSdkVersion: Int? = null,
         val installLocation: Int? = null,
         val newIconBytes: ByteArray? = null,
+        val debuggable: Boolean? = null,
+        val extractNativeLibs: Boolean? = null,
         val autoSign: Boolean = true,
         val signingScheme: ApkSignerHelper.SignScheme = ApkSignerHelper.SignScheme.V1_AND_V2
     )
@@ -69,6 +73,8 @@ object ApkQuickEditEngine {
             val installLoc = installAttr?.data
 
             val iconResId = manifest.iconResourceId
+            val isDebug = try { manifest.isDebuggable } catch (e: Exception) { false }
+            val isExtractNative = try { manifest.isExtractNativeLibs } catch (e: Exception) { null }
 
             return QuickEditInfo(
                 appName = appName,
@@ -78,7 +84,9 @@ object ApkQuickEditEngine {
                 minSdkVersion = minSdk,
                 targetSdkVersion = targetSdk,
                 installLocation = installLoc,
-                iconResourceId = iconResId
+                iconResourceId = iconResId,
+                isDebuggable = isDebug,
+                isExtractNativeLibs = isExtractNative
             )
         }
     }
@@ -132,6 +140,13 @@ object ApkQuickEditEngine {
                         val attr = root.searchAttributeByResourceId(ATTR_INSTALL_LOCATION)
                         attr?.removeSelf()
                     }
+                }
+
+                options.debuggable?.let { debug ->
+                    try { manifest.isDebuggable = debug } catch (ignored: Exception) {}
+                }
+                options.extractNativeLibs?.let { extract ->
+                    try { manifest.isExtractNativeLibs = extract } catch (ignored: Exception) {}
                 }
 
                 // Replace launcher icon if new bytes are provided

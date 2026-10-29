@@ -1184,6 +1184,8 @@
     <string name="apk_quick_edit_install_default">Por defecto (Sin especificar)</string>
     <string name="apk_quick_edit_change_icon">Cambiar icono del launcher</string>
     <string name="apk_quick_edit_auto_sign">Firmar APK automáticamente</string>
+    <string name="apk_quick_edit_debuggable">Habilitar depuración (android:debuggable)</string>
+    <string name="apk_quick_edit_extract_native_libs">Extraer librerías nativas (extractNativeLibs)</string>
     <string name="apk_quick_edit_saving">Guardando modificaciones en APK…</string>
     <string name="apk_quick_edit_success">APK modificado con éxito: %1$s</string>
     <string name="apk_quick_edit_error">Error al modificar APK: %1$s</string>

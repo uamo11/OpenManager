@@ -27,6 +27,8 @@ class ApkQuickEditEngineTest {
         assertEquals(null, options.targetSdkVersion)
         assertEquals(null, options.installLocation)
         assertEquals(null, options.newIconBytes)
+        assertEquals(null, options.debuggable)
+        assertEquals(null, options.extractNativeLibs)
     }
 
     @Test
@@ -102,6 +104,8 @@ class ApkQuickEditEngineTest {
                 minSdkVersion = 24,
                 targetSdkVersion = 34,
                 installLocation = 2,
+                debuggable = true,
+                extractNativeLibs = true,
                 autoSign = false // Test unsigned first for speed
             )
 
@@ -117,6 +121,7 @@ class ApkQuickEditEngineTest {
             assertEquals(24, editedInfo.minSdkVersion)
             assertEquals(34, editedInfo.targetSdkVersion)
             assertEquals(2, editedInfo.installLocation)
+            assertTrue(editedInfo.isDebuggable)
         } finally {
             outApk.delete()
             tempDir.delete()

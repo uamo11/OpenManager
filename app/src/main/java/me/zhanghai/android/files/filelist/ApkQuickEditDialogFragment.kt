@@ -96,6 +96,8 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
         val actvTargetSdk = view.findViewById<AutoCompleteTextView>(R.id.actvTargetSdk)
         val actvInstallLocation = view.findViewById<AutoCompleteTextView>(R.id.actvInstallLocation)
         val cbAutoSign = view.findViewById<MaterialCheckBox>(R.id.cbAutoSign)
+        val cbDebuggable = view.findViewById<MaterialCheckBox>(R.id.cbDebuggable)
+        val cbExtractNativeLibs = view.findViewById<MaterialCheckBox>(R.id.cbExtractNativeLibs)
 
         tvSubtitle.text = file.name
 
@@ -191,6 +193,9 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                     val defaultLocationText = installLocationMap.find { it.first == (info.installLocation ?: -1) }?.second
                         ?: locationNames.last()
                     actvInstallLocation.setText(defaultLocationText, false)
+
+                    cbDebuggable.isChecked = info.isDebuggable
+                    cbExtractNativeLibs.isChecked = info.isExtractNativeLibs ?: true
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -278,6 +283,8 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                             targetSdkVersion = targetSdkRaw,
                             installLocation = selectedLoc,
                             newIconBytes = selectedIconBytes,
+                            debuggable = cbDebuggable.isChecked,
+                            extractNativeLibs = cbExtractNativeLibs.isChecked,
                             autoSign = autoSign,
                             signingScheme = ApkSignerHelper.SignScheme.V1_AND_V2
                         )

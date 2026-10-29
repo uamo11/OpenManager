@@ -278,6 +278,21 @@
             android:textColor="#2196F3"
             android:textStyle="bold" />
 
+        <Button
+            android:id="@+id/btnApkQuickEdit"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:text="@string/apk_quick_edit"
+            android:textColor="#FF9800"
+            android:textStyle="bold"
+            android:layout_marginStart="4dp" />
+
         <View
             android:layout_width="0dp"
             android:layout_height="1dp"
