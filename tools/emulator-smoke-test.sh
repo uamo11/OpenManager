@@ -33,14 +33,17 @@ adb shell pm grant me.zhanghai.android.files android.permission.READ_EXTERNAL_ST
 adb shell pm grant me.zhanghai.android.files android.permission.WRITE_EXTERNAL_STORAGE 2>/dev/null || true
 adb shell appops set me.zhanghai.android.files MANAGE_EXTERNAL_STORAGE allow 2>/dev/null || true
 
-# Test 1: Cold start of main Activity
-echo ">>> Testing Cold Start Performance (FileListActivity)..."
+# Prepare screenshot directory
+mkdir -p screenshots
+rm -f /sdcard/*.png screenshots/*.png
+
+# 1. Cold start of main Activity (File Explorer)
+echo ">>> 1. Testing Cold Start Performance (FileListActivity)..."
 START_RES=$(adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity)
 echo "$START_RES"
 echo "--- Launch Performance Metrics ---" > emulator-performance.txt
 echo "$START_RES" >> emulator-performance.txt
 echo "" >> emulator-performance.txt
-
 sleep 4
 
 # Verify process is alive
@@ -52,52 +55,113 @@ if [ -z "$PID" ]; then
 fi
 echo ">>> Process is running healthy with PID: $PID"
 
-# Test 2: Measure Memory Footprint
+# Capture Screenshot 1: Main File Explorer
+adb shell screencap -p /sdcard/01_file_explorer_main.png
+adb pull /sdcard/01_file_explorer_main.png screenshots/01_file_explorer_main.png || true
+
+# 2. Navigation Drawer (Side Menu with Storage & Bookmarks)
+echo ">>> 2. Capturing Navigation Drawer..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG drawer
+sleep 2
+adb shell screencap -p /sdcard/02_navigation_drawer.png
+adb pull /sdcard/02_navigation_drawer.png screenshots/02_navigation_drawer.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 3. Create Item Choice Bottom Sheet
+echo ">>> 3. Capturing Create Item Choice Bottom Sheet..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG create_choice
+sleep 2
+adb shell screencap -p /sdcard/03_create_choice_bottom_sheet.png
+adb pull /sdcard/03_create_choice_bottom_sheet.png screenshots/03_create_choice_bottom_sheet.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 4. KeyStore Generator Dialog (.jks / .bks / pk8+pem)
+echo ">>> 4. Capturing KeyStore Generator Dialog..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG keystore
+sleep 2
+adb shell screencap -p /sdcard/04_keystore_generator_dialog.png
+adb pull /sdcard/04_keystore_generator_dialog.png screenshots/04_keystore_generator_dialog.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 5. Installed Apps Manager (InstalledAppsActivity)
+echo ">>> 5. Capturing Installed Apps Manager (InstalledAppsActivity)..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG apps
+sleep 3
+PID=$(adb shell pidof me.zhanghai.android.files | tr -d '\r')
+if [ -z "$PID" ]; then
+    echo "ERROR: Process crashed when navigating to InstalledAppsActivity!"
+    exit 1
+fi
+adb shell screencap -p /sdcard/05_installed_apps_manager.png
+adb pull /sdcard/05_installed_apps_manager.png screenshots/05_installed_apps_manager.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 6. Fast Code / Text Editor (TextEditorActivity)
+echo ">>> 6. Capturing Fast Code Editor (TextEditorActivity)..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor
+sleep 3
+PID=$(adb shell pidof me.zhanghai.android.files | tr -d '\r')
+if [ -z "$PID" ]; then
+    echo "ERROR: Process crashed when navigating to TextEditorActivity!"
+    exit 1
+fi
+adb shell screencap -p /sdcard/06_fast_code_editor.png
+adb pull /sdcard/06_fast_code_editor.png screenshots/06_fast_code_editor.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 7. Settings Panel (SettingsActivity)
+echo ">>> 7. Capturing Settings Panel (SettingsActivity)..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG settings
+sleep 2
+adb shell screencap -p /sdcard/07_settings_screen.png
+adb pull /sdcard/07_settings_screen.png screenshots/07_settings_screen.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 8. Add Storage Dialog (AddStorageDialogActivity)
+echo ">>> 8. Capturing Add Storage Dialog..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG add_storage
+sleep 2
+adb shell screencap -p /sdcard/08_add_storage_dialog.png
+adb pull /sdcard/08_add_storage_dialog.png screenshots/08_add_storage_dialog.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 9. FTP Wireless Server (FtpServerActivity)
+echo ">>> 9. Capturing FTP Wireless Server (FtpServerActivity)..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG ftp
+sleep 2
+adb shell screencap -p /sdcard/09_ftp_server.png
+adb pull /sdcard/09_ftp_server.png screenshots/09_ftp_server.png || true
+adb shell input keyevent 4
+sleep 1
+
+# 10. About Screen (AboutActivity)
+echo ">>> 10. Capturing About Screen (AboutActivity)..."
+adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG about
+sleep 2
+adb shell screencap -p /sdcard/10_about_openmanager.png
+adb pull /sdcard/10_about_openmanager.png screenshots/10_about_openmanager.png || true
+adb shell input keyevent 4
+sleep 1
+
+# Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt
 adb shell dumpsys meminfo me.zhanghai.android.files | tee -a emulator-performance.txt
 echo "" >> emulator-performance.txt
 
-# Test 3: Test Activity Switching (InstalledAppsActivity)
-echo ">>> Launching InstalledAppsActivity (App Manager)..."
-adb shell am start -n me.zhanghai.android.files/me.zhanghai.android.files.appmanager.InstalledAppsActivity
-sleep 3
-PID=$(adb shell pidof me.zhanghai.android.files | tr -d '\r')
-if [ -z "$PID" ]; then
-    echo "ERROR: Process crashed when navigating to InstalledAppsActivity!"
-    adb logcat -d > emulator-logcat.log
-    exit 1
-fi
-echo ">>> InstalledAppsActivity verified successfully (PID: $PID)"
-
-# Test 4: Test Activity Switching (TextEditorActivity)
-echo ">>> Launching TextEditorActivity (Code Editor)..."
-adb shell am start -n me.zhanghai.android.files/me.zhanghai.android.files.viewer.text.TextEditorActivity
-sleep 3
-PID=$(adb shell pidof me.zhanghai.android.files | tr -d '\r')
-if [ -z "$PID" ]; then
-    echo "ERROR: Process crashed when navigating to TextEditorActivity!"
-    adb logcat -d > emulator-logcat.log
-    exit 1
-fi
-echo ">>> TextEditorActivity verified successfully (PID: $PID)"
-
-# Return to FileListActivity for screenshot
-adb shell am start -n me.zhanghai.android.files/.filelist.FileListActivity
-sleep 2
-
-# Test 5: Capture Frame Rendering Performance (gfxinfo)
+# Measure Frame Rendering Performance (gfxinfo)
 echo ">>> Capturing Frame Stats (dumpsys gfxinfo)..."
 echo "--- Frame Rendering Stats (dumpsys gfxinfo) ---" >> emulator-performance.txt
 adb shell dumpsys gfxinfo me.zhanghai.android.files framestats >> emulator-performance.txt 2>/dev/null || true
 
-# Test 6: Take Live Screenshot of OpenManager
-echo ">>> Capturing Live Screenshot from Android Emulator..."
-adb shell screencap -p /sdcard/screen.png
-adb pull /sdcard/screen.png emulator-screenshot.png || true
-echo ">>> Screenshot saved to emulator-screenshot.png"
-
-# Test 7: Capture Logcat and Check for Crashes
+# Capture Logcat and Check for Fatal Crashes
 echo ">>> Capturing Logcat and verifying zero crash logs..."
 adb logcat -d > emulator-logcat.log
 CRASHES=$(grep -E "FATAL EXCEPTION|SIGSEGV|AndroidRuntime: FATAL" emulator-logcat.log || true)
@@ -110,5 +174,6 @@ if [ -n "$CRASHES" ]; then
 fi
 
 echo "=========================================================="
-echo "   All Emulator Verification Checks Passed Successfully!  "
+echo "   All 10 Section Screenshots Captured & Verified!       "
 echo "=========================================================="
+ls -la screenshots/

@@ -244,6 +244,45 @@ class FileListActivity : AppActivity() {
         super.onResume()
         checkAndRequestStoragePermissions()
         updateDrawerStats()
+        handleDemoIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDemoIntent(intent)
+    }
+
+    private fun handleDemoIntent(intent: Intent?) {
+        val action = intent?.getStringExtra("SHOW_DEMO_DIALOG") ?: return
+        intent.removeExtra("SHOW_DEMO_DIALOG")
+        window.decorView.postDelayed({
+            when (action) {
+                "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
+                "create_choice" -> showCreateChoiceDialog()
+                "keystore" -> activeFragment.showKeystoreGeneratorDialog()
+                "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
+                "editor" -> {
+                    try {
+                        val samplePath = java8.nio.file.Paths.get("/sdcard/Download/sample_test.kt")
+                        if (!java8.nio.file.Files.exists(samplePath)) {
+                            val code = "// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n"
+                            java8.nio.file.Files.write(samplePath, code.toByteArray())
+                        }
+                        val editIntent = Intent(this, me.zhanghai.android.files.viewer.text.TextEditorActivity::class.java).apply {
+                            extraPath = samplePath
+                        }
+                        startActivity(editIntent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                "settings" -> startActivity(Intent(this, me.zhanghai.android.files.settings.SettingsActivity::class.java))
+                "add_storage" -> startActivity(Intent(this, me.zhanghai.android.files.storage.AddStorageDialogActivity::class.java))
+                "ftp" -> startActivity(Intent(this, me.zhanghai.android.files.ftpserver.FtpServerActivity::class.java))
+                "about" -> startActivity(Intent(this, me.zhanghai.android.files.about.AboutActivity::class.java))
+            }
+        }, 600)
     }
 
     private fun checkAndRequestStoragePermissions() {

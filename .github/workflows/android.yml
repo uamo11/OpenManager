@@ -72,7 +72,7 @@ jobs:
         retention-days: 5
 
   emulator-test:
-    name: Android Emulator Verification & Performance
+    name: Android Emulator Verification & Multi-Screen Capture
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -95,7 +95,7 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
-    - name: Run Verification on Android Emulator
+    - name: Run Verification & Screenshots on Android Emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 29
@@ -106,12 +106,12 @@ jobs:
         emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
         script: ./tools/emulator-smoke-test.sh
 
-    - name: Upload Live Emulator Screenshot
+    - name: Upload Multi-Section Screenshots
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: emulator-screenshot
-        path: emulator-screenshot.png
+        name: openmanager-screenshots
+        path: screenshots/
         retention-days: 10
 
     - name: Upload Performance Report & Logcat
