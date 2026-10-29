@@ -95,6 +95,12 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
 
+    - name: Ensure Android SDK permissions
+      run: |
+        sudo chown -R $USER:$USER "$ANDROID_HOME" 2>/dev/null || true
+        sudo chmod -R u+rwX "$ANDROID_HOME" 2>/dev/null || true
+        rm -rf "$ANDROID_HOME/.downloadIntermediates" 2>/dev/null || true
+
     - name: Run Verification & Screenshots on Android Emulator
       uses: reactivecircus/android-emulator-runner@v2
       with:

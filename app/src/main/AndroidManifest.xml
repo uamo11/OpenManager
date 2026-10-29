@@ -63,6 +63,7 @@
 
         <activity
             android:name="me.zhanghai.android.files.filelist.FileListActivity"
+            android:launchMode="singleTop"
             android:exported="true"
             android:visibleToInstantApps="true"
             tools:ignore="UnusedAttribute">

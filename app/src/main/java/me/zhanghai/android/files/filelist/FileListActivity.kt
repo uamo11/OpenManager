@@ -229,6 +229,21 @@ class FileListActivity : AppActivity() {
         setupDrawerControls()
         setupBottomBarControls()
         setupBackPressedHandler()
+
+        val demoFilter = IntentFilter("me.zhanghai.android.files.action.DEMO")
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            demoReceiver,
+            demoFilter,
+            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        try {
+            unregisterReceiver(demoReceiver)
+        } catch (ignored: Exception) {}
     }
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
@@ -253,12 +268,26 @@ class FileListActivity : AppActivity() {
         handleDemoIntent(intent)
     }
 
+    private val demoReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.getStringExtra("action") ?: return
+            android.util.Log.i("DemoReceiver", "Received demo action: $action")
+            handleDemoAction(action)
+        }
+    }
+
     private fun handleDemoIntent(intent: Intent?) {
         val action = intent?.getStringExtra("SHOW_DEMO_DIALOG") ?: return
         intent.removeExtra("SHOW_DEMO_DIALOG")
-        window.decorView.postDelayed({
+        handleDemoAction(action)
+    }
+
+    fun handleDemoAction(action: String) {
+        android.util.Log.i("DemoReceiver", "Executing demo action: $action")
+        window.decorView.post {
             when (action) {
                 "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
+                "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
                 "create_choice" -> showCreateDialog()
                 "keystore" -> activeFragment.showKeystoreGeneratorDialog()
                 "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
@@ -274,7 +303,7 @@ class FileListActivity : AppActivity() {
                         }
                         startActivity(editIntent)
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        android.util.Log.e("DemoReceiver", "Error opening editor", e)
                     }
                 }
                 "settings" -> startActivity(Intent(this, me.zhanghai.android.files.settings.SettingsActivity::class.java))
@@ -282,7 +311,7 @@ class FileListActivity : AppActivity() {
                 "ftp" -> startActivity(Intent(this, me.zhanghai.android.files.ftpserver.FtpServerActivity::class.java))
                 "about" -> startActivity(Intent(this, me.zhanghai.android.files.about.AboutActivity::class.java))
             }
-        }, 600)
+        }
     }
 
     private fun checkAndRequestStoragePermissions() {
