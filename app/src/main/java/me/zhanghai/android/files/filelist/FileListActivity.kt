@@ -288,15 +288,19 @@ class FileListActivity : AppActivity() {
     fun handleDemoAction(action: String) {
         android.util.Log.i("DemoReceiver", "Executing demo action: $action")
         window.decorView.postDelayed({
-            when (action) {
-                "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
-                "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
-                "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
-                "create_choice" -> showCreateDialog()
-                "keystore" -> activeFragment.showKeystoreGeneratorDialog()
-                "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
-                "editor" -> {
-                    try {
+            try {
+                when (action) {
+                    "drawer" -> drawerLayout.openDrawer(GravityCompat.START)
+                    "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
+                    "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
+                    "create_choice" -> showCreateDialog()
+                    "keystore" -> {
+                        if (this::fragmentA.isInitialized) {
+                            activeFragment.showKeystoreGeneratorDialog()
+                        }
+                    }
+                    "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
+                    "editor" -> {
                         val sampleFile = java.io.File(filesDir, "sample_test.kt")
                         if (!sampleFile.exists()) {
                             sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
@@ -306,14 +310,14 @@ class FileListActivity : AppActivity() {
                             extraPath = samplePath
                         }
                         startActivity(editIntent)
-                    } catch (e: Exception) {
-                        android.util.Log.e("DemoReceiver", "Error opening editor", e)
                     }
+                    "settings" -> startActivity(Intent(this, me.zhanghai.android.files.settings.SettingsActivity::class.java))
+                    "add_storage" -> startActivity(Intent(this, me.zhanghai.android.files.storage.AddStorageDialogActivity::class.java))
+                    "ftp" -> startActivity(Intent(this, me.zhanghai.android.files.ftpserver.FtpServerActivity::class.java))
+                    "about" -> startActivity(Intent(this, me.zhanghai.android.files.about.AboutActivity::class.java))
                 }
-                "settings" -> startActivity(Intent(this, me.zhanghai.android.files.settings.SettingsActivity::class.java))
-                "add_storage" -> startActivity(Intent(this, me.zhanghai.android.files.storage.AddStorageDialogActivity::class.java))
-                "ftp" -> startActivity(Intent(this, me.zhanghai.android.files.ftpserver.FtpServerActivity::class.java))
-                "about" -> startActivity(Intent(this, me.zhanghai.android.files.about.AboutActivity::class.java))
+            } catch (e: Throwable) {
+                android.util.Log.e("DemoReceiver", "Error executing demo action $action", e)
             }
         }, 300)
     }

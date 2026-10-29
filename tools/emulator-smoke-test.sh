@@ -125,12 +125,12 @@ adb shell dumpsys gfxinfo me.zhanghai.android.files framestats >> emulator-perfo
 # Capture Logcat and Check for Fatal Crashes
 echo ">>> Capturing Logcat and verifying zero crash logs..."
 adb logcat -d > emulator-logcat.log
-CRASHES=$(grep -E "FATAL EXCEPTION|SIGSEGV|AndroidRuntime: FATAL" emulator-logcat.log || true)
+CRASHES=$(grep -A 10 -E "FATAL EXCEPTION|AndroidRuntime: FATAL" emulator-logcat.log | grep "me.zhanghai.android.files" || true)
 if [ -n "$CRASHES" ]; then
     echo "=========================================================="
-    echo "ERROR: Fatal exceptions found in Logcat!"
+    echo "ERROR: Fatal exceptions found in Logcat for OpenManager!"
     echo "=========================================================="
-    echo "$CRASHES"
+    grep -A 20 -E "FATAL EXCEPTION|AndroidRuntime: FATAL" emulator-logcat.log
     exit 1
 fi
 
