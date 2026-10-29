@@ -85,6 +85,7 @@ import me.zhanghai.android.files.file.isSharedLibrary
 import me.zhanghai.android.files.file.isImage
 import me.zhanghai.android.files.file.isPdf
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.provider.common.isWritable
 import me.zhanghai.android.files.viewer.audio.AudioPlayerDialogFragment
 import me.zhanghai.android.files.viewer.binary.ArscInfoDialogFragment
 import me.zhanghai.android.files.viewer.binary.DexInfoDialogFragment
@@ -333,7 +334,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private lateinit var binding: Binding
 
-    private lateinit var navigationFragment: NavigationFragment
 
     private lateinit var menuBinding: MenuBinding
 
@@ -383,19 +383,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
-        if (savedInstanceState == null) {
-            if (activity !is FileListActivity) {
-                navigationFragment = NavigationFragment()
-                childFragmentManager.commit { add(R.id.navigationFragment, navigationFragment) }
-            }
-        } else {
-            childFragmentManager.findFragmentById(R.id.navigationFragment)?.let {
-                navigationFragment = it as NavigationFragment
-            }
-        }
-        if (::navigationFragment.isInitialized) {
-            navigationFragment.listener = this
-        }
         val activity = requireActivity() as AppCompatActivity
         activity.setTitle(R.string.file_list_title)
         if (activity !is FileListActivity && activity.supportActionBar == null) {
@@ -404,8 +391,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (activity is FileListActivity) {
             setDualPaneUiMode(true)
         }
-        // Permanently lock closed any fragment drawer so swipe gestures to right never trigger a drawer
-        binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         binding.toolbar.setNavigationOnClickListener {
             if (activity !is FileListActivity) {
                 binding.drawerLayout?.openDrawer(GravityCompat.START)
@@ -834,8 +819,19 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.swipeRefreshLayout.isRefreshing = stateful is Loading && (hasFiles || isSearching)
         binding.progress.fadeToVisibilityUnsafe(stateful is Loading && !(hasFiles || isSearching))
         val isFailureWithoutFiles = stateful is Failure && !hasFiles
-        binding.layoutError.fadeToVisibilityUnsafe(isFailureWithoutFiles)
         val isAndroidDataOrObbCurrent = isAndroidDataOrObb(currentPath) && !currentPath.isDocumentPath
+
+        // MT Manager Style: Only show layoutError if it's Android/data or Android/obb needing SAF permission.
+        // For general protected folders (e.g. /data or unreadable directories), keep RecyclerView visible (empty list) and show a toast/status!
+        binding.layoutError.fadeToVisibilityUnsafe(isFailureWithoutFiles && isAndroidDataOrObbCurrent)
+        if (isFailureWithoutFiles && !isAndroidDataOrObbCurrent) {
+            val displayPathStr = currentPath.toDisplayPath(trailingSlash = true)
+            showToast("Acceso restringido: Permiso denegado en $displayPathStr")
+            val deniedSubtitle = "0 Carpetas · 0 Archivos · Permiso denegado"
+            binding.toolbar.subtitle = deniedSubtitle
+            currentStatsSubtitle = deniedSubtitle
+            onPathOrStatsChanged?.invoke(currentPath, deniedSubtitle)
+        }
         val throwable = (stateful as? Failure)?.throwable
         if (throwable != null) {
             throwable.printStackTrace()
@@ -1759,12 +1755,20 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun pasteFiles(targetDirectory: Path) {
+        if (!canWriteTo(targetDirectory)) {
+            showToast("Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)")
+            return
+        }
         val pasteState = viewModel.pasteState
         if (viewModel.pasteState.copy) {
             FileJobService.copy(
                 makePathListForJob(pasteState.files), targetDirectory, requireContext()
             )
         } else {
+            if (!canWriteTo(pasteState.files.firstOrNull()?.path?.parent ?: targetDirectory)) {
+                showToast("Permiso denegado: origen de solo lectura (se requiere Root o Shizuku)")
+                return
+            }
             FileJobService.move(
                 makePathListForJob(pasteState.files), targetDirectory, requireContext()
             )
@@ -1866,6 +1870,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             FontViewerDialogFragment.show(file.path, childFragmentManager)
             return
         }
+        if (file.mimeType.isText || isTextFileOrProbableText(file.path)) {
+            val intent = Intent(requireContext(), TextEditorActivity::class.java).apply {
+                extraPath = file.path
+            }
+            startActivity(intent)
+            return
+        }
         val hasExtension = fileName.contains('.') && fileName.substringAfterLast('.', "").isNotBlank()
         if (!hasExtension) {
             // Archivo sin especificador de tipo de archivo (ej. sample_unknown, sin .sh ni .mp3) -> Menú "Abrir con..." estilo MT Manager
@@ -1897,13 +1908,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         if (file.mimeType.isSharedLibrary || fileName.endsWith(".so", true)) {
             ElfInfoDialogFragment.show(file.path, childFragmentManager)
-            return
-        }
-        if (file.mimeType.isText || isTextFileOrProbableText(file.path)) {
-            val intent = Intent(requireContext(), TextEditorActivity::class.java).apply {
-                extraPath = file.path
-            }
-            startActivity(intent)
             return
         }
         if (file.mimeType.isImage || file.mimeType.isPdf) {
@@ -1944,7 +1948,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val commonExtensionless = setOf(
             "readme", "license", "licence", "copying", "authors", "contributors",
             "changelog", "news", "install", "todo", "makefile", "dockerfile",
-            "gemfile", "rakefile", "vagrantfile", "procfile", "hosts", "resolv.conf"
+            "gemfile", "rakefile", "vagrantfile", "procfile", "hosts", "resolv.conf",
+            "group", "passwd", "shadow", "gshadow", "fstab", "prop", "rc"
         )
         if (name in commonExtensionless) {
             return true
@@ -2125,6 +2130,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun renameFile(file: FileItem, newName: String) {
+        if (!canWriteTo(currentPath)) {
+            showToast("Permiso denegado: no se pueden renombrar archivos en este directorio (solo lectura)")
+            return
+        }
         FileJobService.rename(file.path, newName, requireContext())
         viewModel.selectFile(file, false)
     }
@@ -2243,7 +2252,27 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         CreateFileDialogFragment.show(this)
     }
 
+    fun canWriteTo(path: Path): Boolean {
+        if (LibSuFileServiceLauncher.isSuAvailable() || ShizukuManager.ready()) {
+            return true
+        }
+        return try {
+            val file = (path as? LinuxPath)?.toFile() ?: java.io.File(path.toString())
+            file.canWrite()
+        } catch (_: Exception) {
+            try {
+                path.isWritable
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
     override fun createFile(name: String) {
+        if (!canWriteTo(currentPath)) {
+            showToast("Permiso denegado: no se pueden crear archivos en este directorio (solo lectura)")
+            return
+        }
         val path = currentPath.resolve(name)
         FileJobService.create(path, false, requireContext())
     }
@@ -2253,6 +2282,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun createDirectory(name: String) {
+        if (!canWriteTo(currentPath)) {
+            showToast("Permiso denegado: no se pueden crear carpetas en este directorio (solo lectura)")
+            return
+        }
         val path = currentPath.resolve(name)
         FileJobService.create(path, true, requireContext())
     }
@@ -2269,16 +2302,28 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun copyFilesTo(files: FileItemSet, targetDirectory: Path) {
+        if (!canWriteTo(targetDirectory)) {
+            showToast("Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)")
+            return
+        }
         FileJobService.copy(makePathListForJob(files), targetDirectory, requireContext())
         viewModel.selectFiles(files, false)
     }
 
     fun moveFilesTo(files: FileItemSet, targetDirectory: Path) {
+        if (!canWriteTo(currentPath) || !canWriteTo(targetDirectory)) {
+            showToast("Permiso denegado: no se pueden mover archivos en directorios de solo lectura (se requiere Root o Shizuku)")
+            return
+        }
         FileJobService.move(makePathListForJob(files), targetDirectory, requireContext())
         viewModel.selectFiles(files, false)
     }
 
     fun deleteSelectedFiles() {
+        if (!canWriteTo(currentPath)) {
+            showToast("Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)")
+            return
+        }
         confirmDeleteFiles(viewModel.selectedFiles)
     }
 
@@ -2321,8 +2366,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.appBarLayout.isVisible = !enabled
         if (enabled) {
             binding.recyclerView.setPadding(0, 0, 0, 0)
-            binding.drawerLayout?.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
-            binding.root.findViewById<View>(R.id.navigationFragment)?.isVisible = false
         }
     }
 
@@ -2700,7 +2743,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 val bottomBarBinding = FileListFragmentBottomBarIncludeBinding.bind(bindingRoot)
                 val speedDialBinding = FileListFragmentSpeedDialIncludeBinding.bind(bindingRoot)
                 return Binding(
-                    bindingRoot, includeBinding.drawerLayout, includeBinding.persistentDrawerLayout,
+                    bindingRoot, null, null,
                     includeBinding.persistentBarLayout, appBarBinding.appBarLayout,
                     appBarBinding.toolbar, appBarBinding.overlayToolbar,
                     appBarBinding.breadcrumbLayout, contentBinding.contentLayout,

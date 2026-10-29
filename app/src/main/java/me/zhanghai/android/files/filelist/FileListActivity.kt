@@ -794,6 +794,10 @@ class FileListActivity : AppActivity() {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
+                if (!activeFragment.canWriteTo(opposite.currentPath)) {
+                    Toast.makeText(this, "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 activeFragment.copyFilesTo(selected, opposite.currentPath)
             }
         }
@@ -802,12 +806,22 @@ class FileListActivity : AppActivity() {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
+                if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
+                    Toast.makeText(this, "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 activeFragment.moveFilesTo(selected, opposite.currentPath)
             }
         }
 
         btnDeleteSelection.setOnClickListener {
-            activeFragment.deleteSelectedFiles()
+            if (activeFragment.selectedFiles.isNotEmpty()) {
+                if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
+                    Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                activeFragment.deleteSelectedFiles()
+            }
         }
 
         btnMoreSelection.setOnClickListener { view ->

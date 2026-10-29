@@ -91,7 +91,7 @@ internal class LinuxPath : ByteStringListPath<LinuxPath>, RootablePath {
                 return false
             }
         } else {
-            if (file.canRead()) {
+            if (file.canRead() || (file.isDirectory && (file.canExecute() || file.listFiles() != null))) {
                 return false
             }
         }

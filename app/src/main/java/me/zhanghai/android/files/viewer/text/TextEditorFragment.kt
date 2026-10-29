@@ -884,7 +884,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 viewModel.finishWritingFile()
                 viewModel.isTextChanged.value = false
             }
-            is ActionState.Error -> viewModel.finishWritingFile()
+            is ActionState.Error -> {
+                showToast("Permiso denegado: no se pudo guardar el archivo (solo lectura)")
+                viewModel.finishWritingFile()
+            }
         }
     }
 
