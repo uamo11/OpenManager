@@ -13,6 +13,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -41,12 +42,16 @@ class DexClassEditorActivity : AppActivity() {
     private lateinit var dexFile: File
     private lateinit var classDescriptor: String
     private var originalPath: Path? = null
+    private var initialTab: Int = 0
 
     private val methodsList = mutableListOf<DexMethodModel>()
     private val fieldsList = mutableListOf<DexFieldModel>()
 
     private lateinit var methodsAdapter: MethodsAdapter
     private lateinit var fieldsAdapter: FieldsAdapter
+
+    private var cachedJavaCode: String? = null
+    private var isDecompilingJava = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -56,6 +61,7 @@ class DexClassEditorActivity : AppActivity() {
         val dexPathStr = intent.getStringExtra(EXTRA_DEX_PATH)
         classDescriptor = intent.getStringExtra(EXTRA_CLASS_DESCRIPTOR) ?: ""
         originalPath = intent.extraPath
+        initialTab = intent.getIntExtra(EXTRA_INITIAL_TAB, 0)
 
         if (dexPathStr == null || classDescriptor.isEmpty()) {
             finish()
@@ -76,6 +82,10 @@ class DexClassEditorActivity : AppActivity() {
         setupRecyclerViews()
         setupButtons()
         loadClassData()
+
+        if (initialTab == 4) {
+            binding.tabLayout.getTabAt(4)?.select()
+        }
     }
 
     private fun setupTabs() {
@@ -83,6 +93,7 @@ class DexClassEditorActivity : AppActivity() {
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.dex_tab_methods))
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.dex_tab_fields))
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.dex_tab_class_details))
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.dex_tab_java))
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -91,6 +102,10 @@ class DexClassEditorActivity : AppActivity() {
                     1 -> showView(binding.rvMethods)
                     2 -> showView(binding.rvFields)
                     3 -> showView(binding.layoutClassDetails)
+                    4 -> {
+                        showView(binding.layoutJava)
+                        loadJavaCode()
+                    }
                 }
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
@@ -103,6 +118,7 @@ class DexClassEditorActivity : AppActivity() {
         binding.rvMethods.visibility = if (view == binding.rvMethods) View.VISIBLE else View.GONE
         binding.rvFields.visibility = if (view == binding.rvFields) View.VISIBLE else View.GONE
         binding.layoutClassDetails.visibility = if (view == binding.layoutClassDetails) View.VISIBLE else View.GONE
+        binding.layoutJava.visibility = if (view == binding.layoutJava) View.VISIBLE else View.GONE
     }
 
     private fun setupRecyclerViews() {
@@ -119,10 +135,21 @@ class DexClassEditorActivity : AppActivity() {
         binding.btnCopySmali.setOnClickListener {
             val code = binding.etSmaliCode.text.toString()
             clipboardManager.copyText(code, this)
+            Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
         }
 
         binding.btnSaveSmali.setOnClickListener {
             saveAndCompileSmali()
+        }
+
+        binding.btnCopyJava.setOnClickListener {
+            val code = binding.etJavaCode.text.toString()
+            clipboardManager.copyText(code, this)
+            Toast.makeText(this, R.string.dex_java_copied, Toast.LENGTH_SHORT).show()
+        }
+
+        binding.btnExportJava.setOnClickListener {
+            exportJavaFile()
         }
     }
 
@@ -155,6 +182,46 @@ class DexClassEditorActivity : AppActivity() {
         }
     }
 
+    private fun loadJavaCode(forceReload: Boolean = false) {
+        if (cachedJavaCode != null && !forceReload) {
+            binding.etJavaCode.setText(cachedJavaCode)
+            return
+        }
+        if (isDecompilingJava) return
+        isDecompilingJava = true
+        binding.progressBar.visibility = View.VISIBLE
+        binding.etJavaCode.setText(R.string.dex_decompile_progress)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val javaCode = JadxDecompilerEngine.decompileClass(dexFile, classDescriptor)
+            withContext(Dispatchers.Main) {
+                cachedJavaCode = javaCode
+                binding.etJavaCode.setText(javaCode)
+                binding.progressBar.visibility = View.GONE
+                isDecompilingJava = false
+            }
+        }
+    }
+
+    private fun exportJavaFile() {
+        val code = cachedJavaCode ?: binding.etJavaCode.text.toString()
+        if (code.isBlank() || code.startsWith("// [JADX] No se encontró")) {
+            Toast.makeText(this, "No hay código Java válido para exportar", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val simpleName = binding.toolbar.title.toString()
+        val fileName = "$simpleName.java"
+        val parentDir = dexFile.parentFile ?: cacheDir
+        val outFile = File(parentDir, fileName)
+
+        try {
+            outFile.writeText(code, Charsets.UTF_8)
+            Toast.makeText(this, "Guardado como ${outFile.name}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Error al guardar archivo: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun saveAndCompileSmali() {
         val code = binding.etSmaliCode.text.toString()
         binding.progressBar.visibility = View.VISIBLE
@@ -166,6 +233,9 @@ class DexClassEditorActivity : AppActivity() {
                 code,
                 classDescriptor
             )
+
+            // Invalidate Java cache since Smali modified bytecode
+            cachedJavaCode = null
 
             // If original path is different (e.g. non-linux or content), sync back
             var writeBackError: String? = null
@@ -216,12 +286,23 @@ class DexClassEditorActivity : AppActivity() {
                 return true
             }
             R.id.action_copy -> {
-                val code = binding.etSmaliCode.text.toString()
-                clipboardManager.copyText(code, this)
+                if (binding.layoutJava.isVisible) {
+                    val code = binding.etJavaCode.text.toString()
+                    clipboardManager.copyText(code, this)
+                    Toast.makeText(this, R.string.dex_java_copied, Toast.LENGTH_SHORT).show()
+                } else {
+                    val code = binding.etSmaliCode.text.toString()
+                    clipboardManager.copyText(code, this)
+                    Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
+                }
                 return true
             }
             R.id.action_save -> {
                 saveAndCompileSmali()
+                return true
+            }
+            R.id.action_export_java -> {
+                exportJavaFile()
                 return true
             }
         }
@@ -253,7 +334,6 @@ class DexClassEditorActivity : AppActivity() {
                 tvMemberSignature.text = item.signature
 
                 root.setOnClickListener {
-                    // Switch to Smali tab and focus or show method info
                     binding.tabLayout.getTabAt(0)?.select()
                 }
             }
@@ -300,5 +380,6 @@ class DexClassEditorActivity : AppActivity() {
         const val EXTRA_CLASS_DESCRIPTOR = "extra_class_descriptor"
         const val EXTRA_CLASS_NAME = "extra_class_name"
         const val EXTRA_PACKAGE_NAME = "extra_package_name"
+        const val EXTRA_INITIAL_TAB = "extra_initial_tab"
     }
 }

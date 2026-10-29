@@ -1156,4 +1156,15 @@
     <string name="antisplit_merging_progress">Fusionando APKs divididas en un APK autónomo…</string>
     <string name="antisplit_success">APK fusionado creado con éxito: %1$s</string>
     <string name="antisplit_dialog_prompt">¿Deseas fusionar los %1$d archivos APK seleccionados en un único archivo APK?</string>
+    <!-- JADX Java Decompiler -->
+    <string name="dex_tab_java">Java (JADX)</string>
+    <string name="dex_decompile_java">Descompilar a Java (JADX)</string>
+    <string name="dex_mode_decompile_java">Descompilar con JADX</string>
+    <string name="dex_mode_decompile_java_desc">Descompilar clases a código fuente Java limpio</string>
+    <string name="dex_export_java_sources">Exportar fuentes Java (.zip)</string>
+    <string name="dex_export_java_file">Guardar archivo .java</string>
+    <string name="dex_decompile_progress">Descompilando con JADX…</string>
+    <string name="dex_decompile_success">Fuentes Java exportadas con éxito: %1$s</string>
+    <string name="dex_copy_java">Copiar Java</string>
+    <string name="dex_java_copied">Código Java copiado al portapapeles</string>
 </resources>

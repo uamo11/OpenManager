@@ -117,9 +117,11 @@ class DexEditorActivity : AppActivity() {
     }
 
     private fun setupRecyclerViews() {
-        classAdapter = ClassesAdapter(displayedClasses) { classModel ->
-            openClassEditor(classModel)
-        }
+        classAdapter = ClassesAdapter(
+            displayedClasses,
+            onClick = { classModel -> openClassEditor(classModel, 0) },
+            onLongClick = { classModel -> showClassActionDialog(classModel) }
+        )
         binding.rvClasses.layoutManager = LinearLayoutManager(this)
         binding.rvClasses.adapter = classAdapter
 
@@ -201,7 +203,7 @@ class DexEditorActivity : AppActivity() {
         }
     }
 
-    private fun openClassEditor(classModel: DexClassModel) {
+    private fun openClassEditor(classModel: DexClassModel, initialTab: Int = 0) {
         val dex = localDexFile ?: return
         val intent = Intent(this, DexClassEditorActivity::class.java).apply {
             extraPath = path
@@ -209,8 +211,33 @@ class DexEditorActivity : AppActivity() {
             putExtra(DexClassEditorActivity.EXTRA_CLASS_DESCRIPTOR, classModel.descriptor)
             putExtra(DexClassEditorActivity.EXTRA_CLASS_NAME, classModel.simpleName)
             putExtra(DexClassEditorActivity.EXTRA_PACKAGE_NAME, classModel.packageName)
+            putExtra(DexClassEditorActivity.EXTRA_INITIAL_TAB, initialTab)
         }
         startActivity(intent)
+    }
+
+    private fun showClassActionDialog(classModel: DexClassModel) {
+        val options = arrayOf(
+            getString(R.string.dex_tab_smali),
+            getString(R.string.dex_tab_java),
+            getString(R.string.dex_tab_methods),
+            getString(R.string.dex_tab_fields),
+            getString(R.string.dex_tab_class_details)
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(classModel.simpleName)
+            .setItems(options) { _, which ->
+                val targetTab = when (which) {
+                    0 -> 0 // Smali
+                    1 -> 4 // Java
+                    2 -> 1 // Methods
+                    3 -> 2 // Fields
+                    4 -> 3 // Details
+                    else -> 0
+                }
+                openClassEditor(classModel, targetTab)
+            }
+            .show()
     }
 
     private fun showEditStringDialog(stringModel: DexStringModel) {
@@ -267,8 +294,68 @@ class DexEditorActivity : AppActivity() {
                 saveDex()
                 return true
             }
+            R.id.action_export_java -> {
+                exportAllJavaSources()
+                return true
+            }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun exportAllJavaSources() {
+        val dex = localDexFile ?: return
+        if (!dex.exists()) {
+            Toast.makeText(this, "El archivo DEX no existe", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.dex_export_java_sources)
+            .setMessage("¿Deseas descompilar y exportar todas las clases (${allClasses.size}) a código fuente Java (.zip) usando JADX?")
+            .setPositiveButton(R.string.ok) { _, _ ->
+                val baseName = path.fileName.toString().removeSuffix(".dex").removeSuffix(".apk")
+                val parentDir = if (path.isLinuxPath) path.toFile().parentFile ?: cacheDir else cacheDir
+                val outZip = File(parentDir, "${baseName}_java_sources.zip")
+
+                binding.progressBar.visibility = View.VISIBLE
+                val progressDialog = MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.dex_decompile_progress)
+                    .setMessage("Iniciando descompilación JADX...")
+                    .setCancelable(false)
+                    .create()
+                progressDialog.show()
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        JadxDecompilerEngine.decompileToZip(dex, outZip) { current, total, clsName ->
+                            if (current % 15 == 0 || current == total) {
+                                lifecycleScope.launch(Dispatchers.Main) {
+                                    progressDialog.setMessage("Descompilando clase $current/$total\n$clsName")
+                                }
+                            }
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            progressDialog.dismiss()
+                            binding.progressBar.visibility = View.GONE
+                            MaterialAlertDialogBuilder(this@DexEditorActivity)
+                                .setTitle(R.string.dex_export_java_sources)
+                                .setMessage(getString(R.string.dex_decompile_success, outZip.name))
+                                .setPositiveButton(android.R.string.ok, null)
+                                .show()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            progressDialog.dismiss()
+                            binding.progressBar.visibility = View.GONE
+                            Toast.makeText(this@DexEditorActivity, "Error al descompilar: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun saveDex() {
@@ -312,7 +399,8 @@ class DexEditorActivity : AppActivity() {
 
     inner class ClassesAdapter(
         private val items: List<DexClassModel>,
-        private val onClick: (DexClassModel) -> Unit
+        private val onClick: (DexClassModel) -> Unit,
+        private val onLongClick: (DexClassModel) -> Unit
     ) : RecyclerView.Adapter<ClassesAdapter.ViewHolder>() {
 
         inner class ViewHolder(val binding: ItemDexClassBinding) : RecyclerView.ViewHolder(binding.root)
@@ -340,6 +428,10 @@ class DexEditorActivity : AppActivity() {
                 tvClassDetails.text = "$superStr${item.methodCount} métodos  •  ${item.fieldCount} campos"
 
                 root.setOnClickListener { onClick(item) }
+                root.setOnLongClickListener {
+                    onLongClick(item)
+                    true
+                }
             }
         }
 

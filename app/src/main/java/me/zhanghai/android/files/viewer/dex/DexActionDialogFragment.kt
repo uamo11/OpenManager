@@ -8,22 +8,30 @@ package me.zhanghai.android.files.viewer.dex
 import android.app.Dialog
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Path
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.WriteWith
+import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.DialogDexOpenChoiceBinding
-import me.zhanghai.android.files.viewer.text.TextEditorActivity
-import me.zhanghai.android.files.viewer.hex.HexEditorActivity
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.util.putArgs
 import me.zhanghai.android.files.viewer.binary.DexInfoDialogFragment
+import me.zhanghai.android.files.viewer.hex.HexEditorActivity
+import me.zhanghai.android.files.viewer.text.TextEditorActivity
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -76,7 +84,30 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
             startActivity(intent)
         }
 
-        // 2. Editor de Cadenas (String Pool)
+        // 2. Descompilar con JADX
+        binding.btnModeDecompileJava.setOnClickListener {
+            dialog.dismiss()
+            val options = arrayOf(
+                "Explorar y descompilar clases a Java",
+                "Exportar todas las clases a .zip de fuentes Java"
+            )
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.dex_decompile_java)
+                .setItems(options) { _, which ->
+                    if (which == 0) {
+                        val intent = Intent(requireContext(), DexEditorActivity::class.java).apply {
+                            extraPath = path
+                            putExtra(DexEditorActivity.EXTRA_INITIAL_TAB, 0)
+                        }
+                        startActivity(intent)
+                    } else {
+                        exportJavaZip(path)
+                    }
+                }
+                .show()
+        }
+
+        // 3. Editor de Cadenas (String Pool)
         binding.btnModeStringPool.setOnClickListener {
             dialog.dismiss()
             val intent = Intent(requireContext(), DexEditorActivity::class.java).apply {
@@ -86,19 +117,19 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
             startActivity(intent)
         }
 
-        // 3. Resumen e Información
+        // 4. Resumen e Información
         binding.btnModeSummary.setOnClickListener {
             dialog.dismiss()
             DexInfoDialogFragment.show(path, parentFragmentManager)
         }
 
-        // 4. Editor Hexadecimal
+        // 5. Editor Hexadecimal
         binding.btnModeHex.setOnClickListener {
             dialog.dismiss()
             HexEditorActivity.start(requireContext(), path)
         }
 
-        // 5. Abrir como Texto
+        // 6. Abrir como Texto
         binding.btnModeText.setOnClickListener {
             dialog.dismiss()
             val intent = Intent(requireContext(), TextEditorActivity::class.java).apply {
@@ -108,6 +139,48 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
         }
 
         return dialog
+    }
+
+    private fun exportJavaZip(path: Path) {
+        val context = requireContext()
+        val progressDialog = MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.dex_decompile_progress)
+            .setMessage("Preparando archivo DEX...")
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val prepared = DexEngine.prepareLocalDexFile(context, path)
+                val baseName = path.fileName.toString().removeSuffix(".dex")
+                val parentDir = if (path.isLinuxPath) path.toFile().parentFile ?: context.cacheDir else context.cacheDir
+                val outZip = File(parentDir, "${baseName}_java_sources.zip")
+
+                JadxDecompilerEngine.decompileToZip(prepared, outZip) { current, total, clsName ->
+                    if (current % 15 == 0 || current == total) {
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            progressDialog.setMessage("Descompilando clase $current/$total\n$clsName")
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    MaterialAlertDialogBuilder(context)
+                        .setTitle(R.string.dex_export_java_sources)
+                        .setMessage(context.getString(R.string.dex_decompile_success, outZip.name))
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(context, "Error al descompilar: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     companion object {

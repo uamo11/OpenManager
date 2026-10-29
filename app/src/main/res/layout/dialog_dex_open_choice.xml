@@ -126,6 +126,71 @@
         </LinearLayout>
     </LinearLayout>
 
+    <!-- Descompilar a Java (JADX) -->
+    <LinearLayout
+        android:id="@+id/btnModeDecompileJava"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:background="?selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/edit_icon"
+            app:tint="#FF9800" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dex_mode_decompile_java"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="JADX"
+                    android:textSize="9.5sp"
+                    android:textStyle="bold"
+                    android:textColor="#FF9800"
+                    android:background="@drawable/badge_apks_bg"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/dex_mode_decompile_java_desc"
+                android:textColor="#888888"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- 2. Editor de Cadenas (String Pool) -->
     <LinearLayout
         android:id="@+id/btnModeStringPool"

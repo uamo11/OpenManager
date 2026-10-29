@@ -224,6 +224,72 @@
             </LinearLayout>
         </ScrollView>
 
+        <!-- 5. Java (JADX) Tab -->
+        <LinearLayout
+            android:id="@+id/layoutJava"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:background="#1E1E1E"
+            android:visibility="gone">
+
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:fillViewport="true">
+
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fillViewport="true">
+
+                    <EditText
+                        android:id="@+id/etJavaCode"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:background="@null"
+                        android:fontFamily="monospace"
+                        android:gravity="top|start"
+                        android:padding="14dp"
+                        android:textColor="#E0E0E0"
+                        android:textSize="12.5sp"
+                        android:inputType="textMultiLine|textNoSuggestions"
+                        android:imeOptions="flagNoExtractUi"
+                        android:focusable="true"
+                        android:textIsSelectable="true"
+                        tools:text="public class MainActivity {\n}" />
+                </HorizontalScrollView>
+            </ScrollView>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="#252526"
+                android:padding="8dp"
+                android:gravity="end">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnExportJava"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/dex_export_java_file"
+                    android:textSize="12sp"
+                    app:icon="@drawable/save_icon_control_normal_24dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCopyJava"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="@string/dex_copy_java"
+                    android:textSize="12sp"
+                    app:icon="@drawable/copy_icon_control_normal_24dp" />
+            </LinearLayout>
+        </LinearLayout>
+
         <ProgressBar
             android:id="@+id/progressBar"
             android:layout_width="wrap_content"

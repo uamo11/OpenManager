@@ -212,6 +212,22 @@ dependencies {
     // Also a dependency of jCIFS-NG.
     implementation 'org.slf4j:slf4j-android:1.7.36'
 
+    // JADX Java Decompiler
+    def jadx_version = '1.4.7'
+    implementation("io.github.skylot:jadx-core:$jadx_version") {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
+    implementation("io.github.skylot:jadx-plugins-api:$jadx_version") {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
+    implementation("io.github.skylot:jadx-dex-input:$jadx_version") {
+        exclude group: 'com.google.guava', module: 'guava'
+        exclude group: 'com.beust', module: 'jcommander'
+    }
+    implementation("io.github.skylot:jadx-java-input:$jadx_version") {
+        exclude group: 'com.google.guava', module: 'guava'
+    }
+
     // Dex Editor Plus: smali-dexlib2, smali-baksmali, and smali
     def smali_version = '3.0.9'
     implementation ("com.android.tools.smali:smali-dexlib2:$smali_version") {

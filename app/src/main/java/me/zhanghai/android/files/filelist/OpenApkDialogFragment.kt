@@ -47,6 +47,13 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.viewer.dex.JadxDecompilerEngine
 
 class OpenApkDialogFragment : AppCompatDialogFragment() {
     private val args by args<Args>()
@@ -289,6 +296,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             }
             optionsList.addAll(listOf(
                 "AntiSplit (Fusionar Splits)",
+                "Descompilar APK a Java (JADX)",
                 "Descompilar APK (Apktool)",
                 getString(R.string.apk_sign),
                 "Verificar firma",
@@ -322,6 +330,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                     Toast.makeText(context, "No se encontraron otros splits en este directorio", Toast.LENGTH_SHORT).show()
                                 }
                             }
+                        }
+                        "Descompilar APK a Java (JADX)" -> {
+                            dialog.dismiss()
+                            decompileApkToJava(file)
                         }
                         "Descompilar APK (Apktool)" -> {
                             dialog.dismiss()
@@ -363,6 +375,58 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
 
         return dialog
+    }
+
+    private fun decompileApkToJava(file: FileItem) {
+        val context = requireContext()
+        val progressDialog = MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.dex_decompile_progress)
+            .setMessage("Preparando archivo APK...")
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val apkFile: File = if (file.path.isLinuxPath) {
+                    file.path.toFile()
+                } else {
+                    val tmp = File(context.cacheDir, "jadx_${System.currentTimeMillis()}_${file.name}")
+                    file.path.newInputStream().use { inp ->
+                        FileOutputStream(tmp).use { out -> inp.copyTo(out) }
+                    }
+                    tmp
+                }
+
+                val baseName = file.name.removeSuffix(".apk").removeSuffix(".xapk").removeSuffix(".apks")
+                val parentDir = if (file.path.isLinuxPath) file.path.toFile().parentFile ?: context.cacheDir else context.cacheDir
+                val outZip = File(parentDir, "${baseName}_java_sources.zip")
+
+                JadxDecompilerEngine.decompileToZip(apkFile, outZip) { current, total, clsName ->
+                    if (current % 25 == 0 || current == total) {
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            progressDialog.setMessage("Descompilando clase $current/$total\n$clsName")
+                        }
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    (activity as? FileListActivity)?.activeFragment?.reload()
+                    MaterialAlertDialogBuilder(context)
+                        .setTitle(R.string.dex_export_java_sources)
+                        .setMessage(context.getString(R.string.dex_decompile_success, outZip.name))
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismiss()
+                    Toast.makeText(context, "Error al descompilar con JADX: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     }
 
     private fun getSdkName(apiLevel: Int): String = when (apiLevel) {

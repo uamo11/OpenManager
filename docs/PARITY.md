@@ -73,6 +73,7 @@ Este documento contiene la matriz exhaustiva de paridad de funciones entre **MT 
 | AntiSplit / Fusionar Split APKs a APK único | ✅ | `filelist/AntiSplitEngine.kt`, `SplitApkDialogFragment.kt` | Fusión completa de recursos, dex y manifiesto con saneamiento y firma V1-V3 automática. |
 | Instalador integrado de APK y APKS divididos | ✅ | `filelist/ApkInstallHelper.kt` | Uso de `PackageInstaller.Session` con soporte para Split APKs y Root. |
 | Editor DEX / DEX Plus (Smali) | ✅ | `viewer/dex/DexEditorActivity.kt`, `DexEngine.kt` | Desensamblado a Smali con Baksmali, navegación de clases/métodos/campos/strings, edición y reensamblado con Smali. |
+| Descompilador Java con JADX | ✅ | `viewer/dex/JadxDecompilerEngine.kt`, `DexClassEditorActivity.kt` | Descompilación nativa de DEX/APK a código Java con JADX 1.4.7, visor Java en editor de clases, exportación a `.zip` y traducción directa. |
 | Decodificador de AndroidManifest binario (AXML) | ✅ | `file/AxmlDecoder.kt` | Descompilación de binario AXML a XML legible en TextEditor y visualizador. |
 | Compilador de XML a binario AXML | ✅ | `file/AxmlEngine.kt` | Re-ensamblado directo de StringPool y cabeceras binarias AXML sin necesidad de recompilación pesada. |
 | Visor / Editor de `resources.arsc` | ✅ | `viewer/arsc/ArscEditorActivity.kt`, `ArscEngine.kt` | Explorador y editor completo de tablas de recursos binarios de Android (cadenas, recursos y paquetes). |

@@ -13,6 +13,12 @@
         app:showAsAction="always|collapseActionView" />
 
     <item
+        android:id="@+id/action_export_java"
+        android:icon="@drawable/save_icon_control_normal_24dp"
+        android:title="@string/dex_export_java_sources"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_save"
         android:icon="@drawable/save_icon_control_normal_24dp"
         android:title="@string/save"

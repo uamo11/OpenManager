@@ -1260,4 +1260,15 @@
     <string name="antisplit_merging_progress">Merging split APKs into standalone APK…</string>
     <string name="antisplit_success">Merged APK successfully created: %1$s</string>
     <string name="antisplit_dialog_prompt">Do you want to merge %1$d selected APK splits into a single APK?</string>
+    <!-- JADX Java Decompiler -->
+    <string name="dex_tab_java">Java (JADX)</string>
+    <string name="dex_decompile_java">Decompile to Java (JADX)</string>
+    <string name="dex_mode_decompile_java">Decompile with JADX</string>
+    <string name="dex_mode_decompile_java_desc">Decompile classes to clean Java source code</string>
+    <string name="dex_export_java_sources">Export Java sources (.zip)</string>
+    <string name="dex_export_java_file">Save .java file</string>
+    <string name="dex_decompile_progress">Decompiling with JADX…</string>
+    <string name="dex_decompile_success">Java sources exported successfully: %1$s</string>
+    <string name="dex_copy_java">Copy Java</string>
+    <string name="dex_java_copied">Java code copied to clipboard</string>
 </resources>
