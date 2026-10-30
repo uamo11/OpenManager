@@ -326,7 +326,7 @@ enum class SyntaxLanguage(
             "part", "required", "rethrow", "return", "set", "show", "static", "super", "switch",
             "sync", "this", "throw", "true", "try", "typedef", "var", "void", "while", "with", "yield"
         ),
-        types = setOf("int", "double", "num", "String", "bool", "List", "Map", "Set", "Object", "Future", "Stream", "Widget", "State"),
+        types = setOf("int", "double", "num", "String", "bool", "List", "Map", "Set", "Object", "Future", "Stream", "Widget", "State", "StatelessWidget", "StatefulWidget", "BuildContext"),
         commentLine = "//",
         commentBlockStart = "/*",
         commentBlockEnd = "*/"
@@ -403,23 +403,23 @@ enum class SyntaxLanguage(
 
         fun detectFromFileName(fileName: String): SyntaxLanguage {
             val lower = fileName.lowercase(Locale.ROOT)
+            when {
+                lower == "build.gradle" || lower == "settings.gradle" -> return GRADLE
+                lower == "cmakelists.txt" -> return CMAKE
+                lower.startsWith("readme") || lower.startsWith("changelog") -> return MARKDOWN
+                lower == "dockerfile" || lower == "makefile" -> return SHELL
+                lower == "gemfile" || lower == "rakefile" -> return RUBY
+                lower == "hosts" || lower.endsWith(".conf") || lower.endsWith(".prop") || lower == ".env" || lower == ".gitignore" || lower == ".gitconfig" -> return PROPERTIES
+            }
             val ext = lower.substringAfterLast('.', "")
             if (ext.isNotEmpty()) {
                 for (lang in entries) {
-                    if (ext in lang.extensions) {
+                    if (lang != PLAIN_TEXT && ext in lang.extensions) {
                         return lang
                     }
                 }
             }
-            return when {
-                lower == "build.gradle" || lower == "settings.gradle" -> GRADLE
-                lower == "cmakelists.txt" -> CMAKE
-                lower.startsWith("readme") || lower.startsWith("changelog") -> MARKDOWN
-                lower == "dockerfile" || lower == "makefile" -> SHELL
-                lower == "gemfile" || lower == "rakefile" -> RUBY
-                lower == "hosts" || lower.endsWith(".conf") || lower.endsWith(".prop") || lower == ".env" || lower == ".gitignore" || lower == ".gitconfig" -> PROPERTIES
-                else -> PLAIN_TEXT
-            }
+            return PLAIN_TEXT
         }
     }
 }

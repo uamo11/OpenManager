@@ -93,6 +93,9 @@ class TextEditorZoomAndLanguageTest {
 
             class MyApp extends StatelessWidget {
                 final String title = "Test";
+                Widget build(BuildContext context) {
+                    return Container();
+                }
             }
         """.trimIndent()
 
@@ -106,11 +109,14 @@ class TextEditorZoomAndLanguageTest {
         assertTrue(keywordStrings.contains("class"))
         assertTrue(keywordStrings.contains("extends"))
         assertTrue(keywordStrings.contains("final"))
+        assertTrue(keywordStrings.contains("return"))
 
         val types = tokens.filter { it.color == FastSyntaxScanner.COLOR_TYPE }
         val typeStrings = types.map { dartCode.substring(it.start, it.end) }
-        assertTrue(typeStrings.contains("Widget")) // from types list
+        assertTrue(typeStrings.contains("Widget"))
         assertTrue(typeStrings.contains("String"))
+        assertTrue(typeStrings.contains("StatelessWidget"))
+        assertTrue(typeStrings.contains("BuildContext"))
     }
 
     @Test
