@@ -13,9 +13,8 @@ import android.os.Build
 import android.os.Environment
 import android.os.Process
 import android.util.Log
+import androidx.preference.PreferenceManager
 import me.zhanghai.android.files.BuildConfig
-import me.zhanghai.android.files.settings.Settings
-import me.zhanghai.android.files.util.valueCompat
 import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -35,11 +34,6 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         app = application
         defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler(this)
-
-        // Pre-create OpenManager logs directory if external storage is accessible
-        try {
-            ensureLogsDirectory()
-        } catch (ignored: Throwable) {}
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
@@ -228,13 +222,17 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
 
     fun ensureLogsDirectory(): File? {
         val basePath = try {
-            Settings.CUSTOM_OPENMANAGER_DIR.valueCompat.let {
-                if (it.startsWith("/sdcard")) {
+            val sp = PreferenceManager.getDefaultSharedPreferences(app)
+            val custom = sp.getString("key_custom_openmanager_dir", null)
+            if (!custom.isNullOrBlank()) {
+                if (custom.startsWith("/sdcard")) {
                     @Suppress("DEPRECATION")
-                    it.replaceFirst("/sdcard", Environment.getExternalStorageDirectory().absolutePath)
+                    custom.replaceFirst("/sdcard", Environment.getExternalStorageDirectory().absolutePath)
                 } else {
-                    it.ifEmpty { "/storage/emulated/0/OpenManager" }
+                    custom
                 }
+            } else {
+                "/storage/emulated/0/OpenManager"
             }
         } catch (t: Throwable) {
             "/storage/emulated/0/OpenManager"

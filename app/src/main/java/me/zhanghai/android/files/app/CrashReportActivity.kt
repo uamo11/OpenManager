@@ -14,17 +14,14 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.ActivityCrashReportBinding
-import me.zhanghai.android.files.filelist.FileListActivity
-import me.zhanghai.android.files.util.extraPath
-import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import java.io.File
-import java8.nio.file.Paths
 import kotlin.system.exitProcess
 
-class CrashReportActivity : AppActivity() {
+class CrashReportActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCrashReportBinding
 
@@ -72,23 +69,15 @@ class CrashReportActivity : AppActivity() {
         binding.openLogButton.setOnClickListener {
             if (!logPath.isNullOrEmpty() && File(logPath).exists()) {
                 try {
-                    val editIntent = Intent(this, TextEditorActivity::class.java).apply {
-                        extraPath = Paths.get(logPath)
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    val file = File(logPath)
+                    val uri = Uri.parse("content://${BuildConfig.FILE_PROVIDIER_AUTHORITY}/" + Uri.encode(file.toURI().toString()))
+                    val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, "text/plain")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
-                    startActivity(editIntent)
+                    startActivity(Intent.createChooser(viewIntent, getString(R.string.crash_report_open_log)))
                 } catch (e: Exception) {
-                    try {
-                        val file = File(logPath)
-                        val uri = Uri.parse("content://${BuildConfig.FILE_PROVIDIER_AUTHORITY}/" + Uri.encode(file.toURI().toString()))
-                        val viewIntent = Intent(Intent.ACTION_VIEW).apply {
-                            setDataAndType(uri, "text/plain")
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-                        }
-                        startActivity(Intent.createChooser(viewIntent, getString(R.string.crash_report_open_log)))
-                    } catch (e2: Exception) {
-                        Toast.makeText(this, "No se pudo abrir el log: ${e2.message}", Toast.LENGTH_SHORT).show()
-                    }
+                    Toast.makeText(this, "No se pudo abrir el log: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             } else {
                 Toast.makeText(this, "El archivo de log no existe aún", Toast.LENGTH_SHORT).show()
