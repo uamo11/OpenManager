@@ -80,3 +80,19 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - **Selección de rango continuo entre archivos**: al deslizar un archivo (arriba o abajo) y posteriormente deslizar otro archivo (abajo o arriba), se seleccionan instantáneamente todos los archivos intermedios de forma automática.
   - El directorio padre `..` permanece permanentemente protegido contra deslizamientos y selecciones accidentales.
   - Suite de pruebas unitarias `RangeSelectionLogicTest.kt` validando selección de rango descendente, ascendente, exclusión de `..` y alternancia de selección completa.
+
+24. **Corrección de Quick Edit, Copia de Rutas/Nombres en el Menú de Archivos y Sincronización del Botón Atrás (`dialog_apk_quick_edit.xml`, `ApkQuickEditDialogFragment.kt`, `ApkQuickEditEngine.kt`, `OpenApkDialogFragment.kt`, `dialog_mt_file_menu.xml`, `MtFileMenuHelper.kt`, `FileListActivity.kt`, `NavigationLogicTest.kt`) (v1.9.7)**: ✅
+- **Solución y Reorganización de Edición Rápida (Quick Edit)**:
+  - Eliminación de la causa raíz de crasheos al abrir o interactuar con el diálogo: sustitución de `AutoCompleteTextView` por `com.google.android.material.textfield.MaterialAutoCompleteTextView` en dropdowns expuestos requeridos por Material Design.
+  - Corrección de ciclo de vida del fragmento: paso de `requireActivity()` / `parentFragmentManager` para evitar `IllegalStateException: FragmentManager has been destroyed` al cerrar el diálogo origen `OpenApkDialogFragment`.
+  - Reorganización visual en secciones temáticas limpias con tipografía destacada: "Información Básica", "Versión de la Aplicación", "Compatibilidad SDK" e "Instalación y Opciones Avanzadas".
+  - Protección con bloques try-catch seguros en `ApkQuickEditEngine.kt` para lectura de manifiesto y atributos en APKs modificados u ofuscados.
+- **Mejora del Menú Contextual de Archivos**:
+  - Incorporación de encabezado interactivo con icono dinámico según el tipo de archivo (`FileIconHelper`), nombre completo en negrita, detalles de tamaño y fecha formateada (`formatMtDate`), y guía de acciones.
+  - Tocar el nombre completo del archivo o el encabezado copia la ruta absoluta completa (`/storage/emulated/0/.../archivo.ext`) al portapapeles con confirmación Toast y respuesta háptica.
+  - Mantener presionado copia únicamente el nombre del archivo.
+- **Sincronización Dinámica del Botón Atrás en la Barra Superior (`mainToolbar`)**:
+  - Ahora la barra superior muestra dinámicamente el botón de retroceso (`arrow_back`) cuando el explorador está en una subcarpeta (`canNavigateUp == true`) para subir de nivel de forma inmediata.
+  - En modo selección, el icono cambia automáticamente a cerrar (`close`) permitiendo deseleccionar y cancelar la selección en un solo toque.
+  - En la raíz del almacenamiento o cuando no se puede subir, muestra las 3 barras (`≡`) para abrir el menú lateral. Mantener presionado el icono de navegación en cualquier momento abre el menú lateral.
+  - Validado con pruebas unitarias en `NavigationLogicTest.kt`.

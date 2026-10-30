@@ -262,7 +262,7 @@
             android:layout_marginBottom="12dp"
             android:hint="@string/toast_dialog_target_activity">
 
-            <AutoCompleteTextView
+            <com.google.android.material.textfield.MaterialAutoCompleteTextView
                 android:id="@+id/actvTargetActivity"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

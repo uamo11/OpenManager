@@ -15,7 +15,7 @@
         android:paddingStart="24dp"
         android:paddingTop="20dp"
         android:paddingEnd="24dp"
-        android:paddingBottom="8dp">
+        android:paddingBottom="12dp">
 
         <!-- Header: Icon & App Info -->
         <LinearLayout
@@ -93,6 +93,17 @@
             android:orientation="vertical"
             android:visibility="gone">
 
+            <!-- Category 1: Información Básica -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INFORMACIÓN BÁSICA"
+                android:textColor="#42A5F5"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="8dp" />
+
             <!-- App Name -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilAppName"
@@ -116,7 +127,7 @@
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="10dp"
+                android:layout_marginBottom="14dp"
                 android:hint="@string/apk_quick_edit_package_name">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -127,12 +138,23 @@
                     android:maxLines="1" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <!-- Category 2: Versión -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="VERSIÓN DE LA APLICACIÓN"
+                android:textColor="#42A5F5"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="8dp" />
+
             <!-- Version Name & Version Code in horizontal row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="14dp">
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilVersionName"
@@ -169,12 +191,23 @@
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
+            <!-- Category 3: Compatibilidad SDK -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="COMPATIBILIDAD SDK"
+                android:textColor="#42A5F5"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="8dp" />
+
             <!-- Min SDK & Target SDK in horizontal row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="10dp">
+                android:layout_marginBottom="14dp">
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/tilMinSdk"
@@ -185,7 +218,7 @@
                     android:layout_marginEnd="6dp"
                     android:hint="@string/apk_quick_edit_min_sdk">
 
-                    <AutoCompleteTextView
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/actvMinSdk"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -202,7 +235,7 @@
                     android:layout_marginStart="6dp"
                     android:hint="@string/apk_quick_edit_target_sdk">
 
-                    <AutoCompleteTextView
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
                         android:id="@+id/actvTargetSdk"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -210,6 +243,17 @@
                         android:maxLines="1" />
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
+
+            <!-- Category 4: Opciones de Instalación y Empaquetado -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="INSTALACIÓN Y OPCIONES AVANZADAS"
+                android:textColor="#42A5F5"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.05"
+                android:layout_marginBottom="8dp" />
 
             <!-- Install Location dropdown -->
             <com.google.android.material.textfield.TextInputLayout
@@ -220,7 +264,7 @@
                 android:layout_marginBottom="12dp"
                 android:hint="@string/apk_quick_edit_install_location">
 
-                <AutoCompleteTextView
+                <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/actvInstallLocation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

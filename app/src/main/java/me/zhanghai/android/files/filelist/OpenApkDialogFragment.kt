@@ -292,8 +292,9 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
 
         btnQuickEdit?.setOnClickListener {
+            val hostActivity = requireActivity()
             dialog.dismiss()
-            ApkQuickEditDialogFragment.show(file, this)
+            ApkQuickEditDialogFragment.show(file, hostActivity)
         }
 
         btnFunction.setOnClickListener {
@@ -339,8 +340,9 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             installApkWithShizuku(file)
                         }
                         getString(R.string.apk_quick_edit) -> {
+                            val hostActivity = requireActivity()
                             dialog.dismiss()
-                            ApkQuickEditDialogFragment.show(file, this)
+                            ApkQuickEditDialogFragment.show(file, hostActivity)
                         }
                         "AntiSplit (Fusionar Splits)" -> {
                             dialog.dismiss()
@@ -368,12 +370,14 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             }
                         }
                         getString(R.string.toast_dialog_inject_title) -> {
+                            val hostActivity = requireActivity()
                             dialog.dismiss()
-                            ToastDialogInjectDialogFragment.show(file, this)
+                            ToastDialogInjectDialogFragment.show(file, hostActivity)
                         }
                         getString(R.string.toast_dialog_clean_title) -> {
+                            val hostActivity = requireActivity()
                             dialog.dismiss()
-                            ToastDialogCleanDialogFragment.show(file, this)
+                            ToastDialogCleanDialogFragment.show(file, hostActivity)
                         }
                         getString(R.string.apk_sign) -> {
                             dialog.dismiss()

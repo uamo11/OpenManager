@@ -264,6 +264,7 @@ class FileListActivity : AppActivity() {
         syncBottomBarSelectionState()
         observePanelPathsAndStats()
         updateDrawerStats()
+        updateMainToolbarNavigationIcon()
         handleDemoIntent(intent)
     }
 
@@ -909,6 +910,7 @@ class FileListActivity : AppActivity() {
             syncPanelColors()
             updateTopBarInfo()
             syncBottomBarSelectionState()
+            updateMainToolbarNavigationIcon()
             fragmentA.updateBackCallbackState()
             fragmentB.updateBackCallbackState()
             invalidateOptionsMenu()
@@ -952,8 +954,56 @@ class FileListActivity : AppActivity() {
                 disk.isNotEmpty() -> disk
                 else -> "Listo"
             }
+            updateMainToolbarNavigationIcon()
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun updateMainToolbarNavigationIcon() {
+        if (!::mainToolbar.isInitialized || !::fragmentA.isInitialized || !::fragmentB.isInitialized) return
+        if (!activeFragment.isAdded) return
+
+        val selectedCount = try { activeFragment.selectedFiles.size } catch (e: Exception) { 0 }
+        val canNavigateUp = try { activeFragment.canNavigateUp } catch (e: Exception) { false }
+
+        when {
+            selectedCount > 0 -> {
+                mainToolbar.setNavigationIcon(R.drawable.close_icon_control_normal_24dp)
+                mainToolbar.navigationContentDescription = getString(android.R.string.cancel)
+                mainToolbar.setNavigationOnClickListener {
+                    activeFragment.clearSelectedFiles()
+                }
+            }
+            canNavigateUp -> {
+                mainToolbar.setNavigationIcon(R.drawable.arrow_back_icon_white_24dp)
+                mainToolbar.navigationContentDescription = getString(R.string.file_list_action_navigate_up)
+                mainToolbar.setNavigationOnClickListener {
+                    activeFragment.navigateUp()
+                }
+            }
+            else -> {
+                mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
+                mainToolbar.navigationContentDescription = getString(R.string.open_navigation_drawer)
+                mainToolbar.setNavigationOnClickListener {
+                    drawerLayout.openDrawer(GravityCompat.START)
+                }
+            }
+        }
+
+        // Allow long press on navigation icon to open drawer at any time (MT Manager style)
+        for (i in 0 until mainToolbar.childCount) {
+            val child = mainToolbar.getChildAt(i)
+            if (child is android.widget.ImageButton) {
+                child.setOnLongClickListener {
+                    if (!drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                        drawerLayout.openDrawer(GravityCompat.START)
+                        true
+                    } else {
+                        false
+                    }
+                }
+            }
         }
     }
 
@@ -1239,6 +1289,7 @@ class FileListActivity : AppActivity() {
             bottomBarNormal.visibility = View.VISIBLE
             bottomBarSelection.visibility = View.GONE
         }
+        updateMainToolbarNavigationIcon()
     }
 
     private fun observePanelPathsAndStats() {
@@ -1280,6 +1331,7 @@ class FileListActivity : AppActivity() {
                     bottomBarNormal.visibility = View.VISIBLE
                     bottomBarSelection.visibility = View.GONE
                 }
+                updateMainToolbarNavigationIcon()
             }
         }
         fragmentA.onSelectionChanged = selectionObserver

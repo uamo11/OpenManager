@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -166,8 +167,17 @@ class ToastDialogCleanDialogFragment : AppCompatDialogFragment() {
     class Args(val file: FileItem) : ParcelableArgs
 
     companion object {
+        fun show(file: FileItem, activity: FragmentActivity) {
+            ToastDialogCleanDialogFragment().putArgs(Args(file)).show(activity.supportFragmentManager, "ToastDialogCleanDialogFragment")
+        }
+
         fun show(file: FileItem, fragment: Fragment) {
-            ToastDialogCleanDialogFragment().putArgs(Args(file)).show(fragment)
+            val fm = try {
+                fragment.parentFragmentManager
+            } catch (e: Exception) {
+                fragment.childFragmentManager
+            }
+            ToastDialogCleanDialogFragment().putArgs(Args(file)).show(fm, "ToastDialogCleanDialogFragment")
         }
     }
 }

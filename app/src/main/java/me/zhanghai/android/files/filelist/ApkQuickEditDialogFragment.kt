@@ -13,7 +13,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import androidx.fragment.app.FragmentActivity
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
@@ -92,9 +93,9 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
         val etVersionName = view.findViewById<TextInputEditText>(R.id.etVersionName)
         val etVersionCode = view.findViewById<TextInputEditText>(R.id.etVersionCode)
 
-        val actvMinSdk = view.findViewById<AutoCompleteTextView>(R.id.actvMinSdk)
-        val actvTargetSdk = view.findViewById<AutoCompleteTextView>(R.id.actvTargetSdk)
-        val actvInstallLocation = view.findViewById<AutoCompleteTextView>(R.id.actvInstallLocation)
+        val actvMinSdk = view.findViewById<MaterialAutoCompleteTextView>(R.id.actvMinSdk)
+        val actvTargetSdk = view.findViewById<MaterialAutoCompleteTextView>(R.id.actvTargetSdk)
+        val actvInstallLocation = view.findViewById<MaterialAutoCompleteTextView>(R.id.actvInstallLocation)
         val cbAutoSign = view.findViewById<MaterialCheckBox>(R.id.cbAutoSign)
         val cbDebuggable = view.findViewById<MaterialCheckBox>(R.id.cbDebuggable)
         val cbExtractNativeLibs = view.findViewById<MaterialCheckBox>(R.id.cbExtractNativeLibs)
@@ -171,8 +172,9 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    if (!isAdded) return@withContext
                     Toast.makeText(context, "Error al acceder al archivo APK: ${e.message}", Toast.LENGTH_SHORT).show()
-                    dismiss()
+                    try { dismissAllowingStateLoss() } catch (ignored: Exception) {}
                 }
                 return@launch
             }
@@ -181,6 +183,7 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                 val info = ApkQuickEditEngine.loadQuickEditInfo(localApk)
                 withContext(Dispatchers.Main) {
                     progressBar.isVisible = false
+                    if (!isAdded) return@withContext
                     layoutForm.isVisible = true
 
                     etAppName.setText(info.appName)
@@ -201,8 +204,9 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     progressBar.isVisible = false
+                    if (!isAdded) return@withContext
                     Toast.makeText(context, "Error al analizar manifiesto del APK: ${e.message}", Toast.LENGTH_LONG).show()
-                    dismiss()
+                    try { dismissAllowingStateLoss() } catch (ignored: Exception) {}
                 }
             } finally {
                 if (!file.path.isLinuxPath && localApk.exists()) {
@@ -296,8 +300,8 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                         }
 
                         withContext(Dispatchers.Main) {
-                            savingDialog.dismiss()
-                            alertDialog.dismiss()
+                            try { if (savingDialog.isShowing) savingDialog.dismiss() } catch (ignored: Exception) {}
+                            try { alertDialog.dismiss() } catch (ignored: Exception) {}
 
                             (activity as? FileListActivity)?.activeFragment?.reload()
 
@@ -324,7 +328,7 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                         e.printStackTrace()
                         me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "ApkQuickEdit")
                         withContext(Dispatchers.Main) {
-                            savingDialog.dismiss()
+                            try { if (savingDialog.isShowing) savingDialog.dismiss() } catch (ignored: Exception) {}
                             Toast.makeText(
                                 context,
                                 context.getString(R.string.apk_quick_edit_error, e.message ?: e.javaClass.simpleName),
@@ -346,7 +350,16 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
 
     companion object {
         fun show(file: FileItem, fragment: Fragment) {
-            ApkQuickEditDialogFragment().putArgs(Args(file)).show(fragment)
+            val fm = try {
+                fragment.parentFragmentManager
+            } catch (e: Exception) {
+                fragment.childFragmentManager
+            }
+            ApkQuickEditDialogFragment().putArgs(Args(file)).show(fm, "ApkQuickEditDialogFragment")
+        }
+
+        fun show(file: FileItem, activity: FragmentActivity) {
+            ApkQuickEditDialogFragment().putArgs(Args(file)).show(activity.supportFragmentManager, "ApkQuickEditDialogFragment")
         }
     }
 }

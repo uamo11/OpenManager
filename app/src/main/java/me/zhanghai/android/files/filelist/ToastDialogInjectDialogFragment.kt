@@ -10,7 +10,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ArrayAdapter
-import android.widget.AutoCompleteTextView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
@@ -20,10 +19,12 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.Dispatchers
@@ -70,7 +71,7 @@ class ToastDialogInjectDialogFragment : AppCompatDialogFragment() {
         val etNegativeBtn = view.findViewById<TextInputEditText>(R.id.etNegativeBtn)
         val cbCancelable = view.findViewById<MaterialCheckBox>(R.id.cbCancelable)
 
-        val actvTargetActivity = view.findViewById<AutoCompleteTextView>(R.id.actvTargetActivity)
+        val actvTargetActivity = view.findViewById<MaterialAutoCompleteTextView>(R.id.actvTargetActivity)
 
         tvSubtitle.text = file.name
 
@@ -253,8 +254,17 @@ class ToastDialogInjectDialogFragment : AppCompatDialogFragment() {
     class Args(val file: FileItem) : ParcelableArgs
 
     companion object {
+        fun show(file: FileItem, activity: FragmentActivity) {
+            ToastDialogInjectDialogFragment().putArgs(Args(file)).show(activity.supportFragmentManager, "ToastDialogInjectDialogFragment")
+        }
+
         fun show(file: FileItem, fragment: Fragment) {
-            ToastDialogInjectDialogFragment().putArgs(Args(file)).show(fragment)
+            val fm = try {
+                fragment.parentFragmentManager
+            } catch (e: Exception) {
+                fragment.childFragmentManager
+            }
+            ToastDialogInjectDialogFragment().putArgs(Args(file)).show(fm, "ToastDialogInjectDialogFragment")
         }
     }
 }

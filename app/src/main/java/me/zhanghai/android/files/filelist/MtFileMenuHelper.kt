@@ -5,8 +5,12 @@
 
 package me.zhanghai.android.files.filelist
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,10 +18,14 @@ import android.view.Window
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialog
 import androidx.core.view.isVisible
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
+import me.zhanghai.android.files.file.asFileSize
+import me.zhanghai.android.files.file.fileSize
+import me.zhanghai.android.files.file.formatMtDate
 import me.zhanghai.android.files.provider.archive.isArchivePath
 
 object MtFileMenuHelper {
@@ -53,6 +61,70 @@ object MtFileMenuHelper {
         view.findViewById<ImageView>(R.id.btnClose).setOnClickListener {
             dialog.dismiss()
         }
+
+        // Header: File Icon, Name, Details & Tap to copy path / Long press to copy name
+        val layoutFileHeader = view.findViewById<View>(R.id.layoutFileHeader)
+        val ivFileMenuIcon = view.findViewById<ImageView>(R.id.ivFileMenuIcon)
+        val tvFileName = view.findViewById<TextView>(R.id.tvFileName)
+        val tvFileDetails = view.findViewById<TextView>(R.id.tvFileDetails)
+
+        if (ivFileMenuIcon != null) {
+            ivFileMenuIcon.setImageResource(FileIconHelper.getIconRes(file))
+        }
+
+        if (tvFileName != null) {
+            tvFileName.text = if (isSingleFile) file.name else "${targetFiles.size} elementos seleccionados"
+        }
+
+        if (tvFileDetails != null) {
+            tvFileDetails.text = if (isSingleFile) {
+                val dateStr = try {
+                    file.attributes.lastModifiedTime().toInstant().formatMtDate()
+                } catch (e: Exception) {
+                    ""
+                }
+                if (isDirectory) {
+                    if (dateStr.isNotEmpty()) "Carpeta • $dateStr" else "Carpeta"
+                } else {
+                    val sizeStr = file.attributes.fileSize.formatHumanReadable(context)
+                    if (dateStr.isNotEmpty()) "$sizeStr • $dateStr" else sizeStr
+                }
+            } else {
+                val totalSize = targetFiles.sumOf { it.attributes.size() }
+                val sizeStr = totalSize.asFileSize().formatHumanReadable(context)
+                "$sizeStr • ${targetFiles.size} archivos seleccionados"
+            }
+        }
+
+        val copyPathAction = {
+            val fullPath = if (isSingleFile) {
+                file.path.toUserFriendlyString()
+            } else {
+                targetFiles.joinToString("\n") { it.path.toUserFriendlyString() }
+            }
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            clipboard?.setPrimaryClip(ClipData.newPlainText("File Path", fullPath))
+            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            Toast.makeText(context, "Ruta copiada al portapapeles:\n$fullPath", Toast.LENGTH_SHORT).show()
+        }
+
+        val copyNameAction = {
+            val nameToCopy = if (isSingleFile) {
+                file.name
+            } else {
+                targetFiles.joinToString("\n") { it.name }
+            }
+            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            clipboard?.setPrimaryClip(ClipData.newPlainText("File Name", nameToCopy))
+            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            Toast.makeText(context, "Nombre copiado al portapapeles:\n$nameToCopy", Toast.LENGTH_SHORT).show()
+            true
+        }
+
+        layoutFileHeader?.setOnClickListener { copyPathAction() }
+        layoutFileHeader?.setOnLongClickListener { copyNameAction() }
+        tvFileName?.setOnClickListener { copyPathAction() }
+        tvFileName?.setOnLongClickListener { copyNameAction() }
 
         val opposite = (activity as? FileListActivity)?.getOppositeFragment(fragment)
         val oppositePath = opposite?.currentPath

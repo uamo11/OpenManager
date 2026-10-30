@@ -12,6 +12,84 @@
     android:clipToOutline="true"
     android:padding="0dp">
 
+    <!-- File Header: Icon, Full Name, Details & Tap-to-copy -->
+    <LinearLayout
+        android:id="@+id/layoutFileHeader"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="12dp"
+        android:background="?attr/selectableItemBackground"
+        android:clickable="true"
+        android:focusable="true">
+
+        <ImageView
+            android:id="@+id/ivFileMenuIcon"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_gravity="center_vertical"
+            android:src="@drawable/file_apk_icon"
+            android:contentDescription="@null" />
+
+        <LinearLayout
+            android:id="@+id/layoutFileNameContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:layout_marginEnd="8dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvFileName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="15.5sp"
+                android:textStyle="bold"
+                android:ellipsize="middle"
+                android:maxLines="2" />
+
+            <TextView
+                android:id="@+id/tvFileDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#B0BEC5"
+                android:textSize="12sp"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tvCopyHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Toca para copiar ruta completa • Mantén para copiar nombre"
+                android:textColor="#42A5F5"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/btnClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/close_icon_control_normal_24dp"
+            app:tint="#B0BEC5"
+            android:padding="6dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Cerrar" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#383838" />
+
     <!-- Tip / Hint Header -->
     <LinearLayout
         android:id="@+id/layoutTip"
@@ -20,29 +98,18 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:paddingStart="16dp"
-        android:paddingEnd="12dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp">
 
         <TextView
             android:id="@+id/tvTip"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:text="Los menús con • admiten pulsación larga para operar en una sola ventana"
-            android:textColor="#B0BEC5"
-            android:textSize="12sp"
+            android:textColor="#9E9E9E"
+            android:textSize="11.5sp"
             android:lineSpacingExtra="2dp" />
-
-        <ImageView
-            android:id="@+id/btnClose"
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:src="@drawable/close_icon_control_normal_24dp"
-            app:tint="#9E9E9E"
-            android:padding="4dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Cerrar" />
     </LinearLayout>
 
     <View

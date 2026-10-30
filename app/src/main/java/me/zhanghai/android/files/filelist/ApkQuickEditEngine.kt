@@ -63,16 +63,16 @@ object ApkQuickEditEngine {
                 }
             }
 
-            val pkgName = manifest.packageName ?: ""
-            val verCode = manifest.versionCode ?: 0
-            val verName = manifest.versionName ?: ""
-            val minSdk = manifest.minSdkVersion ?: 1
-            val targetSdk = manifest.targetSdkVersion ?: 1
+            val pkgName = try { manifest.packageName ?: "" } catch (e: Exception) { "" }
+            val verCode = try { manifest.versionCode ?: 0 } catch (e: Exception) { 0 }
+            val verName = try { manifest.versionName ?: "" } catch (e: Exception) { "" }
+            val minSdk = try { manifest.minSdkVersion ?: 1 } catch (e: Exception) { 1 }
+            val targetSdk = try { manifest.targetSdkVersion ?: 1 } catch (e: Exception) { 1 }
 
-            val installAttr = manifest.manifestElement?.searchAttributeByResourceId(ATTR_INSTALL_LOCATION)
+            val installAttr = try { manifest.manifestElement?.searchAttributeByResourceId(ATTR_INSTALL_LOCATION) } catch (e: Exception) { null }
             val installLoc = installAttr?.data
 
-            val iconResId = manifest.iconResourceId
+            val iconResId = try { manifest.iconResourceId } catch (e: Exception) { 0 }
             val isDebug = try { manifest.isDebuggable } catch (e: Exception) { false }
             val isExtractNative = try { manifest.isExtractNativeLibs } catch (e: Exception) { null }
 
@@ -152,7 +152,7 @@ object ApkQuickEditEngine {
                 // Replace launcher icon if new bytes are provided
                 options.newIconBytes?.let { iconBytes ->
                     onProgress?.invoke("Actualizando iconos de la aplicación...")
-                    val iconResId = manifest.iconResourceId
+                    val iconResId = try { manifest.iconResourceId } catch (e: Exception) { 0 }
                     if (iconResId != 0) {
                         try {
                             val resFiles = module.listResFiles(iconResId, null)

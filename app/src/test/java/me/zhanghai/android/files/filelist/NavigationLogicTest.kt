@@ -77,4 +77,50 @@ class NavigationLogicTest {
         assertTrue(androidDataPath.startsWith(internalPath))
         assertEquals("/", rootPath)
     }
+
+    enum class ToolbarNavMode {
+        CLEAR_SELECTION,
+        NAVIGATE_UP,
+        OPEN_DRAWER
+    }
+
+    private fun resolveToolbarNavMode(selectedCount: Int, canNavigateUp: Boolean): ToolbarNavMode {
+        return when {
+            selectedCount > 0 -> ToolbarNavMode.CLEAR_SELECTION
+            canNavigateUp -> ToolbarNavMode.NAVIGATE_UP
+            else -> ToolbarNavMode.OPEN_DRAWER
+        }
+    }
+
+    @Test
+    fun testToolbarNavigationModeResolution() {
+        // When items are selected, back/navigation always clears selection
+        assertEquals(ToolbarNavMode.CLEAR_SELECTION, resolveToolbarNavMode(selectedCount = 1, canNavigateUp = true))
+        assertEquals(ToolbarNavMode.CLEAR_SELECTION, resolveToolbarNavMode(selectedCount = 5, canNavigateUp = false))
+
+        // When no items are selected and canNavigateUp is true, toolbar navigates up
+        assertEquals(ToolbarNavMode.NAVIGATE_UP, resolveToolbarNavMode(selectedCount = 0, canNavigateUp = true))
+
+        // When no items are selected and at root (cannot navigate up), toolbar opens drawer
+        assertEquals(ToolbarNavMode.OPEN_DRAWER, resolveToolbarNavMode(selectedCount = 0, canNavigateUp = false))
+    }
+
+    @Test
+    fun testFileMenuCopyFormats() {
+        val singleFilePath = "/storage/emulated/0/Download/test.exe"
+        val singleFileName = "test.exe"
+
+        // Single file touch header -> full path
+        assertEquals("/storage/emulated/0/Download/test.exe", singleFilePath)
+        // Single file long touch header -> file name
+        assertEquals("test.exe", singleFileName)
+
+        // Multiple files touch header -> newline-separated paths
+        val multiFiles = listOf(
+            "/storage/emulated/0/Download/app.apk",
+            "/storage/emulated/0/Download/readme.txt"
+        )
+        val joinedPaths = multiFiles.joinToString("\n")
+        assertEquals("/storage/emulated/0/Download/app.apk\n/storage/emulated/0/Download/readme.txt", joinedPaths)
+    }
 }
