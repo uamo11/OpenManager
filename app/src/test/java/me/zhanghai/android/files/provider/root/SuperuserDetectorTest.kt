@@ -230,8 +230,8 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/data/adb/ksu/bin"
         )
 
-        assertEquals("KernelSU (Concedido)", status.title)
-        assertEquals("ACTIVO", status.statusTag)
+        assertEquals("Superusuario: KernelSU", status.title)
+        assertEquals("ROOT", status.statusTag)
         assertTrue(status.isRootGranted)
         assertEquals("/data/adb/ksu/bin", status.detectedBinaryPath)
     }
