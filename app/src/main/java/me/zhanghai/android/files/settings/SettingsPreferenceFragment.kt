@@ -45,7 +45,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             if (!logsDir.exists()) {
                 logsDir.mkdirs()
             }
-            val intent = me.zhanghai.android.files.filelist.FileListActivity.createViewIntent(java.nio.file.Paths.get(logsDir.absolutePath))
+            val intent = me.zhanghai.android.files.filelist.FileListActivity.createViewIntent(java8.nio.file.Paths.get(logsDir.absolutePath))
             requireContext().startActivitySafe(intent)
             true
         }

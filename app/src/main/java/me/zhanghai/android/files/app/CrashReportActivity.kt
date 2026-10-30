@@ -21,7 +21,7 @@ import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import java.io.File
-import java.nio.file.Paths
+import java8.nio.file.Paths
 import kotlin.system.exitProcess
 
 class CrashReportActivity : AppActivity() {

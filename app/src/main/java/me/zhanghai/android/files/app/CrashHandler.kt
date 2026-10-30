@@ -251,6 +251,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
         )
 
         for (dir in candidates) {
+            if (dir == null) continue
             try {
                 if (!dir.exists()) {
                     dir.mkdirs()
