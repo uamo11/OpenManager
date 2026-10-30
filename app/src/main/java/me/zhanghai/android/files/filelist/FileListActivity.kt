@@ -136,6 +136,16 @@ class FileListActivity : AppActivity() {
         me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
 
         drawerLayout = findViewById(R.id.drawerLayout)
+        // Permanently lock closed swipe gestures so swiping from screen edge never triggers the drawer (MT Manager style)
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
+        drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerOpened(drawerView: View) {
+                drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+            }
+            override fun onDrawerClosed(drawerView: View) {
+                drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
+            }
+        })
         mainToolbar = findViewById(R.id.mainToolbar)
         mainToolbar.setNavigationOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
