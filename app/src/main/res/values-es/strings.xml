@@ -1312,4 +1312,6 @@
     <string name="apktool_running_toast">La tarea continúa en segundo plano. Puedes verificar el avance o cancelarla desde las notificaciones.</string>
     <string name="apktool_cancelled_toast">Operación cancelada por el usuario</string>
     <string name="apktool_error_title">Error de Apktool</string>
+    <string name="settings_show_hidden_files_title">Mostrar archivos y directorios ocultos</string>
+    <string name="settings_show_hidden_files_summary">Mostrar carpetas y archivos cuyos nombres comienzan con un punto (.)</string>
 </resources>

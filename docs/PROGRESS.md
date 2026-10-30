@@ -239,3 +239,16 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Pruebas automatizadas para el escape seguro de argumentos POSIX shell frente a múltiples vectores de inyección.
   - Pruebas de contención de directorios frente a ataques de path traversal.
   - Pruebas de escape de identificadores en consultas SQLite.
+
+32. **Icono Dedicado de Extracción de APK, Menú de 3 Puntos Simplificado y Ajuste de Directorios Ocultos (`ic_apk_extract.xml`, `mt_overflow_menu.xml`, `FileListActivity.kt`, `settings.xml`, `strings.xml`) (v1.9.15)**: ✅
+- **Icono Vectorial Dedicado para Extracción de APK (`ic_apk_extract.xml`)**:
+  - Reemplazo del icono genérico por un vector multicapa nítido de alta fidelidad: cúpula del robot Android en Teal (`#26A69A`), contenedor de paquete APK en verde azulado (`#00796B`), tarjeta de documento APK interna (`#4DB6AC`) y flecha de extracción/exportación blanca centrada.
+  - Aplicado de manera coherente en: Menú de funciones de APK (`OpenApkDialogFragment.kt`), Gestor de aplicaciones en el Drawer lateral (`file_list_activity.xml`), menú lateral (`NavigationItems.kt`), y diálogo de detalles de aplicaciones instaladas (`dialog_installed_app_details.xml`).
+- **Simplificación y Limpieza del Menú de 3 Puntos (`mt_overflow_menu.xml` y `FileListActivity.kt`)**:
+  - Eliminación de 9 opciones redundantes que ya pertenecen exclusivamente al menú lateral (Drawer de 3 barras): Servidor FTP, Editor de código, Aplicaciones instaladas, Herramientas APK / Apktool, Generador de Keystores, Añadir almacenamiento, Papelera de reciclaje, Terminal, Ajustes y Acerca de.
+  - Reducción del menú exclusivamente a acciones directas sobre la lista de archivos: Actualizar, Buscar, Filtrar, Ordenar, Seleccionar todo, Archivos y directorios ocultos, Intercambiar paneles, Añadir a marcadores, Fijar como inicio, Exportar lista de archivos y Salir.
+  - Alternador interactivo y dinámico para "Archivos y directorios ocultos": actualiza su título en caliente ("Mostrar..." / "Ocultar archivos y directorios ocultos") y emite confirmación con Toast al cambiar de estado.
+- **Ajuste para Mostrar/Ocultar Archivos y Directorios Ocultos en Configuración (`settings.xml`)**:
+  - Incorporado interruptor `SwitchPreferenceCompat` en la categoría 2 (Apariencia y Lista de archivos) de la pantalla de Ajustes con clave `pref_key_file_list_show_hidden_files`.
+  - Títulos y descripciones localizadas en español e inglés (`settings_show_hidden_files_title`, `settings_show_hidden_files_summary`).
+  - Sincronización instantánea con el estado reactivo `Settings.FILE_LIST_SHOW_HIDDEN_FILES` y actualización en vivo del filtrado de archivos y directorios que empiezan por `.` en `FileListFragment`.

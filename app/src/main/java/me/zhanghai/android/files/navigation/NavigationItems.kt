@@ -365,7 +365,7 @@ private class BookmarkDirectoryItem(
 private val menuItems: List<NavigationItem>
     get() = listOf(
         IntentMenuItem(
-            R.drawable.file_apk_icon, R.string.navigation_installed_apps,
+            R.drawable.ic_apk_extract, R.string.navigation_installed_apps,
             InstalledAppsActivity::class.createIntent()
         ),
         IntentMenuItem(

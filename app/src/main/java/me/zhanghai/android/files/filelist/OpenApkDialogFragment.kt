@@ -319,7 +319,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 ApkFunctionOption("Generar clave KeyStore (.jks)", R.drawable.ic_keystore_key, Color.parseColor("#5C6BC0")),
                 ApkFunctionOption("Verificar firma", R.drawable.ic_apktool_verify, Color.parseColor("#AB47BC")),
                 ApkFunctionOption("Copiar nombre del paquete", R.drawable.copy_icon_control_normal_24dp, Color.parseColor("#B0BEC5")),
-                ApkFunctionOption("Extraer APK", R.drawable.ic_apps_white_24dp, Color.parseColor("#26A69A")),
+                ApkFunctionOption("Extraer APK", R.drawable.ic_apk_extract, Color.parseColor("#26A69A")),
                 ApkFunctionOption(getString(R.string.apk_optimize), R.drawable.ic_apk_optimize, Color.parseColor("#00897B"))
             ))
 

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Android Robot Upper Head -->
+    <path
+        android:fillColor="#26A69A"
+        android:pathData="M7.5,8c0,-2.48 2.02,-4.5 4.5,-4.5s4.5,2.02 4.5,4.5H7.5z" />
+    <!-- Antennas -->
+    <path
+        android:strokeColor="#26A69A"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M9.5,4L8,2 M14.5,4L16,2" />
+    <!-- Eyes -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M10.2,6.5a0.6,0.6 0 1,0 0.001,0z M13.8,6.5a0.6,0.6 0 1,0 0.001,0z" />
+    <!-- App Container / Package Base -->
+    <path
+        android:fillColor="#00796B"
+        android:pathData="M4.5,9.5h15c0.55,0 1,0.45 1,1v10c0,0.55 -0.45,1 -1,1h-15c-0.55,0 -1,-0.45 -1,-1v-10c0,-0.55 0.45,-1 1,-1z" />
+    <!-- APK Document / Extracted Card -->
+    <path
+        android:fillColor="#4DB6AC"
+        android:pathData="M6.5,11.5h11c0.4,0 0.8,0.35 0.8,0.8v7.4c0,0.4 -0.35,0.8 -0.8,0.8h-11c-0.4,0 -0.8,-0.35 -0.8,-0.8v-7.4c0,-0.4 0.35,-0.8 0.8,-0.8z" />
+    <!-- Outward / Extraction Arrow -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,18.5l-3.5,-3.5h2.2v-3.5h2.6v3.5h2.2z" />
+</vector>

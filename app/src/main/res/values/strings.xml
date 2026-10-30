@@ -1416,4 +1416,6 @@
     <string name="apktool_running_toast">The task continues in the background. You can check progress or cancel it from the notification bar.</string>
     <string name="apktool_cancelled_toast">Operation cancelled by user</string>
     <string name="apktool_error_title">Apktool error</string>
+    <string name="settings_show_hidden_files_title">Show hidden files and directories</string>
+    <string name="settings_show_hidden_files_summary">Show files and folders whose names start with a dot (.)</string>
 </resources>

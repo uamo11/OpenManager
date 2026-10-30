@@ -181,6 +181,13 @@
             android:entryValues="@array/pref_entry_values_file_name_ellipsize"
             app:useSimpleSummaryProvider="true"
             app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_file_list_show_hidden_files"
+            android:title="@string/settings_show_hidden_files_title"
+            android:summary="@string/settings_show_hidden_files_summary"
+            android:defaultValue="@bool/pref_default_value_file_list_show_hidden_files"
+            app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <!-- 3. GENERAL -->

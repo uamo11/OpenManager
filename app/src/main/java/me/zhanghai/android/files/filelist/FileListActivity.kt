@@ -711,6 +711,9 @@ class FileListActivity : AppActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
+        popup.menu.findItem(R.id.mt_menu_hidden_files)?.title =
+            if (showHidden) "Ocultar archivos y directorios ocultos" else "Mostrar archivos y directorios ocultos"
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.mt_menu_refresh -> {
@@ -733,13 +736,12 @@ class FileListActivity : AppActivity() {
                     activeFragment.showSortOptionsDialog()
                     true
                 }
-                R.id.mt_menu_terminal -> {
-                    activeFragment.openTerminal()
-                    true
-                }
                 R.id.mt_menu_hidden_files -> {
                     val current = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
-                    Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(!current)
+                    val newSetting = !current
+                    Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(newSetting)
+                    val msg = if (newSetting) "Mostrando archivos y directorios ocultos" else "Ocultando archivos y directorios ocultos"
+                    showToast(msg)
                     true
                 }
                 R.id.mt_menu_add_bookmark -> {
