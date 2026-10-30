@@ -19,11 +19,18 @@ object ApktoolPaths {
      * Uses /storage/emulated/0/OpenManager/ApkTool if accessible, with fallback to external files.
      */
     fun getApktoolBaseDir(): File {
-        val candidates = listOf(
-            File("/storage/emulated/0/OpenManager/ApkTool"),
-            File(Environment.getExternalStorageDirectory(), "OpenManager/ApkTool"),
-            File(application.getExternalFilesDir(null), "OpenManager/ApkTool")
-        )
+        val candidates = mutableListOf<File>()
+        candidates.add(File("/storage/emulated/0/OpenManager/ApkTool"))
+        try {
+            candidates.add(File(Environment.getExternalStorageDirectory(), "OpenManager/ApkTool"))
+        } catch (ignored: Throwable) {}
+        try {
+            val ext = application.getExternalFilesDir(null)
+            if (ext != null) {
+                candidates.add(File(ext, "OpenManager/ApkTool"))
+            }
+        } catch (ignored: Throwable) {}
+
         for (dir in candidates) {
             try {
                 if (!dir.exists()) {
@@ -35,7 +42,7 @@ object ApktoolPaths {
             } catch (ignored: Throwable) {}
         }
         val fallback = File("/storage/emulated/0/OpenManager/ApkTool")
-        fallback.mkdirs()
+        try { fallback.mkdirs() } catch (ignored: Throwable) {}
         return fallback
     }
 
