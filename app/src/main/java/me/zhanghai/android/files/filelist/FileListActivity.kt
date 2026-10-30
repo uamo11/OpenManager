@@ -52,6 +52,7 @@ import me.zhanghai.android.files.provider.common.isRegularFile
 import java8.nio.file.Path
 import java8.nio.file.Paths
 import java.io.File
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.about.AboutActivity
 import me.zhanghai.android.files.app.AppActivity
