@@ -26,6 +26,7 @@ import me.zhanghai.android.files.fileproperties.checksum.FilePropertiesChecksumT
 import me.zhanghai.android.files.fileproperties.image.FilePropertiesImageTabFragment
 import me.zhanghai.android.files.fileproperties.permission.FilePropertiesPermissionTabFragment
 import me.zhanghai.android.files.fileproperties.video.FilePropertiesVideoTabFragment
+import me.zhanghai.android.files.fileproperties.script.FilePropertiesScriptTabFragment
 import me.zhanghai.android.files.ui.TabFragmentPagerAdapter
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
@@ -106,6 +107,15 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                         R.string.file_properties_apk to {
                             FilePropertiesApkTabFragment().putArgs(
                                 FilePropertiesApkTabFragment.Args(args.file.path)
+                            )
+                        }
+                    )
+                }
+                if (FilePropertiesScriptTabFragment.isAvailable(args.file)) {
+                    add(
+                        R.string.file_properties_script to {
+                            FilePropertiesScriptTabFragment().putArgs(
+                                FilePropertiesScriptTabFragment.Args(args.file.path)
                             )
                         }
                     )

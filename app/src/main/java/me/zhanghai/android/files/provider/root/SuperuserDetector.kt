@@ -214,8 +214,9 @@ object SuperuserDetector {
         // A. Comprobación por KernelSU Next / ResuKisu
         val hasKsuDriver = File("/dev/kernelsu").exists()
         val hasKsuDir = File("/data/adb/ksu").exists()
+        val hasKsuBinDir = File("/data/adb/ksu/bin").exists()
         val hasKsuNextDir = File("/data/adb/ksun").exists()
-        val hasKsud = File("/system/bin/ksud").exists() || File("/data/adb/ksu/bin/ksud").exists()
+        val hasKsud = File("/system/bin/ksud").exists() || File("/data/adb/ksu/bin/ksud").exists() || hasKsuBinDir
 
         if (vUpper.contains("NEXT") ||
             vUpper.contains("RESUKISU") ||
@@ -231,13 +232,26 @@ object SuperuserDetector {
                 isPkgInstalled(pm, "org.tiann.kernelsu.next") -> "org.tiann.kernelsu.next"
                 else -> "org.kernelsu.next"
             }
-            return Triple(SuperuserType.KERNEL_SU_NEXT, pkg, if (hasKsud) "/system/bin/ksud" else "/data/adb/ksu")
+            val bin = when {
+                File("/data/adb/ksu/bin/ksud").exists() -> "/data/adb/ksu/bin/ksud"
+                hasKsuBinDir -> "/data/adb/ksu/bin"
+                File("/system/bin/ksud").exists() -> "/system/bin/ksud"
+                else -> "/data/adb/ksu"
+            }
+            return Triple(SuperuserType.KERNEL_SU_NEXT, pkg, bin)
         }
 
         // B. Comprobación por KernelSU Oficial
-        if (hasKsuDriver || hasKsuDir || hasKsud || vUpper.contains("KERNELSU") || isPkgInstalled(pm, "me.weishu.kernelsu") || isPkgInstalled(pm, "org.kernelsu")) {
+        if (hasKsuDriver || hasKsuDir || hasKsuBinDir || hasKsud || vUpper.contains("KERNELSU") || isPkgInstalled(pm, "me.weishu.kernelsu") || isPkgInstalled(pm, "org.kernelsu")) {
             val pkg = if (isPkgInstalled(pm, "org.kernelsu")) "org.kernelsu" else "me.weishu.kernelsu"
-            return Triple(SuperuserType.KERNEL_SU, pkg, if (hasKsuDriver) "/dev/kernelsu" else "/data/adb/ksu")
+            val bin = when {
+                File("/data/adb/ksu/bin/ksud").exists() -> "/data/adb/ksu/bin/ksud"
+                hasKsuBinDir -> "/data/adb/ksu/bin"
+                File("/system/bin/ksud").exists() -> "/system/bin/ksud"
+                hasKsuDriver -> "/dev/kernelsu"
+                else -> "/data/adb/ksu"
+            }
+            return Triple(SuperuserType.KERNEL_SU, pkg, bin)
         }
 
         // C. Comprobación por APatch
@@ -307,26 +321,9 @@ object SuperuserDetector {
         }
         val dfRootFiles = listOf(
             "/data/local/tmp/dfroot",
-            "/data/local/tmp/dfroot.sh",
-            "/data/adb/dfroot",
-            "/data/dfroot",
-            "/system/xbin/dfroot",
-            "/system/bin/dfroot",
-            "/dev/dfroot"
+            "/data/local/tmp/dfroot.sh"
         )
-        if (dfRootFiles.any { File(it).exists() }) {
-            return true
-        }
-        try {
-            val installed = pm.getInstalledPackages(0)
-            for (info in installed) {
-                val pkgName = info.packageName.lowercase()
-                if (pkgName == "df.root" || pkgName.contains("dfroot")) {
-                    return true
-                }
-            }
-        } catch (_: Throwable) {}
-        return false
+        return dfRootFiles.any { File(it).exists() }
     }
 
     internal fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {

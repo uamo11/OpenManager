@@ -22,6 +22,17 @@
             android:layout_gravity="center"
             android:visibility="gone" />
 
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/directoryProgressBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:indeterminate="true"
+            android:visibility="gone"
+            app:indicatorColor="#2196F3"
+            app:trackColor="@android:color/transparent"
+            app:trackThickness="3dp" />
+
         <LinearLayout
             android:id="@+id/layoutError"
             android:layout_width="match_parent"

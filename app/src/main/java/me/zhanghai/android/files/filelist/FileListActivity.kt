@@ -470,26 +470,50 @@ class FileListActivity : AppActivity() {
 
         findViewById<View>(R.id.drawerItemRoot).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            activeFragment.navigateTo(Paths.get("/"))
+            try {
+                if (activeFragment.isAdded) {
+                    activeFragment.navigateToRoot(Paths.get("/"))
+                }
+            } catch (e: Throwable) {
+                android.util.Log.e("FileListActivity", "Error navigating to root", e)
+            }
         }
 
         findViewById<View>(R.id.drawerItemInternal).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            activeFragment.navigateTo(Paths.get("/storage/emulated/0"))
+            try {
+                if (activeFragment.isAdded) {
+                    activeFragment.navigateToRoot(Paths.get("/storage/emulated/0"))
+                }
+            } catch (e: Throwable) {
+                android.util.Log.e("FileListActivity", "Error navigating to internal storage", e)
+            }
         }
 
         findViewById<View>(R.id.drawerItemDownloads)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            activeFragment.navigateTo(Paths.get("/storage/emulated/0/Download"))
+            try {
+                if (activeFragment.isAdded) {
+                    activeFragment.navigateTo(Paths.get("/storage/emulated/0/Download"))
+                }
+            } catch (e: Throwable) {
+                android.util.Log.e("FileListActivity", "Error navigating to downloads", e)
+            }
         }
 
         findViewById<View>(R.id.drawerItemAndroidData)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            val resolved = PathNavigator.resolve("/storage/emulated/0/Android/data", activeFragment.currentPath)
-            if (resolved != null) {
-                activeFragment.navigateTo(resolved)
-            } else {
-                activeFragment.navigateTo(Paths.get("/storage/emulated/0/Android/data"))
+            try {
+                if (activeFragment.isAdded) {
+                    val resolved = PathNavigator.resolve("/storage/emulated/0/Android/data", activeFragment.currentPath)
+                    if (resolved != null) {
+                        activeFragment.navigateTo(resolved)
+                    } else {
+                        activeFragment.navigateTo(Paths.get("/storage/emulated/0/Android/data"))
+                    }
+                }
+            } catch (e: Throwable) {
+                android.util.Log.e("FileListActivity", "Error navigating to Android/data", e)
             }
         }
 

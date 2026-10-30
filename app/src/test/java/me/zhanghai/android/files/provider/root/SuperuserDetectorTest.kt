@@ -218,6 +218,25 @@ class SuperuserDetectorTest {
     }
 
     @Test
+    fun testKernelSuWithKsuBinPath() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.KERNEL_SU,
+            isRootGranted = true,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = false,
+            suVersion = "KERNELSU-11850",
+            managerPackage = "me.weishu.kernelsu",
+            detectedBinaryPath = "/data/adb/ksu/bin"
+        )
+
+        assertEquals("KernelSU (Concedido)", status.title)
+        assertEquals("ACTIVO", status.statusTag)
+        assertTrue(status.isRootGranted)
+        assertEquals("/data/adb/ksu/bin", status.detectedBinaryPath)
+    }
+
+    @Test
     fun testNewIconResourcesAndNoneType() {
         assertEquals(R.drawable.ic_shield_locked, SuperuserDetector.SuperuserType.NONE.iconRes)
         assertTrue(R.drawable.ic_check_circle_green != 0)

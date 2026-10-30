@@ -920,17 +920,21 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     private fun onFileListChanged(stateful: Stateful<List<FileItem>>) {
         val files = stateful.value
         val isSearching = viewModel.searchState.isSearching
+        val isLoading = stateful is Loading
         val subtitle = when {
             stateful is Failure -> getString(R.string.error)
-            stateful is Loading && !isSearching -> getString(R.string.loading)
-            else -> getSubtitle(files!!)
+            isLoading && (files == null || !isSearching) -> getString(R.string.loading)
+            files != null -> getSubtitle(files)
+            else -> getString(R.string.empty)
         }
         binding.toolbar.subtitle = subtitle
         currentStatsSubtitle = subtitle
         onPathOrStatsChanged?.invoke(currentPath, subtitle)
         val hasFiles = !files.isNullOrEmpty()
-        binding.swipeRefreshLayout.isRefreshing = stateful is Loading && (hasFiles || isSearching)
-        binding.progress.fadeToVisibilityUnsafe(stateful is Loading && !(hasFiles || isSearching))
+        binding.swipeRefreshLayout.isRefreshing = isLoading && (hasFiles || isSearching)
+        binding.progress.fadeToVisibilityUnsafe(isLoading && !(hasFiles || isSearching))
+        val showDirectoryProgress = isLoading || isSearching
+        binding.directoryProgressBar.visibility = if (showDirectoryProgress) View.VISIBLE else View.GONE
         val isFailureWithoutFiles = stateful is Failure && !hasFiles
         val isAndroidDataOrObbCurrent = isAndroidDataOrObb(currentPath) && !currentPath.isDocumentPath
 
@@ -1396,8 +1400,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     override fun navigateTo(path: Path) {
         collapseSearchView()
-        val state = layoutManager.onSaveInstanceState()
-        viewModel.navigateTo(state!!, path)
+        val state = if (::layoutManager.isInitialized) layoutManager.onSaveInstanceState() else null
+        viewModel.navigateTo(state ?: android.os.Bundle(), path)
     }
 
     override fun copyPath(path: Path) {

@@ -81,7 +81,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     }
                     Success(fallbackList as List<FileItem>)
                 } else {
-                    Failure(valueCompat.value, e)
+                    Failure(value?.value, e)
                 }
             }
             postValue(value)

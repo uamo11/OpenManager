@@ -185,3 +185,32 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Búsqueda en múltiples paquetes conocidos, binarios de ejecución (`/data/local/tmp/dfroot`, `/data/adb/dfroot`, `/system/xbin/dfroot`, `/dev/dfroot`) y escaneo dinámico de paquetes instalados.
 - **Suite de Pruebas Unitarias Actualizada (`SuperuserDetectorTest.kt`)**:
   - Validación de recursos de iconos nuevos, asignación de `ic_shield_locked` a `SuperuserType.NONE` y consistencia de drawables de gradiente.
+
+30. **Renombrado de Paquete a com.y.om, Indicador de Carga Eficiente (0 CPU/RAM), Pestaña de Propiedades de Script Estilo APK, Detección de KernelSU /data/adb/ksu/bin y Corrección de Crash en Raíz (v1.9.13)**: ✅
+- **Renombrado de Paquete de la Aplicación a `com.y.om`**:
+  - Actualizado `applicationId 'com.y.om'`, `versionCode 53` y `versionName '1.9.13'` en `app/build.gradle`.
+  - Autoridades de proveedores dinámicas generadas a partir de `applicationId`: `${applicationId}.app_provider`, `${applicationId}.file_provider`, `${applicationId}.shizuku`.
+  - Actualizado `shortcuts.xml` (`targetPackage="com.y.om"`) y scripts de smoke test en emulador (`tools/emulator-smoke-test.sh`).
+- **Indicador de Carga Superior de Alto Rendimiento para Búsqueda y Navegación de Directorios (`LinearProgressIndicator`)**:
+  - Incorporado `LinearProgressIndicator` (`directoryProgressBar`, color azul Material `#2196F3`, grosor 3dp) en la parte superior de la lista en `file_list_fragment_content_include.xml`.
+  - Activación reactiva durante estados de carga (`stateful is Loading`) o búsqueda activa (`viewModel.searchState.isSearching`).
+  - **Cero consumo de CPU y RAM**: Cuando la carga o búsqueda termina, la visibilidad pasa a `View.GONE`, deteniendo instantáneamente los animadores y los bucles de renderizado de Android.
+- **Corrección Definitiva del Crash al Pulsar "Directorio Raíz" en el Menú Lateral (`drawerItemRoot`)**:
+  - Solucionado en `FileListFragment.kt`: `navigateTo(path)` ahora obtiene el estado del layout de forma segura (`layoutManager.onSaveInstanceState() ?: Bundle()`) previniendo excepciones `NullPointerException` con `state!!`.
+  - En `FileListActivity.kt`: navegación a raíz con `navigateToRoot(Paths.get("/"))` asegurando verificación de fragmento añadido (`activeFragment.isAdded`) y bloque try-catch seguro.
+  - En `FileListLiveData.kt`: corregida lectura de estado en fallos a `Failure(value?.value, e)` en lugar de forzar `valueCompat.value` que causaba crash en hilos de trabajo asíncronos.
+  - En `FileListFragment.onFileListChanged`: comprobación segura de nulidad en listas de archivos durante búsquedas previniendo llamadas a `files!!`.
+- **Detección Perfeccionada de KernelSU y Limpieza de DFRoot en `SuperuserDetector.kt`**:
+  - Integrado soporte específico para la ruta `/data/adb/ksu/bin` y `/data/adb/ksu/bin/ksud` como binarios directos de KernelSU.
+  - Eliminadas las comprobaciones especulativas de carpetas inexistentes (`/data/dfroot`, `/system/xbin/dfroot`, `/dev/dfroot`) y búsquedas difusas en nombres de paquetes para evitar falsos positivos de DFRoot en equipos con KernelSU.
+  - Respeto estricto al interruptor de Ajustes: si la opción de solicitar root está desactivada, el estado de la tarjeta pasa de inmediato a `No Root` (gradiente gris, icono de candado y X roja en la esquina) sin invocar `su`.
+- **Pestaña Completa de Propiedades de Script Estilo APK (`FilePropertiesScriptTabFragment`)**:
+  - Nueva pestaña dedicada "Script" en el diálogo de propiedades de archivo para scripts (`.sh`, `.bash`, `.zsh`, `.py`, `.js`, `.lua`, `.rb`, `.pl`, `.rc`, etc.) o archivos con cabecera shebang (`#!`).
+  - **Tipo e Intérprete**: Identificación del lenguaje/shell (Bash, POSIX sh, Python, Node.js, Lua, etc.) y binario intérprete (`/system/bin/sh`, `python3`, etc.).
+  - **Shebang (`#!`)**: Lectura directa de la primera línea del archivo (ej. `#!/system/bin/sh`, `#!/usr/bin/env python3`).
+  - **Formato de Fin de Línea Interactivo**: Detección de Unix LF vs Windows CRLF; advertencia destacada en caso de CRLF por incompatibilidad con Android/Linux, y **acción de 1-toque para convertir instantáneamente los saltos de línea a Unix LF**.
+  - **Permisos POSIX y Concesión de Ejecución**: Formato legible `-rwxr-xr-x (755)` / `rw-r--r-- (644)` con acción interactiva para alternar o conceder permiso de ejecución (`chmod +x`).
+  - **Estadísticas de Código**: Conteo instantáneo de líneas, palabras, caracteres y juego de caracteres UTF-8 mediante escaneo en segundo plano sin fugas de memoria.
+  - **Acciones Rápidas Integradas**: Acceso directo para "Ejecutar script" (lanzando diálogo de ejecución y terminal) y "Editar código" (abriendo en el editor de texto/código de OpenManager).
+- **Suite de Pruebas Unitarias Ampliada (`SuperuserDetectorTest.kt`)**:
+  - Incorporada prueba automatizada `testKernelSuWithKsuBinPath()` validando detección de KernelSU con `/data/adb/ksu/bin`.

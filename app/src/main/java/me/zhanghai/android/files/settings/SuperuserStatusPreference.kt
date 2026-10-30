@@ -131,9 +131,9 @@ class SuperuserStatusPreference : Preference {
         tvManagerHeader: TextView,
         ivCornerStatus: ImageView
     ) {
-        val hasRoot = status.isRootGranted ||
+        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted ||
             (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) ||
-            status.hasDfRoot
+            status.hasDfRoot)
         val isShizukuOnly = status.type == SuperuserDetector.SuperuserType.SHIZUKU && !status.isRootGranted && !status.hasDfRoot
         val isActive = hasRoot || isShizukuOnly
 
@@ -210,9 +210,9 @@ class SuperuserStatusPreference : Preference {
     }
 
     private fun showDetailsDialog(status: SuperuserDetector.SuperuserStatus) {
-        val hasRoot = status.isRootGranted ||
+        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted ||
             (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) ||
-            status.hasDfRoot
+            status.hasDfRoot)
 
         val dialogTitle = if (hasRoot) {
             when {
