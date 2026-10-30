@@ -299,33 +299,51 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
 
         btnFunction.setOnClickListener {
             val optionsList = mutableListOf(
-                getString(R.string.view)
+                ApkFunctionOption(getString(R.string.view), R.drawable.visibility_icon_white_24dp, Color.parseColor("#2196F3"))
             )
             if (isRootAvailable) {
-                optionsList.add(getString(R.string.install_root))
+                optionsList.add(ApkFunctionOption(getString(R.string.install_root), R.drawable.ic_root_generic, Color.parseColor("#4CAF50")))
             }
             if (isShizukuAvailable) {
-                optionsList.add("Instalar con Shizuku")
+                optionsList.add(ApkFunctionOption("Instalar con Shizuku", R.drawable.ic_shizuku, Color.parseColor("#1565C0")))
             }
             optionsList.addAll(listOf(
-                getString(R.string.apk_quick_edit),
-                "AntiSplit (Fusionar Splits)",
-                "Descompilar APK a Java (JADX)",
-                "Descompilar APK (Apktool)",
-                getString(R.string.toast_dialog_inject_title),
-                getString(R.string.toast_dialog_clean_title),
-                getString(R.string.apk_sign),
-                "Generar clave KeyStore (.jks)",
-                "Verificar firma",
-                "Copiar nombre del paquete",
-                "Extraer APK",
-                getString(R.string.apk_optimize)
+                ApkFunctionOption(getString(R.string.apk_quick_edit), R.drawable.edit_icon, Color.parseColor("#FF9800")),
+                ApkFunctionOption("AntiSplit (Fusionar Splits)", R.drawable.ic_apktool_antisplit, Color.parseColor("#FFB300")),
+                ApkFunctionOption("Descompilar APK a Java (JADX)", R.drawable.ic_open_as_code, Color.parseColor("#64B5F6")),
+                ApkFunctionOption("Descompilar APK (Apktool)", R.drawable.ic_apktool_decompile, Color.parseColor("#FFA000")),
+                ApkFunctionOption(getString(R.string.toast_dialog_inject_title), R.drawable.ic_toast_inject, Color.parseColor("#FFCA28")),
+                ApkFunctionOption(getString(R.string.toast_dialog_clean_title), R.drawable.ic_toast_clean, Color.parseColor("#EF5350")),
+                ApkFunctionOption(getString(R.string.apk_sign), R.drawable.ic_apktool_sign, Color.parseColor("#4CAF50")),
+                ApkFunctionOption("Generar clave KeyStore (.jks)", R.drawable.ic_keystore_key, Color.parseColor("#5C6BC0")),
+                ApkFunctionOption("Verificar firma", R.drawable.ic_apktool_verify, Color.parseColor("#AB47BC")),
+                ApkFunctionOption("Copiar nombre del paquete", R.drawable.copy_icon_control_normal_24dp, Color.parseColor("#B0BEC5")),
+                ApkFunctionOption("Extraer APK", R.drawable.ic_apps_white_24dp, Color.parseColor("#26A69A")),
+                ApkFunctionOption(getString(R.string.apk_optimize), R.drawable.ic_apk_optimize, Color.parseColor("#00897B"))
             ))
-            val options = optionsList.toTypedArray()
+
+            val adapter = object : android.widget.ArrayAdapter<ApkFunctionOption>(
+                context,
+                R.layout.item_dialog_action_with_icon,
+                optionsList
+            ) {
+                override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                    val row = convertView ?: LayoutInflater.from(context)
+                        .inflate(R.layout.item_dialog_action_with_icon, parent, false)
+                    val item = getItem(position)!!
+                    val iv = row.findViewById<ImageView>(R.id.ivActionIcon)
+                    val tv = row.findViewById<TextView>(R.id.tvActionTitle)
+                    iv.setImageResource(item.iconRes)
+                    iv.setColorFilter(item.iconTint)
+                    tv.text = item.title
+                    return row
+                }
+            }
+
             MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.apk_function)
-                .setItems(options) { _, which ->
-                    val chosen = options[which]
+                .setAdapter(adapter) { _, which ->
+                    val chosen = optionsList[which].title
                     when (chosen) {
                         getString(R.string.view) -> {
                             dialog.dismiss()
@@ -537,6 +555,12 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
 
         viewerDialog.show()
     }
+
+    private data class ApkFunctionOption(
+        val title: String,
+        val iconRes: Int,
+        val iconTint: Int
+    )
 
     companion object {
         fun show(file: FileItem, fragment: Fragment) {

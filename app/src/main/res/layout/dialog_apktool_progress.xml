@@ -20,7 +20,7 @@
             android:id="@+id/ivApktoolIcon"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@drawable/ic_open_as_apk"
+            android:src="@drawable/ic_apktool"
             app:tint="#4CAF50" />
 
         <LinearLayout

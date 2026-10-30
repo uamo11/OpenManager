@@ -648,7 +648,7 @@
                             android:layout_width="20dp"
                             android:layout_height="20dp"
                             android:layout_gravity="center"
-                            android:src="@drawable/ic_open_as_apk"
+                            android:src="@drawable/ic_apktool"
                             app:tint="#4CAF50" />
                     </FrameLayout>
 

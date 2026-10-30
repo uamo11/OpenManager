@@ -282,15 +282,19 @@ object ApktoolHelper {
                 when (state.taskType) {
                     ApktoolExecutionService.TASK_TYPE_DECOMPILE_JAVA -> {
                         ivIcon.setImageResource(R.drawable.ic_open_as_code)
-                        ivIcon.setColorFilter(ContextCompat.getColor(activity, R.color.color_primary))
+                        ivIcon.setColorFilter(Color.parseColor("#64B5F6"))
                     }
                     ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK -> {
-                        ivIcon.setImageResource(R.drawable.file_archive_icon)
+                        ivIcon.setImageResource(R.drawable.ic_apktool_recompile)
                         ivIcon.setColorFilter(Color.parseColor("#42A5F5"))
                     }
+                    ApktoolExecutionService.TASK_TYPE_DECOMPILE_APK -> {
+                        ivIcon.setImageResource(R.drawable.ic_apktool_decompile)
+                        ivIcon.setColorFilter(Color.parseColor("#FFA000"))
+                    }
                     else -> {
-                        ivIcon.setImageResource(R.drawable.ic_open_as_apk)
-                        ivIcon.setColorFilter(Color.parseColor("#FF9800"))
+                        ivIcon.setImageResource(R.drawable.ic_apktool)
+                        ivIcon.setColorFilter(Color.parseColor("#4CAF50"))
                     }
                 }
 
@@ -440,10 +444,25 @@ object ApktoolHelper {
             return
         }
 
-        val names = apkList.map { it.fileName.toString() }.toTypedArray()
+        val adapter = object : android.widget.ArrayAdapter<Path>(
+            activity,
+            R.layout.item_dialog_action_with_icon,
+            apkList
+        ) {
+            override fun getView(position: Int, convertView: android.view.View?, parent: ViewGroup): android.view.View {
+                val row = convertView ?: LayoutInflater.from(context)
+                    .inflate(R.layout.item_dialog_action_with_icon, parent, false)
+                val item = getItem(position)!!
+                val iv = row.findViewById<ImageView>(R.id.ivActionIcon)
+                val tv = row.findViewById<TextView>(R.id.tvActionTitle)
+                iv.setImageResource(R.drawable.file_apk_icon)
+                tv.text = item.fileName.toString()
+                return row
+            }
+        }
         MaterialAlertDialogBuilder(activity)
             .setTitle(title)
-            .setItems(names) { _, which ->
+            .setAdapter(adapter) { _, which ->
                 onPicked(apkList[which])
             }
             .setNegativeButton("Cancelar", null)
@@ -476,10 +495,26 @@ object ApktoolHelper {
             return
         }
 
-        val names = projList.map { it.fileName.toString() }.toTypedArray()
+        val adapter = object : android.widget.ArrayAdapter<Path>(
+            activity,
+            R.layout.item_dialog_action_with_icon,
+            projList
+        ) {
+            override fun getView(position: Int, convertView: android.view.View?, parent: ViewGroup): android.view.View {
+                val row = convertView ?: LayoutInflater.from(context)
+                    .inflate(R.layout.item_dialog_action_with_icon, parent, false)
+                val item = getItem(position)!!
+                val iv = row.findViewById<ImageView>(R.id.ivActionIcon)
+                val tv = row.findViewById<TextView>(R.id.tvActionTitle)
+                iv.setImageResource(R.drawable.ic_apktool)
+                iv.setColorFilter(Color.parseColor("#FFA000"))
+                tv.text = item.fileName.toString()
+                return row
+            }
+        }
         MaterialAlertDialogBuilder(activity)
             .setTitle(title)
-            .setItems(names) { _, which ->
+            .setAdapter(adapter) { _, which ->
                 onPicked(projList[which])
             }
             .setNegativeButton("Cancelar", null)

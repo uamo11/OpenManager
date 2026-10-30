@@ -48,12 +48,12 @@
 
     <item
         android:id="@+id/mt_menu_apktool"
-        android:icon="@drawable/ic_open_as_apk"
+        android:icon="@drawable/ic_apktool"
         android:title="Herramientas APK / Apktool" />
 
     <item
         android:id="@+id/mt_menu_keystore_generator"
-        android:icon="@drawable/ic_open_as_signature"
+        android:icon="@drawable/ic_keystore_key"
         android:title="Generador de Keystores (.jks)" />
 
     <item

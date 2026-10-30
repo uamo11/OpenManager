@@ -21,7 +21,7 @@ val apktoolNotificationTemplate =
             showBadge = false
         ),
         colorRes = R.color.color_primary,
-        smallIcon = R.drawable.notification_icon,
+        smallIcon = R.drawable.ic_apktool_notification,
         ongoing = true,
         onlyAlertOnce = true,
         category = NotificationCompat.CATEGORY_PROGRESS,

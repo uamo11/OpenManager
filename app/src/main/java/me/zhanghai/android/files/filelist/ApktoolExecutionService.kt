@@ -487,7 +487,7 @@ class ApktoolExecutionService : Service() {
 
         val completedNotification = NotificationCompat.Builder(this, "apktool_operations")
             .setColor(ContextCompat.getColor(this, R.color.color_primary))
-            .setSmallIcon(R.drawable.notification_icon)
+            .setSmallIcon(R.drawable.ic_apktool_notification)
             .setContentTitle("$title completado")
             .setContentText("Guardado en: $outputPath")
             .setContentIntent(pClick)

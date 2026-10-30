@@ -19,7 +19,7 @@
         <ImageView
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:src="@drawable/ic_open_as_apk"
+            android:src="@drawable/ic_apktool"
             app:tint="#4CAF50" />
 
         <LinearLayout
@@ -66,7 +66,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/ic_open_as_apk"
+            android:src="@drawable/ic_apktool_decompile"
             app:tint="#FF9800" />
 
         <LinearLayout
@@ -148,7 +148,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/file_archive_icon"
+            android:src="@drawable/ic_apktool_recompile"
             app:tint="#42A5F5" />
 
         <LinearLayout
@@ -189,7 +189,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/ic_open_as_signature"
+            android:src="@drawable/ic_apktool_sign"
             app:tint="#4CAF50" />
 
         <LinearLayout
@@ -230,7 +230,7 @@
         <ImageView
             android:layout_width="28dp"
             android:layout_height="28dp"
-            android:src="@drawable/shield_icon_white_24dp"
+            android:src="@drawable/ic_apktool_verify"
             app:tint="#AB47BC" />
 
         <LinearLayout

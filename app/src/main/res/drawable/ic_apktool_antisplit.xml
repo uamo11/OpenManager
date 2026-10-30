@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Top-left Split Module -->
+    <path
+        android:fillColor="#FFA726"
+        android:pathData="M3,3h7v7H3z" />
+    <!-- Bottom-left Split Module -->
+    <path
+        android:fillColor="#FFB74D"
+        android:pathData="M3,14h7v7H3z" />
+    <!-- Merge Arrows pointing to unified APK -->
+    <path
+        android:fillColor="#FFE082"
+        android:pathData="M11,6.5l3,0 0,-1.5 3,2.5 -3,2.5 0,-1.5 -3,0z M11,17.5l3,0 0,-1.5 3,2.5 -3,2.5 0,-1.5 -3,0z" />
+    <!-- Unified Base APK -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M16,5h5c0.55,0 1,0.45 1,1v12c0,0.55 -0.45,1 -1,1h-5c-0.55,0 -1,-0.45 -1,-1V6c0,-0.55 0.45,-1 1,-1z" />
+    <!-- Android Antenna on merged APK -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M17.5,7.5c-0.3,0 -0.5,-0.2 -0.5,-0.5s0.2,-0.5 0.5,-0.5 0.5,0.2 0.5,0.5 -0.2,0.5 -0.5,0.5z M19.5,7.5c-0.3,0 -0.5,-0.2 -0.5,-0.5s0.2,-0.5 0.5,-0.5 0.5,0.2 0.5,0.5 -0.2,0.5 -0.5,0.5z" />
+</vector>

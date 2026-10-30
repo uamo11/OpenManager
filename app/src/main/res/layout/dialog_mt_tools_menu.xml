@@ -403,7 +403,7 @@
                     android:id="@+id/ivInjectToastIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/notification_icon_white_24dp"
+                    android:src="@drawable/ic_toast_inject"
                     app:tint="#FFCA28" />
 
                 <TextView
@@ -432,7 +432,7 @@
                     android:id="@+id/ivCleanToastsIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/delete_icon_white_24dp"
+                    android:src="@drawable/ic_toast_clean"
                     app:tint="#EF5350" />
 
                 <TextView
@@ -490,7 +490,7 @@
                     android:id="@+id/ivDecompileApkIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_open_as_apk"
+                    android:src="@drawable/ic_apktool_decompile"
                     app:tint="#FF9800" />
 
                 <TextView
@@ -548,7 +548,7 @@
                     android:id="@+id/ivRecompileApkIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/file_archive_icon"
+                    android:src="@drawable/ic_apktool_recompile"
                     app:tint="#42A5F5" />
 
                 <TextView
@@ -577,7 +577,7 @@
                     android:id="@+id/ivSignApkIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/ic_open_as_signature"
+                    android:src="@drawable/ic_apktool_sign"
                     app:tint="#4CAF50" />
 
                 <TextView
@@ -606,7 +606,7 @@
                     android:id="@+id/ivVerifySignatureIcon"
                     android:layout_width="22dp"
                     android:layout_height="22dp"
-                    android:src="@drawable/shield_icon_white_24dp"
+                    android:src="@drawable/ic_apktool_verify"
                     app:tint="#AB47BC" />
 
                 <TextView

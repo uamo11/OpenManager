@@ -227,7 +227,7 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:layout_gravity="center"
-                android:src="@drawable/ic_open_as_signature"
+                android:src="@drawable/ic_keystore_key"
                 app:tint="#4CAF50" />
         </FrameLayout>
 

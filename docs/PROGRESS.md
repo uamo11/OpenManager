@@ -114,3 +114,24 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Soporte de Superusuario Genérico (`GENERIC_ROOT`)**: Para entornos con gestores ocultos o con nombre de paquete aleatorio (ej. Magisk con nombre cambiado) o binarios `su` independientes, se clasifica automáticamente como "Superusuario (su)" con el icono genérico oficial de Android (`ic_root_generic.png`).
 - **Coexistencia DFRoot + Gestor Principal**: Muestra el badge distintivo lateral de DFRoot junto al gestor principal detectado (ej. KernelSU + DFRoot).
 - **Refresco Reactivo en Ajustes**: `SuperuserStatusPreference` y `SettingsPreferenceFragment` observan en vivo los cambios de `Settings.REQUEST_ROOT_PERMISSION` actualizando el estado de inmediato sin salir de la pantalla.
+
+27. **Iconografía Vectorial Especializada de Alto Rendimiento para Apktool y Acciones de APK (`ic_apktool.xml`, `ic_apktool_notification.xml`, `ic_apktool_decompile.xml`, `ic_apktool_recompile.xml`, `ic_apktool_verify.xml`, `ic_apktool_antisplit.xml`, `ic_apktool_sign.xml`, `ic_toast_inject.xml`, `ic_toast_clean.xml`, `ic_apk_optimize.xml`, `ic_keystore_key.xml`, `item_dialog_action_with_icon.xml`, `OpenApkDialogFragment.kt`, `ApktoolHelper.kt`) (v1.9.10)**: ✅
+- **Iconos Vectoriales Nativos de Máximo Rendimiento y Fidelidad Visual**:
+  - Diseñados e implementados 11 nuevos iconos `VectorDrawable` XML que sustituyen iconos genéricos o faltantes en todas las interfaces de Apktool y herramientas de APK:
+    1. `ic_apktool.xml`: Icono insignia oficial de Apktool con silueta Android, engranaje de precisión y llave de ajuste.
+    2. `ic_apktool_notification.xml`: Silueta blanca pura optimizada para notificaciones de Android en segundo plano (`ApktoolExecutionService`), eliminando cajas grises opacas en Android 5+.
+    3. `ic_apktool_decompile.xml`: Paquete desplegando código con flecha de descompilación ámbar.
+    4. `ic_apktool_recompile.xml`: Ensamblaje y empaquetado de proyecto a APK azul con martillo de construcción.
+    5. `ic_apktool_verify.xml`: Escudo criptográfico con checkmark de verificación de firmas.
+    6. `ic_apktool_sign.xml`: Documento y firma con pluma digital estilizada para el proceso de firmado de APKs.
+    7. `ic_apktool_antisplit.xml`: Fusión y convergencia de split APKs a un APK único independiente.
+    8. `ic_toast_inject.xml`: Bocadillo interactivo con símbolo de inyección/suma ámbar.
+    9. `ic_toast_clean.xml`: Bocadillo interactivo con neutralizador/cruz roja para limpieza de toasts y diálogos.
+    10. `ic_apk_optimize.xml`: Cohete y barras de alineación para optimización Zipalign.
+    11. `ic_keystore_key.xml`: Llave criptográfica de seguridad para el Generador de KeyStore.
+- **Acciones con Iconos en Diálogo de Funciones de APK (`OpenApkDialogFragment.kt`)**:
+  - Reemplazado el diálogo plano de solo texto por un adaptador visual `item_dialog_action_with_icon.xml` estilo MT Manager con iconos de 24dp coloreados por categoría.
+- **Selectores de Proyecto y APK Enriquecidos (`ApktoolHelper.kt`)**:
+  - Diálogos de selección de carpeta de proyecto y de archivo APK con iconos visuales dedicados.
+- **Armonización en Menús y Diálogos**:
+  - Actualizados `dialog_mt_apktool_hub.xml`, `dialog_mt_tools_menu.xml`, `mt_overflow_menu.xml`, `dialog_split_apk_actions.xml`, `dialog_create_item_choice.xml` y `dialog_keystore_generator.xml` sustituyendo drawables planos o con fondos sólidos por los nuevos iconos vectoriales adaptables.

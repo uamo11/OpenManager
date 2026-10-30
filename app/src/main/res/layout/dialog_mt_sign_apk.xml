@@ -23,7 +23,7 @@
             <ImageView
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:src="@drawable/ic_open_as_signature"
+                android:src="@drawable/ic_apktool_sign"
                 app:tint="#4CAF50" />
 
             <LinearLayout

@@ -67,6 +67,7 @@
     <item
         android:id="@+id/action_antisplit_merge"
         android:orderInCategory="100"
+        android:icon="@drawable/ic_apktool_antisplit"
         android:title="@string/action_antisplit_merge"
         app:showAsAction="never" />
 

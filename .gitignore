@@ -16,3 +16,4 @@ release.keystore
 
 build_apk/
 build_artifacts/
+build_artifacts*/
