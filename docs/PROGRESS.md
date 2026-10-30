@@ -68,3 +68,15 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - **DFRoot (Jailbreak / Exploit)**: detección de coexistencia con el gestor principal mostrando la insignia secundaria de DFRoot con su icono al lado, o como gestor autónomo.
   - **Sin Superusuario / Modo Estándar** (icono de escudo).
 - Tarjeta/Flag interactivo en la cabecera de la pantalla de ajustes (`SuperuserStatusPreference` y `preference_superuser_flag.xml`) con estado en vivo (ROOT, SHIZUKU, EXPLOIT, ESTÁNDAR) y diálogo emergente con diagnóstico técnico completo (gestor, versión de SU, ruta de driver/daemon, paquete y acceso directo para abrir la app del gestor).
+
+23. **Corrección de la Barra Inferior de Selección y Selección por Deslizamiento / Rango Estilo MT Manager / MP Manager (`FileListActivity.kt`, `FileListFragment.kt`, `FileListAdapter.kt`, `file_list_activity.xml`, `RangeSelectionLogicTest.kt`)**: ✅
+- **Rediseño y corrección de la barra inferior de selección (`bottomBarSelection`)**:
+  - Reemplazo de los 6 botones `MaterialButton` saturados por 5 columnas proporcionadas de 20% de ancho con `TextView` estilizados, eliminando problemas de recortes de texto, capitalización forzada y desalineaciones en cualquier resolución de pantalla.
+  - Comportamiento de alternancia en el botón `Todo`: pulsa para seleccionar todos los archivos; si ya están todos seleccionados, pulsa para deseleccionar todo inmediatamente.
+  - Flechas dinámicas orientadas al panel opuesto: `Copiar ➔` y `Mover ➔` cuando el panel activo es el izquierdo (A), o `⬅ Copiar` y `⬅ Mover` cuando el panel activo es el derecho (B).
+  - Menú `Más...` ampliado con: `Invertir selección`, `Desmarcar todo`, `Exportar lista...`, `Intercambiar nombres`, `Propiedades` y `Comprimir / Añadir a ZIP...`.
+- **Gesto de selección por deslizamiento a la derecha (`ItemTouchHelper`)**:
+  - Deslizar un archivo hacia la derecha ("girar a la derecha") lo selecciona inmediatamente con respuesta háptica y fondo azul `#1565C0`.
+  - **Selección de rango continuo entre archivos**: al deslizar un archivo (arriba o abajo) y posteriormente deslizar otro archivo (abajo o arriba), se seleccionan instantáneamente todos los archivos intermedios de forma automática.
+  - El directorio padre `..` permanece permanentemente protegido contra deslizamientos y selecciones accidentales.
+  - Suite de pruebas unitarias `RangeSelectionLogicTest.kt` validando selección de rango descendente, ascendente, exclusión de `..` y alternancia de selección completa.

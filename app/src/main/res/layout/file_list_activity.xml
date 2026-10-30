@@ -181,7 +181,7 @@
                     app:tint="@android:color/white" />
             </LinearLayout>
 
-            <!-- Selection Mode: [Todo] [Copiar ->] [Mover ->] [Borrar] [Más...] -->
+            <!-- Selection Mode: [Todo] [Copiar] [Mover] [Borrar] [Más...] (5 equal columns, MT Manager style) -->
             <LinearLayout
                 android:id="@+id/bottomBarSelection"
                 android:layout_width="match_parent"
@@ -190,101 +190,95 @@
                 android:gravity="center_vertical"
                 android:visibility="gone">
 
-                <com.google.android.material.button.MaterialButton
+                <TextView
                     android:id="@+id/btnSelectAll"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:minWidth="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
                     android:text="Todo"
                     android:textColor="#FFFFFF"
-                    android:textSize="11sp" />
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnInvertSelection"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1.1"
-                    android:minWidth="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
-                    android:singleLine="true"
-                    android:text="Invertir"
-                    android:textColor="#FFFFFF"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
+                <TextView
                     android:id="@+id/btnCopyOpposite"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1.2"
-                    android:minWidth="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
-                    android:singleLine="true"
-                    android:text="Copiar ➔"
-                    android:textColor="#42A5F5"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnMoveOpposite"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1.2"
-                    android:minWidth="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
-                    android:singleLine="true"
-                    android:text="Mover ➔"
-                    android:textColor="#42A5F5"
-                    android:textSize="11sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDeleteSelection"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:minWidth="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:singleLine="true"
-                    android:text="Borrar"
-                    android:textColor="#EF5350"
-                    android:textSize="11sp" />
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Copiar ➔"
+                    android:textColor="#42A5F5"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnMoreSelection"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                <TextView
+                    android:id="@+id/btnMoveOpposite"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:layout_weight="0.8"
-                    android:minWidth="0dp"
-                    android:paddingLeft="0dp"
-                    android:paddingRight="0dp"
-                    android:insetLeft="0dp"
-                    android:insetRight="0dp"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
                     android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Mover ➔"
+                    android:textColor="#42A5F5"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnDeleteSelection"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Borrar"
+                    android:textColor="#EF5350"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnMoreSelection"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
                     android:text="Más..."
                     android:textColor="#FFFFFF"
-                    android:textSize="11sp" />
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 

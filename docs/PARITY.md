@@ -13,6 +13,9 @@ Este documento contiene la matriz exhaustiva de paridad de funciones entre **MT 
 | Estadísticas de disco y rutas en barra | ✅ | `FileListActivity.kt#updateTopBarInfo` | Muestra ruta legible, conteo de ficheros y espacio libre de disco en tiempo real. |
 | Salto rápido a ruta (Jump to path) | ✅ | `FileListActivity.kt#showJumpToPathDialog` | Diálogo con sugerencias rápidas (`/sdcard`, `Download`, `Android/data`) y validación. |
 | Copiar y Mover entre paneles | ✅ | `FileListActivity.kt#btnCopyOpposite`, `FileListFragment.kt#copyFilesTo` | Operación en segundo plano usando `FileJobService` con refresco reactivo. |
+| Barra inferior de selección MT (5 columnas) | ✅ | `file_list_activity.xml#bottomBarSelection`, `FileListActivity.kt` | 5 columnas simétricas (20% c/u): `Todo (N)`, `Copiar`, `Mover`, `Borrar`, `Más...` con alternancia deseleccionar y flechas dinámicas. |
+| Selección por deslizamiento a la derecha | ✅ | `FileListFragment.kt#handleSwipeToSelect`, `ItemTouchHelper` | Deslizar un archivo hacia la derecha activa la selección con respuesta háptica y fondo azul. |
+| Selección continua de rango (arriba/abajo) | ✅ | `FileListFragment.kt`, `FileListAdapter.kt#getSelectableFilesInRange` | Deslizar dos archivos (arriba/abajo) selecciona automáticamente todos los archivos intermedios. |
 | Crear carpeta / archivo | ✅ | `FileListActivity.kt#showCreateDialog`, `CreateDirectoryDialogFragment` | Creación atómica con soporte SAF y rutas Linux. |
 | Eliminación simple y permanente | ✅ | `ConfirmDeleteFilesDialogFragment.kt`, `FileJobService` | Manejo de papelera y borrado forzado. |
 | Búsqueda de archivos | ✅ | `SearchFileListLiveData.kt`, `FileListActivity.kt#showSearchDialog` | Búsqueda por patrón y extensión dentro del directorio y subdirectorios. |

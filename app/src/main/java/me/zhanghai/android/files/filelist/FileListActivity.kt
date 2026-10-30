@@ -105,12 +105,11 @@ class FileListActivity : AppActivity() {
     private lateinit var btnBottomSwap: ImageButton
     private lateinit var btnBottomUp: ImageButton
 
-    private lateinit var btnSelectAll: MaterialButton
-    private lateinit var btnInvertSelection: MaterialButton
-    private lateinit var btnCopyOpposite: MaterialButton
-    private lateinit var btnMoveOpposite: MaterialButton
-    private lateinit var btnDeleteSelection: MaterialButton
-    private lateinit var btnMoreSelection: MaterialButton
+    private lateinit var btnSelectAll: TextView
+    private lateinit var btnCopyOpposite: TextView
+    private lateinit var btnMoveOpposite: TextView
+    private lateinit var btnDeleteSelection: TextView
+    private lateinit var btnMoreSelection: TextView
 
     private lateinit var progressRootStorage: ProgressBar
     private lateinit var tvRootStorageStats: TextView
@@ -192,7 +191,6 @@ class FileListActivity : AppActivity() {
         btnBottomUp = findViewById(R.id.btnBottomUp)
 
         btnSelectAll = findViewById(R.id.btnSelectAll)
-        btnInvertSelection = findViewById(R.id.btnInvertSelection)
         btnCopyOpposite = findViewById(R.id.btnCopyOpposite)
         btnMoveOpposite = findViewById(R.id.btnMoveOpposite)
         btnDeleteSelection = findViewById(R.id.btnDeleteSelection)
@@ -796,13 +794,15 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        // Selection Mode Buttons
+        // Selection Mode Buttons (5 equal columns, MT Manager style)
         btnSelectAll.setOnClickListener {
-            activeFragment.selectAllFiles()
-        }
-
-        btnInvertSelection.setOnClickListener {
-            activeFragment.invertSelection()
+            val totalSelectable = activeFragment.selectableItemCount
+            val currentSelected = activeFragment.selectedFiles.size
+            if (currentSelected >= totalSelectable && totalSelectable > 0) {
+                activeFragment.clearSelectedFiles()
+            } else {
+                activeFragment.selectAllFiles()
+            }
         }
 
         btnCopyOpposite.setOnClickListener {
@@ -842,6 +842,18 @@ class FileListActivity : AppActivity() {
         btnMoreSelection.setOnClickListener { view ->
             showMoreSelectionMenu(view)
         }
+    }
+
+    private fun updateSelectionButtons(count: Int) {
+        val totalSelectable = activeFragment.selectableItemCount
+        btnSelectAll.text = if (count > 0 && count >= totalSelectable && totalSelectable > 0) {
+            "Desmarcar"
+        } else {
+            "Todo ($count)"
+        }
+        val isPanelA = (activePanelIndex == 0)
+        btnCopyOpposite.text = if (isPanelA) "Copiar ➔" else "⬅ Copiar"
+        btnMoveOpposite.text = if (isPanelA) "Mover ➔" else "⬅ Mover"
     }
 
     private fun updateBottomBarMargin() {
@@ -1222,7 +1234,7 @@ class FileListActivity : AppActivity() {
         if (selected.isNotEmpty()) {
             bottomBarNormal.visibility = View.GONE
             bottomBarSelection.visibility = View.VISIBLE
-            btnSelectAll.text = "Todo (${selected.size})"
+            updateSelectionButtons(selected.size)
         } else {
             bottomBarNormal.visibility = View.VISIBLE
             bottomBarSelection.visibility = View.GONE
@@ -1263,7 +1275,7 @@ class FileListActivity : AppActivity() {
                 if (hasSelection) {
                     bottomBarNormal.visibility = View.GONE
                     bottomBarSelection.visibility = View.VISIBLE
-                    btnSelectAll.text = "Todo ($count)"
+                    updateSelectionButtons(count)
                 } else {
                     bottomBarNormal.visibility = View.VISIBLE
                     bottomBarSelection.visibility = View.GONE
@@ -1324,6 +1336,7 @@ class FileListActivity : AppActivity() {
             if (activeFragment.selectedFiles.size == 1) {
                 add(0, 5, 0, getString(R.string.file_item_action_properties))
             }
+            add(0, 6, 0, "Comprimir / Añadir a ZIP...")
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -1357,6 +1370,10 @@ class FileListActivity : AppActivity() {
                     if (file != null) {
                         activeFragment.showPropertiesDialog(file)
                     }
+                    true
+                }
+                6 -> {
+                    activeFragment.showCreateArchiveDialog(activeFragment.selectedFiles)
                     true
                 }
                 else -> false

@@ -30,6 +30,11 @@ import android.widget.EditText
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.view.HapticFeedbackConstants
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
@@ -351,6 +356,44 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     var currentStatsSubtitle: String = ""
         private set
 
+    var lastSelectionAnchorPosition: Int = -1
+
+    val selectableItemCount: Int
+        get() = if (isAdded) adapter.selectableItemCount else 0
+
+    fun handleSwipeToSelect(position: Int) {
+        val file = adapter.getItemOrNull(position) ?: return
+        if (file.isParentDirectoryItem || !adapter.isFileSelectable(file)) {
+            adapter.notifyItemChanged(position)
+            return
+        }
+
+        val currentSelected = viewModel.selectedFiles
+        val hasExistingSelection = currentSelected.isNotEmpty()
+        val anchor = lastSelectionAnchorPosition
+
+        if (hasExistingSelection && anchor >= 0 && anchor != position) {
+            // Range Selection: "si selecciona así un archivo abajo y otro arriba puede seleccionar todos los del interior de ese arriba y abajo"
+            val rangeFiles = adapter.getSelectableFilesInRange(anchor, position)
+            if (rangeFiles.isNotEmpty()) {
+                viewModel.selectFiles(rangeFiles, true)
+            }
+            lastSelectionAnchorPosition = position
+        } else {
+            // Single item selection / toggle
+            val isAlreadySelected = file in currentSelected
+            if (isAlreadySelected && currentSelected.size == 1) {
+                viewModel.selectFile(file, false)
+                lastSelectionAnchorPosition = -1
+            } else {
+                viewModel.selectFile(file, true)
+                lastSelectionAnchorPosition = position
+            }
+        }
+        view?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        adapter.notifyItemChanged(position)
+    }
+
     private var navigateUpCallback: OnBackPressedCallback? = null
 
     private val debouncedSearchRunnable = DebouncedRunnable(Handler(Looper.getMainLooper()), 1000) {
@@ -439,6 +482,75 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 return false
             }
         })
+        val swipeSelectionCallback = object : ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.RIGHT) {
+            private val backgroundPaint = Paint().apply {
+                color = Color.parseColor("#1565C0")
+                isAntiAlias = true
+            }
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean = false
+
+            override fun getSwipeDirs(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ): Int {
+                val position = viewHolder.bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return 0
+                val file = adapter.getItemOrNull(position) ?: return 0
+                if (file.isParentDirectoryItem || !adapter.isFileSelectable(file)) {
+                    return 0
+                }
+                return ItemTouchHelper.RIGHT
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val position = viewHolder.bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    handleSwipeToSelect(position)
+                }
+            }
+
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.18f
+
+            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = defaultValue * 0.4f
+
+            override fun onChildDraw(
+                c: Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float,
+                dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                val maxDx = recyclerView.width * 0.35f
+                val clampedDx = dX.coerceIn(0f, maxDx)
+                if (clampedDx > 0f) {
+                    val itemView = viewHolder.itemView
+                    c.drawRect(
+                        itemView.left.toFloat(),
+                        itemView.top.toFloat(),
+                        itemView.left + clampedDx,
+                        itemView.bottom.toFloat(),
+                        backgroundPaint
+                    )
+                }
+                super.onChildDraw(c, recyclerView, viewHolder, clampedDx, dY, actionState, isCurrentlyActive)
+            }
+
+            override fun clearView(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder
+            ) {
+                super.clearView(recyclerView, viewHolder)
+                viewHolder.itemView.translationX = 0f
+            }
+        }
+        ItemTouchHelper(swipeSelectionCallback).attachToRecyclerView(binding.recyclerView)
         val fastScroller = ThemedFastScroller.create(binding.recyclerView)
         binding.recyclerView.setOnApplyWindowInsetsListener(
             ScrollingViewOnApplyWindowInsetsListener(binding.recyclerView, fastScroller)
@@ -1361,6 +1473,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun onSelectedFilesChanged(files: FileItemSet) {
+        if (files.isEmpty()) {
+            lastSelectionAnchorPosition = -1
+        }
         updateOverlayToolbar()
         adapter.replaceSelectedFiles(files)
         onSelectionChanged?.invoke(this, files.isNotEmpty(), files.size)
@@ -1788,10 +1903,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun clearSelectedFiles() {
+        lastSelectionAnchorPosition = -1
         viewModel.clearSelectedFiles()
     }
 
     override fun selectFile(file: FileItem, selected: Boolean) {
+        val pos = adapter.getPositionForFile(file)
+        if (selected) {
+            lastSelectionAnchorPosition = pos
+        } else if (viewModel.selectedFiles.size <= 1) {
+            lastSelectionAnchorPosition = -1
+        }
         viewModel.selectFile(file, selected)
     }
 

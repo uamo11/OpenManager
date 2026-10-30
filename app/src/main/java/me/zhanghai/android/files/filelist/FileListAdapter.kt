@@ -177,7 +177,37 @@ class FileListAdapter(
         }
     }
 
-    private fun isFileSelectable(file: FileItem): Boolean {
+    fun getPositionForFile(file: FileItem): Int = filePositionMap[file.path] ?: -1
+
+    fun getItemOrNull(position: Int): FileItem? =
+        if (position in 0 until itemCount) getItem(position) else null
+
+    fun getSelectableFilesInRange(fromPosition: Int, toPosition: Int): FileItemSet {
+        val start = minOf(fromPosition, toPosition).coerceAtLeast(0)
+        val end = maxOf(fromPosition, toPosition).coerceAtMost(itemCount - 1)
+        val result = fileItemSetOf()
+        for (i in start..end) {
+            val file = getItem(i)
+            if (!file.isParentDirectoryItem && isFileSelectable(file)) {
+                result.add(file)
+            }
+        }
+        return result
+    }
+
+    val selectableItemCount: Int
+        get() {
+            var count = 0
+            for (i in 0 until itemCount) {
+                val file = getItem(i)
+                if (!file.isParentDirectoryItem && isFileSelectable(file)) {
+                    count++
+                }
+            }
+            return count
+        }
+
+    fun isFileSelectable(file: FileItem): Boolean {
         if (file.isParentDirectoryItem) {
             return false
         }
