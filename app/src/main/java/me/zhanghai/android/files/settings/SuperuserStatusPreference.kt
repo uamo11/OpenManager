@@ -6,6 +6,7 @@
 package me.zhanghai.android.files.settings
 
 import android.content.Context
+import android.graphics.PorterDuff
 import android.util.AttributeSet
 import android.view.View
 import android.widget.ImageView
@@ -77,14 +78,26 @@ class SuperuserStatusPreference : Preference {
         super.onBindViewHolder(holder)
 
         val card = holder.itemView.findViewById<View>(R.id.cardSuperuserFlag)
+        val cardInner = holder.itemView.findViewById<View>(R.id.cardInnerContainer)
+        val flIconContainer = holder.itemView.findViewById<View>(R.id.flRootIconContainer)
         val ivIcon = holder.itemView.findViewById<ImageView>(R.id.ivRootIcon)
-        val tvTitle = holder.itemView.findViewById<TextView>(R.id.tvSuperuserTitle)
-        val tvSubtitle = holder.itemView.findViewById<TextView>(R.id.tvSuperuserSubtitle)
-        val tvTag = holder.itemView.findViewById<TextView>(R.id.tvSuperuserTag)
-        val dfRootLayout = holder.itemView.findViewById<View>(R.id.dfRootBadgeLayout)
+        val tvStatus = holder.itemView.findViewById<TextView>(R.id.tvSuperuserStatus)
+        val tvJailbreakTag = holder.itemView.findViewById<TextView>(R.id.tvJailbreakTag)
+        val ivDfRootMini = holder.itemView.findViewById<ImageView>(R.id.ivDfRootMini)
+        val ivCornerStatus = holder.itemView.findViewById<ImageView>(R.id.ivCornerStatus)
+        val tvManagerHeader = holder.itemView.findViewById<TextView>(R.id.tvManagerHeader)
 
         currentStatus?.let { status ->
-            bindStatus(status, ivIcon, tvTitle, tvSubtitle, tvTag, dfRootLayout)
+            if (cardInner != null && flIconContainer != null && ivIcon != null &&
+                tvStatus != null && tvJailbreakTag != null && ivDfRootMini != null &&
+                ivCornerStatus != null && tvManagerHeader != null
+            ) {
+                bindStatus(
+                    status, cardInner, flIconContainer, ivIcon,
+                    tvStatus, tvJailbreakTag, ivDfRootMini,
+                    tvManagerHeader, ivCornerStatus
+                )
+            }
         }
 
         card?.setOnClickListener {
@@ -94,61 +107,164 @@ class SuperuserStatusPreference : Preference {
         scope.launch {
             val status = SuperuserDetector.detect(context)
             currentStatus = status
-            if (ivIcon != null && tvTitle != null && tvSubtitle != null && tvTag != null && dfRootLayout != null) {
-                bindStatus(status, ivIcon, tvTitle, tvSubtitle, tvTag, dfRootLayout)
+            if (cardInner != null && flIconContainer != null && ivIcon != null &&
+                tvStatus != null && tvJailbreakTag != null && ivDfRootMini != null &&
+                ivCornerStatus != null && tvManagerHeader != null
+            ) {
+                bindStatus(
+                    status, cardInner, flIconContainer, ivIcon,
+                    tvStatus, tvJailbreakTag, ivDfRootMini,
+                    tvManagerHeader, ivCornerStatus
+                )
             }
         }
     }
 
     private fun bindStatus(
         status: SuperuserDetector.SuperuserStatus,
+        cardInner: View,
+        flIconContainer: View,
         ivIcon: ImageView,
-        tvTitle: TextView,
-        tvSubtitle: TextView,
-        tvTag: TextView,
-        dfRootLayout: View
+        tvStatus: TextView,
+        tvJailbreakTag: TextView,
+        ivDfRootMini: ImageView,
+        tvManagerHeader: TextView,
+        ivCornerStatus: ImageView
     ) {
-        ivIcon.setImageResource(status.type.iconRes)
-        tvTitle.text = status.title
-        tvSubtitle.text = status.subtitle
+        val hasRoot = status.isRootGranted ||
+            (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) ||
+            status.hasDfRoot
+        val isShizukuOnly = status.type == SuperuserDetector.SuperuserType.SHIZUKU && !status.isRootGranted && !status.hasDfRoot
+        val isActive = hasRoot || isShizukuOnly
 
-        dfRootLayout.visibility = if (status.hasDfRoot && status.type != SuperuserDetector.SuperuserType.DFROOT) {
-            View.VISIBLE
+        if (isActive) {
+            // GREEN GRADIENT CARD
+            cardInner.setBackgroundResource(R.drawable.bg_superuser_card_green)
+            flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_green)
+            ivIcon.clearColorFilter()
+            if (status.type == SuperuserDetector.SuperuserType.DFROOT) {
+                ivIcon.setImageResource(R.drawable.ic_root_dfroot)
+            } else {
+                ivIcon.setImageResource(status.type.iconRes)
+            }
+
+            // Top Header: Manager name centered over top border line
+            tvManagerHeader.visibility = View.VISIBLE
+            tvManagerHeader.setBackgroundResource(R.drawable.bg_superuser_header_badge_green)
+            tvManagerHeader.setTextColor(0xFF34D399.toInt())
+            val headerText = when {
+                status.hasDfRoot && status.type != SuperuserDetector.SuperuserType.DFROOT && status.type != SuperuserDetector.SuperuserType.NONE ->
+                    "${status.type.displayName} + DFRoot"
+                status.type != SuperuserDetector.SuperuserType.NONE ->
+                    status.type.displayName
+                status.hasDfRoot ->
+                    "DFRoot"
+                else ->
+                    "Superusuario"
+            }
+            tvManagerHeader.text = headerText
+
+            // Status beside icon
+            tvStatus.text = "Working"
+            tvStatus.setTextColor(0xFFFFFFFF.toInt())
+
+            if (status.hasDfRoot || status.type == SuperuserDetector.SuperuserType.DFROOT) {
+                tvJailbreakTag.text = "[Jailbreak Root]"
+                tvJailbreakTag.visibility = View.VISIBLE
+                ivDfRootMini.visibility = View.VISIBLE
+            } else if (isShizukuOnly) {
+                tvJailbreakTag.text = "[Shizuku]"
+                tvJailbreakTag.visibility = View.VISIBLE
+                ivDfRootMini.visibility = View.GONE
+            } else {
+                tvJailbreakTag.visibility = View.GONE
+                ivDfRootMini.visibility = View.GONE
+            }
+
+            // Bottom-right corner: Green check circle
+            ivCornerStatus.setImageResource(R.drawable.ic_check_circle_green)
+            ivCornerStatus.visibility = View.VISIBLE
         } else {
-            View.GONE
-        }
+            // NO ROOT: GRAY GRADIENT CARD
+            cardInner.setBackgroundResource(R.drawable.bg_superuser_card_gray)
+            flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_gray)
 
-        tvTag.text = status.statusTag
-        when (status.statusTag) {
-            "ROOT" -> tvTag.setBackgroundResource(R.drawable.bg_superuser_badge)
-            "SHIZUKU" -> tvTag.setBackgroundResource(R.drawable.bg_shizuku_badge)
-            "EXPLOIT" -> tvTag.setBackgroundResource(R.drawable.bg_dfroot_badge)
-            "DESACTIVADO" -> tvTag.setBackgroundResource(R.drawable.bg_disabled_badge)
-            else -> tvTag.setBackgroundResource(R.drawable.bg_standard_badge)
+            // Primary icon: Shield locked
+            ivIcon.setImageResource(R.drawable.ic_shield_locked)
+            ivIcon.setColorFilter(0xFFB0BEC5.toInt(), PorterDuff.Mode.SRC_IN)
+
+            // Top header: GONE ("en el nombre del manager no dirá nd")
+            tvManagerHeader.visibility = View.GONE
+
+            // Text beside icon: "No Root"
+            tvStatus.text = "No Root"
+            tvStatus.setTextColor(0xFFE2E8F0.toInt())
+
+            tvJailbreakTag.visibility = View.GONE
+            ivDfRootMini.visibility = View.GONE
+
+            // Bottom-right corner: Red circle error / X
+            ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+            ivCornerStatus.visibility = View.VISIBLE
         }
     }
 
     private fun showDetailsDialog(status: SuperuserDetector.SuperuserStatus) {
+        val hasRoot = status.isRootGranted ||
+            (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) ||
+            status.hasDfRoot
+
+        val dialogTitle = if (hasRoot) {
+            when {
+                status.hasDfRoot && status.type != SuperuserDetector.SuperuserType.DFROOT && status.type != SuperuserDetector.SuperuserType.NONE ->
+                    "${status.type.displayName} (Jailbreak Root Activo)"
+                status.type != SuperuserDetector.SuperuserType.NONE ->
+                    "${status.type.displayName} (Superusuario Activo)"
+                else ->
+                    "DFRoot Jailbreak (Activo)"
+            }
+        } else if (status.type == SuperuserDetector.SuperuserType.SHIZUKU) {
+            "Shizuku Conectado"
+        } else {
+            "Estado de Superusuario: No Root"
+        }
+
         val message = buildString {
-            append("• Gestor principal: ${status.type.displayName}\n")
-            append("• Solicitud de Root: ${if (status.isRootEnabledInSettings) "Activada en Ajustes" else "Desactivada en Ajustes"}\n")
-            append("• Privilegios Root: ${if (status.isRootGranted) "Concedido (UID 0)" else if (!status.isRootEnabledInSettings) "Desactivado por el usuario" else "No disponible / no autorizado"}\n")
-            if (status.suVersion != null) {
-                append("• Versión de SU: ${status.suVersion}\n")
+            if (hasRoot) {
+                append("• Estado: Working\n")
+                append("• Gestor principal: ${status.type.displayName}\n")
+                if (status.hasDfRoot) {
+                    append("• DFRoot Jailbreak: Activo [Jailbreak Root]\n")
+                }
+                append("• Privilegios Root: ${if (status.isRootGranted) "Concedido (UID 0)" else "Disponible"}\n")
+                if (status.suVersion != null) {
+                    append("• Versión de SU: ${status.suVersion}\n")
+                }
+                if (status.detectedBinaryPath != null) {
+                    append("• Driver / Binario: ${status.detectedBinaryPath}\n")
+                }
+                if (status.isShizukuReady) {
+                    append("• Shizuku: Conectado y Autorizado\n")
+                }
+            } else {
+                append("• Estado: No Root\n")
+                append("• No se detectó ningún gestor de superusuario activo en el sistema.\n")
+                append("• La aplicación opera en modo estándar seguro sin elevación de privilegios.\n")
             }
-            if (status.detectedBinaryPath != null) {
-                append("• Driver / Binario: ${status.detectedBinaryPath}\n")
-            }
-            append("• Servidor Shizuku: ${if (status.isShizukuReady) "Conectado y Autorizado" else "No conectado"}\n")
-            append("• DFRoot Jailbreak: ${if (status.hasDfRoot) "Detectado en dispositivo" else "No detectado"}\n")
             if (status.managerPackage != null) {
                 append("• Paquete del gestor: ${status.managerPackage}\n")
             }
         }
 
+        val dialogIcon = if (hasRoot) {
+            if (status.type == SuperuserDetector.SuperuserType.DFROOT) R.drawable.ic_root_dfroot else status.type.iconRes
+        } else {
+            R.drawable.ic_circle_error_red
+        }
+
         val builder = MaterialAlertDialogBuilder(context)
-            .setTitle(status.title)
-            .setIcon(status.type.iconRes)
+            .setTitle(dialogTitle)
+            .setIcon(dialogIcon)
             .setMessage(message)
             .setPositiveButton(android.R.string.ok, null)
 

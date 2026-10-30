@@ -216,4 +216,16 @@ class SuperuserDetectorTest {
         assertFalse(status.isShizukuReady)
         assertFalse(status.hasDfRoot)
     }
+
+    @Test
+    fun testNewIconResourcesAndNoneType() {
+        assertEquals(R.drawable.ic_shield_locked, SuperuserDetector.SuperuserType.NONE.iconRes)
+        assertTrue(R.drawable.ic_check_circle_green != 0)
+        assertTrue(R.drawable.ic_circle_error_red != 0)
+        assertTrue(R.drawable.ic_shield_alert != 0)
+        assertTrue(R.drawable.ic_shield_check != 0)
+        assertTrue(R.drawable.ic_shield_locked != 0)
+        assertTrue(R.drawable.bg_superuser_card_green != 0)
+        assertTrue(R.drawable.bg_superuser_card_gray != 0)
+    }
 }

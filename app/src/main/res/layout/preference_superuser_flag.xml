@@ -8,136 +8,134 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:clipChildren="false"
+    android:clipToPadding="false"
     android:paddingStart="?android:attr/listPreferredItemPaddingStart"
     android:paddingEnd="?android:attr/listPreferredItemPaddingEnd"
-    android:paddingTop="12dp"
+    android:paddingTop="8dp"
     android:paddingBottom="6dp">
 
+    <!-- Main Status Card View -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardSuperuserFlag"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground"
-        app:cardBackgroundColor="?colorSurface"
+        app:cardBackgroundColor="@android:color/transparent"
         app:cardCornerRadius="14dp"
-        app:cardElevation="2dp"
-        app:strokeColor="#33373E"
-        app:strokeWidth="1dp">
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
 
-        <LinearLayout
+        <RelativeLayout
+            android:id="@+id/cardInnerContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="14dp">
+            android:background="@drawable/bg_superuser_card_green"
+            android:paddingStart="16dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="14dp">
 
-            <!-- Root Manager Primary Icon -->
+            <!-- Primary Manager Icon Container -->
             <FrameLayout
+                android:id="@+id/flRootIconContainer"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
-                android:background="@drawable/bg_circle_root_icon"
-                android:padding="6dp">
+                android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
+                android:background="@drawable/bg_circle_root_icon_green">
 
                 <ImageView
                     android:id="@+id/ivRootIcon"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
                     android:scaleType="fitCenter"
                     tools:src="@drawable/ic_root_kernelsu" />
             </FrameLayout>
 
-            <!-- Text Column -->
+            <!-- Status Content: Working / Working [Jailbreak Root] / No Root -->
             <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:id="@+id/tvSuperuserTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Superusuario: KernelSU"
-                        android:textAppearance="?attr/textAppearanceSubtitle1"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        tools:text="Superusuario: KernelSU" />
-
-                    <!-- DFRoot Co-presence Badge (smaller, beside root manager) -->
-                    <LinearLayout
-                        android:id="@+id/dfRootBadgeLayout"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:background="@drawable/bg_dfroot_badge"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:paddingStart="6dp"
-                        android:paddingTop="2dp"
-                        android:paddingEnd="6dp"
-                        android:paddingBottom="2dp"
-                        android:visibility="gone"
-                        tools:visibility="visible">
-
-                        <ImageView
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:scaleType="fitCenter"
-                            android:src="@drawable/ic_root_dfroot" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="DFRoot"
-                            android:textColor="#FFFFFF"
-                            android:textSize="11sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tvSuperuserSubtitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="2"
-                    android:text="Privilegios administrativos activos para operaciones de sistema"
-                    android:textAppearance="?attr/textAppearanceCaption"
-                    android:textColor="?android:attr/textColorSecondary"
-                    android:textSize="12sp"
-                    tools:text="Privilegios administrativos activos para operaciones de sistema" />
-            </LinearLayout>
-
-            <!-- Status Tag Chip -->
-            <TextView
-                android:id="@+id/tvSuperuserTag"
+                android:id="@+id/llStatusContent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_superuser_badge"
-                android:paddingStart="8dp"
-                android:paddingTop="3dp"
-                android:paddingEnd="8dp"
-                android:paddingBottom="3dp"
-                android:text="ROOT"
-                android:textColor="#FFFFFF"
-                android:textSize="11sp"
-                android:textStyle="bold"
-                tools:text="ROOT" />
+                android:layout_centerVertical="true"
+                android:layout_marginStart="14dp"
+                android:layout_marginEnd="10dp"
+                android:layout_toEndOf="@id/flRootIconContainer"
+                android:layout_toStartOf="@id/ivCornerStatus"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-        </LinearLayout>
+                <TextView
+                    android:id="@+id/tvSuperuserStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Working"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    tools:text="Working" />
+
+                <!-- Jailbreak Root Tag beside Working -->
+                <TextView
+                    android:id="@+id/tvJailbreakTag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="[Jailbreak Root]"
+                    android:textColor="#34D399"
+                    android:textSize="13.5sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+                <!-- Mini DFRoot Icon -->
+                <ImageView
+                    android:id="@+id/ivDfRootMini"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_root_dfroot"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+            </LinearLayout>
+
+            <!-- Bottom-right / Side Corner Status Icon (Check / X) -->
+            <ImageView
+                android:id="@+id/ivCornerStatus"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true"
+                android:scaleType="fitCenter"
+                tools:src="@drawable/ic_check_circle_green" />
+
+        </RelativeLayout>
 
     </com.google.android.material.card.MaterialCardView>
+
+    <!-- Manager Name Badge overlapping the top border line -->
+    <TextView
+        android:id="@+id/tvManagerHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="0dp"
+        android:background="@drawable/bg_superuser_header_badge_green"
+        android:elevation="6dp"
+        android:paddingStart="10dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="2dp"
+        android:textColor="#34D399"
+        android:textSize="11.5sp"
+        android:textStyle="bold"
+        tools:text="KernelSU" />
 
 </FrameLayout>

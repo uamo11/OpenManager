@@ -73,7 +73,7 @@ object SuperuserDetector {
         ),
         NONE(
             "Sin Superusuario",
-            R.drawable.shield_icon_white_24dp,
+            R.drawable.ic_shield_locked,
             "Modo estándar con permisos normales de aplicación"
         )
     }
@@ -268,20 +268,16 @@ object SuperuserDetector {
         }
 
         // G. Comprobación por DFRoot directo
-        if (isPkgInstalled(pm, "df.root") ||
-            isPkgInstalled(pm, "com.df.root") ||
-            isPkgInstalled(pm, "org.df.root") ||
-            isPkgInstalled(pm, "com.diabl0w.dfroot") ||
-            isPkgInstalled(pm, "io.github.diabl0w.dfroot") ||
-            isPkgInstalled(pm, "org.dfroot") ||
-            File("/data/local/tmp/dfroot").exists()
-        ) {
+        if (detectDfRoot(pm)) {
             val pkg = when {
                 isPkgInstalled(pm, "df.root") -> "df.root"
                 isPkgInstalled(pm, "com.df.root") -> "com.df.root"
                 isPkgInstalled(pm, "org.df.root") -> "org.df.root"
+                isPkgInstalled(pm, "com.diabl0w.dfroot") -> "com.diabl0w.dfroot"
                 isPkgInstalled(pm, "io.github.diabl0w.dfroot") -> "io.github.diabl0w.dfroot"
-                else -> "com.diabl0w.dfroot"
+                isPkgInstalled(pm, "org.dfroot") -> "org.dfroot"
+                isPkgInstalled(pm, "com.dfroot") -> "com.dfroot"
+                else -> "df.root"
             }
             return Triple(SuperuserType.DFROOT, pkg, "/data/local/tmp/dfroot")
         }
@@ -301,22 +297,36 @@ object SuperuserDetector {
     }
 
     internal fun detectDfRoot(pm: PackageManager): Boolean {
-        if (isPkgInstalled(pm, "df.root") ||
-            isPkgInstalled(pm, "com.df.root") ||
-            isPkgInstalled(pm, "org.df.root") ||
-            isPkgInstalled(pm, "com.diabl0w.dfroot") ||
-            isPkgInstalled(pm, "io.github.diabl0w.dfroot") ||
-            isPkgInstalled(pm, "org.dfroot")
-        ) {
+        val knownPkgs = listOf(
+            "df.root", "com.df.root", "org.df.root",
+            "com.diabl0w.dfroot", "io.github.diabl0w.dfroot", "org.dfroot",
+            "com.dfroot", "me.dfroot", "com.df.jailbreak"
+        )
+        if (knownPkgs.any { isPkgInstalled(pm, it) }) {
             return true
         }
         val dfRootFiles = listOf(
             "/data/local/tmp/dfroot",
+            "/data/local/tmp/dfroot.sh",
             "/data/adb/dfroot",
+            "/data/dfroot",
             "/system/xbin/dfroot",
-            "/data/local/tmp/dfroot.sh"
+            "/system/bin/dfroot",
+            "/dev/dfroot"
         )
-        return dfRootFiles.any { File(it).exists() }
+        if (dfRootFiles.any { File(it).exists() }) {
+            return true
+        }
+        try {
+            val installed = pm.getInstalledPackages(0)
+            for (info in installed) {
+                val pkgName = info.packageName.lowercase()
+                if (pkgName == "df.root" || pkgName.contains("dfroot")) {
+                    return true
+                }
+            }
+        } catch (_: Throwable) {}
+        return false
     }
 
     internal fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {

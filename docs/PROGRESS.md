@@ -157,3 +157,31 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Detección automática inteligente según nombre de archivo y extensiones.
 - **Suite de Pruebas Unitarias Automatizadas**:
   - Creado `TextEditorZoomAndLanguageTest.kt` validando detección de lenguajes, escaneo de tokens en Gradle, Dart y Smali, lógica de exclusión de ejecución en documentos `.txt`, y límites y escala de zoom.
+
+29. **Rediseño y Simplificación de la Tarjeta de Superusuario, Gradientes Dinámicos, Etiqueta "Working [Jailbreak Root]" y Nuevos Iconos (`preference_superuser_flag.xml`, `SuperuserStatusPreference.kt`, `SuperuserDetector.kt`, `bg_superuser_card_green.xml`, `bg_superuser_card_gray.xml`, `bg_superuser_header_badge_green.xml`, `bg_circle_root_icon_green.xml`, `bg_circle_root_icon_gray.xml`, `ic_check_circle_green.png`, `ic_circle_error_red.png`, `ic_shield_alert.png`, `ic_shield_check.png`, `ic_shield_locked.png`) (v1.9.12)**: ✅
+- **Solución Definitiva de Tamaños, Deformaciones e Icono Vertical de DFRoot**:
+  - Eliminado el diseño anterior con `dfRootBadgeLayout` inline susceptible a deformaciones verticales y estiramientos anormales.
+  - Simplificación completa de la tarjeta eliminando el párrafo inferior de descripción redundante (`tvSuperuserSubtitle`) y el fondo oscuro problemático de "desactivado".
+- **Nombre del Gestor Sobre la Línea de Borde Superior (`tvManagerHeader`)**:
+  - Reubicado el nombre del gestor (KernelSU, Magisk, APatch, DFRoot, etc.) en un distintivo centrado sobre la línea del borde superior de la tarjeta con elevación, fondo y borde esmeralda (`bg_superuser_header_badge_green.xml`).
+  - Al no haber superusuario, el distintivo superior no muestra nada (`View.GONE`).
+- **Estado Dinámico al Lado del Icono Principal**:
+  - Si hay superusuario activo: muestra claramente el texto `Working` en blanco brillante (17sp bold).
+  - En dispositivos con DFRoot: muestra `Working [Jailbreak Root]` con el tag en verde esmeralda y el mini icono oficial de DFRoot al lado.
+  - Al no haber superusuario: muestra de forma limpia y directa `No Root` en gris claro (17sp bold).
+- **Gradientes Elegantes para Estado de Superusuario**:
+  - **Verde Gradient (`bg_superuser_card_green.xml`)**: Elegante degradado lineal verde bosque oscuro (`#1E3E2B` ➔ `#0D1F15`) con borde sutil esmeralda cuando hay superusuario o Shizuku activo.
+  - **Gris Gradient (`bg_superuser_card_gray.xml`)**: Sofisticado degradado lineal grafito/pizarra (`#2D3035` ➔ `#181A1D`) con borde sutil gris cuando no hay superusuario.
+- **Icono de Estado en la Esquina Inferior Derecha (`ivCornerStatus`)**:
+  - Si hay superusuario: icono circular de checkmark verde (`ic_check_circle_green.png`).
+  - Si no hay superusuario: icono circular de error / X roja nítido (`ic_circle_error_red.png`).
+- **Integración de los 5 Iconos Especiales Suministrados**:
+  - `ic_check_circle_green.png`: Checkmark verde circular para estado correcto y diálogo de diagnóstico.
+  - `ic_circle_error_red.png`: X roja circular para estado No Root / cancelación.
+  - `ic_shield_locked.png`: Escudo negro con candado utilizado como icono principal en modo No Root.
+  - `ic_shield_alert.png`: Escudo de alerta para denegación de permisos o advertencias.
+  - `ic_shield_check.png`: Escudo de verificación y modo seguro.
+- **Detección Exhaustiva y Sin Fallos de DFRoot en `SuperuserDetector.kt`**:
+  - Búsqueda en múltiples paquetes conocidos, binarios de ejecución (`/data/local/tmp/dfroot`, `/data/adb/dfroot`, `/system/xbin/dfroot`, `/dev/dfroot`) y escaneo dinámico de paquetes instalados.
+- **Suite de Pruebas Unitarias Actualizada (`SuperuserDetectorTest.kt`)**:
+  - Validación de recursos de iconos nuevos, asignación de `ic_shield_locked` a `SuperuserType.NONE` y consistencia de drawables de gradiente.
