@@ -399,6 +399,8 @@ enum class SyntaxLanguage(
     );
 
     companion object {
+        fun fromFileName(fileName: String): SyntaxLanguage = detectFromFileName(fileName)
+
         fun detectFromFileName(fileName: String): SyntaxLanguage {
             val lower = fileName.lowercase(Locale.ROOT)
             val ext = lower.substringAfterLast('.', "")
