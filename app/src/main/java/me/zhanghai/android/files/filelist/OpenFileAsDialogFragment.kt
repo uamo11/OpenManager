@@ -153,6 +153,7 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
     private fun initTools() {
         val path = args.path
         val fileName = path.fileName.toString()
+        val isTxt = fileName.endsWith(".txt", ignoreCase = true) || fileName.endsWith(".text", ignoreCase = true)
 
         allTools = listOf(
             // 1. Text Editor
@@ -298,7 +299,9 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
                 startActivitySafe(intent)
                 dismissOrFinishActivity()
             }
-        )
+        ).let { list ->
+            if (isTxt) list.filter { it.id != "script_executor" } else list
+        }
     }
 
     override fun onCancel(dialog: DialogInterface) {

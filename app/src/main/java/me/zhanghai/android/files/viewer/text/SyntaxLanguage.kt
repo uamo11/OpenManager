@@ -70,14 +70,33 @@ enum class SyntaxLanguage(
         keywords = setOf(
             ".class", ".super", ".source", ".implements", ".field", ".method", ".end",
             ".annotation", ".subannotation", ".enum", ".line", ".registers", ".locals",
-            ".param", ".prologue", ".epilogue", ".catch", ".catchall", ".restart",
+            ".param", ".parameter", ".prologue", ".epilogue", ".catch", ".catchall", ".restart",
+            ".packed-switch", ".sparse-switch", ".array-data",
             "public", "private", "protected", "static", "final", "synchronized", "bridge",
             "varargs", "native", "abstract", "strictfp", "synthetic", "constructor", "declared-synchronized",
-            "move", "move/from16", "move-wide", "move-object", "return-void", "return", "return-object",
-            "const", "const/4", "const/16", "const-wide", "const-string", "check-cast", "instance-of",
-            "new-instance", "new-array", "throw", "goto", "packed-switch", "sparse-switch",
-            "if-eq", "if-ne", "if-lt", "if-ge", "if-gt", "if-le", "if-eqz", "if-nez",
-            "invoke-virtual", "invoke-super", "invoke-direct", "invoke-static", "invoke-interface"
+            "move", "move/from16", "move-wide", "move-wide/from16", "move-object", "move-object/from16",
+            "move-result", "move-result-wide", "move-result-object", "move-exception",
+            "return-void", "return", "return-wide", "return-object",
+            "const/4", "const/16", "const", "const/high16", "const-wide/16", "const-wide/32", "const-wide",
+            "const-wide/high16", "const-string", "const-string/jumbo", "const-class",
+            "monitor-enter", "monitor-exit", "check-cast", "instance-of", "new-instance", "new-array",
+            "filled-new-array", "filled-new-array/range", "fill-array-data",
+            "throw", "goto", "goto/16", "goto/32", "packed-switch", "sparse-switch",
+            "cmpl-float", "cmpg-float", "cmpl-double", "cmpg-double", "cmp-long",
+            "if-eq", "if-ne", "if-lt", "if-ge", "if-gt", "if-le", "if-eqz", "if-nez", "if-ltz", "if-gez", "if-gtz", "if-lez",
+            "aget", "aget-wide", "aget-object", "aget-boolean", "aget-byte", "aget-char", "aget-short",
+            "aput", "aput-wide", "aput-object", "aput-boolean", "aput-byte", "aput-char", "aput-short",
+            "iget", "iget-wide", "iget-object", "iget-boolean", "iget-byte", "iget-char", "iget-short",
+            "iput", "iput-wide", "iput-object", "iput-boolean", "iput-byte", "iput-char", "iput-short",
+            "sget", "sget-wide", "sget-object", "sget-boolean", "sget-byte", "sget-char", "sget-short",
+            "sput", "sput-wide", "sput-object", "sput-boolean", "sput-byte", "sput-char", "sput-short",
+            "invoke-virtual", "invoke-super", "invoke-direct", "invoke-static", "invoke-interface",
+            "invoke-virtual/range", "invoke-super/range", "invoke-direct/range", "invoke-static/range", "invoke-interface/range",
+            "invoke-polymorphic", "invoke-custom",
+            "neg-int", "not-int", "neg-long", "not-long", "neg-float", "neg-double", "int-to-long", "int-to-float",
+            "int-to-double", "long-to-int", "long-to-float", "long-to-double", "float-to-int", "float-to-long",
+            "float-to-double", "double-to-int", "double-to-long", "double-to-float", "int-to-byte", "int-to-char", "int-to-short",
+            "add-int", "sub-int", "mul-int", "div-int", "rem-int", "and-int", "or-int", "xor-int", "shl-int", "shr-int", "ushr-int"
         ),
         types = setOf("V", "Z", "B", "S", "C", "I", "J", "F", "D", "Ljava/lang/String;", "Ljava/lang/Object;"),
         commentLine = "#"
@@ -278,6 +297,105 @@ enum class SyntaxLanguage(
         listOf("css", "scss", "less"),
         commentBlockStart = "/*",
         commentBlockEnd = "*/"
+    ),
+    GRADLE(
+        "Gradle / Groovy",
+        listOf("gradle", "groovy"),
+        keywords = setOf(
+            "plugins", "android", "defaultConfig", "buildTypes", "dependencies", "implementation",
+            "api", "compileOnly", "runtimeOnly", "testImplementation", "androidTestImplementation",
+            "apply", "plugin", "repositories", "google", "mavenCentral", "task", "def", "as",
+            "import", "package", "class", "interface", "enum", "extends", "implements", "return",
+            "if", "else", "while", "for", "in", "switch", "case", "default", "break", "continue",
+            "throw", "try", "catch", "finally", "new", "true", "false", "null"
+        ),
+        types = setOf("String", "Integer", "Long", "Boolean", "File", "Project", "Action", "Closure"),
+        commentLine = "//",
+        commentBlockStart = "/*",
+        commentBlockEnd = "*/"
+    ),
+    DART(
+        "Dart",
+        listOf("dart"),
+        keywords = setOf(
+            "abstract", "as", "assert", "async", "await", "break", "case", "catch", "class",
+            "const", "continue", "covariant", "default", "deferred", "do", "dynamic", "else",
+            "enum", "export", "extends", "extension", "external", "factory", "false", "final",
+            "finally", "for", "Function", "get", "hide", "if", "implements", "import", "in",
+            "interface", "is", "late", "library", "mixin", "new", "null", "on", "operator",
+            "part", "required", "rethrow", "return", "set", "show", "static", "super", "switch",
+            "sync", "this", "throw", "true", "try", "typedef", "var", "void", "while", "with", "yield"
+        ),
+        types = setOf("int", "double", "num", "String", "bool", "List", "Map", "Set", "Object", "Future", "Stream", "Widget", "State"),
+        commentLine = "//",
+        commentBlockStart = "/*",
+        commentBlockEnd = "*/"
+    ),
+    CSHARP(
+        "C# / .NET",
+        listOf("cs"),
+        keywords = setOf(
+            "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
+            "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
+            "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
+            "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
+            "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
+            "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed",
+            "short", "sizeof", "stackalloc", "static", "string", "struct", "switch", "this",
+            "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort",
+            "using", "virtual", "void", "volatile", "while", "yield", "async", "await", "var", "record"
+        ),
+        types = setOf("String", "Int32", "Int64", "Boolean", "Task", "List", "Dictionary", "IEnumerable", "Action", "Func", "Exception"),
+        commentLine = "//",
+        commentBlockStart = "/*",
+        commentBlockEnd = "*/"
+    ),
+    RUBY(
+        "Ruby",
+        listOf("rb", "rake", "gemspec"),
+        keywords = setOf(
+            "alias", "and", "begin", "break", "case", "class", "def", "defined?", "do", "else",
+            "elsif", "end", "ensure", "false", "for", "if", "in", "module", "next", "nil", "not",
+            "or", "redo", "rescue", "retry", "return", "self", "super", "then", "true", "undef",
+            "unless", "until", "when", "while", "yield", "require", "include", "attr_accessor", "attr_reader"
+        ),
+        commentLine = "#"
+    ),
+    SWIFT(
+        "Swift",
+        listOf("swift"),
+        keywords = setOf(
+            "associatedtype", "class", "deinit", "enum", "extension", "fileprivate", "func", "import",
+            "init", "inout", "internal", "let", "open", "operator", "private", "protocol", "public",
+            "rethrows", "static", "struct", "subscript", "typealias", "var", "break", "case", "continue",
+            "default", "defer", "do", "else", "fallthrough", "for", "guard", "if", "in", "repeat",
+            "return", "switch", "where", "while", "as", "Any", "catch", "false", "is", "nil",
+            "super", "self", "Self", "throw", "throws", "true", "try", "async", "await", "actor"
+        ),
+        types = setOf("Int", "Double", "Float", "String", "Bool", "Array", "Dictionary", "Set", "Optional", "Character", "View"),
+        commentLine = "//",
+        commentBlockStart = "/*",
+        commentBlockEnd = "*/"
+    ),
+    BATCH(
+        "Batch / CMD",
+        listOf("bat", "cmd"),
+        keywords = setOf(
+            "echo", "set", "if", "else", "goto", "call", "exit", "pause", "rem", "for", "in",
+            "do", "shift", "cls", "title", "color", "start", "type", "copy", "del", "md", "rd", "ren"
+        ),
+        commentLine = "rem"
+    ),
+    CMAKE(
+        "CMake",
+        listOf("cmake"),
+        keywords = setOf(
+            "cmake_minimum_required", "project", "set", "add_executable", "add_library",
+            "target_link_libraries", "target_include_directories", "find_package", "include",
+            "if", "endif", "else", "elseif", "foreach", "endforeach", "while", "endwhile",
+            "function", "endfunction", "macro", "endmacro", "message", "option", "install"
+        ),
+        commentLine = "#"
     );
 
     companion object {
@@ -292,9 +410,12 @@ enum class SyntaxLanguage(
                 }
             }
             return when {
+                lower == "build.gradle" || lower == "settings.gradle" -> GRADLE
+                lower == "cmakelists.txt" -> CMAKE
                 lower.startsWith("readme") || lower.startsWith("changelog") -> MARKDOWN
-                lower == "dockerfile" || lower == "makefile" || lower == "gemfile" -> SHELL
-                lower == "hosts" || lower.endsWith(".conf") -> PROPERTIES
+                lower == "dockerfile" || lower == "makefile" -> SHELL
+                lower == "gemfile" || lower == "rakefile" -> RUBY
+                lower == "hosts" || lower.endsWith(".conf") || lower.endsWith(".prop") || lower == ".env" || lower == ".gitignore" || lower == ".gitconfig" -> PROPERTIES
                 else -> PLAIN_TEXT
             }
         }

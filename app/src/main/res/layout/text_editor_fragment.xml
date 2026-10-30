@@ -262,6 +262,26 @@
                         </HorizontalScrollView>
                     </me.zhanghai.android.fastscroll.FastScrollNestedScrollView>
                 </LinearLayout>
+
+                <!-- MT Manager Floating Zoom HUD -->
+                <TextView
+                    android:id="@+id/zoomIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|center_horizontal"
+                    android:layout_marginTop="20dp"
+                    android:background="@drawable/bg_zoom_indicator"
+                    android:paddingStart="18dp"
+                    android:paddingEnd="18dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:elevation="8dp"
+                    android:visibility="gone"
+                    tools:visibility="visible"
+                    tools:text="14.0 sp (100%)" />
             </FrameLayout>
 
             <!-- Bottom Symbol Bar -->

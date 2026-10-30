@@ -75,6 +75,18 @@ object FastSyntaxScanner {
      * In-place span application for live editing on main thread.
      */
     fun applyHighlightTo(editable: Editable?, language: SyntaxLanguage) {
+        if (editable == null || language == SyntaxLanguage.PLAIN_TEXT || editable.length > 300_000) {
+            clearSpans(editable)
+            return
+        }
+        val tokens = scan(editable, language)
+        applyTokens(editable, tokens)
+    }
+
+    /**
+     * Direct application of pre-scanned tokens from background thread.
+     */
+    fun applyTokens(editable: Editable?, tokens: List<SyntaxToken>) {
         if (editable == null) return
         val existingColorSpans = editable.getSpans(0, editable.length, SyntaxColorSpan::class.java)
         for (span in existingColorSpans) {
@@ -85,13 +97,10 @@ object FastSyntaxScanner {
             editable.removeSpan(span)
         }
 
-        if (language == SyntaxLanguage.PLAIN_TEXT || editable.length > 300_000) {
-            return
-        }
-
-        val tokens = scan(editable, language)
+        val len = editable.length
         for (i in tokens.indices) {
             val token = tokens[i]
+            if (token.start < 0 || token.end > len || token.start >= token.end) continue
             editable.setSpan(
                 SyntaxColorSpan(token.color),
                 token.start,
@@ -109,11 +118,27 @@ object FastSyntaxScanner {
         }
     }
 
+    fun clearSpans(editable: Editable?) {
+        if (editable == null) return
+        val existingColorSpans = editable.getSpans(0, editable.length, SyntaxColorSpan::class.java)
+        for (span in existingColorSpans) {
+            editable.removeSpan(span)
+        }
+        val existingItalicSpans = editable.getSpans(0, editable.length, SyntaxItalicSpan::class.java)
+        for (span in existingItalicSpans) {
+            editable.removeSpan(span)
+        }
+    }
+
     /**
      * Linear O(N) tokenizer across any supported language.
      */
     fun scan(text: CharSequence, language: SyntaxLanguage): List<SyntaxToken> {
-        val tokens = ArrayList<SyntaxToken>(text.length / 8)
+        if (language == SyntaxLanguage.PLAIN_TEXT || text.length > 500_000) {
+            return emptyList()
+        }
+        val estimatedTokens = kotlin.math.min(text.length / 10, 15_000)
+        val tokens = ArrayList<SyntaxToken>(estimatedTokens)
         val len = text.length
         var i = 0
 
@@ -302,15 +327,18 @@ object FastSyntaxScanner {
                         break
                     }
                 }
-                val word = text.subSequence(start, i).toString()
-                val checkWord = if (isSql) word.uppercase() else word
+                val wordLen = i - start
+                if (isSmali || isSql || wordLen in 2..20) {
+                    val word = text.subSequence(start, i).toString()
+                    val checkWord = if (isSql) word.uppercase() else word
 
-                if (checkWord in language.keywords) {
-                    tokens.add(SyntaxToken(start, i, COLOR_KEYWORD))
-                } else if (checkWord in language.types) {
-                    tokens.add(SyntaxToken(start, i, COLOR_TYPE))
-                } else if (isSmali && isSmaliRegister(word)) {
-                    tokens.add(SyntaxToken(start, i, COLOR_TYPE))
+                    if (checkWord in language.keywords) {
+                        tokens.add(SyntaxToken(start, i, COLOR_KEYWORD))
+                    } else if (checkWord in language.types) {
+                        tokens.add(SyntaxToken(start, i, COLOR_TYPE))
+                    } else if (isSmali && isSmaliRegister(word)) {
+                        tokens.add(SyntaxToken(start, i, COLOR_TYPE))
+                    }
                 }
                 continue
             }

@@ -135,3 +135,25 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Diálogos de selección de carpeta de proyecto y de archivo APK con iconos visuales dedicados.
 - **Armonización en Menús y Diálogos**:
   - Actualizados `dialog_mt_apktool_hub.xml`, `dialog_mt_tools_menu.xml`, `mt_overflow_menu.xml`, `dialog_split_apk_actions.xml`, `dialog_create_item_choice.xml` y `dialog_keystore_generator.xml` sustituyendo drawables planos o con fondos sólidos por los nuevos iconos vectoriales adaptables.
+
+28. **Exclusión de Ejecución en Archivos `.txt`, Zoom Táctil MT Manager con HUD Flotante, y Optimización de Rendimiento y Lenguajes en el Editor (`FileListFragment.kt`, `ScriptRunnerHelper.kt`, `OpenFileAsDialogFragment.kt`, `CodeEditText.kt`, `FastSyntaxScanner.kt`, `SyntaxLanguage.kt`, `TextEditorFragment.kt`, `TextEditorSettings.kt`, `bg_zoom_indicator.xml`, `text_editor_fragment.xml`, `TextEditorZoomAndLanguageTest.kt`) (v1.9.11)**: ✅
+- **Exclusión Definitiva de Diálogo "Ejecutar" en Archivos `.txt` y Documentos**:
+  - Corrección de la causa raíz: en sistemas de archivos FUSE/sdcardfs (`/storage/emulated/0`), todos los archivos reportan falsamente permisos POSIX `0770/0777` (`rwxrwx---`).
+  - Implementación de lista negra estricta `NON_EXECUTABLE_EXTENSIONS` y método `ScriptRunnerHelper.isNonExecutableDocument()` que descarta documentos de texto (`.txt`, `.log`, `.md`, `.json`, `.xml`, etc.), código fuente y multimedia.
+  - En `FileListFragment.kt`: apertura directa inmediata de `.txt` y documentos en el Editor de Texto (`TextEditorActivity`), sin desplegar jamás el diálogo de acción de script.
+  - En `OpenFileAsDialogFragment.kt`: supresión de la herramienta "Ejecutor de Scripts" para archivos `.txt`.
+- **Zoom Táctil Estilo MT Manager (Pinch-to-zoom) con HUD Flotante y Persistencia**:
+  - Implementación de `ScaleGestureDetector` integrado en `TextEditorFragment.kt` con rango continuo de 8sp a 38sp (base 14sp).
+  - Bloqueo de intercepción de scroll (`requestDisallowInterceptTouchEvent(true)`) al detectar 2 o más dedos para garantizar fluidez táctil sin saltos de cursor ni tirones.
+  - Indicador flotante en tiempo real (Floating Zoom HUD pill badge `zoomIndicator`, `bg_zoom_indicator.xml`) que muestra el tamaño exacto en sp y porcentaje relativo (ej. `14.0 sp (100%)`) con desvanecimiento animado suave tras 1.2 segundos de inactividad.
+  - Módulo de persistencia `TextEditorSettings.kt` que guarda el tamaño de fuente, ajuste de línea (word wrap) y numeración de línea en `SharedPreferences`.
+- **Optimización de Rendimiento en Edición y Escaneo Asíncrono**:
+  - En `CodeEditText.kt`: eliminación de iteración $O(N)$ sobre todo el documento en cada pulsación de tecla (`notifyCursorChanged`); implementación de `cachedTotalLogicalLines` con recálculo diferido en `onTextChanged`, garantizando 120 FPS al escribir y desplazar el cursor.
+  - En `FastSyntaxScanner.kt`: escaneo desacoplado en segundo plano (`Dispatchers.Default`) y aplicación directa de spans precalculados con `applyTokens()` en el hilo principal, eliminando bloqueos de interfaz y doble escaneo.
+  - Límite de asignaciones de cadenas innecesarias para identificadores fuera del rango [2..20].
+- **Ampliación de Compatibilidad de Lenguajes de Programación**:
+  - Integración completa de resaltado de sintaxis para: **Gradle / Groovy** (`.gradle`, `.groovy`, `build.gradle`, `settings.gradle`), **Dart / Flutter** (`.dart`), **C# / .NET** (`.cs`), **Ruby** (`.rb`, `Gemfile`, `Rakefile`), **Swift** (`.swift`), **Batch / CMD** (`.bat`, `.cmd`), y **CMake** (`.cmake`, `CMakeLists.txt`).
+  - Conjunto exhaustivo de instrucciones y opcodes de Dalvik/ART en **Smali** (`invoke-*`, `move-*`, `const-*`, `return-*`, `if-*`, etc.).
+  - Detección automática inteligente según nombre de archivo y extensiones.
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - Creado `TextEditorZoomAndLanguageTest.kt` validando detección de lenguajes, escaneo de tokens en Gradle, Dart y Smali, lógica de exclusión de ejecución en documentos `.txt`, y límites y escala de zoom.

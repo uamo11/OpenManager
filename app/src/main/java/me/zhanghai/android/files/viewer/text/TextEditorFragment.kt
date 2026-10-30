@@ -14,6 +14,8 @@ import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.SubMenu
 import android.view.View
 import android.view.ViewGroup
@@ -80,10 +82,24 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private var isWordWrap = true
     private var showLineNumbers = true
     private var isReadOnly = false
-    private var currentFontSizeSp = 14f
+    private var currentFontSizeSp = TextEditorSettings.DEFAULT_FONT_SIZE
 
     private var currentCursorLine = 1
     private var currentCursorCol = 1
+
+    private lateinit var scaleGestureDetector: ScaleGestureDetector
+    private val hideZoomIndicatorRunnable = Runnable {
+        if (this::binding.isInitialized) {
+            binding.zoomIndicator.animate()
+                .alpha(0f)
+                .setDuration(250)
+                .withEndAction {
+                    binding.zoomIndicator.visibility = View.GONE
+                    binding.zoomIndicator.alpha = 1f
+                }
+                .start()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -211,11 +227,27 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
         setupSearchPanel()
         setupSymbolBar()
+
+        // Load saved preferences
+        val ctx = requireContext()
+        isWordWrap = TextEditorSettings.isWordWrap(ctx)
+        setWordWrap(isWordWrap)
+
+        showLineNumbers = TextEditorSettings.isShowLineNumbers(ctx)
+        setLineNumbers(showLineNumbers)
+
+        currentFontSizeSp = TextEditorSettings.getFontSize(ctx)
+        setFontSize(currentFontSizeSp, showIndicator = false)
+
+        setupPinchToZoom()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         highlightJob?.cancel()
+        if (this::binding.isInitialized) {
+            binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+        }
     }
 
     private fun requestSyntaxHighlight() {
@@ -224,10 +256,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             delay(280) // Debounce typing
             val text = binding.textEdit.text
             if (text != null && text.isNotEmpty() && currentLanguage != SyntaxLanguage.PLAIN_TEXT) {
-                withContext(Dispatchers.Default) {
+                val tokens = withContext(Dispatchers.Default) {
                     FastSyntaxScanner.scan(text, currentLanguage)
                 }
-                FastSyntaxScanner.applyHighlightTo(text, currentLanguage)
+                FastSyntaxScanner.applyTokens(text, tokens)
             }
         }
     }
@@ -652,10 +684,67 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.symbolBar.visibility = if (readOnly) View.GONE else View.VISIBLE
     }
 
-    private fun setFontSize(sizeSp: Float) {
-        currentFontSizeSp = sizeSp.coerceIn(8f, 32f)
+    private fun setFontSize(sizeSp: Float, showIndicator: Boolean = false) {
+        currentFontSizeSp = sizeSp.coerceIn(TextEditorSettings.MIN_FONT_SIZE, TextEditorSettings.MAX_FONT_SIZE)
         binding.textEdit.textSize = currentFontSizeSp
         binding.lineNumberView.updateTextSize(binding.textEdit.textSizePx * 0.85f)
+        binding.lineNumberView.syncLineCount()
+
+        if (showIndicator) {
+            val percent = (currentFontSizeSp / TextEditorSettings.DEFAULT_FONT_SIZE * 100).toInt()
+            val formattedSp = String.format(java.util.Locale.US, "%.1f", currentFontSizeSp)
+            binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+            binding.zoomIndicator.text = "$formattedSp sp  ($percent%)"
+            if (binding.zoomIndicator.visibility != View.VISIBLE) {
+                binding.zoomIndicator.alpha = 1f
+                binding.zoomIndicator.visibility = View.VISIBLE
+            }
+        }
+    }
+
+    private fun scheduleHideZoomIndicator() {
+        binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+        binding.zoomIndicator.postDelayed(hideZoomIndicatorRunnable, 1200)
+    }
+
+    private fun setupPinchToZoom() {
+        scaleGestureDetector = ScaleGestureDetector(requireContext(), object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                val scaleFactor = detector.scaleFactor
+                if (scaleFactor != 1.0f) {
+                    val newSize = (currentFontSizeSp * scaleFactor).coerceIn(
+                        TextEditorSettings.MIN_FONT_SIZE,
+                        TextEditorSettings.MAX_FONT_SIZE
+                    )
+                    if (kotlin.math.abs(newSize - currentFontSizeSp) >= 0.15f) {
+                        setFontSize(newSize, showIndicator = true)
+                    }
+                }
+                return true
+            }
+
+            override fun onScaleEnd(detector: ScaleGestureDetector) {
+                TextEditorSettings.setFontSize(requireContext(), currentFontSizeSp)
+                scheduleHideZoomIndicator()
+            }
+        })
+
+        val touchListener = View.OnTouchListener { _, event ->
+            if (event.pointerCount >= 2) {
+                binding.scrollView.requestDisallowInterceptTouchEvent(true)
+                binding.horizontalScrollView.requestDisallowInterceptTouchEvent(true)
+                scaleGestureDetector.onTouchEvent(event)
+                true
+            } else {
+                scaleGestureDetector.onTouchEvent(event)
+                false
+            }
+        }
+
+        binding.textEdit.setOnTouchListener(touchListener)
+        binding.scrollView.setOnTouchListener(touchListener)
+        binding.lineNumberView.setOnTouchListener(touchListener)
+        binding.editorContainer.setOnTouchListener(touchListener)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -704,11 +793,13 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             R.id.action_line_numbers -> {
                 item.isChecked = !item.isChecked
                 setLineNumbers(item.isChecked)
+                TextEditorSettings.setShowLineNumbers(requireContext(), item.isChecked)
                 true
             }
             R.id.action_word_wrap -> {
                 item.isChecked = !item.isChecked
                 setWordWrap(item.isChecked)
+                TextEditorSettings.setWordWrap(requireContext(), item.isChecked)
                 true
             }
             R.id.action_read_only -> {
@@ -729,15 +820,21 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 true
             }
             R.id.action_font_size_increase -> {
-                setFontSize(currentFontSizeSp + 2f)
+                setFontSize(currentFontSizeSp + 2f, showIndicator = true)
+                TextEditorSettings.setFontSize(requireContext(), currentFontSizeSp)
+                scheduleHideZoomIndicator()
                 true
             }
             R.id.action_font_size_decrease -> {
-                setFontSize(currentFontSizeSp - 2f)
+                setFontSize(currentFontSizeSp - 2f, showIndicator = true)
+                TextEditorSettings.setFontSize(requireContext(), currentFontSizeSp)
+                scheduleHideZoomIndicator()
                 true
             }
             R.id.action_font_size_reset -> {
-                setFontSize(14f)
+                setFontSize(TextEditorSettings.DEFAULT_FONT_SIZE, showIndicator = true)
+                TextEditorSettings.setFontSize(requireContext(), currentFontSizeSp)
+                scheduleHideZoomIndicator()
                 true
             }
             R.id.action_file_stats -> {

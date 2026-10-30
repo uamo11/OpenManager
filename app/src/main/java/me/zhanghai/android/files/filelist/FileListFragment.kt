@@ -1982,25 +1982,27 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             navigateTo(file.listablePath)
             return
         }
+        val fileExtension = file.extension.lowercase()
+        val isTxtOrTextDoc = fileExtension in setOf("txt", "text", "log", "md", "markdown", "json", "xml", "html", "htm", "css", "csv", "properties", "ini", "conf", "yaml", "yml", "toml", "java", "kt", "smali", "c", "cpp", "h") ||
+            fileName.endsWith(".txt", ignoreCase = true) || fileName.endsWith(".log", ignoreCase = true)
+        if (isTxtOrTextDoc || file.mimeType.isText || isTextFileOrProbableText(file.path)) {
+            val intent = Intent(requireContext(), TextEditorActivity::class.java).apply {
+                extraPath = file.path
+            }
+            startActivity(intent)
+            return
+        }
         if (ScriptRunnerHelper.isExecutableOrScript(file)) {
             ScriptRunnerHelper.showScriptActionDialog(requireActivity(), file)
             return
         }
         val fontExtensions = setOf("ttf", "otf", "woff", "woff2", "ttc")
-        val fileExtension = file.extension.lowercase()
         val isFont = fileExtension in fontExtensions ||
             fileName.endsWith(".ttf", true) || fileName.endsWith(".otf", true) ||
             fileName.endsWith(".woff", true) || fileName.endsWith(".woff2", true) ||
             fileName.endsWith(".ttc", true) || file.mimeType.value.startsWith("font/")
         if (isFont) {
             FontViewerDialogFragment.show(file.path, childFragmentManager)
-            return
-        }
-        if (file.mimeType.isText || isTextFileOrProbableText(file.path)) {
-            val intent = Intent(requireContext(), TextEditorActivity::class.java).apply {
-                extraPath = file.path
-            }
-            startActivity(intent)
             return
         }
         val hasExtension = fileName.contains('.') && fileName.substringAfterLast('.', "").isNotBlank()

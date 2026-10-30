@@ -31,25 +31,36 @@ object ScriptRunnerHelper {
     private const val KEY_EXEC_ENV = "exec_env"
     private const val KEY_EXEC_ROOT = "exec_root"
 
+    private val NON_EXECUTABLE_EXTENSIONS = setOf(
+        "txt", "text", "log", "md", "markdown", "json", "xml", "html", "htm", "css", "csv",
+        "properties", "ini", "conf", "cfg", "yaml", "yml", "toml",
+        "java", "kt", "kts", "smali", "c", "cpp", "h", "hpp", "cs", "dart", "swift", "go", "rs",
+        "py", "js", "ts", "lua", "sql", "gradle", "groovy", "pdf", "doc", "docx",
+        "png", "jpg", "jpeg", "webp", "gif", "svg", "bmp",
+        "mp3", "m4a", "wav", "flac", "ogg", "aac",
+        "mp4", "mkv", "avi", "webm", "mov"
+    )
+
+    fun isNonExecutableDocument(fileName: String): Boolean {
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        return ext.isNotEmpty() && ext in NON_EXECUTABLE_EXTENSIONS
+    }
+
     /**
-     * Checks if a file is an executable binary (ELF), a shell script, or has POSIX executable bits.
+     * Checks if a file is an executable binary (ELF) or a shell script.
+     * Guaranteed never to match .txt or regular document/media files.
      */
     fun isExecutableOrScript(file: FileItem): Boolean {
         val fileName = file.path.fileName.toString()
+        if (isNonExecutableDocument(fileName)) {
+            return false
+        }
         if (fileName.endsWith(".sh", ignoreCase = true) ||
             fileName.endsWith(".bash", ignoreCase = true) ||
-            fileName.endsWith(".zsh", ignoreCase = true)) {
+            fileName.endsWith(".zsh", ignoreCase = true) ||
+            fileName.endsWith(".bin", ignoreCase = true) ||
+            fileName.endsWith(".run", ignoreCase = true)) {
             return true
-        }
-
-        val attributes = file.attributes
-        if (attributes is PosixFileAttributes) {
-            val mode = attributes.mode()
-            if (mode != null && (mode.contains(PosixFileModeBit.OWNER_EXECUTE) ||
-                mode.contains(PosixFileModeBit.GROUP_EXECUTE) ||
-                mode.contains(PosixFileModeBit.OTHERS_EXECUTE))) {
-                return true
-            }
         }
 
         return isElfOrShebang(file.path)
@@ -57,9 +68,14 @@ object ScriptRunnerHelper {
 
     fun isExecutableOrScript(path: Path): Boolean {
         val fileName = path.fileName.toString()
+        if (isNonExecutableDocument(fileName)) {
+            return false
+        }
         if (fileName.endsWith(".sh", ignoreCase = true) ||
             fileName.endsWith(".bash", ignoreCase = true) ||
-            fileName.endsWith(".zsh", ignoreCase = true)) {
+            fileName.endsWith(".zsh", ignoreCase = true) ||
+            fileName.endsWith(".bin", ignoreCase = true) ||
+            fileName.endsWith(".run", ignoreCase = true)) {
             return true
         }
         return isElfOrShebang(path)

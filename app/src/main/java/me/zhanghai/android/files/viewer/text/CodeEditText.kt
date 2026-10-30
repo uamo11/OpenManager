@@ -102,29 +102,43 @@ class CodeEditText @JvmOverloads constructor(
         invalidate() // Refresh current line and bracket highlights
     }
 
+    private var cachedTotalLogicalLines: Int = 1
+    private var isLogicalLineCountDirty: Boolean = true
+
     override fun onTextChanged(text: CharSequence?, start: Int, lengthBefore: Int, lengthAfter: Int) {
         super.onTextChanged(text, start, lengthBefore, lengthAfter)
+        isLogicalLineCountDirty = true
         onLineCountChanged?.invoke()
+    }
+
+    private fun getTotalLogicalLines(): Int {
+        if (!isLogicalLineCountDirty) return cachedTotalLogicalLines
+        val textSeq = text ?: return 1
+        var count = 1
+        val len = textSeq.length
+        for (i in 0 until len) {
+            if (textSeq[i] == '\n') count++
+        }
+        cachedTotalLogicalLines = count
+        isLogicalLineCountDirty = false
+        return count
     }
 
     private fun notifyCursorChanged(cursorPos: Int) {
         val layout = layout ?: return
-        val pos = cursorPos.coerceIn(0, (text?.length ?: 0))
+        val textSeq = text ?: ""
+        val pos = cursorPos.coerceIn(0, textSeq.length)
         val physicalLine = layout.getLineForOffset(pos)
         val lineStart = layout.getLineStart(physicalLine)
         val col = pos - lineStart + 1
 
-        val textStr = text ?: ""
         var logicalLine = 1
-        for (i in 0 until min(pos, textStr.length)) {
-            if (textStr[i] == '\n') logicalLine++
+        val limit = min(pos, textSeq.length)
+        for (i in 0 until limit) {
+            if (textSeq[i] == '\n') logicalLine++
         }
 
-        var totalLogical = 1
-        for (i in textStr.indices) {
-            if (textStr[i] == '\n') totalLogical++
-        }
-
+        val totalLogical = getTotalLogicalLines()
         onCursorPositionChanged?.invoke(logicalLine, col, totalLogical)
     }
 
