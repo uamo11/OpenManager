@@ -50,9 +50,12 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_about_settings))?.setOnPreferenceClickListener {
-            requireContext().startActivitySafe(me.zhanghai.android.files.about.AboutActivity::class.createIntent())
-            true
+        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_about_settings))?.let { pref ->
+            pref.summary = "OpenManager v${me.zhanghai.android.files.BuildConfig.VERSION_NAME}"
+            pref.setOnPreferenceClickListener {
+                requireContext().startActivitySafe(me.zhanghai.android.files.about.AboutActivity::class.createIntent())
+                true
+            }
         }
 
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_acknowledgement))?.setOnPreferenceClickListener {
@@ -105,6 +108,11 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         Settings.MATERIAL_DESIGN_3.observe(viewLifecycleOwner, this::onMaterialDesign3Changed)
         Settings.NIGHT_MODE.observe(viewLifecycleOwner, this::onNightModeChanged)
         Settings.BLACK_NIGHT_MODE.observe(viewLifecycleOwner, this::onBlackNightModeChanged)
+        Settings.REQUEST_ROOT_PERMISSION.observe(viewLifecycleOwner, this::onRequestRootPermissionChanged)
+    }
+
+    private fun onRequestRootPermissionChanged(enabled: Boolean) {
+        findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
     }
 
     private fun onThemeColorChanged(themeColor: ThemeColor) {

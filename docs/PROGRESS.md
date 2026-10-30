@@ -96,3 +96,21 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - En modo selección, el icono cambia automáticamente a cerrar (`close`) permitiendo deseleccionar y cancelar la selección en un solo toque.
   - En la raíz del almacenamiento o cuando no se puede subir, muestra las 3 barras (`≡`) para abrir el menú lateral. Mantener presionado el icono de navegación en cualquier momento abre el menú lateral.
   - Validado con pruebas unitarias en `NavigationLogicTest.kt`.
+
+25. **Apktool en Segundo Plano, Cancelación Interactiva y Notificaciones (`ApktoolManager.kt`, `ApktoolService.kt`, `ApktoolPaths.kt`, `ApktoolHubDialogFragment.kt`) (v1.9.8)**: ✅
+- Jerarquía de rutas estructurada estilo MT Manager: `OpenManager/ApkTool/<paquete>/decomp_java/`, `decomp_smali/`, etc.
+- Servicio en primer plano (`ApktoolService`) con notificación persistente, barra de progreso indeterminada/determinada, botón de acción "Cancelar" interactivo directo desde la notificación y botón de "Ocultar" en el diálogo.
+- Soporte de cancelación cooperativa de tareas y descompilación asíncrona segura.
+
+26. **Perfeccionamiento del Detector de Superusuario, Respeto de Ajustes y Detección de Gestores Modificados (`SuperuserDetector.kt`, `SuperuserStatusPreference.kt`, `LibSuFileServiceLauncher.kt`, `RootFileService.kt`, `donottranslate_prefs.xml`, `SettingsPreferenceFragment.kt`) (v1.9.9)**: ✅
+- **Activación por defecto de solicitud de root**: Corregido `pref_default_value_request_root_permission` a `true` en `donottranslate_prefs.xml` para que la app solicite permisos de superusuario por defecto de forma transparente.
+- **Respeto estricto del ajuste "Pedir permiso de root"**: Si el interruptor está desactivado en Ajustes > Inicio, OpenManager nunca invoca comandos `su` ni reporta acceso root activo; el flag muestra el gestor pasivamente como "(Desactivado)" con chip visual "DESACTIVADO" y `RootFileService` previene llamadas de elevación.
+- **Detección exhaustiva de paquetes de root específicos**:
+  - `df.root` / `com.df.root` / `org.df.root` (DFRoot Jailbreak / Exploit)
+  - `com.resukisu.resukisu` (KernelSU Next / ResuKisu)
+  - `me.weishu.kernelsu` (KernelSU Oficial)
+  - `me.bmax.apatch` (APatch)
+  - `com.topjohnwu.magisk` (Magisk Oficial)
+- **Soporte de Superusuario Genérico (`GENERIC_ROOT`)**: Para entornos con gestores ocultos o con nombre de paquete aleatorio (ej. Magisk con nombre cambiado) o binarios `su` independientes, se clasifica automáticamente como "Superusuario (su)" con el icono genérico oficial de Android (`ic_root_generic.png`).
+- **Coexistencia DFRoot + Gestor Principal**: Muestra el badge distintivo lateral de DFRoot junto al gestor principal detectado (ej. KernelSU + DFRoot).
+- **Refresco Reactivo en Ajustes**: `SuperuserStatusPreference` y `SettingsPreferenceFragment` observan en vivo los cambios de `Settings.REQUEST_ROOT_PERMISSION` actualizando el estado de inmediato sin salir de la pantalla.

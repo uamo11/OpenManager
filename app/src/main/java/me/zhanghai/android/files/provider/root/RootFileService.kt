@@ -29,7 +29,8 @@ lateinit var rootContext: Context private set
 
 object RootFileService : RemoteFileService(
     RemoteInterface {
-        if (LibSuFileServiceLauncher.isSuAvailable()) {
+        val requestRoot = me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat
+        if (requestRoot && LibSuFileServiceLauncher.isSuAvailable()) {
             try {
                 LibSuFileServiceLauncher.launchService()
             } catch (e: Exception) {
@@ -39,10 +40,14 @@ object RootFileService : RemoteFileService(
                     throw e
                 }
             }
+        } else if (ShizukuManager.isAvailable() && ShizukuManager.ready()) {
+            ShizukuFileServiceLauncher.launchService()
+        } else if (requestRoot) {
+            LibSuFileServiceLauncher.launchService()
         } else if (ShizukuManager.isAvailable()) {
             ShizukuFileServiceLauncher.launchService()
         } else {
-            LibSuFileServiceLauncher.launchService()
+            throw me.zhanghai.android.files.provider.remote.RemoteFileSystemException("Root permission request is disabled in settings and Shizuku is unavailable")
         }
     }
 ) {

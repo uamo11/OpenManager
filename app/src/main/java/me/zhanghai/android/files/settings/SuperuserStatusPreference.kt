@@ -6,11 +6,11 @@
 package me.zhanghai.android.files.settings
 
 import android.content.Context
-import android.graphics.Color
 import android.util.AttributeSet
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.lifecycle.Observer
 import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -38,9 +38,39 @@ class SuperuserStatusPreference : Preference {
     private var currentStatus: SuperuserDetector.SuperuserStatus? = null
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
+    private val rootPermissionObserver = Observer<Boolean> { _ ->
+        refresh()
+    }
+
     private fun init() {
         layoutResource = R.layout.preference_superuser_flag
         isSelectable = false
+    }
+
+    override fun onAttached() {
+        super.onAttached()
+        try {
+            Settings.REQUEST_ROOT_PERMISSION.observeForever(rootPermissionObserver)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onDetached() {
+        try {
+            Settings.REQUEST_ROOT_PERMISSION.removeObserver(rootPermissionObserver)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        super.onDetached()
+    }
+
+    fun refresh() {
+        scope.launch {
+            val status = SuperuserDetector.detect(context)
+            currentStatus = status
+            notifyChanged()
+        }
     }
 
     override fun onBindViewHolder(holder: PreferenceViewHolder) {
@@ -91,16 +121,18 @@ class SuperuserStatusPreference : Preference {
         tvTag.text = status.statusTag
         when (status.statusTag) {
             "ROOT" -> tvTag.setBackgroundResource(R.drawable.bg_superuser_badge)
-            "SHIZUKU" -> tvTag.setBackgroundColor(Color.parseColor("#1565C0"))
+            "SHIZUKU" -> tvTag.setBackgroundResource(R.drawable.bg_shizuku_badge)
             "EXPLOIT" -> tvTag.setBackgroundResource(R.drawable.bg_dfroot_badge)
-            else -> tvTag.setBackgroundColor(Color.parseColor("#455A64"))
+            "DESACTIVADO" -> tvTag.setBackgroundResource(R.drawable.bg_disabled_badge)
+            else -> tvTag.setBackgroundResource(R.drawable.bg_standard_badge)
         }
     }
 
     private fun showDetailsDialog(status: SuperuserDetector.SuperuserStatus) {
         val message = buildString {
             append("• Gestor principal: ${status.type.displayName}\n")
-            append("• Privilegios Root: ${if (status.isRootGranted) "Concedido (UID 0)" else "No disponible"}\n")
+            append("• Solicitud de Root: ${if (status.isRootEnabledInSettings) "Activada en Ajustes" else "Desactivada en Ajustes"}\n")
+            append("• Privilegios Root: ${if (status.isRootGranted) "Concedido (UID 0)" else if (!status.isRootEnabledInSettings) "Desactivado por el usuario" else "No disponible / no autorizado"}\n")
             if (status.suVersion != null) {
                 append("• Versión de SU: ${status.suVersion}\n")
             }

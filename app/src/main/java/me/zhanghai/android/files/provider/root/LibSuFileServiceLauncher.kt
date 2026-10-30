@@ -74,6 +74,9 @@ object LibSuFileServiceLauncher {
     @Throws(RemoteFileSystemException::class)
     fun launchService(): IRemoteFileService {
         synchronized(lock) {
+            if (!me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat) {
+                throw RemoteFileSystemException("Root permission request is disabled in settings")
+            }
             // libsu won't call back when su isn't available.
             if (!isSuAvailable()) {
                 throw RemoteFileSystemException("Root isn't available")

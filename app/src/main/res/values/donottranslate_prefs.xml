@@ -85,7 +85,7 @@
 
     <!-- MT Manager Startup Preferences -->
     <string name="pref_key_request_root_permission">key_request_root_permission</string>
-    <bool name="pref_default_value_request_root_permission">false</bool>
+    <bool name="pref_default_value_request_root_permission">true</bool>
     <string name="pref_key_request_shell_permission">key_request_shell_permission</string>
     <bool name="pref_default_value_request_shell_permission">false</bool>
     <string name="pref_key_customize_su_command">key_customize_su_command</string>

@@ -7,8 +7,6 @@ package me.zhanghai.android.files.provider.root
 
 import android.content.Context
 import android.content.pm.PackageManager
-import android.os.Build
-import android.util.Log
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -62,6 +60,11 @@ object SuperuserDetector {
             R.drawable.ic_root_dfroot,
             "Herramienta de elevación DFRoot Jailbreak/Exploit"
         ),
+        GENERIC_ROOT(
+            "Superusuario (su)",
+            R.drawable.ic_root_generic,
+            "Acceso superusuario activo (gestor con nombre modificado o binario su independiente)"
+        ),
         SHIZUKU(
             "Shizuku",
             R.drawable.ic_shizuku,
@@ -77,31 +80,50 @@ object SuperuserDetector {
     data class SuperuserStatus(
         val type: SuperuserType,
         val isRootGranted: Boolean,
-        val isShizukuReady: Boolean,
-        val hasDfRoot: Boolean,
-        val suVersion: String?,
-        val managerPackage: String?,
-        val detectedBinaryPath: String?
+        val isRootEnabledInSettings: Boolean = true,
+        val isShizukuReady: Boolean = false,
+        val hasDfRoot: Boolean = false,
+        val suVersion: String? = null,
+        val managerPackage: String? = null,
+        val detectedBinaryPath: String? = null
     ) {
         val title: String
             get() = when {
-                type == SuperuserType.SHIZUKU -> "Shizuku Conectado"
-                isRootGranted -> "Superusuario: ${type.displayName}"
-                type != SuperuserType.NONE -> "${type.displayName} (No autorizado)"
-                else -> "Modo Estándar (Sin Root)"
+                !isRootEnabledInSettings && (type != SuperuserType.NONE || hasDfRoot) ->
+                    "${type.displayName} (Desactivado)"
+                !isRootEnabledInSettings && type == SuperuserType.NONE ->
+                    "Modo Estándar (Root desactivado)"
+                type == SuperuserType.SHIZUKU ->
+                    "Shizuku Conectado"
+                isRootGranted ->
+                    "Superusuario: ${type.displayName}"
+                type != SuperuserType.NONE ->
+                    "${type.displayName} (No autorizado)"
+                hasDfRoot ->
+                    "DFRoot (No autorizado)"
+                else ->
+                    "Modo Estándar (Sin Root)"
             }
 
         val subtitle: String
             get() = when {
-                type == SuperuserType.SHIZUKU -> "Acceso elevado mediante Binder API"
-                isRootGranted -> "Privilegios administrativos activos para operaciones de sistema"
-                type != SuperuserType.NONE -> "Gestor instalado pero permiso no concedido"
-                hasDfRoot -> "DFRoot Jailbreak detectado en el dispositivo"
-                else -> "Permisos estándar de almacenamiento y aplicación"
+                !isRootEnabledInSettings ->
+                    "La solicitud de root está desactivada en Ajustes > Inicio"
+                type == SuperuserType.SHIZUKU ->
+                    "Acceso elevado mediante Binder API"
+                isRootGranted ->
+                    "Privilegios administrativos activos para operaciones de sistema"
+                type != SuperuserType.NONE ->
+                    "Gestor instalado pero permiso no concedido"
+                hasDfRoot ->
+                    "DFRoot Jailbreak detectado en el dispositivo"
+                else ->
+                    "Permisos estándar de almacenamiento y aplicación"
             }
 
         val statusTag: String
             get() = when {
+                !isRootEnabledInSettings && (type != SuperuserType.NONE || hasDfRoot) -> "DESACTIVADO"
                 isRootGranted -> "ROOT"
                 isShizukuReady -> "SHIZUKU"
                 hasDfRoot -> "EXPLOIT"
@@ -111,6 +133,11 @@ object SuperuserDetector {
 
     suspend fun detect(context: Context): SuperuserStatus = withContext(Dispatchers.IO) {
         val pm = context.packageManager
+        val isRootEnabledInSettings = try {
+            me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat
+        } catch (_: Throwable) {
+            true
+        }
 
         // 1. Detección de DFRoot (puede coexistir con otro gestor)
         val hasDfRoot = detectDfRoot(pm)
@@ -122,67 +149,97 @@ object SuperuserDetector {
             false
         }
 
-        // 3. Verificar si el comando su está disponible
+        // 3. Verificar si el comando su está disponible en el sistema
         val isSuAvailable = try {
             LibSuFileServiceLauncher.isSuAvailable()
         } catch (_: Throwable) {
             false
         }
 
-        // 4. Verificar versión de su si está disponible
+        // 4. Versión de su (solo si el ajuste de pedir root está activo para evitar invocar su con el toggle apagado)
         var suVersion: String? = null
-        var detectedBinary: String? = null
-        if (isSuAvailable) {
+        if (isSuAvailable && isRootEnabledInSettings) {
             suVersion = getSuVersionFast()
         }
 
         // 5. Identificar tipo de gestor de Superusuario
-        val (type, detectedPkg, binaryPath) = identifySuperuserType(pm, suVersion)
+        val (identifiedType, detectedPkg, binaryPath) = identifySuperuserType(pm, suVersion, isSuAvailable)
 
         // 6. Verificar si la app tiene permiso root concedido
-        val isRootGranted = isSuAvailable && (Shell.isAppGrantedRoot() == true || testRootExecutionSafe())
+        // Si el usuario desactivó la solicitud de root en ajustes, NUNCA ejecutar su ni reportar concedido
+        val isRootGranted = if (isRootEnabledInSettings && isSuAvailable) {
+            Shell.isAppGrantedRoot() == true || testRootExecutionSafe()
+        } else {
+            false
+        }
 
-        // Si no tiene root pero Shizuku está listo, el tipo principal es Shizuku
+        // Si tenemos root concedido o su disponible pero no coincidió con ningún gestor específico,
+        // asignar GENERIC_ROOT con icono genérico de Android
+        val resolvedType = if (identifiedType == SuperuserType.NONE && (isSuAvailable || isRootGranted)) {
+            SuperuserType.GENERIC_ROOT
+        } else {
+            identifiedType
+        }
+
+        // Resolver tipo final
         val finalType = when {
-            isRootGranted -> type
-            isSuAvailable && type != SuperuserType.NONE -> type
+            isRootGranted -> resolvedType
+            isSuAvailable && resolvedType != SuperuserType.NONE -> resolvedType
             isShizukuReady -> SuperuserType.SHIZUKU
+            resolvedType != SuperuserType.NONE -> resolvedType
             hasDfRoot -> SuperuserType.DFROOT
-            type != SuperuserType.NONE -> type
             else -> SuperuserType.NONE
         }
 
         SuperuserStatus(
             type = finalType,
             isRootGranted = isRootGranted,
+            isRootEnabledInSettings = isRootEnabledInSettings,
             isShizukuReady = isShizukuReady,
             hasDfRoot = hasDfRoot,
             suVersion = suVersion,
             managerPackage = detectedPkg,
-            detectedBinaryPath = binaryPath ?: detectedBinary
+            detectedBinaryPath = binaryPath
         )
     }
 
-    private fun identifySuperuserType(
+    internal fun identifySuperuserType(
         pm: PackageManager,
-        suVersion: String?
+        suVersion: String?,
+        isSuAvailable: Boolean = false
     ): Triple<SuperuserType, String?, String?> {
         val vUpper = suVersion?.uppercase() ?: ""
 
-        // A. Comprobación por KernelSU / KernelSU Next
+        // A. Comprobación por KernelSU Next / ResuKisu
         val hasKsuDriver = File("/dev/kernelsu").exists()
         val hasKsuDir = File("/data/adb/ksu").exists()
         val hasKsuNextDir = File("/data/adb/ksun").exists()
         val hasKsud = File("/system/bin/ksud").exists() || File("/data/adb/ksu/bin/ksud").exists()
 
-        if (vUpper.contains("NEXT") || isPkgInstalled(pm, "org.kernelsu.next") || isPkgInstalled(pm, "com.rifsxd.ksunext") || isPkgInstalled(pm, "org.tiann.kernelsu.next")) {
-            return Triple(SuperuserType.KERNEL_SU_NEXT, "org.kernelsu.next", if (hasKsud) "/system/bin/ksud" else "/data/adb/ksu")
-        }
-        if (hasKsuDriver || hasKsuDir || hasKsud || vUpper.contains("KERNELSU") || isPkgInstalled(pm, "me.weishu.kernelsu")) {
-            return Triple(SuperuserType.KERNEL_SU, "me.weishu.kernelsu", if (hasKsuDriver) "/dev/kernelsu" else "/data/adb/ksu")
+        if (vUpper.contains("NEXT") ||
+            vUpper.contains("RESUKISU") ||
+            isPkgInstalled(pm, "com.resukisu.resukisu") ||
+            isPkgInstalled(pm, "org.kernelsu.next") ||
+            isPkgInstalled(pm, "com.rifsxd.ksunext") ||
+            isPkgInstalled(pm, "org.tiann.kernelsu.next") ||
+            hasKsuNextDir
+        ) {
+            val pkg = when {
+                isPkgInstalled(pm, "com.resukisu.resukisu") -> "com.resukisu.resukisu"
+                isPkgInstalled(pm, "com.rifsxd.ksunext") -> "com.rifsxd.ksunext"
+                isPkgInstalled(pm, "org.tiann.kernelsu.next") -> "org.tiann.kernelsu.next"
+                else -> "org.kernelsu.next"
+            }
+            return Triple(SuperuserType.KERNEL_SU_NEXT, pkg, if (hasKsud) "/system/bin/ksud" else "/data/adb/ksu")
         }
 
-        // B. Comprobación por APatch
+        // B. Comprobación por KernelSU Oficial
+        if (hasKsuDriver || hasKsuDir || hasKsud || vUpper.contains("KERNELSU") || isPkgInstalled(pm, "me.weishu.kernelsu") || isPkgInstalled(pm, "org.kernelsu")) {
+            val pkg = if (isPkgInstalled(pm, "org.kernelsu")) "org.kernelsu" else "me.weishu.kernelsu"
+            return Triple(SuperuserType.KERNEL_SU, pkg, if (hasKsuDriver) "/dev/kernelsu" else "/data/adb/ksu")
+        }
+
+        // C. Comprobación por APatch
         val hasApatchDriver = File("/dev/apatch").exists()
         val hasApatchDir = File("/data/adb/ap").exists()
         val hasApd = File("/system/bin/apd").exists() || File("/data/adb/ap/bin/apd").exists()
@@ -191,34 +248,62 @@ object SuperuserDetector {
             return Triple(SuperuserType.APATCH, "me.bmax.apatch", if (hasApatchDriver) "/dev/apatch" else "/data/adb/ap")
         }
 
-        // C. Comprobación por Magisk Delta / Kitsune
+        // D. Comprobación por Magisk Delta / Kitsune
         val hasMagiskDelta = File("/data/adb/magisk/delta").exists()
         if (hasMagiskDelta || vUpper.contains("DELTA") || vUpper.contains("KITSUNE") || isPkgInstalled(pm, "io.github.huskydg.magisk")) {
             return Triple(SuperuserType.MAGISK_DELTA, "io.github.huskydg.magisk", "/data/adb/magisk")
         }
 
-        // D. Comprobación por Magisk Oficial
+        // E. Comprobación por Magisk Oficial
         val hasMagiskDir = File("/data/adb/magisk").exists()
         if (hasMagiskDir || vUpper.contains("MAGISK") || isPkgInstalled(pm, "com.topjohnwu.magisk")) {
             return Triple(SuperuserType.MAGISK, "com.topjohnwu.magisk", "/data/adb/magisk")
         }
 
-        // E. Comprobación por Baka-SU
+        // F. Comprobación por Baka-SU
         val hasBakaDir = File("/data/adb/bakasu").exists() || File("/system/bin/bakasu").exists()
         if (hasBakaDir || vUpper.contains("BAKA") || isPkgInstalled(pm, "com.shatyuka.bakasu") || isPkgInstalled(pm, "io.github.shatyuka.bakasu")) {
             return Triple(SuperuserType.BAKA_SU, "com.shatyuka.bakasu", "/data/adb/bakasu")
         }
 
-        // F. Comprobación por DFRoot directo
-        if (File("/data/local/tmp/dfroot").exists() || isPkgInstalled(pm, "com.diabl0w.dfroot")) {
-            return Triple(SuperuserType.DFROOT, "com.diabl0w.dfroot", "/data/local/tmp/dfroot")
+        // G. Comprobación por DFRoot directo
+        if (isPkgInstalled(pm, "df.root") ||
+            isPkgInstalled(pm, "com.df.root") ||
+            isPkgInstalled(pm, "org.df.root") ||
+            isPkgInstalled(pm, "com.diabl0w.dfroot") ||
+            isPkgInstalled(pm, "io.github.diabl0w.dfroot") ||
+            isPkgInstalled(pm, "org.dfroot") ||
+            File("/data/local/tmp/dfroot").exists()
+        ) {
+            val pkg = when {
+                isPkgInstalled(pm, "df.root") -> "df.root"
+                isPkgInstalled(pm, "com.df.root") -> "com.df.root"
+                isPkgInstalled(pm, "org.df.root") -> "org.df.root"
+                isPkgInstalled(pm, "io.github.diabl0w.dfroot") -> "io.github.diabl0w.dfroot"
+                else -> "com.diabl0w.dfroot"
+            }
+            return Triple(SuperuserType.DFROOT, pkg, "/data/local/tmp/dfroot")
+        }
+
+        // H. Comprobación genérica de Superusuario (gestor con nombre modificado o binario su independiente)
+        if (isSuAvailable || suVersion != null || File("/system/bin/su").exists() || File("/system/xbin/su").exists() || File("/sbin/su").exists()) {
+            val binary = when {
+                File("/system/bin/su").exists() -> "/system/bin/su"
+                File("/system/xbin/su").exists() -> "/system/xbin/su"
+                File("/sbin/su").exists() -> "/sbin/su"
+                else -> "su"
+            }
+            return Triple(SuperuserType.GENERIC_ROOT, null, binary)
         }
 
         return Triple(SuperuserType.NONE, null, null)
     }
 
-    private fun detectDfRoot(pm: PackageManager): Boolean {
-        if (isPkgInstalled(pm, "com.diabl0w.dfroot") ||
+    internal fun detectDfRoot(pm: PackageManager): Boolean {
+        if (isPkgInstalled(pm, "df.root") ||
+            isPkgInstalled(pm, "com.df.root") ||
+            isPkgInstalled(pm, "org.df.root") ||
+            isPkgInstalled(pm, "com.diabl0w.dfroot") ||
             isPkgInstalled(pm, "io.github.diabl0w.dfroot") ||
             isPkgInstalled(pm, "org.dfroot")
         ) {
@@ -233,7 +318,7 @@ object SuperuserDetector {
         return dfRootFiles.any { File(it).exists() }
     }
 
-    private fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {
+    internal fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {
         return try {
             pm.getPackageInfo(packageName, 0)
             true
