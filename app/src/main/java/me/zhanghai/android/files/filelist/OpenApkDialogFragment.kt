@@ -427,9 +427,11 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         }
                         "Extraer APK" -> {
                             dialog.dismiss()
-                            val opposite = (activity as? FileListActivity)?.getOppositeFragment((activity as? FileListActivity)?.activeFragment ?: return@setItems)
+                            val activity = activity as? FileListActivity ?: return@setAdapter
+                            val activeFrag = activity.activeFragment ?: return@setAdapter
+                            val opposite = activity.getOppositeFragment(activeFrag)
                             val dest = opposite?.currentPath ?: java8.nio.file.Paths.get("/storage/emulated/0/Download")
-                            (activity as? FileListActivity)?.activeFragment?.copyFilesTo(fileItemSetOf(file), dest)
+                            activeFrag.copyFilesTo(fileItemSetOf(file), dest)
                         }
                         getString(R.string.apk_optimize) -> {
                             Toast.makeText(context, "El archivo APK ya cuenta con alineación zipalign a 4 bytes", Toast.LENGTH_SHORT).show()
