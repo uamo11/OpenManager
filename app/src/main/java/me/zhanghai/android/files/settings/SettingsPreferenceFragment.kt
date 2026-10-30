@@ -40,6 +40,16 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_view_error_logs))?.setOnPreferenceClickListener {
+            val logsDir = me.zhanghai.android.files.app.CrashHandler.ensureLogsDirectory() ?: java.io.File("/storage/emulated/0/OpenManager/logs")
+            if (!logsDir.exists()) {
+                logsDir.mkdirs()
+            }
+            val intent = me.zhanghai.android.files.filelist.FileListActivity.createViewIntent(java.nio.file.Paths.get(logsDir.absolutePath))
+            requireContext().startActivitySafe(intent)
+            true
+        }
+
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_about_settings))?.setOnPreferenceClickListener {
             requireContext().startActivitySafe(me.zhanghai.android.files.about.AboutActivity::class.createIntent())
             true

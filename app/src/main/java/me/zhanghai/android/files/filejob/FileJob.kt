@@ -26,7 +26,13 @@ abstract class FileJob {
             e.printStackTrace()
         } catch (e: Exception) {
             e.printStackTrace()
-            service.showToast(e.toString())
+            val logFile = me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "FileJob")
+            val msg = if (logFile != null) {
+                "${e.localizedMessage ?: e.javaClass.simpleName}\nLog: ${logFile.absolutePath}"
+            } else {
+                e.toString()
+            }
+            service.showToast(msg)
         } finally {
             service.notificationManager.cancel(id)
         }

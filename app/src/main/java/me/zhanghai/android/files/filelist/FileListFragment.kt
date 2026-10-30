@@ -974,6 +974,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                         binding.btnErrorAction.visibility = View.GONE
                     }
                     else -> {
+                        me.zhanghai.android.files.app.CrashHandler.logHandledException(throwable, "FileList")
                         binding.ivErrorIcon.setImageResource(R.drawable.error_badge_icon_18dp)
                         binding.ivErrorIcon.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F44336"))
                         binding.tvErrorTitle.setText(R.string.path_error_title)
@@ -989,6 +990,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     }
                 }
             } else {
+                me.zhanghai.android.files.app.CrashHandler.logHandledException(throwable, "FileList")
                 showToast("Error: ${cleanErrorMessage(throwable)}")
             }
         }
@@ -1161,6 +1163,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     viewModel.reload()
                 }
             } catch (e: Exception) {
+                me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "CreateDir")
                 withContext(Dispatchers.Main) {
                     showToast("No se pudo crear la carpeta: ${cleanErrorMessage(e)}")
                 }

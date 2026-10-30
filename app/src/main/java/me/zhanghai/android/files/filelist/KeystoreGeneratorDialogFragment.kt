@@ -194,6 +194,7 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
 
             if (result is Pair<*, *>) {
                 val exception = result.second as? Exception
+                exception?.let { me.zhanghai.android.files.app.CrashHandler.logHandledException(it, "KeystoreGen") }
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.keystore_error_title)
                     .setMessage("No se pudo generar la clave:\n${exception?.localizedMessage}")

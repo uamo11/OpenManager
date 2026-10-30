@@ -101,6 +101,7 @@ class FileJobErrorDialogFragment : AppCompatDialogFragment() {
             is ActionState.Error -> {
                 val throwable = state.throwable
                 throwable.printStackTrace()
+                me.zhanghai.android.files.app.CrashHandler.logHandledException(throwable, "Remount")
                 showToast(throwable.toString())
                 viewModel.finishRemounting()
             }

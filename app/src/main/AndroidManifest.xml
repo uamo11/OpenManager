@@ -498,5 +498,12 @@
 
 
         <receiver android:name="me.zhanghai.android.files.ftpserver.FtpServerReceiver" />
+
+        <activity
+            android:name="me.zhanghai.android.files.app.CrashReportActivity"
+            android:process=":crash"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.MaterialFiles" />
     </application>
 </manifest>

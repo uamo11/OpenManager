@@ -224,6 +224,7 @@
     <string name="pref_key_cloud_restore">key_cloud_restore</string>
 
     <!-- MT Manager Other Preferences -->
+    <string name="pref_key_view_error_logs">key_view_error_logs</string>
     <string name="pref_key_check_for_update">key_check_for_update</string>
     <string name="pref_key_acknowledgement">key_acknowledgement</string>
     <string name="pref_key_about_settings">key_about_settings</string>

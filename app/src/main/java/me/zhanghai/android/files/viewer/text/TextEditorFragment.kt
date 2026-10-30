@@ -885,6 +885,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 viewModel.isTextChanged.value = false
             }
             is ActionState.Error -> {
+                me.zhanghai.android.files.app.CrashHandler.logHandledException(state.throwable, "TextEditorSave")
                 showToast("Permiso denegado: no se pudo guardar el archivo (solo lectura)")
                 viewModel.finishWritingFile()
             }

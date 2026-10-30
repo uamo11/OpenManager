@@ -1250,4 +1250,19 @@
     <string name="keystore_success_title">KeyStore Generado</string>
     <string name="keystore_error_title">Error al generar KeyStore</string>
     <string name="keystore_btn_create">Crear</string>
+
+    <!-- Crash Report & Error System -->
+    <string name="crash_report_title">Reporte de error</string>
+    <string name="crash_report_subtitle">OpenManager ha detectado un error inesperado</string>
+    <string name="crash_report_saved_format">El informe de error se ha guardado en:\n%s</string>
+    <string name="crash_report_copy">Copiar informe</string>
+    <string name="crash_report_share">Compartir</string>
+    <string name="crash_report_open_log">Abrir log</string>
+    <string name="crash_report_restart">Reiniciar app</string>
+    <string name="crash_report_close">Cerrar</string>
+    <string name="crash_report_copied_toast">Informe de error copiado al portapapeles</string>
+    <string name="crash_report_system_info_title">Información del sistema</string>
+    <string name="crash_report_stacktrace_title">Excepción / Traza de error</string>
+    <string name="settings_view_error_logs_title">Registros de error (Logs)</string>
+    <string name="settings_view_error_logs_summary">Ver informes de error y fallos en /storage/emulated/0/OpenManager/logs</string>
 </resources>

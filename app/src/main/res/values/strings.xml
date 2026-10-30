@@ -1354,4 +1354,19 @@
     <string name="keystore_success_title">KeyStore Generated</string>
     <string name="keystore_error_title">KeyStore Generation Failed</string>
     <string name="keystore_btn_create">Create</string>
+
+    <!-- Crash Report & Error System -->
+    <string name="crash_report_title">Crash Report</string>
+    <string name="crash_report_subtitle">OpenManager encountered an unexpected error</string>
+    <string name="crash_report_saved_format">Error report saved to:\n%s</string>
+    <string name="crash_report_copy">Copy</string>
+    <string name="crash_report_share">Share</string>
+    <string name="crash_report_open_log">Open Log</string>
+    <string name="crash_report_restart">Restart</string>
+    <string name="crash_report_close">Close</string>
+    <string name="crash_report_copied_toast">Crash report copied to clipboard</string>
+    <string name="crash_report_system_info_title">System Information</string>
+    <string name="crash_report_stacktrace_title">Exception Stacktrace</string>
+    <string name="settings_view_error_logs_title">Error Logs</string>
+    <string name="settings_view_error_logs_summary">View error and crash reports in /storage/emulated/0/OpenManager/logs</string>
 </resources>

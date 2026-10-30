@@ -126,6 +126,6 @@ Este documento contiene la matriz exhaustiva de paridad de funciones entre **MT 
 | Función | Estado | Evidencia / Ubicación | Notas |
 | :--- | :---: | :--- | :--- |
 | Permisos Android 11+ (`MANAGE_EXTERNAL_STORAGE` / SAF) | ✅ | `FileListActivity.kt`, `ShowRequestStoragePermission...` | Secuencia limpia sin solapamientos ni diálogos redundantes. |
-| Capturador Global de Excepciones (CrashHandler) | ✅ | `app/CrashHandler.kt` | Intercepta cualquier crash no controlado y guarda el log detallado en `/sdcard/OpenManager/crash_logs/`. |
+| Sistema de Errores y Logs Estilo MP-Manager | ✅ | `app/CrashHandler.kt`, `app/CrashReportActivity.kt` | Intercepta crashes y errores de operaciones, guarda logs detallados en `/storage/emulated/0/OpenManager/logs/` y abre pantalla de reporte con copia, apertura de log y reinicio. |
 | Flujo de CI ampliado con pruebas y signing | ✅ | `.github/workflows/android.yml` | Ejecución de pruebas unitarias automáticas, compilación debug y release con firma keystore segura. |
 | Soporte Shizuku en el Explorador | ✅ | `provider/root/ShizukuManager.kt`, `ShizukuShell.kt`, `ShizukuFileServiceLauncher.kt`, `FileListFragment.kt`, `ApkInstallHelper.kt` | Acceso y navegación completa a `/Android/data` y `/Android/obb` en Android 11+ sin root mediante Shizuku; solicitud interactiva de permisos, reconexión reactiva por binder e instalación privilegiada de APKs. |

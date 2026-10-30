@@ -322,6 +322,7 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
+                        me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "ApkQuickEdit")
                         withContext(Dispatchers.Main) {
                             savingDialog.dismiss()
                             Toast.makeText(
