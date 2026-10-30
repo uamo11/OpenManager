@@ -15,6 +15,7 @@ import me.zhanghai.android.files.provider.FileSystemProviders
 import me.zhanghai.android.files.provider.remote.RemoteFileService
 import me.zhanghai.android.files.provider.remote.RemoteInterface
 import me.zhanghai.android.files.util.lazyReflectedMethod
+import me.zhanghai.android.files.util.valueCompat
 
 // We are expanding our root file service to shell UID, but let's keep the original name since it's
 // a bit awkward to express root-or-shell-UID in one or two words.

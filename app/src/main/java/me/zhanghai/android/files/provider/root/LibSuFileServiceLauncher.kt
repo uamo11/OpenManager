@@ -23,6 +23,7 @@ import me.zhanghai.android.files.provider.remote.IRemoteFileService
 import me.zhanghai.android.files.provider.remote.RemoteFileServiceInterface
 import me.zhanghai.android.files.provider.remote.RemoteFileSystemException
 import me.zhanghai.android.files.util.createIntent
+import me.zhanghai.android.files.util.valueCompat
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume

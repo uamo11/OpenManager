@@ -11,6 +11,7 @@ import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.util.valueCompat
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
