@@ -236,6 +236,9 @@ object JadxDecompilerEngine {
 
                 val relPath = fullName.replace('.', File.separatorChar) + ".java"
                 val targetFile = File(outputDir, relPath)
+                if (!targetFile.canonicalPath.startsWith(outputDir.canonicalPath + File.separator)) {
+                    continue
+                }
                 targetFile.parentFile?.mkdirs()
 
                 try {

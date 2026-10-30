@@ -583,6 +583,10 @@ $invokeInstruction
                 val entry = entries.nextElement()
                 if (!entry.isDirectory && entry.name.endsWith(".dex", ignoreCase = true)) {
                     val outFile = File(targetDir, entry.name)
+                    // Zip Slip protection: ensure entry does not escape targetDir
+                    if (!outFile.canonicalPath.startsWith(targetDir.canonicalPath + File.separator)) {
+                        continue
+                    }
                     outFile.parentFile?.mkdirs()
                     zip.getInputStream(entry).use { input ->
                         FileOutputStream(outFile).use { output ->

@@ -315,6 +315,7 @@ class FileListActivity : AppActivity() {
     }
 
     private fun handleDemoIntent(intent: Intent?) {
+        if (!BuildConfig.DEBUG) return
         val action = intent?.getStringExtra("SHOW_DEMO_DIALOG") ?: return
         intent.removeExtra("SHOW_DEMO_DIALOG")
         handleDemoAction(action)

@@ -215,7 +215,14 @@ class ApktoolExecutionService : Service() {
                     }
 
                     if (!entry.isDirectory && !name.startsWith("META-INF/")) {
-                        val targetFile = projectDir.resolve(name)
+                        val targetFile = projectDir.resolve(name).normalize()
+                        val normalizedProjectDir = projectDir.normalize()
+                        if (!targetFile.startsWith(normalizedProjectDir)) {
+                            // Defensive protection: Skip entry attempting Zip Slip path traversal
+                            zipIn.closeEntry()
+                            entry = zipIn.nextEntry
+                            continue
+                        }
                         val parent = targetFile.parent
                         if (parent != null && !Files.exists(parent)) {
                             Files.createDirectories(parent)
@@ -237,8 +244,10 @@ class ApktoolExecutionService : Service() {
                         } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
                             val decoded = AxmlDecoder.decode(entryBytes)
                             targetFile.newOutputStream().use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                            val origFile = projectDir.resolve("$name.orig")
-                            origFile.newOutputStream().use { it.write(entryBytes) }
+                            val origFile = projectDir.resolve("$name.orig").normalize()
+                            if (origFile.startsWith(normalizedProjectDir)) {
+                                origFile.newOutputStream().use { it.write(entryBytes) }
+                            }
                         } else {
                             targetFile.newOutputStream().use { it.write(entryBytes) }
                         }

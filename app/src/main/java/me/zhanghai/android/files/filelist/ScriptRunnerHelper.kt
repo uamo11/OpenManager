@@ -21,6 +21,7 @@ import me.zhanghai.android.files.provider.common.PosixFileModeBit
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
+import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.viewer.hex.HexEditorActivity
 import me.zhanghai.android.files.viewer.text.TextEditorActivity
@@ -216,7 +217,7 @@ object ScriptRunnerHelper {
 
         if (isElf) {
             execCmd = if (withRoot) {
-                "chmod 777 \"$scriptPath\" 2>/dev/null; \"$scriptPath\""
+                "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null; ${scriptPath.escapeShellArg()}"
             } else {
                 if (scriptPath.startsWith("/storage/") || scriptPath.startsWith("/sdcard/")) {
                     val execDir = File(activity.cacheDir, "bin_exec").apply { mkdirs() }
@@ -224,20 +225,20 @@ object ScriptRunnerHelper {
                     try {
                         File(scriptPath).copyTo(target, overwrite = true)
                         target.setExecutable(true, false)
-                        "\"${target.absolutePath}\""
+                        target.absolutePath.escapeShellArg()
                     } catch (e: Exception) {
-                        "\"$scriptPath\""
+                        scriptPath.escapeShellArg()
                     }
                 } else {
-                    "\"$scriptPath\""
+                    scriptPath.escapeShellArg()
                 }
             }
         } else {
             val shell = if (env == "termex") "bash" else "sh"
             execCmd = if (withRoot) {
-                "chmod 777 \"$scriptPath\" 2>/dev/null; $shell \"$scriptPath\""
+                "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null; $shell ${scriptPath.escapeShellArg()}"
             } else {
-                "$shell \"$scriptPath\""
+                "$shell ${scriptPath.escapeShellArg()}"
             }
         }
 

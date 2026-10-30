@@ -11,6 +11,7 @@ import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
 import me.zhanghai.android.files.provider.root.ShizukuManager
 import me.zhanghai.android.files.provider.root.ShizukuShell
+import me.zhanghai.android.files.util.escapeShellArg
 import java.io.File
 import java.io.FileOutputStream
 
@@ -50,14 +51,14 @@ object ApkInstallHelper {
 
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
         // Flags: -r (replace existing), -d (allow downgrade), -t (allow test packages), -g (grant permissions)
-        val installCmd = "pm install -r -d -t $grantPermFlag\"$targetTmpPath\""
+        val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
-            "cp \"$sourceFilePath\" \"$targetTmpPath\"",
-            "chmod 644 \"$targetTmpPath\"",
+            "cp ${sourceFilePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
+            "chmod 644 ${targetTmpPath.escapeShellArg()}",
             installCmd,
             "STATUS=$?",
-            "rm -f \"$targetTmpPath\"",
+            "rm -f ${targetTmpPath.escapeShellArg()}",
             "exit \$STATUS"
         )
         val script = commands.joinToString(" && ")
@@ -112,14 +113,14 @@ object ApkInstallHelper {
         val targetTmpPath = "/data/local/tmp/om_shizuku_install_${System.currentTimeMillis()}.apk"
 
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
-        val installCmd = "pm install -r -d -t $grantPermFlag\"$targetTmpPath\""
+        val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
-            "cp \"$sourceFilePath\" \"$targetTmpPath\"",
-            "chmod 644 \"$targetTmpPath\"",
+            "cp ${sourceFilePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
+            "chmod 644 ${targetTmpPath.escapeShellArg()}",
             installCmd,
             "STATUS=$?",
-            "rm -f \"$targetTmpPath\"",
+            "rm -f ${targetTmpPath.escapeShellArg()}",
             "exit \$STATUS"
         )
         val script = commands.joinToString(" && ")

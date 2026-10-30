@@ -48,6 +48,7 @@ import me.zhanghai.android.files.databinding.DialogInstalledAppDetailsBinding
 import me.zhanghai.android.files.databinding.InstalledAppItemBinding
 import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.filelist.ApkInstallHelper
+import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.ui.ThemedFastScroller
@@ -530,7 +531,7 @@ class InstalledAppsActivity : AppActivity() {
         dialogBinding.btnActionForceStop.setOnClickListener {
             dialog.dismiss()
             lifecycleScope.launch(Dispatchers.IO) {
-                val result = Shell.cmd("am force-stop ${app.packageName}").exec()
+                val result = Shell.cmd("am force-stop ${app.packageName.escapeShellArg()}").exec()
                 withContext(Dispatchers.Main) {
                     if (result.isSuccess) {
                         Toast.makeText(this@InstalledAppsActivity, "Aplicación detenida (Root)", Toast.LENGTH_SHORT).show()
@@ -549,7 +550,7 @@ class InstalledAppsActivity : AppActivity() {
                 .setMessage("Se eliminarán todos los datos y configuraciones de ${app.label}.")
                 .setPositiveButton("Limpiar") { _, _ ->
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val result = Shell.cmd("pm clear ${app.packageName}").exec()
+                        val result = Shell.cmd("pm clear ${app.packageName.escapeShellArg()}").exec()
                         withContext(Dispatchers.Main) {
                             if (result.isSuccess) {
                                 Toast.makeText(this@InstalledAppsActivity, "Datos restablecidos con éxito", Toast.LENGTH_SHORT).show()
@@ -567,7 +568,7 @@ class InstalledAppsActivity : AppActivity() {
         dialogBinding.btnActionToggleEnable.setOnClickListener {
             dialog.dismiss()
             val newEnable = !app.isEnabled
-            val cmdStr = if (newEnable) "pm enable ${app.packageName}" else "pm disable-user ${app.packageName}"
+            val cmdStr = if (newEnable) "pm enable ${app.packageName.escapeShellArg()}" else "pm disable-user ${app.packageName.escapeShellArg()}"
             lifecycleScope.launch(Dispatchers.IO) {
                 val result = Shell.cmd(cmdStr).exec()
                 withContext(Dispatchers.Main) {
@@ -733,14 +734,14 @@ class InstalledAppsActivity : AppActivity() {
                 }
                 destFile.exists() && destFile.length() > 0
             } else if (ApkInstallHelper.isRootAvailable()) {
-                val cmd = Shell.cmd("cp \"$sourcePath\" \"${destFile.absolutePath}\" && chmod 644 \"${destFile.absolutePath}\"").exec()
+                val cmd = Shell.cmd("cp ${sourcePath.escapeShellArg()} ${destFile.absolutePath.escapeShellArg()} && chmod 644 ${destFile.absolutePath.escapeShellArg()}").exec()
                 cmd.isSuccess
             } else {
                 false
             }
         } catch (e: Exception) {
             if (ApkInstallHelper.isRootAvailable()) {
-                val cmd = Shell.cmd("cp \"$sourcePath\" \"${destFile.absolutePath}\" && chmod 644 \"${destFile.absolutePath}\"").exec()
+                val cmd = Shell.cmd("cp ${sourcePath.escapeShellArg()} ${destFile.absolutePath.escapeShellArg()} && chmod 644 ${destFile.absolutePath.escapeShellArg()}").exec()
                 cmd.isSuccess
             } else {
                 false
@@ -763,7 +764,7 @@ class InstalledAppsActivity : AppActivity() {
                     } else if (ApkInstallHelper.isRootAvailable()) {
                         val tmpBase = File(cacheDir, "tmp_base_${System.currentTimeMillis()}.apk")
                         try {
-                            Shell.cmd("cp \"${app.sourceDir}\" \"${tmpBase.absolutePath}\" && chmod 644 \"${tmpBase.absolutePath}\"").exec()
+                            Shell.cmd("cp ${app.sourceDir.escapeShellArg()} ${tmpBase.absolutePath.escapeShellArg()} && chmod 644 ${tmpBase.absolutePath.escapeShellArg()}").exec()
                             if (tmpBase.exists()) {
                                 zos.putNextEntry(ZipEntry("base.apk"))
                                 tmpBase.inputStream().buffered(64 * 1024).use { it.copyTo(zos, bufferSize = 64 * 1024) }
@@ -785,7 +786,7 @@ class InstalledAppsActivity : AppActivity() {
                         } else if (ApkInstallHelper.isRootAvailable()) {
                             val tmpSplit = File(cacheDir, "tmp_split_${System.currentTimeMillis()}_$entryName")
                             try {
-                                Shell.cmd("cp \"$splitPath\" \"${tmpSplit.absolutePath}\" && chmod 644 \"${tmpSplit.absolutePath}\"").exec()
+                                Shell.cmd("cp ${splitPath.escapeShellArg()} ${tmpSplit.absolutePath.escapeShellArg()} && chmod 644 ${tmpSplit.absolutePath.escapeShellArg()}").exec()
                                 if (tmpSplit.exists()) {
                                     zos.putNextEntry(ZipEntry(entryName))
                                     tmpSplit.inputStream().buffered(64 * 1024).use { it.copyTo(zos, bufferSize = 64 * 1024) }

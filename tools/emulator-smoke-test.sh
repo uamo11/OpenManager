@@ -88,7 +88,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
     "04_keystore_generator_dialog.png" "KeyStore Generator Dialog"
 
 # 5. Installed Apps Manager (InstalledAppsActivity)
-capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.appmanager.InstalledAppsActivity" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG apps" \
     "05_installed_apps_manager.png" "Installed Apps Manager"
 
 # 6. Fast Code / Text Editor (TextEditorActivity)
@@ -100,7 +100,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.s
     "07_settings_screen.png" "Settings Panel"
 
 # 8. Add Storage Dialog (AddStorageDialogActivity)
-capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.storage.AddStorageDialogActivity" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG add_storage" \
     "08_add_storage_dialog.png" "Add Storage Dialog"
 
 # 9. FTP Wireless Server (FtpServerActivity)
@@ -108,7 +108,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
     "09_ftp_server.png" "FTP Wireless Server"
 
 # 10. About Screen (AboutActivity)
-capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.about.AboutActivity" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG about" \
     "10_about_openmanager.png" "About OpenManager"
 
 # 11. Apktool Hub (APK Reverse Engineering Dialog)

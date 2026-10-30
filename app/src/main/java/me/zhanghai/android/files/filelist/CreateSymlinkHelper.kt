@@ -17,6 +17,7 @@ import java8.nio.file.Path
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
+import me.zhanghai.android.files.util.escapeShellArg
 import java.io.File
 
 object CreateSymlinkHelper {
@@ -86,7 +87,7 @@ object CreateSymlinkHelper {
             if (TerminalExpansionManager.isRootAvailable()) {
                 try {
                     val process = Runtime.getRuntime().exec(
-                        arrayOf("su", "-c", "ln -s \"$target\" \"${linkFile.absolutePath}\"")
+                        arrayOf("su", "-c", "ln -s ${target.escapeShellArg()} ${linkFile.absolutePath.escapeShellArg()}")
                     )
                     process.waitFor()
                     if (process.exitValue() == 0) {

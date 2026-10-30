@@ -22,6 +22,7 @@ import com.reandroid.arsc.value.ValueType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.appmanager.AppModel
+import me.zhanghai.android.files.util.escapeShellArg
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -156,7 +157,7 @@ object AntiSplitEngine {
                 }
             } else if (ApkInstallHelper.isRootAvailable()) {
                 val targetBase = File(tempDir, "base.apk")
-                com.topjohnwu.superuser.Shell.cmd("cp \"${app.sourceDir}\" \"${targetBase.absolutePath}\" && chmod 644 \"${targetBase.absolutePath}\"").exec()
+                com.topjohnwu.superuser.Shell.cmd("cp ${app.sourceDir.escapeShellArg()} ${targetBase.absolutePath.escapeShellArg()} && chmod 644 ${targetBase.absolutePath.escapeShellArg()}").exec()
             }
 
             for (splitPath in app.splitSourceDirs) {
@@ -169,7 +170,7 @@ object AntiSplitEngine {
                         }
                     }
                 } else if (ApkInstallHelper.isRootAvailable()) {
-                    com.topjohnwu.superuser.Shell.cmd("cp \"$splitPath\" \"${targetSplit.absolutePath}\" && chmod 644 \"${targetSplit.absolutePath}\"").exec()
+                    com.topjohnwu.superuser.Shell.cmd("cp ${splitPath.escapeShellArg()} ${targetSplit.absolutePath.escapeShellArg()} && chmod 644 ${targetSplit.absolutePath.escapeShellArg()}").exec()
                 }
             }
 

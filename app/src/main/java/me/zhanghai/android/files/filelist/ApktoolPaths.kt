@@ -98,7 +98,17 @@ object ApktoolPaths {
      */
     fun getPackageDir(packageName: String): File {
         val base = getApktoolBaseDir()
-        val pkgDir = File(base, packageName)
+        val sanitized = packageName
+            .replace(Regex("[^a-zA-Z0-9._-]"), "_")
+            .replace(Regex("""\.+"""), ".")
+            .trim('.')
+            .ifEmpty { "unknown_package" }
+        val pkgDir = File(base, sanitized)
+        if (!pkgDir.canonicalPath.startsWith(base.canonicalPath)) {
+            val fallback = File(base, "unknown_package")
+            if (!fallback.exists()) fallback.mkdirs()
+            return fallback
+        }
         if (!pkgDir.exists()) {
             pkgDir.mkdirs()
         }

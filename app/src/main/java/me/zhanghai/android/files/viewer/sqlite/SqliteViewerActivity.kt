@@ -23,7 +23,12 @@ import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
+import androidx.lifecycle.lifecycleScope
 import java8.nio.file.Path
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.common.newInputStream
@@ -49,6 +54,15 @@ class SqliteViewerActivity : AppActivity() {
     private var currentPage: Int = 1
     private var totalRows: Int = 0
     private val pageSize: Int = 100
+    private var loadJob: Job? = null
+
+    private data class TablePageData(
+        val columnNames: List<String>,
+        val rows: List<List<String>>,
+        val totalRows: Int,
+        val page: Int,
+        val totalPages: Int
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -90,54 +104,69 @@ class SqliteViewerActivity : AppActivity() {
             }
         }
 
-        initDatabase(path)
+        initDatabaseAsync(path)
     }
 
-    private fun initDatabase(path: Path) {
-        try {
-            val dbFile: File
-            if (path.isLinuxPath) {
-                dbFile = path.toFile()
-            } else {
-                val temp = File(cacheDir, "sqlite_${System.currentTimeMillis()}.db")
-                path.newInputStream().use { input ->
-                    FileOutputStream(temp).use { output ->
-                        input.copyTo(output)
+    private fun escapeSqlIdentifier(name: String): String = "`" + name.replace("`", "``") + "`"
+
+    private fun initDatabaseAsync(path: Path) {
+        pbLoading.visibility = View.VISIBLE
+        tvEmpty.visibility = View.GONE
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val dbFile: File
+                if (path.isLinuxPath) {
+                    dbFile = path.toFile()
+                } else {
+                    val temp = File(cacheDir, "sqlite_${System.currentTimeMillis()}.db")
+                    path.newInputStream().use { input ->
+                        FileOutputStream(temp).use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    tempFile = temp
+                    dbFile = temp
+                }
+
+                val openedDb = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+                db = openedDb
+                val tables = queryTables(openedDb)
+
+                withContext(Dispatchers.Main) {
+                    pbLoading.visibility = View.GONE
+                    if (tables.isEmpty()) {
+                        tvEmpty.text = "No se encontraron tablas en la base de datos"
+                        tvEmpty.visibility = View.VISIBLE
+                        return@withContext
+                    }
+
+                    val adapter = ArrayAdapter(this@SqliteViewerActivity, android.R.layout.simple_spinner_dropdown_item, tables)
+                    spnTables.adapter = adapter
+                    spnTables.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                        override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                            currentTable = tables[position]
+                            currentPage = 1
+                            loadTableData()
+                        }
+
+                        override fun onNothingSelected(parent: AdapterView<*>?) {}
                     }
                 }
-                tempFile = temp
-                dbFile = temp
-            }
-
-            db = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
-            val tables = queryTables()
-            if (tables.isEmpty()) {
-                tvEmpty.text = "No se encontraron tablas en la base de datos"
-                tvEmpty.visibility = View.VISIBLE
-                return
-            }
-
-            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, tables)
-            spnTables.adapter = adapter
-            spnTables.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                    currentTable = tables[position]
-                    currentPage = 1
-                    loadTableData()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    pbLoading.visibility = View.GONE
+                    Toast.makeText(this@SqliteViewerActivity, "Error al abrir SQLite: ${e.message}", Toast.LENGTH_LONG).show()
+                    finish()
                 }
-
-                override fun onNothingSelected(parent: AdapterView<*>?) {}
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error al abrir SQLite: ${e.message}", Toast.LENGTH_LONG).show()
-            finish()
         }
     }
 
-    private fun queryTables(): List<String> {
+    private fun queryTables(database: SQLiteDatabase): List<String> {
         val list = mutableListOf<String>()
-        val cursor = db?.rawQuery(
+        val cursor = database.rawQuery(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name",
             null
         )
@@ -153,97 +182,127 @@ class SqliteViewerActivity : AppActivity() {
         val database = db ?: return
         if (currentTable.isEmpty()) return
 
+        loadJob?.cancel()
+
         tableData.removeAllViews()
         pbLoading.visibility = View.VISIBLE
         tvEmpty.visibility = View.GONE
 
-        try {
-            // Count rows
-            val countCursor = database.rawQuery("SELECT COUNT(*) FROM `$currentTable`", null)
-            countCursor.use {
-                if (it.moveToFirst()) {
-                    totalRows = it.getInt(0)
+        val tableToQuery = currentTable
+        val pageToQuery = currentPage
+
+        loadJob = lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val escapedTable = escapeSqlIdentifier(tableToQuery)
+                var rowCount = 0
+
+                // Count rows defensively
+                val countCursor = database.rawQuery("SELECT COUNT(*) FROM $escapedTable", null)
+                countCursor.use {
+                    if (it.moveToFirst()) {
+                        rowCount = it.getInt(0)
+                    }
                 }
-            }
 
-            val offset = (currentPage - 1) * pageSize
-            val cursor = database.rawQuery(
-                "SELECT * FROM `$currentTable` LIMIT $pageSize OFFSET $offset",
-                null
-            )
+                val offset = (pageToQuery - 1) * pageSize
+                val cursor = database.rawQuery(
+                    "SELECT * FROM $escapedTable LIMIT $pageSize OFFSET $offset",
+                    null
+                )
 
-            cursor.use { c ->
-                val columnNames = c.columnNames
-                tvTableInfo.text = "$totalRows filas, ${columnNames.size} cols"
+                val colNames = mutableListOf<String>()
+                val rowsData = mutableListOf<List<String>>()
 
-                val totalPages = ((totalRows + pageSize - 1) / pageSize).coerceAtLeast(1)
-                tvPageInfo.text = "Pág. $currentPage / $totalPages"
-                btnPrevPage.isEnabled = currentPage > 1
-                btnNextPage.isEnabled = currentPage < totalPages
+                cursor.use { c ->
+                    colNames.addAll(c.columnNames)
+                    while (c.moveToNext()) {
+                        val row = mutableListOf<String>()
+                        for (i in 0 until c.columnCount) {
+                            val value = try {
+                                c.getString(i) ?: "<null>"
+                            } catch (e: Exception) {
+                                "<blob>"
+                            }
+                            row.add(value)
+                        }
+                        rowsData.add(row)
+                    }
+                }
 
-                if (totalRows == 0) {
-                    tvEmpty.visibility = View.VISIBLE
+                val totalPages = ((rowCount + pageSize - 1) / pageSize).coerceAtLeast(1)
+                val pageData = TablePageData(colNames, rowsData, rowCount, pageToQuery, totalPages)
+
+                withContext(Dispatchers.Main) {
+                    renderTableData(pageData)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
                     pbLoading.visibility = View.GONE
-                    return
-                }
-
-                val density = resources.displayMetrics.density
-                val padH = (12 * density).toInt()
-                val padV = (10 * density).toInt()
-
-                // Header Row
-                val headerRow = TableRow(this).apply {
-                    setBackgroundColor(Color.parseColor("#333333"))
-                }
-                for (name in columnNames) {
-                    val tv = TextView(this).apply {
-                        text = name
-                        setTextColor(Color.parseColor("#2196F3"))
-                        textSize = 13f
-                        setTypeface(null, Typeface.BOLD)
-                        setPadding(padH, padV, padH, padV)
-                        gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                    }
-                    headerRow.addView(tv)
-                }
-                tableData.addView(headerRow)
-
-                // Data Rows
-                var rowIndex = 0
-                while (c.moveToNext()) {
-                    val row = TableRow(this).apply {
-                        setBackgroundColor(if (rowIndex % 2 == 0) Color.parseColor("#242424") else Color.parseColor("#1E1E1E"))
-                    }
-                    for (i in 0 until c.columnCount) {
-                        val value = try {
-                            c.getString(i) ?: "<null>"
-                        } catch (e: Exception) {
-                            "<blob>"
-                        }
-                        val tv = TextView(this).apply {
-                            text = value
-                            setTextColor(if (value == "<null>") Color.parseColor("#777777") else Color.WHITE)
-                            textSize = 12f
-                            setPadding(padH, padV, padH, padV)
-                            setTextIsSelectable(true)
-                            gravity = Gravity.START or Gravity.CENTER_VERTICAL
-                        }
-                        row.addView(tv)
-                    }
-                    tableData.addView(row)
-                    rowIndex++
+                    Toast.makeText(this@SqliteViewerActivity, "Error al consultar tabla: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, "Error al consultar tabla: ${e.message}", Toast.LENGTH_SHORT).show()
-        } finally {
-            pbLoading.visibility = View.GONE
+        }
+    }
+
+    private fun renderTableData(data: TablePageData) {
+        totalRows = data.totalRows
+        tvTableInfo.text = "${data.totalRows} filas, ${data.columnNames.size} cols"
+        tvPageInfo.text = "Pág. ${data.page} / ${data.totalPages}"
+        btnPrevPage.isEnabled = data.page > 1
+        btnNextPage.isEnabled = data.page < data.totalPages
+
+        pbLoading.visibility = View.GONE
+
+        if (data.totalRows == 0 || data.rows.isEmpty()) {
+            tvEmpty.visibility = View.VISIBLE
+            return
+        }
+
+        val density = resources.displayMetrics.density
+        val padH = (12 * density).toInt()
+        val padV = (10 * density).toInt()
+
+        // Header Row
+        val headerRow = TableRow(this).apply {
+            setBackgroundColor(Color.parseColor("#333333"))
+        }
+        for (name in data.columnNames) {
+            val tv = TextView(this).apply {
+                text = name
+                setTextColor(Color.parseColor("#2196F3"))
+                textSize = 13f
+                setTypeface(null, Typeface.BOLD)
+                setPadding(padH, padV, padH, padV)
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            }
+            headerRow.addView(tv)
+        }
+        tableData.addView(headerRow)
+
+        // Data Rows
+        for ((rowIndex, rowData) in data.rows.withIndex()) {
+            val row = TableRow(this).apply {
+                setBackgroundColor(if (rowIndex % 2 == 0) Color.parseColor("#242424") else Color.parseColor("#1E1E1E"))
+            }
+            for (value in rowData) {
+                val tv = TextView(this).apply {
+                    text = value
+                    setTextColor(if (value == "<null>") Color.parseColor("#777777") else Color.WHITE)
+                    textSize = 12f
+                    setPadding(padH, padV, padH, padV)
+                    setTextIsSelectable(true)
+                    gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                }
+                row.addView(tv)
+            }
+            tableData.addView(row)
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        loadJob?.cancel()
         try {
             db?.close()
         } catch (e: Exception) {

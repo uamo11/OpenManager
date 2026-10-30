@@ -214,3 +214,28 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - **Acciones Rápidas Integradas**: Acceso directo para "Ejecutar script" (lanzando diálogo de ejecución y terminal) y "Editar código" (abriendo en el editor de texto/código de OpenManager).
 - **Suite de Pruebas Unitarias Ampliada (`SuperuserDetectorTest.kt`)**:
   - Incorporada prueba automatizada `testKernelSuWithKsuBinPath()` validando detección de KernelSU con `/data/adb/ksu/bin`.
+
+31. **Auditoría Profunda de Seguridad, Mitigación de Vulnerabilidades, Hardening y Rendimiento (`AndroidManifest.xml`, `ShellEscapeUtils.kt`, `ApkInstallHelper.kt`, `ApktoolExecutionService.kt`, `ApktoolPaths.kt`, `ToastDialogInjectorEngine.kt`, `JadxDecompilerEngine.kt`, `CreateSymlinkHelper.kt`, `ScriptRunnerHelper.kt`, `InstalledAppsActivity.kt`, `AntiSplitEngine.kt`, `SqliteViewerActivity.kt`, `SecurityHardeningTest.kt`) (v1.9.14)**: ✅
+- **Cierre de Vectores de Escalado de Privilegios y Exposición de Componentes en `AndroidManifest.xml`**:
+  - `TerminalActivity`: Establecido `android:exported="false"`. Se neutralizó la vulnerabilidad crítica que permitía a aplicaciones maliciosas de terceros ejecutar comandos arbitrarios con permisos de root o de almacenamiento interno (`EXTRA_COMMAND`, `EXTRA_FORCE_ROOT`).
+  - `OpenFileActivity`: Establecido `android:exported="false"`. Se eliminó el riesgo de delegación arbitraria de lectura/escritura (`FLAG_GRANT_WRITE_URI_PERMISSION`) a archivos internos mediante intents externos no confiables.
+  - Endurecimiento de componentes internos sin filtros de intención (`android:exported="false"`): `AddStorageDialogActivity`, `InstalledAppsActivity`, `DexEditorActivity`, `HexEditorActivity`, `ArscEditorActivity`, `AboutActivity`.
+  - Receptores de broadcast (`FileJobReceiver`, `FtpServerReceiver`): Marcados explícitamente con `android:exported="false"` para prevenir la cancelación de transferencias o excepciones por intents externos no controlados.
+  - `FileListActivity.kt`: El controlador de intents de demo (`SHOW_DEMO_DIALOG`) ahora se valida con `if (!BuildConfig.DEBUG) return`, impidiendo invocaciones de prueba en builds de producción.
+  - `tools/emulator-smoke-test.sh`: Adaptado para invocar de forma limpia las actividades internas mediante `--es SHOW_DEMO_DIALOG apps`, `add_storage`, `about`, manteniendo el 100% de compatibilidad con las pruebas del emulador CI.
+- **Protección Robusta contra Ataques Zip Slip / Path Traversal**:
+  - `ApktoolExecutionService.kt`: Verificación de que las rutas extraídas (`targetFile.normalize()`, `origFile.normalize()`) comiencen estrictamente por el directorio destino canónico (`projectDir.normalize()`), descartando entradas maliciosas con secuencias `../`.
+  - `ToastDialogInjectorEngine.kt`: Verificación de canonical path al extraer archivos DEX de APKs (`targetDir.canonicalPath + File.separator`).
+  - `JadxDecompilerEngine.kt`: Sanitización y verificación de canonical path para archivos Java descompilados (`outputDir.canonicalPath + File.separator`).
+  - `ApktoolPaths.kt`: Sanitización defensiva de nombres de paquete (`replace(Regex("[^a-zA-Z0-9._-]"), "_").replace(Regex("""\.+"""), ".")`) y comprobación de canonical path en `getPackageDir()`.
+- **Inmunización contra Inyección de Comandos Shell (`ShellEscapeUtils.kt`)**:
+  - Creado `ShellEscapeUtils.kt` con función `escapeShellArg()` basada en el estándar POSIX (entrecomillado simple y reemplazo de `'` por `'\''`), bloqueando la expansión de subshells (`$()`), backticks (`` ` ``), punto y coma (`;`), ampersand (`&`) y variables.
+  - Aplicado en `ApkInstallHelper.kt` (instalación por root y Shizuku), `CreateSymlinkHelper.kt` (creación de enlaces simbólicos como root), `ScriptRunnerHelper.kt` (ejecución de scripts y binarios ELF), `InstalledAppsActivity.kt` (operaciones de detención, limpieza y extracción de APKs vía `Shell.cmd`), y `AntiSplitEngine.kt`.
+- **Rendimiento Asíncrono y Blindaje contra Inyección SQL en el Visor SQLite (`SqliteViewerActivity.kt`)**:
+  - Migrada la inicialización de la base de datos (`initDatabaseAsync`) y la carga de datos (`loadTableData`) a corrutinas en segundo plano (`Dispatchers.IO`), eliminando bloqueos de hilo principal (UI thread) y congelamientos de interfaz (ANR) en bases de datos de gran tamaño.
+  - Sanitización estricta de nombres de tabla (`escapeSqlIdentifier`) duplicando comillas invertidas (backticks) para prevenir inyecciones SQL en consultas estructuradas.
+  - Cancelación cooperativa de trabajos previos (`loadJob?.cancel()`) y liberación de recursos (`db?.close()`, eliminación de temporales) en `onDestroy()`.
+- **Suite de Pruebas Unitarias de Seguridad (`SecurityHardeningTest.kt`)**:
+  - Pruebas automatizadas para el escape seguro de argumentos POSIX shell frente a múltiples vectores de inyección.
+  - Pruebas de contención de directorios frente a ataques de path traversal.
+  - Pruebas de escape de identificadores en consultas SQLite.
