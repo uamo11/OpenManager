@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dialog showing active Apktool / JADX operation progress with Cancel and Hide buttons -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="#262626"
+    android:padding="20dp">
+
+    <!-- Header: Icon + Title & Package -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingBottom="12dp">
+
+        <ImageView
+            android:id="@+id/ivApktoolIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@drawable/ic_open_as_apk"
+            app:tint="#4CAF50" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvApktoolTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/apktool_decompile_apk"
+                android:textColor="#FFFFFF"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvApktoolPackage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="com.example.app"
+                android:textColor="#81C784"
+                android:textSize="12sp"
+                android:ellipsize="middle"
+                android:singleLine="true" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#383838"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Current Status Text -->
+    <TextView
+        android:id="@+id/tvApktoolStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Iniciando tarea..."
+        android:textColor="#DDDDDD"
+        android:textSize="13sp"
+        android:layout_marginBottom="10dp" />
+
+    <!-- Progress Indicator -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/pbApktoolProgress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true"
+        app:trackColor="#424242"
+        app:indicatorColor="?attr/colorPrimary"
+        app:trackCornerRadius="4dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Detail item (e.g. filename, class descriptor) -->
+    <TextView
+        android:id="@+id/tvApktoolDetail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#9E9E9E"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:ellipsize="middle"
+        android:singleLine="true"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Action Buttons: Cancelar & Ocultar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginTop="4dp">
+
+        <Button
+            android:id="@+id/btnCancelApktool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:text="@string/apktool_cancel"
+            android:textColor="#EF5350"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="8dp" />
+
+        <Button
+            android:id="@+id/btnHideApktool"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:text="@string/apktool_hide"
+            android:textColor="#81C784"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+</LinearLayout>

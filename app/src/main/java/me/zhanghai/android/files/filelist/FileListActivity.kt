@@ -266,6 +266,7 @@ class FileListActivity : AppActivity() {
         updateDrawerStats()
         updateMainToolbarNavigationIcon()
         handleDemoIntent(intent)
+        handleApktoolIntent(intent)
     }
 
     override fun onResume() {
@@ -273,12 +274,14 @@ class FileListActivity : AppActivity() {
         checkAndRequestStoragePermissions()
         updateDrawerStats()
         handleDemoIntent(intent)
+        handleApktoolIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         handleDemoIntent(intent)
+        handleApktoolIntent(intent)
     }
 
     private val demoReceiver = object : android.content.BroadcastReceiver() {
@@ -286,6 +289,28 @@ class FileListActivity : AppActivity() {
             val action = intent.getStringExtra("action") ?: return
             android.util.Log.i("DemoReceiver", "Received demo action: $action")
             handleDemoAction(action)
+        }
+    }
+
+    private fun handleApktoolIntent(intent: Intent?) {
+        if (intent == null) return
+
+        if (intent.getBooleanExtra(EXTRA_SHOW_APKTOOL_PROGRESS, false)) {
+            intent.removeExtra(EXTRA_SHOW_APKTOOL_PROGRESS)
+            if (ApktoolExecutionService.isRunning()) {
+                ApktoolHelper.showProgressDialog(this)
+            }
+        }
+
+        val navigatePath = intent.getStringExtra(EXTRA_NAVIGATE_TO_PATH)
+        if (!navigatePath.isNullOrBlank()) {
+            intent.removeExtra(EXTRA_NAVIGATE_TO_PATH)
+            try {
+                val path = Paths.get(navigatePath)
+                if (this::fragmentA.isInitialized) {
+                    activeFragment.navigateTo(path)
+                }
+            } catch (ignored: Throwable) {}
         }
     }
 
@@ -307,6 +332,11 @@ class FileListActivity : AppActivity() {
                     "keystore" -> {
                         if (this::fragmentA.isInitialized) {
                             activeFragment.showKeystoreGeneratorDialog()
+                        }
+                    }
+                    "apktool_hub" -> {
+                        if (this::fragmentA.isInitialized) {
+                            ApktoolHelper.showApktoolHubDialog(this, activeFragment.currentPath)
                         }
                     }
                     "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
@@ -1447,6 +1477,8 @@ class FileListActivity : AppActivity() {
     }
 
     companion object {
+        const val EXTRA_SHOW_APKTOOL_PROGRESS = "me.zhanghai.android.files.filelist.extra.SHOW_APKTOOL_PROGRESS"
+        const val EXTRA_NAVIGATE_TO_PATH = "me.zhanghai.android.files.filelist.extra.NAVIGATE_TO_PATH"
         private const val TAG_PANEL_A = "panel_a"
         private const val TAG_PANEL_B = "panel_b"
         private const val KEY_ACTIVE_PANEL = "active_panel"

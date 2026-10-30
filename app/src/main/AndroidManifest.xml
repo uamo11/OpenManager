@@ -446,6 +446,15 @@
         </service>
 
         <service
+            android:name="me.zhanghai.android.files.filelist.ApktoolExecutionService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="APK decompilation and recompilation are intensive long-running operations that extract or package large application binaries and must continue running seamlessly in the background with user control." />
+        </service>
+
+        <service
             android:name="me.zhanghai.android.files.ftpserver.FtpServerTileService"
             android:exported="true"
             android:icon="@drawable/shared_directory_icon_white_24dp"

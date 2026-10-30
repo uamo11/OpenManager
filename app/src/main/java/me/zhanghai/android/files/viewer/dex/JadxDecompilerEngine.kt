@@ -136,11 +136,13 @@ object JadxDecompilerEngine {
      *
      * @param inputFile Input .dex or .apk file.
      * @param outputZipFile Target .zip file for exported .java files.
+     * @param isCancelled Optional cancellation check.
      * @param onProgress Callback (currentClassIndex, totalClasses, currentClassName).
      */
     fun decompileToZip(
         inputFile: File,
         outputZipFile: File,
+        isCancelled: (() -> Boolean)? = null,
         onProgress: ((current: Int, total: Int, currentClass: String) -> Unit)? = null
     ): File {
         val args = JadxArgs().apply {
@@ -162,6 +164,9 @@ object JadxDecompilerEngine {
                 zos.closeEntry()
 
                 for ((index, javaClass) in classes.withIndex()) {
+                    if (isCancelled?.invoke() == true) {
+                        throw InterruptedException("JADX export cancelled by user")
+                    }
                     val fullName = javaClass.fullName
                     if (fullName.isNullOrBlank()) continue
                     onProgress?.invoke(index + 1, total, fullName)
@@ -188,5 +193,60 @@ object JadxDecompilerEngine {
             }
         }
         return outputZipFile
+    }
+
+    /**
+     * Batch decompiles all classes from a DEX or APK file directly into a directory of .java source files.
+     * Preserves standard package hierarchy (e.g. com/example/MainActivity.java).
+     *
+     * @param inputFile Input .dex or .apk file.
+     * @param outputDir Target directory for extracted .java files (e.g. OpenManager/ApkTool/<pkg>/decomp_java).
+     * @param isCancelled Optional cancellation check called before each class.
+     * @param onProgress Callback (currentClassIndex, totalClasses, currentClassName).
+     */
+    fun decompileToDirectory(
+        inputFile: File,
+        outputDir: File,
+        isCancelled: (() -> Boolean)? = null,
+        onProgress: ((current: Int, total: Int, currentClass: String) -> Unit)? = null
+    ): File {
+        if (!outputDir.exists()) {
+            outputDir.mkdirs()
+        }
+
+        val args = JadxArgs().apply {
+            isSkipResources = true
+            isShowInconsistentCode = true
+            inputFiles = listOf(inputFile)
+        }
+
+        JadxDecompiler(args).use { decompiler ->
+            decompiler.load()
+            val classes = decompiler.classes
+            val total = classes.size
+
+            for ((index, javaClass) in classes.withIndex()) {
+                if (isCancelled?.invoke() == true) {
+                    throw InterruptedException("JADX decompilation cancelled by user")
+                }
+
+                val fullName = javaClass.fullName
+                if (fullName.isNullOrBlank()) continue
+                onProgress?.invoke(index + 1, total, fullName)
+
+                val relPath = fullName.replace('.', File.separatorChar) + ".java"
+                val targetFile = File(outputDir, relPath)
+                targetFile.parentFile?.mkdirs()
+
+                try {
+                    javaClass.decompile()
+                    val code = javaClass.code
+                    targetFile.writeText(code ?: "// [JADX] Código vacío\n", StandardCharsets.UTF_8)
+                } catch (e: Throwable) {
+                    targetFile.writeText("// [JADX] Error al descompilar clase $fullName: ${e.message}\n", StandardCharsets.UTF_8)
+                }
+            }
+        }
+        return outputDir
     }
 }

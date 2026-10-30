@@ -111,6 +111,10 @@ capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhangha
 capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/me.zhanghai.android.files.about.AboutActivity" \
     "10_about_openmanager.png" "About OpenManager"
 
+# 11. Apktool Hub (APK Reverse Engineering Dialog)
+capture_screen "adb shell am start -W -S -n me.zhanghai.android.files/.filelist.FileListActivity --es SHOW_DEMO_DIALOG apktool_hub" \
+    "11_apktool_hub.png" "Apktool Hub"
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt

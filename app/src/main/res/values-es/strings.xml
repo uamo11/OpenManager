@@ -1276,4 +1276,18 @@
     <string name="crash_report_stacktrace_title">Excepción / Traza de error</string>
     <string name="settings_view_error_logs_title">Registros de error (Logs)</string>
     <string name="settings_view_error_logs_summary">Ver informes de error y fallos en /storage/emulated/0/OpenManager/logs</string>
+
+    <!-- Apktool Background Execution & Notifications -->
+    <string name="notification_channel_apktool_name">Operaciones de Apktool</string>
+    <string name="notification_channel_apktool_description">Muestra y controla descompilación y recompilación de Apktool</string>
+    <string name="apktool_cancel">Cancelar</string>
+    <string name="apktool_hide">Ocultar</string>
+    <string name="apktool_decompile_apk">Descompilar APK (Apktool)</string>
+    <string name="apktool_decompile_java">Descompilar a Java (JADX)</string>
+    <string name="apktool_recompile_apk">Recompilar APK (Apktool)</string>
+    <string name="apktool_cancelled">Operación cancelada</string>
+    <string name="apktool_completed">Operación completada exitosamente</string>
+    <string name="apktool_running_toast">La tarea continúa en segundo plano. Puedes verificar el avance o cancelarla desde las notificaciones.</string>
+    <string name="apktool_cancelled_toast">Operación cancelada por el usuario</string>
+    <string name="apktool_error_title">Error de Apktool</string>
 </resources>

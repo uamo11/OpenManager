@@ -449,53 +449,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
     }
 
     private fun decompileApkToJava(file: FileItem) {
-        val context = requireContext()
-        val progressDialog = MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.dex_decompile_progress)
-            .setMessage("Preparando archivo APK...")
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val apkFile: File = if (file.path.isLinuxPath) {
-                    file.path.toFile()
-                } else {
-                    val tmp = File(context.cacheDir, "jadx_${System.currentTimeMillis()}_${file.name}")
-                    file.path.newInputStream().use { inp ->
-                        FileOutputStream(tmp).use { out -> inp.copyTo(out) }
-                    }
-                    tmp
-                }
-
-                val baseName = file.name.removeSuffix(".apk").removeSuffix(".xapk").removeSuffix(".apks")
-                val parentDir = if (file.path.isLinuxPath) file.path.toFile().parentFile ?: context.cacheDir else context.cacheDir
-                val outZip = File(parentDir, "${baseName}_java_sources.zip")
-
-                JadxDecompilerEngine.decompileToZip(apkFile, outZip) { current, total, clsName ->
-                    if (current % 25 == 0 || current == total) {
-                        lifecycleScope.launch(Dispatchers.Main) {
-                            progressDialog.setMessage("Descompilando clase $current/$total\n$clsName")
-                        }
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-                    progressDialog.dismiss()
-                    (activity as? FileListActivity)?.activeFragment?.reload()
-                    MaterialAlertDialogBuilder(context)
-                        .setTitle(R.string.dex_export_java_sources)
-                        .setMessage(context.getString(R.string.dex_decompile_success, outZip.name))
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    progressDialog.dismiss()
-                    Toast.makeText(context, "Error al descompilar con JADX: ${e.message}", Toast.LENGTH_LONG).show()
-                }
+        val hostActivity = activity ?: return
+        ApktoolHelper.decompileJava(hostActivity, file.path) { targetDir ->
+            if (targetDir != null) {
+                (activity as? FileListActivity)?.activeFragment?.reload()
             }
         }
     }

@@ -503,6 +503,35 @@
                     android:textSize="14sp" />
             </LinearLayout>
 
+            <!-- Descompilar a Java (JADX) -->
+            <LinearLayout
+                android:id="@+id/toolDecompileJava"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="?attr/selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:id="@+id/ivDecompileJavaIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_open_as_code"
+                    app:tint="#64B5F6" />
+
+                <TextView
+                    android:id="@+id/tvDecompileJavaLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="16dp"
+                    android:text="Descompilar a Java (JADX)"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
             <!-- Recompilar APK (Apktool) -->
             <LinearLayout
                 android:id="@+id/toolRecompileApk"

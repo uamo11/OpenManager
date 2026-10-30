@@ -1380,4 +1380,18 @@
     <string name="crash_report_stacktrace_title">Exception Stacktrace</string>
     <string name="settings_view_error_logs_title">Error Logs</string>
     <string name="settings_view_error_logs_summary">View error and crash reports in /storage/emulated/0/OpenManager/logs</string>
+
+    <!-- Apktool Background Execution & Notifications -->
+    <string name="notification_channel_apktool_name">Apktool operations</string>
+    <string name="notification_channel_apktool_description">Display and control Apktool decompilation and recompilation</string>
+    <string name="apktool_cancel">Cancel</string>
+    <string name="apktool_hide">Hide</string>
+    <string name="apktool_decompile_apk">Decompile APK (Apktool)</string>
+    <string name="apktool_decompile_java">Decompile to Java (JADX)</string>
+    <string name="apktool_recompile_apk">Recompile APK (Apktool)</string>
+    <string name="apktool_cancelled">Operation cancelled</string>
+    <string name="apktool_completed">Operation completed successfully</string>
+    <string name="apktool_running_toast">The task continues in the background. You can check progress or cancel it from the notification bar.</string>
+    <string name="apktool_cancelled_toast">Operation cancelled by user</string>
+    <string name="apktool_error_title">Apktool error</string>
 </resources>

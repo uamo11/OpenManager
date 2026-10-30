@@ -14,3 +14,4 @@ build_out/
 *.apk
 release.keystore
 
+build_apk/

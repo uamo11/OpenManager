@@ -485,6 +485,20 @@ object MtFileMenuHelper {
             toolDecompileApk.isVisible = false
         }
 
+        // Descompilar a Java (JADX)
+        val toolDecompileJava = view.findViewById<LinearLayout>(R.id.toolDecompileJava)
+        if (isApk && isSingleFile) {
+            toolDecompileJava?.isVisible = true
+            toolDecompileJava?.setOnClickListener {
+                dialog.dismiss()
+                ApktoolHelper.decompileJava(activity, file.path) {
+                    fragment.viewModel.reload()
+                }
+            }
+        } else {
+            toolDecompileJava?.isVisible = false
+        }
+
         // Recompilar APK (Apktool)
         val toolRecompileApk = view.findViewById<LinearLayout>(R.id.toolRecompileApk)
         if (isApktoolProj && isSingleFile) {

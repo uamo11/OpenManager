@@ -13,25 +13,31 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDialog
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import java.io.ByteArrayOutputStream
-import java.util.zip.CRC32
-import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
+import com.google.android.material.progressindicator.LinearProgressIndicator
+import java.io.File
+import java.io.FileOutputStream
 import java8.nio.file.Files
 import java8.nio.file.Path
 import java8.nio.file.Paths
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
-import me.zhanghai.android.files.file.AxmlDecoder
 import me.zhanghai.android.files.provider.common.newInputStream
-import me.zhanghai.android.files.provider.common.newOutputStream
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 
 object ApktoolHelper {
+
+    private var activeProgressDialog: AppCompatDialog? = null
 
     fun isApktoolProject(dirPath: Path): Boolean {
         return try {
@@ -45,269 +51,289 @@ object ApktoolHelper {
     }
 
     /**
-     * Decompiles an APK into a project folder:
-     * - Decodes AndroidManifest.xml and res XML files to readable text
-     * - Preserves binaries for lossless recompilation
-     * - Extracts dex, assets, and generates apktool.yml
+     * Resolves a local File instance for an input Path, copying if remote/SAF.
+     */
+    private fun getLocalFileForPath(activity: Activity, path: Path, prefix: String = "apk_"): File {
+        return if (path.isLinuxPath) {
+            path.toFile()
+        } else {
+            val tmp = File(activity.cacheDir, "${prefix}${System.currentTimeMillis()}_${path.fileName}")
+            path.newInputStream().use { inp ->
+                FileOutputStream(tmp).use { out -> inp.copyTo(out) }
+            }
+            tmp
+        }
+    }
+
+    /**
+     * Decompiles an APK using Apktool into:
+     * OpenManager/ApkTool/<packageName>/decomp_src
      */
     fun decompileApk(
         activity: Activity,
         apkPath: Path,
         onComplete: ((Path?) -> Unit)? = null
     ) {
-        val fileName = apkPath.fileName.toString()
-        val baseName = if (fileName.endsWith(".apk", ignoreCase = true)) {
-            fileName.substringBeforeLast(".apk")
-        } else {
-            fileName
+        if (ApktoolExecutionService.isRunning()) {
+            Toast.makeText(activity, "Ya hay una tarea de Apktool en ejecución", Toast.LENGTH_SHORT).show()
+            showProgressDialog(activity)
+            return
         }
 
-        val parentDir = apkPath.parent ?: Paths.get("/storage/emulated/0/Download")
-        var projectDir = parentDir.resolve("${baseName}_src")
-        var counter = 1
-        while (Files.exists(projectDir)) {
-            projectDir = parentDir.resolve("${baseName}_src_$counter")
-            counter++
+        val apkFile = try {
+            getLocalFileForPath(activity, apkPath, "apktool_")
+        } catch (e: Exception) {
+            Toast.makeText(activity, "Error al preparar archivo APK: ${e.message}", Toast.LENGTH_LONG).show()
+            return
         }
 
-        val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Descompilando APK (Apktool)")
-            .setMessage("Extrayendo recursos y decodificando AndroidManifest.xml...\nPor favor espera.")
-            .setCancelable(false)
-            .show()
+        val packageName = ApktoolPaths.resolvePackageName(activity, apkFile)
+        val outputDir = ApktoolPaths.getApktoolDecompileDir(packageName)
 
-        kotlin.concurrent.thread {
-            var success = false
-            var errorMsg: String? = null
+        ApktoolExecutionService.startTask(
+            context = activity,
+            taskType = ApktoolExecutionService.TASK_TYPE_DECOMPILE_APK,
+            inputPath = apkFile.absolutePath,
+            outputPath = outputDir.absolutePath,
+            packageName = packageName,
+            displayTitle = activity.getString(R.string.apktool_decompile_apk)
+        )
 
-            try {
-                Files.createDirectories(projectDir)
-                apkPath.newInputStream().use { inStream ->
-                    ZipInputStream(inStream).use { zipIn ->
-                        var entry = zipIn.nextEntry
-                        val buffer = ByteArray(65536)
-
-                        while (entry != null) {
-                            val name = entry.name
-                            if (!entry.isDirectory && !name.startsWith("META-INF/")) {
-                                val targetFile = projectDir.resolve(name)
-                                val parent = targetFile.parent
-                                if (parent != null && !Files.exists(parent)) {
-                                    Files.createDirectories(parent)
-                                }
-
-                                val baos = ByteArrayOutputStream()
-                                var bytesRead: Int
-                                while (zipIn.read(buffer).also { bytesRead = it } != -1) {
-                                    baos.write(buffer, 0, bytesRead)
-                                }
-                                val entryBytes = baos.toByteArray()
-
-                                if (name == "AndroidManifest.xml" && AxmlDecoder.isAxml(entryBytes)) {
-                                    val decoded = AxmlDecoder.decode(entryBytes)
-                                    targetFile.newOutputStream().use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                                    val origFile = projectDir.resolve("AndroidManifest.xml.orig")
-                                    origFile.newOutputStream().use { it.write(entryBytes) }
-                                } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
-                                    val decoded = AxmlDecoder.decode(entryBytes)
-                                    targetFile.newOutputStream().use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                                    val origFile = projectDir.resolve("$name.orig")
-                                    origFile.newOutputStream().use { it.write(entryBytes) }
-                                } else {
-                                    targetFile.newOutputStream().use { it.write(entryBytes) }
-                                }
-                            }
-                            zipIn.closeEntry()
-                            entry = zipIn.nextEntry
-                        }
-                    }
-                }
-
-                // Generate apktool.yml metadata
-                val yml = """
-                    version: 2.9.3
-                    apkFileName: $fileName
-                    isFrameworkApk: false
-                    packageInfo:
-                      forcedPackageId: '127'
-                    versionInfo:
-                      versionCode: '1'
-                      versionName: '1.0'
-                    compressionType: false
-                    doNotCompress:
-                    - arsc
-                    - png
-                    - webp
-                    - jpg
-                    - ogg
-                    - mp3
-                """.trimIndent()
-                val ymlFile = projectDir.resolve("apktool.yml")
-                ymlFile.newOutputStream().use { it.write(yml.toByteArray(Charsets.UTF_8)) }
-
-                success = true
-            } catch (e: Exception) {
-                e.printStackTrace()
-                errorMsg = e.localizedMessage ?: e.javaClass.simpleName
-            }
-
-            activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
-                try { progressDialog.dismiss() } catch (ignored: Exception) {}
-                if (success) {
-                    Toast.makeText(
-                        activity,
-                        "APK descompilado exitosamente:\n${projectDir.fileName}",
-                        Toast.LENGTH_LONG
-                    ).show()
-
-                    // Navigate current pane to decompiled directory
-                    (activity as? FileListActivity)?.activeFragment?.navigateTo(projectDir)
-                    onComplete?.invoke(projectDir)
-                } else {
-                    MaterialAlertDialogBuilder(activity)
-                        .setTitle("Error al descompilar APK")
-                        .setMessage(errorMsg ?: "Error desconocido durante la descompilación")
-                        .setPositiveButton("Aceptar", null)
-                        .show()
-                    onComplete?.invoke(null)
-                }
-            }
+        showProgressDialog(activity) { successPath ->
+            onComplete?.invoke(successPath)
         }
     }
 
     /**
-     * Recompiles an Apktool project folder back into an installable APK:
-     * - Packages entries (preserving binary AXML if untouched)
-     * - Launches the 3-scheme signature dialog
+     * Decompiles an APK directly to Java source files using JADX into:
+     * OpenManager/ApkTool/<packageName>/decomp_java
+     */
+    fun decompileJava(
+        activity: Activity,
+        apkPath: Path,
+        onComplete: ((Path?) -> Unit)? = null
+    ) {
+        if (ApktoolExecutionService.isRunning()) {
+            Toast.makeText(activity, "Ya hay una tarea de Apktool en ejecución", Toast.LENGTH_SHORT).show()
+            showProgressDialog(activity)
+            return
+        }
+
+        val apkFile = try {
+            getLocalFileForPath(activity, apkPath, "jadx_")
+        } catch (e: Exception) {
+            Toast.makeText(activity, "Error al preparar archivo APK: ${e.message}", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        val packageName = ApktoolPaths.resolvePackageName(activity, apkFile)
+        val outputDir = ApktoolPaths.getJavaDecompileDir(packageName)
+
+        ApktoolExecutionService.startTask(
+            context = activity,
+            taskType = ApktoolExecutionService.TASK_TYPE_DECOMPILE_JAVA,
+            inputPath = apkFile.absolutePath,
+            outputPath = outputDir.absolutePath,
+            packageName = packageName,
+            displayTitle = activity.getString(R.string.apktool_decompile_java)
+        )
+
+        showProgressDialog(activity) { successPath ->
+            onComplete?.invoke(successPath)
+        }
+    }
+
+    /**
+     * Recompiles an Apktool project folder into:
+     * OpenManager/ApkTool/<packageName>/<packageName>_recompiled.apk
      */
     fun recompileApk(
         activity: Activity,
         projectDir: Path,
         onComplete: ((Path?) -> Unit)? = null
     ) {
-        val dirName = projectDir.fileName.toString()
-        val baseName = if (dirName.endsWith("_src", ignoreCase = true)) {
-            dirName.substringBeforeLast("_src")
+        if (ApktoolExecutionService.isRunning()) {
+            Toast.makeText(activity, "Ya hay una tarea de Apktool en ejecución", Toast.LENGTH_SHORT).show()
+            showProgressDialog(activity)
+            return
+        }
+
+        val projectFile = if (projectDir.isLinuxPath) {
+            projectDir.toFile()
         } else {
-            dirName
+            Toast.makeText(activity, "La carpeta del proyecto debe residir en el almacenamiento accesible", Toast.LENGTH_LONG).show()
+            return
         }
-        val rawApkName = "${baseName}_recompiled_unsigned.apk"
-        val parentDir = projectDir.parent ?: Paths.get("/storage/emulated/0/Download")
-        val rawApkPath = parentDir.resolve(rawApkName)
 
-        val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Recompilando APK (Apktool)")
-            .setMessage("Empaquetando recursos y ensamblando APK...\nPor favor espera.")
-            .setCancelable(false)
-            .show()
+        // Determine package name from parent dir or manifest
+        var packageName = projectFile.parentFile?.name ?: ""
+        if (packageName.isBlank() || packageName.equals("ApkTool", ignoreCase = true)) {
+            val manifestFile = File(projectFile, "AndroidManifest.xml")
+            if (manifestFile.exists()) {
+                try {
+                    val xml = manifestFile.readText()
+                    val match = Regex("""package\s*=\s*"([^"]+)"""").find(xml)
+                    if (match != null) {
+                        packageName = match.groupValues[1]
+                    }
+                } catch (ignored: Throwable) {}
+            }
+        }
+        if (packageName.isBlank()) {
+            packageName = projectFile.name.removeSuffix("_src").removeSuffix("_decomp")
+        }
 
-        kotlin.concurrent.thread {
-            var success = false
-            var errorMsg: String? = null
+        val outputApkFile = ApktoolPaths.getRecompiledApkFile(packageName)
 
-            try {
-                rawApkPath.newOutputStream().use { outStream ->
-                    ZipOutputStream(outStream).use { zipOut ->
-                        fun addDirectoryToZip(currentDir: Path, basePath: Path) {
-                            Files.newDirectoryStream(currentDir).use { stream ->
-                                for (path in stream) {
-                                    val relPath = basePath.relativize(path).toString().replace('\\', '/')
-                                    if (Files.isDirectory(path)) {
-                                        addDirectoryToZip(path, basePath)
-                                    } else {
-                                        // Skip metadata files
-                                        if (relPath == "apktool.yml" || relPath.endsWith(".orig")) {
-                                            continue
-                                        }
+        ApktoolExecutionService.startTask(
+            context = activity,
+            taskType = ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK,
+            inputPath = projectFile.absolutePath,
+            outputPath = outputApkFile.absolutePath,
+            packageName = packageName,
+            displayTitle = activity.getString(R.string.apktool_recompile_apk)
+        )
 
-                                        var dataBytes: ByteArray
-                                        // Check if there is an original binary for this xml
-                                        val origFile = currentDir.resolve("${path.fileName}.orig")
-                                        if (Files.exists(origFile)) {
-                                            val currentText = path.newInputStream().use { it.readBytes().toString(Charsets.UTF_8) }
-                                            val origBytes = origFile.newInputStream().use { it.readBytes() }
-                                            val origText = if (AxmlDecoder.isAxml(origBytes)) {
-                                                AxmlDecoder.decode(origBytes)
-                                            } else {
-                                                origBytes.toString(Charsets.UTF_8)
-                                            }
-                                            dataBytes = if (currentText == origText) {
-                                                origBytes
-                                            } else {
-                                                path.newInputStream().use { it.readBytes() }
-                                            }
-                                        } else {
-                                            dataBytes = path.newInputStream().use { it.readBytes() }
-                                        }
+        showProgressDialog(activity) { successPath ->
+            onComplete?.invoke(successPath)
+        }
+    }
 
-                                        val entry = ZipEntry(relPath)
-                                        val lower = relPath.lowercase()
-                                        val isStored = lower.endsWith(".arsc") || lower.endsWith(".png") ||
-                                            lower.endsWith(".jpg") || lower.endsWith(".webp") ||
-                                            lower.endsWith(".ogg") || lower.endsWith(".mp3")
+    /**
+     * Shows or restores the active Apktool / JADX progress dialog.
+     * Features:
+     * - Cancel button: immediately aborts task, cleans up incomplete output, dismisses dialog.
+     * - Hide button: dismisses dialog while task continues executing in foreground service.
+     */
+    fun showProgressDialog(
+        activity: Activity,
+        onSuccess: ((Path) -> Unit)? = null
+    ) {
+        if (activeProgressDialog?.isShowing == true) {
+            return
+        }
 
-                                        if (isStored) {
-                                            entry.method = ZipEntry.STORED
-                                            entry.size = dataBytes.size.toLong()
-                                            entry.compressedSize = dataBytes.size.toLong()
-                                            val crc = CRC32()
-                                            crc.update(dataBytes)
-                                            entry.crc = crc.value
-                                        } else {
-                                            entry.method = ZipEntry.DEFLATED
-                                        }
+        val appCompatActivity = activity as? AppCompatActivity ?: return
+        val dialog = AppCompatDialog(activity)
+        activeProgressDialog = dialog
+        dialog.supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
+        val view = LayoutInflater.from(activity).inflate(R.layout.dialog_apktool_progress, null)
+        dialog.setContentView(view)
 
-                                        zipOut.putNextEntry(entry)
-                                        zipOut.write(dataBytes)
-                                        zipOut.closeEntry()
-                                    }
-                                }
+        dialog.setCancelable(false)
+        dialog.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            val displayMetrics = activity.resources.displayMetrics
+            val targetWidth = (displayMetrics.widthPixels * 0.92).toInt().coerceAtMost(
+                (450 * displayMetrics.density).toInt()
+            )
+            setLayout(targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+
+        val ivIcon = view.findViewById<ImageView>(R.id.ivApktoolIcon)
+        val tvTitle = view.findViewById<TextView>(R.id.tvApktoolTitle)
+        val tvPackage = view.findViewById<TextView>(R.id.tvApktoolPackage)
+        val tvStatus = view.findViewById<TextView>(R.id.tvApktoolStatus)
+        val pbProgress = view.findViewById<LinearProgressIndicator>(R.id.pbApktoolProgress)
+        val tvDetail = view.findViewById<TextView>(R.id.tvApktoolDetail)
+        val btnCancel = view.findViewById<Button>(R.id.btnCancelApktool)
+        val btnHide = view.findViewById<Button>(R.id.btnHideApktool)
+
+        btnHide.setOnClickListener {
+            dialog.dismiss()
+            activeProgressDialog = null
+            Toast.makeText(
+                activity,
+                activity.getString(R.string.apktool_running_toast),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
+        btnCancel.setOnClickListener {
+            ApktoolExecutionService.cancelCurrentTask(activity)
+            dialog.dismiss()
+            activeProgressDialog = null
+            Toast.makeText(
+                activity,
+                activity.getString(R.string.apktool_cancelled_toast),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        appCompatActivity.lifecycleScope.launch {
+            ApktoolExecutionService.taskState.collectLatest { state ->
+                if (state == null) {
+                    if (dialog.isShowing) {
+                        dialog.dismiss()
+                        activeProgressDialog = null
+                    }
+                    return@collectLatest
+                }
+
+                if (!dialog.isShowing) {
+                    return@collectLatest
+                }
+
+                tvTitle.text = state.title
+                tvPackage.text = state.packageName
+                tvStatus.text = state.status
+                tvDetail.text = state.detail
+
+                when (state.taskType) {
+                    ApktoolExecutionService.TASK_TYPE_DECOMPILE_JAVA -> {
+                        ivIcon.setImageResource(R.drawable.ic_open_as_code)
+                        ivIcon.setColorFilter(ContextCompat.getColor(activity, R.color.color_primary))
+                    }
+                    ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK -> {
+                        ivIcon.setImageResource(R.drawable.file_archive_icon)
+                        ivIcon.setColorFilter(Color.parseColor("#42A5F5"))
+                    }
+                    else -> {
+                        ivIcon.setImageResource(R.drawable.ic_open_as_apk)
+                        ivIcon.setColorFilter(Color.parseColor("#FF9800"))
+                    }
+                }
+
+                pbProgress.isIndeterminate = state.isIndeterminate
+                if (!state.isIndeterminate) {
+                    pbProgress.progress = state.progress.coerceIn(0, 100)
+                }
+
+                if (!state.isRunning) {
+                    dialog.dismiss()
+                    activeProgressDialog = null
+
+                    if (state.isCompleted) {
+                        Toast.makeText(
+                            activity,
+                            "${state.title}: ${activity.getString(R.string.apktool_completed)}",
+                            Toast.LENGTH_LONG
+                        ).show()
+
+                        val targetPath = Paths.get(state.outputPath)
+                        onSuccess?.invoke(targetPath)
+
+                        if (state.taskType == ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK) {
+                            // Launch signature dialog for newly recompiled APK
+                            ApkSignerHelper.showSignDialog(activity, targetPath) { signedPath ->
+                                (activity as? FileListActivity)?.activeFragment?.reload()
                             }
+                        } else {
+                            // Automatically navigate file explorer to decompiled directory
+                            (activity as? FileListActivity)?.activeFragment?.navigateTo(targetPath)
                         }
-
-                        addDirectoryToZip(projectDir, projectDir)
-                        zipOut.finish()
+                    } else if (!state.isCancelled && state.errorMessage != null) {
+                        MaterialAlertDialogBuilder(activity)
+                            .setTitle(R.string.apktool_error_title)
+                            .setMessage(state.errorMessage)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
                     }
-                }
-
-                success = true
-            } catch (e: Exception) {
-                e.printStackTrace()
-                errorMsg = e.localizedMessage ?: e.javaClass.simpleName
-            }
-
-            activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
-                try { progressDialog.dismiss() } catch (ignored: Exception) {}
-                if (success) {
-                    // Prompt user to sign with the 3 signature schemes (V1, V2, V1+V2)
-                    Toast.makeText(
-                        activity,
-                        "APK reempaquetado exitosamente. Ahora selecciona el esquema de firma.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-
-                    ApkSignerHelper.showSignDialog(activity, rawApkPath) { finalSignedPath ->
-                        // Clean up temporary unsigned recompiled APK
-                        try {
-                            Files.deleteIfExists(rawApkPath)
-                        } catch (e: Exception) {
-                            // Ignored
-                        }
-                        (activity as? FileListActivity)?.activeFragment?.reload()
-                        onComplete?.invoke(finalSignedPath)
-                    }
-                } else {
-                    MaterialAlertDialogBuilder(activity)
-                        .setTitle("Error al recompilar APK")
-                        .setMessage(errorMsg ?: "Error desconocido durante la recompilación")
-                        .setPositiveButton("Aceptar", null)
-                        .show()
-                    onComplete?.invoke(null)
                 }
             }
         }
+
+        dialog.show()
     }
 
     /**
@@ -333,11 +359,19 @@ object ApktoolHelper {
             dialog.dismiss()
         }
 
-        // 1. Descompilar APK
+        // 1. Descompilar APK (Apktool)
         view.findViewById<LinearLayout>(R.id.itemDecompileApk).setOnClickListener {
             dialog.dismiss()
             pickApkInDirectory(activity, currentPath, "Selecciona el APK a descompilar") { selectedApk ->
                 decompileApk(activity, selectedApk)
+            }
+        }
+
+        // 1b. Descompilar APK a Java (JADX)
+        view.findViewById<LinearLayout>(R.id.itemDecompileJava).setOnClickListener {
+            dialog.dismiss()
+            pickApkInDirectory(activity, currentPath, "Selecciona el APK a descompilar a Java") { selectedApk ->
+                decompileJava(activity, selectedApk)
             }
         }
 
