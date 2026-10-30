@@ -9,9 +9,16 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+        <!-- SUPERUSER & PRIVILEGE STATUS FLAG -->
+    <me.zhanghai.android.files.settings.SuperuserStatusPreference
+        android:key="key_superuser_status"
+        app:iconSpaceReserved="false" />
+
     <!-- 1. STARTUP / INICIO -->
     <PreferenceCategory
         android:title="@string/settings_category_startup_title"
+        android:summary="@string/settings_category_startup_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -75,6 +82,8 @@
     <!-- 2. APPEARANCE / APARIENCIA -->
     <PreferenceCategory
         android:title="@string/settings_category_appearance_title"
+        android:summary="@string/settings_category_appearance_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <rikka.preference.SimpleMenuPreference
@@ -177,6 +186,8 @@
     <!-- 3. GENERAL -->
     <PreferenceCategory
         android:title="@string/settings_category_general_title"
+        android:summary="@string/settings_category_general_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -235,6 +246,8 @@
     <!-- 4. RECYCLE BIN / PAPELERA DE RECICLAJE -->
     <PreferenceCategory
         android:title="@string/settings_category_recycle_bin_title"
+        android:summary="@string/settings_category_recycle_bin_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -271,6 +284,8 @@
     <!-- 5. INSTALLATION / INSTALACIÓN -->
     <PreferenceCategory
         android:title="@string/settings_category_installation_title"
+        android:summary="@string/settings_category_installation_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -327,6 +342,8 @@
     <!-- 6. BOOKMARKS & BOTTOM BAR / MARCADORES Y BARRA INFERIOR -->
     <PreferenceCategory
         android:title="@string/settings_category_bookmarks_title"
+        android:summary="@string/settings_category_bookmarks_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -375,6 +392,8 @@
     <!-- 7. EXTERNAL STORAGE / ALMACENAMIENTO EXTERNO -->
     <PreferenceCategory
         android:title="@string/settings_category_external_storage_title"
+        android:summary="@string/settings_category_external_storage_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -403,6 +422,8 @@
     <!-- 8. NETWORK STORAGE / ALMACENAMIENTO EN RED -->
     <PreferenceCategory
         android:title="@string/settings_category_network_storage_title"
+        android:summary="@string/settings_category_network_storage_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
@@ -441,6 +462,8 @@
     <!-- 9. CLOUD BACKUP / COPIA DE SEGURIDAD EN LA NUBE -->
     <PreferenceCategory
         android:title="@string/settings_category_cloud_backup_title"
+        android:summary="@string/settings_category_cloud_backup_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <Preference
@@ -459,6 +482,8 @@
     <!-- 10. OTHER / OTROS -->
     <PreferenceCategory
         android:title="@string/settings_category_other_title"
+        android:summary="@string/settings_category_other_summary"
+        app:layout="@layout/preference_category_mp"
         app:iconSpaceReserved="false">
 
         <me.zhanghai.android.files.settings.LocalePreference

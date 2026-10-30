@@ -893,16 +893,27 @@
     <string name="shortcut_ftp_server_title" translatable="false">@string/ftp_server_title</string>
 
     <!-- MT Manager Settings Categories -->
-    <string name="settings_category_startup_title">Startup</string>
-    <string name="settings_category_appearance_title">Appearance</string>
-    <string name="settings_category_general_title">General</string>
-    <string name="settings_category_recycle_bin_title">Recycle Bin</string>
-    <string name="settings_category_installation_title">Installation</string>
-    <string name="settings_category_bookmarks_title">Bookmarks &amp; bottom bar</string>
-    <string name="settings_category_external_storage_title">External storage</string>
-    <string name="settings_category_network_storage_title">Network storage</string>
-    <string name="settings_category_cloud_backup_title">Cloud backup</string>
-    <string name="settings_category_other_title">Other</string>
+    <string name="settings_category_superuser_title">Privilege &amp; Root Status</string>
+    <string name="settings_category_startup_title">1. Startup &amp; Privileges</string>
+    <string name="settings_category_startup_summary">Root permissions, su command, Shizuku and startup paths</string>
+    <string name="settings_category_appearance_title">2. Appearance &amp; Interface</string>
+    <string name="settings_category_appearance_summary">Themes, colors, dark mode, font sizes and animations</string>
+    <string name="settings_category_general_title">3. Files &amp; General Management</string>
+    <string name="settings_category_general_summary">File encoding, favorites, sorting, and base directories</string>
+    <string name="settings_category_recycle_bin_title">4. Recycle Bin</string>
+    <string name="settings_category_recycle_bin_summary">Secure deletion, automatic cleanup and warnings</string>
+    <string name="settings_category_installation_title">5. App Installation &amp; Packages</string>
+    <string name="settings_category_installation_summary">APK verification, privileged root/Shizuku install and priority</string>
+    <string name="settings_category_bookmarks_title">6. Bookmarks &amp; Action Bars</string>
+    <string name="settings_category_bookmarks_summary">Quick access sidebar bookmarks and bottom navigation margins</string>
+    <string name="settings_category_external_storage_title">7. External Storage &amp; Media</string>
+    <string name="settings_category_external_storage_summary">MicroSD/USB thumbnail cache and transfer optimizations</string>
+    <string name="settings_category_network_storage_title">8. Remote Network Storage</string>
+    <string name="settings_category_network_storage_summary">Wi-Fi loading limits and thumbnails for FTP/SMB/WebDAV</string>
+    <string name="settings_category_cloud_backup_title">9. Cloud Backup &amp; Restore</string>
+    <string name="settings_category_cloud_backup_summary">Backup settings and configurations to cloud</string>
+    <string name="settings_category_other_title">10. System Information &amp; Logs</string>
+    <string name="settings_category_other_summary">App version, licenses, legal terms and error logs</string>
 
     <!-- MT Manager Startup Preferences -->
     <string name="settings_request_root_permission_title">Request root permission</string>

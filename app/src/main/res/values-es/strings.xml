@@ -790,16 +790,27 @@
     <string name="about_author_twitter_title">Seguir en Twitter</string>
 
     <!-- MT Manager Settings Categories -->
-    <string name="settings_category_startup_title">Inicio</string>
-    <string name="settings_category_appearance_title">Apariencia</string>
-    <string name="settings_category_general_title">General</string>
-    <string name="settings_category_recycle_bin_title">Papelera de reciclaje</string>
-    <string name="settings_category_installation_title">Instalación de aplicaciones</string>
-    <string name="settings_category_bookmarks_title">Marcadores y barra inferior</string>
-    <string name="settings_category_external_storage_title">Almacenamiento externo</string>
-    <string name="settings_category_network_storage_title">Almacenamiento en red</string>
-    <string name="settings_category_cloud_backup_title">Copia de seguridad en la nube</string>
-    <string name="settings_category_other_title">Otros</string>
+    <string name="settings_category_superuser_title">Estado de Privilegios y Root</string>
+    <string name="settings_category_startup_title">1. Inicio y Privilegios Root</string>
+    <string name="settings_category_startup_summary">Permisos de superusuario, comando su, Shizuku y rutas de arranque</string>
+    <string name="settings_category_appearance_title">2. Apariencia e Interfaz Visual</string>
+    <string name="settings_category_appearance_summary">Tema, colores, modo noche, tamaños de texto, animaciones e iconos</string>
+    <string name="settings_category_general_title">3. Gestión de Archivos y Operaciones</string>
+    <string name="settings_category_general_summary">Codificación de archivos, favoritos, orden y rutas base</string>
+    <string name="settings_category_recycle_bin_title">4. Papelera de Reciclaje</string>
+    <string name="settings_category_recycle_bin_summary">Eliminación segura, limpieza automática y advertencias</string>
+    <string name="settings_category_installation_title">5. Instalación de Paquetes y APK</string>
+    <string name="settings_category_installation_summary">Verificación de APK, instalación con Root/Shizuku y prioridades</string>
+    <string name="settings_category_bookmarks_title">6. Marcadores y Barra de Acciones</string>
+    <string name="settings_category_bookmarks_summary">Acceso rápido en panel lateral y márgenes de navegación</string>
+    <string name="settings_category_external_storage_title">7. Almacenamiento Externo y Medios</string>
+    <string name="settings_category_external_storage_summary">Caché de miniaturas y optimización de transferencias MicroSD/USB</string>
+    <string name="settings_category_network_storage_title">8. Almacenamiento en Red Remoto</string>
+    <string name="settings_category_network_storage_summary">Límites de carga por Wi-Fi y miniaturas en FTP/SMB/WebDAV</string>
+    <string name="settings_category_cloud_backup_title">9. Respaldo y Restauración en la Nube</string>
+    <string name="settings_category_cloud_backup_summary">Copias de seguridad de ajustes y sincronización</string>
+    <string name="settings_category_other_title">10. Información del Sistema y Registro</string>
+    <string name="settings_category_other_summary">Versión, licencias, acuerdos y registros de error (logs)</string>
 
     <!-- MT Manager Startup Preferences -->
     <string name="settings_request_root_permission_title">Solicitar permiso de root</string>

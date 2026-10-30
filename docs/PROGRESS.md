@@ -54,3 +54,17 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - Pantalla dedicada de reporte de error (`CrashReportActivity`) ejecutada en proceso independiente `:crash`, con aviso visual de ubicación del log, visualizador de traza monoespaciada con scroll horizontal/vertical y selección de texto, botón para copiar informe al portapapeles, botón para compartir, botón para abrir archivo de log en editor/visor de texto, botón de reinicio limpio de la aplicación y botón de cierre.
 - Integración en fallos de tareas en segundo plano (`FileJob`), operaciones de archivos, descompilador, inyector, generador de keystores y editor de texto para registrar automáticamente logs de error en `/storage/emulated/0/OpenManager/logs/`.
 - Acceso directo en Ajustes -> Otros -> 'Registros de error (Logs)' para explorar de inmediato la carpeta `/storage/emulated/0/OpenManager/logs` en el gestor de archivos.
+
+22. **Categorización de Ajustes Estilo MP-Manager y Flag de Estado del Superusuario (`SuperuserDetector.kt`, `SuperuserStatusPreference.kt`, `preference_superuser_flag.xml`, `preference_category_mp.xml`, `settings.xml`)**: ✅
+- Categorización visual estilo MP-Manager / MT Manager con títulos de sección destacados (`15.5sp`, negrita, barra indicadora de acento `bg_category_pill.xml`) y subtítulos descriptivos para cada una de las 10 categorías de configuración.
+- Detección precisa, rápida y no bloqueante del entorno de privilegios mediante `SuperuserDetector`:
+  - **KernelSU** (icono de KernelSU)
+  - **KernelSU Next** (icono de KernelSU Next)
+  - **Magisk** (icono de Magisk)
+  - **Magisk Delta / Kitsune Mask** (icono de Magisk Delta)
+  - **APatch** (icono de APatch)
+  - **Baka-SU** (icono de Baka-SU)
+  - **Shizuku** (icono de Shizuku)
+  - **DFRoot (Jailbreak / Exploit)**: detección de coexistencia con el gestor principal mostrando la insignia secundaria de DFRoot con su icono al lado, o como gestor autónomo.
+  - **Sin Superusuario / Modo Estándar** (icono de escudo).
+- Tarjeta/Flag interactivo en la cabecera de la pantalla de ajustes (`SuperuserStatusPreference` y `preference_superuser_flag.xml`) con estado en vivo (ROOT, SHIZUKU, EXPLOIT, ESTÁNDAR) y diálogo emergente con diagnóstico técnico completo (gestor, versión de SU, ruta de driver/daemon, paquete y acceso directo para abrir la app del gestor).
