@@ -164,6 +164,7 @@ import android.provider.DocumentsContract
 import android.widget.Button
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -2844,6 +2845,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val breadcrumbLayout: BreadcrumbLayout,
         val contentLayout: ViewGroup,
         val progress: ProgressBar,
+        val directoryProgressBar: LinearProgressIndicator,
         val layoutError: ViewGroup,
         val ivErrorIcon: ImageView,
         val tvErrorTitle: TextView,
@@ -2879,7 +2881,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     includeBinding.persistentBarLayout, appBarBinding.appBarLayout,
                     appBarBinding.toolbar, appBarBinding.overlayToolbar,
                     appBarBinding.breadcrumbLayout, contentBinding.contentLayout,
-                    contentBinding.progress, contentBinding.layoutError, contentBinding.ivErrorIcon,
+                    contentBinding.progress, contentBinding.directoryProgressBar, contentBinding.layoutError, contentBinding.ivErrorIcon,
                     contentBinding.tvErrorTitle, contentBinding.errorText,
                     contentBinding.btnErrorAction, contentBinding.btnGrantShizukuPermission,
                     contentBinding.btnGrantSafPermission,

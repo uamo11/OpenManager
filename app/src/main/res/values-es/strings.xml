@@ -1075,7 +1075,7 @@
     <string name="split_file_progress">Dividiendo archivo…</string>
     <string name="split_file_success">Archivo dividido exitosamente en %d partes</string>
     <string name="merge_files_title">Unir archivos</string>
-    <string name="merge_files_parts_detected">Detectadas %d partes (%s total)</string>
+    <string name="merge_files_parts_detected">Detectadas %1$d partes (%2$s total)</string>
     <string name="merge_files_target_label">Nombre de archivo de salida:</string>
     <string name="merge_files_delete_parts">Eliminar archivos de partes tras unir</string>
     <string name="merge_files_btn_merge">Unir</string>

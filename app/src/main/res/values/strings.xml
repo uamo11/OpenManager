@@ -1179,7 +1179,7 @@
     <string name="split_file_progress">Splitting file…</string>
     <string name="split_file_success">File split successfully into %d parts</string>
     <string name="merge_files_title">Merge files</string>
-    <string name="merge_files_parts_detected">Detected %d parts (%s total)</string>
+    <string name="merge_files_parts_detected">Detected %1$d parts (%2$s total)</string>
     <string name="merge_files_target_label">Output file name:</string>
     <string name="merge_files_delete_parts">Delete part files after merging</string>
     <string name="merge_files_btn_merge">Merge</string>
