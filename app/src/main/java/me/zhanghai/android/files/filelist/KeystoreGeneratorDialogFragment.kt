@@ -28,7 +28,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.materialswitch.MaterialSwitch
+import android.widget.CompoundButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -81,7 +81,7 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
         val editValidityYears = view.findViewById<EditText>(R.id.editValidityYears)
         val editCommonName = view.findViewById<EditText>(R.id.editCommonName)
 
-        val switchAdvanced = view.findViewById<MaterialSwitch>(R.id.switchAdvancedDetails)
+        val switchAdvanced = view.findViewById<android.widget.CompoundButton>(R.id.switchAdvancedDetails)
         val layoutAdvanced = view.findViewById<LinearLayout>(R.id.layoutAdvancedDetails)
         val editOrgUnit = view.findViewById<EditText>(R.id.editOrgUnit)
         val editOrgName = view.findViewById<EditText>(R.id.editOrgName)
