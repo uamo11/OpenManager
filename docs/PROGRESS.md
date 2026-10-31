@@ -262,3 +262,12 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - `AppInitializers.kt`: Añadido `::initializeLibSu` en la lista prioritaria `appInitializers` de `AppProvider.onCreate()` para configurar el builder oficial de libSU antes de que cualquier actividad o hilo en segundo plano intente invocar un shell.
   - `FileListActivity.kt`: Llamada explícita a `LibSuFileServiceLauncher.initBuilder()` previa a `Shell.getShell()` al solicitar permisos en el arranque.
   - `ApkInstallHelper.kt` y `RootFileService.kt`: Blindaje defensivo con `try-catch` para consultas de disponibilidad de superusuario.
+
+34. **Precisión Estricta en Detección de Permisos de Root y Desempaquetado de Errores en Apktool (`SuperuserStatusPreference.kt`, `SuperuserDetector.kt`, `ApktoolExecutionService.kt`) (v1.9.17)**: ✅
+- **Corrección de Falso Positivo "Working" al Revocar Root**:
+  - Resuelto el fallo donde `SuperuserStatusPreference.kt` reportaba "Working" con tarjeta verde aunque el usuario hubiera revocado el permiso de root en KernelSU/Magisk. La condición anterior evaluaba `(status.type != NONE)` como suficiente para asumir root concedido.
+  - Corregida la condición: ahora `hasRoot` requiere estrictamente `status.isRootEnabledInSettings && (status.isRootGranted || status.hasDfRoot)`.
+  - Si los privilegios no están concedidos a OpenManager, la tarjeta muestra con precisión absoluta: degradado gris, icono de escudo protegido, "No Root", icono de X roja en la esquina inferior y oculta el encabezado del gestor.
+  - `SuperuserDetector.kt`: `testRootExecutionSafe()` evalúa en tiempo real `su -c id` asegurando que no se usen cachés obsoletos en memoria y cerrando instancias caducadas con `Shell.getCachedShell()?.close()`.
+- **Desempaquetado Limpio de Excepciones en Apktool (`ApktoolExecutionService.kt`)**:
+  - Incorporado desempaquetado de causa raíz (`generateSequence(t) { it.cause }.lastOrNull()`) para mostrar mensajes claros y descriptivos en lugar del nombre genérico de clase `ExceptionInInitializerError`.

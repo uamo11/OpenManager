@@ -169,7 +169,7 @@ object SuperuserDetector {
         // 6. Verificar si la app tiene permiso root concedido
         // Si el usuario desactivó la solicitud de root en ajustes, NUNCA ejecutar su ni reportar concedido
         val isRootGranted = if (isRootEnabledInSettings && isSuAvailable) {
-            Shell.isAppGrantedRoot() == true || testRootExecutionSafe()
+            testRootExecutionSafe()
         } else {
             false
         }
@@ -357,15 +357,21 @@ object SuperuserDetector {
             val process = ProcessBuilder("su", "-c", "id")
                 .redirectErrorStream(true)
                 .start()
-            val completed = process.waitFor(600, TimeUnit.MILLISECONDS)
+            val completed = process.waitFor(1500, TimeUnit.MILLISECONDS)
             if (completed && process.exitValue() == 0) {
                 val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readLine() ?: "" }
-                output.contains("uid=0")
+                val isRoot = output.contains("uid=0")
+                if (!isRoot) {
+                    try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
+                }
+                isRoot
             } else {
                 process.destroyForcibly()
+                try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
                 false
             }
         } catch (_: Throwable) {
+            try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
             false
         }
     }

@@ -130,7 +130,8 @@ class ApktoolExecutionService : Service() {
             } catch (t: Throwable) {
                 t.printStackTrace()
                 CrashHandler.logHandledException(t, "ApktoolExecutionService")
-                errorMsg = t.localizedMessage ?: t.javaClass.simpleName
+                val rootCause = generateSequence(t) { it.cause }.lastOrNull() ?: t
+                errorMsg = rootCause.localizedMessage ?: rootCause.message ?: t.localizedMessage ?: t.javaClass.simpleName
             }
 
             withContext(Dispatchers.Main) {

@@ -131,10 +131,8 @@ class SuperuserStatusPreference : Preference {
         tvManagerHeader: TextView,
         ivCornerStatus: ImageView
     ) {
-        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted ||
-            (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) ||
-            status.hasDfRoot)
-        val isShizukuOnly = status.type == SuperuserDetector.SuperuserType.SHIZUKU && !status.isRootGranted && !status.hasDfRoot
+        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted || status.hasDfRoot)
+        val isShizukuOnly = status.type == SuperuserDetector.SuperuserType.SHIZUKU && !status.isRootGranted && !status.hasDfRoot && status.isShizukuReady
         val isActive = hasRoot || isShizukuOnly
 
         if (isActive) {
@@ -210,9 +208,7 @@ class SuperuserStatusPreference : Preference {
     }
 
     private fun showDetailsDialog(status: SuperuserDetector.SuperuserStatus) {
-        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted ||
-            (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) ||
-            status.hasDfRoot)
+        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted || status.hasDfRoot)
 
         val dialogTitle = if (hasRoot) {
             when {
@@ -223,7 +219,7 @@ class SuperuserStatusPreference : Preference {
                 else ->
                     "DFRoot Jailbreak (Activo)"
             }
-        } else if (status.type == SuperuserDetector.SuperuserType.SHIZUKU) {
+        } else if (status.type == SuperuserDetector.SuperuserType.SHIZUKU && status.isShizukuReady) {
             "Shizuku Conectado"
         } else {
             "Estado de Superusuario: No Root"
@@ -236,7 +232,7 @@ class SuperuserStatusPreference : Preference {
                 if (status.hasDfRoot) {
                     append("• DFRoot Jailbreak: Activo [Jailbreak Root]\n")
                 }
-                append("• Privilegios Root: ${if (status.isRootGranted) "Concedido (UID 0)" else "Disponible"}\n")
+                append("• Privilegios Root: Concedido (UID 0)\n")
                 if (status.suVersion != null) {
                     append("• Versión de SU: ${status.suVersion}\n")
                 }
@@ -248,7 +244,16 @@ class SuperuserStatusPreference : Preference {
                 }
             } else {
                 append("• Estado: No Root\n")
-                append("• No se detectó ningún gestor de superusuario activo en el sistema.\n")
+                if (status.type != SuperuserDetector.SuperuserType.NONE) {
+                    append("• Gestor detectado en el sistema: ${status.type.displayName}\n")
+                    if (!status.isRootEnabledInSettings) {
+                        append("• Nota: La solicitud de root está desactivada en los Ajustes de OpenManager.\n")
+                    } else {
+                        append("• Nota: OpenManager no tiene permisos de root concedidos en ${status.type.displayName}.\n")
+                    }
+                } else {
+                    append("• No se detectó ningún gestor de superusuario activo en el sistema.\n")
+                }
                 append("• La aplicación opera en modo estándar seguro sin elevación de privilegios.\n")
             }
             if (status.managerPackage != null) {
