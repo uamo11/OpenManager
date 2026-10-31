@@ -25,7 +25,6 @@ import me.zhanghai.android.files.provider.remote.RemoteFileServiceInterface
 import me.zhanghai.android.files.provider.remote.RemoteFileSystemException
 import me.zhanghai.android.files.util.createIntent
 import me.zhanghai.android.files.util.valueCompat
-import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -34,6 +33,10 @@ object LibSuFileServiceLauncher {
     private val lock = Any()
     @Volatile
     private var isBuilderInitialized = false
+
+    @Volatile
+    private var lastLaunchFailureMillis = 0L
+    private const val FAILURE_COOLDOWN_MILLIS = 6000L
 
     init {
         initBuilder()
@@ -60,7 +63,27 @@ object LibSuFileServiceLauncher {
         }
     }
 
+    fun resetCooldown() {
+        lastLaunchFailureMillis = 0L
+    }
+
+    fun isInFailureCooldown(): Boolean {
+        val elapsed = System.currentTimeMillis() - lastLaunchFailureMillis
+        return lastLaunchFailureMillis > 0L && elapsed in 0 until FAILURE_COOLDOWN_MILLIS
+    }
+
     fun isSuAvailable(): Boolean {
+        initBuilder()
+        if (!me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat) {
+            return false
+        }
+        try {
+            val cachedGranted = Shell.isAppGrantedRoot()
+            if (cachedGranted != null) {
+                return cachedGranted
+            }
+        } catch (_: Throwable) {}
+
         val paths = arrayOf(
             "/system/bin/su",
             "/system/xbin/su",
@@ -76,45 +99,63 @@ object LibSuFileServiceLauncher {
             if (f.exists() && f.canExecute()) return true
         }
         return try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "--version"))
-            process.destroy()
-            true
-        } catch (e: Exception) {
-            try {
-                val process = Runtime.getRuntime().exec(arrayOf("which", "su"))
-                val exitCode = process.waitFor()
-                exitCode == 0
-            } catch (e2: Exception) {
+            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
+            val finished = process.waitFor(700, TimeUnit.MILLISECONDS)
+            if (!finished) {
+                process.destroyForcibly()
                 false
+            } else {
+                val out = process.inputStream.bufferedReader().readText()
+                process.exitValue() == 0 && out.contains("uid=0")
             }
+        } catch (e: Exception) {
+            false
         }
     }
 
     @Throws(RemoteFileSystemException::class)
     fun launchService(): IRemoteFileService {
+        initBuilder()
         synchronized(lock) {
             if (!me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat) {
                 throw RemoteFileSystemException("Root permission request is disabled in settings")
             }
+            if (isInFailureCooldown()) {
+                throw RemoteFileSystemException("Root service launch is in cooldown after recent denial/failure")
+            }
             // libsu won't call back when su isn't available.
             if (!isSuAvailable()) {
+                lastLaunchFailureMillis = System.currentTimeMillis()
                 throw RemoteFileSystemException("Root isn't available")
             }
             return try {
                 runBlocking {
                     try {
-                        withTimeout(RootFileService.TIMEOUT_MILLIS) {
+                        withTimeout(3000L) {
                             // Proactively create the shell because RootService doesn't allow us to
                             // handle errors during shell creation.
                             suspendCancellableCoroutine<Unit> { continuation ->
                                 // Shell.getShell(GetShellCallback) doesn't allow handling errors.
                                 Shell.EXECUTOR.submit {
                                     try {
-                                        Shell.getShell()
-                                        continuation.resume(Unit)
+                                        val shell = Shell.getShell()
+                                        if (!shell.isRoot) {
+                                            lastLaunchFailureMillis = System.currentTimeMillis()
+                                            continuation.resumeWithException(
+                                                RemoteFileSystemException("Root access denied by superuser manager")
+                                            )
+                                        } else {
+                                            continuation.resume(Unit)
+                                        }
                                     } catch (e: NoShellException) {
+                                        lastLaunchFailureMillis = System.currentTimeMillis()
                                         continuation.resumeWithException(
                                             RemoteFileSystemException(e)
+                                        )
+                                    } catch (t: Throwable) {
+                                        lastLaunchFailureMillis = System.currentTimeMillis()
+                                        continuation.resumeWithException(
+                                            RemoteFileSystemException(t)
                                         )
                                     }
                                 }
@@ -126,6 +167,7 @@ object LibSuFileServiceLauncher {
                                         name: ComponentName,
                                         service: IBinder
                                     ) {
+                                        lastLaunchFailureMillis = 0L
                                         val serviceInterface =
                                             IRemoteFileService.Stub.asInterface(service)
                                         continuation.resume(serviceInterface)
@@ -133,6 +175,7 @@ object LibSuFileServiceLauncher {
 
                                     override fun onServiceDisconnected(name: ComponentName) {
                                         if (continuation.isActive) {
+                                            lastLaunchFailureMillis = System.currentTimeMillis()
                                             continuation.resumeWithException(
                                                 RemoteFileSystemException(
                                                     "libsu service disconnected"
@@ -143,6 +186,7 @@ object LibSuFileServiceLauncher {
 
                                     override fun onBindingDied(name: ComponentName) {
                                         if (continuation.isActive) {
+                                            lastLaunchFailureMillis = System.currentTimeMillis()
                                             continuation.resumeWithException(
                                                 RemoteFileSystemException("libsu binding died")
                                             )
@@ -151,6 +195,7 @@ object LibSuFileServiceLauncher {
 
                                     override fun onNullBinding(name: ComponentName) {
                                         if (continuation.isActive) {
+                                            lastLaunchFailureMillis = System.currentTimeMillis()
                                             continuation.resumeWithException(
                                                 RemoteFileSystemException("libsu binding is null")
                                             )
@@ -168,10 +213,12 @@ object LibSuFileServiceLauncher {
                             }
                         }
                     } catch (e: TimeoutCancellationException) {
+                        lastLaunchFailureMillis = System.currentTimeMillis()
                         throw RemoteFileSystemException(e)
                     }
                 }
             } catch (e: InterruptedException) {
+                lastLaunchFailureMillis = System.currentTimeMillis()
                 throw RemoteFileSystemException(e)
             }
         }

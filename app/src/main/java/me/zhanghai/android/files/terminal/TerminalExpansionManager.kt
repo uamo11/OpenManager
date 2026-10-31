@@ -7,8 +7,6 @@ package me.zhanghai.android.files.terminal
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.core.content.FileProvider
 import me.zhanghai.android.files.app.application
@@ -18,6 +16,9 @@ import java.util.zip.ZipFile
 
 object TerminalExpansionManager {
     const val TERMEX_PACKAGE = "bin.mt.termex"
+
+    private const val EXTENDED_SYSTEM_PATH =
+        "/data/adb/ksu/bin:/data/adb/ap/bin:/data/adb/magisk:/system/bin:/system/xbin:/sbin:/vendor/bin:/product/bin:/apex/com.android.runtime/bin:/apex/com.android.art/bin"
 
     data class LaunchConfig(
         val executable: String,
@@ -78,6 +79,27 @@ object TerminalExpansionManager {
         }
     }
 
+    private fun ensureShellInitScript(context: Context): File {
+        val initFile = File(context.filesDir, "om_shell_rc.sh")
+        try {
+            val rcContent = """
+                alias ll='ls -la'
+                alias la='ls -A'
+                alias l='ls -CF'
+                alias cls='clear'
+                alias ..='cd ..'
+                alias ...='cd ../..'
+                export LANG=en_US.UTF-8
+                export COLORTERM=truecolor
+            """.trimIndent() + "\n"
+            if (!initFile.exists() || initFile.readText() != rcContent) {
+                initFile.writeText(rcContent)
+                initFile.setReadable(true, false)
+            }
+        } catch (_: Throwable) {}
+        return initFile
+    }
+
     fun prepareLaunchConfig(
         context: Context,
         forceRoot: Boolean? = null,
@@ -90,6 +112,8 @@ object TerminalExpansionManager {
         val targetCwd = overrideCwd ?: TerminalSettings.getStartPath(context)
         val validCwd = if (File(targetCwd).isDirectory) targetCwd else "/storage/emulated/0"
         val escapedCwd = validCwd.replace("'", "'\\''")
+        val histFile = File(context.filesDir, ".om_shell_history").absolutePath
+        val initScript = ensureShellInitScript(context)
 
         val shellCmd = if (initialCommand != null) {
             "cd '$escapedCwd' && ($initialCommand); _mt_status=\$?; exit \$_mt_status"
@@ -98,13 +122,18 @@ object TerminalExpansionManager {
         if (asRoot && isRootAvailable()) {
             val env = arrayOf(
                 "TERM=xterm-256color",
+                "COLORTERM=truecolor",
+                "LANG=en_US.UTF-8",
                 "HOME=$validCwd",
-                "PATH=/system/bin:/system/xbin:/sbin:/vendor/bin"
+                "TMPDIR=${context.cacheDir.absolutePath}",
+                "HISTFILE=$histFile",
+                "ENV=${initScript.absolutePath}",
+                "PATH=$EXTENDED_SYSTEM_PATH"
             )
             val args = if (shellCmd != null) {
                 arrayOf("su", "-c", shellCmd)
             } else {
-                arrayOf("su", "-")
+                arrayOf("su")
             }
             return LaunchConfig(
                 executable = "su",
@@ -134,21 +163,25 @@ object TerminalExpansionManager {
 
                 val bashBin = File(nativeLibDir, "bash")
                 if (bashBin.exists()) {
-                    val prompt = "\$([ \$? == 0 ] && echo '\\[\\e[1;32m\\]' || echo '\\[\\e[1;31m\\]')\$([ \$UID == 0 ] && echo '#' || echo '➜') \\[\\e[1;36m\\]\\W\\[\\e[m\\] "
+                    val prompt = "\$([ \$? == 0 ] && echo '\\[\\e[1;32m\\]' || echo '\\[\\e[1;31m\\]')\$([ \$UID == 0 ] && echo '#' || echo '➜') \\[\\e[1;36m\\]\\w\\[\\e[m\\] "
                     val env = arrayOf(
                         "PREFIX=${termexDir.absolutePath}",
                         "LD_LIBRARY_PATH=${libDir.absolutePath}:$nativeLibDir",
-                        "PATH=$nativeLibDir:/system/bin:/system/xbin",
+                        "PATH=$nativeLibDir:$EXTENDED_SYSTEM_PATH",
                         "SHELL=${bashBin.absolutePath}",
                         "TERM=xterm-256color",
+                        "COLORTERM=truecolor",
+                        "LANG=en_US.UTF-8",
                         "HOME=$validCwd",
                         "TMPDIR=${context.cacheDir.absolutePath}",
+                        "HISTFILE=$histFile",
+                        "ENV=${initScript.absolutePath}",
                         "PS1=$prompt"
                     )
                     val args = if (shellCmd != null) {
                         arrayOf("bash", "--norc", "-c", shellCmd)
                     } else {
-                        arrayOf("bash", "--norc", "-i")
+                        arrayOf("bash", "--rcfile", initScript.absolutePath, "-i")
                     }
                     return LaunchConfig(
                         executable = bashBin.absolutePath,
@@ -166,10 +199,15 @@ object TerminalExpansionManager {
 
         // Standard Android shell fallback
         val env = arrayOf(
-            "PATH=/system/bin:/system/xbin",
+            "PATH=$EXTENDED_SYSTEM_PATH",
             "TERM=xterm-256color",
+            "COLORTERM=truecolor",
+            "LANG=en_US.UTF-8",
             "HOME=$validCwd",
-            "PS1=: \\w $ "
+            "TMPDIR=${context.cacheDir.absolutePath}",
+            "HISTFILE=$histFile",
+            "ENV=${initScript.absolutePath}",
+            "PS1=\\[\\e[1;32m\\]➜\\[\\e[m\\] \\[\\e[1;36m\\]\\w\\[\\e[m\\] \\$ "
         )
         val args = if (shellCmd != null) {
             arrayOf("sh", "-c", shellCmd)

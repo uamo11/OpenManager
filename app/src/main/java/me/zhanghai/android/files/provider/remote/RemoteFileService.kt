@@ -10,6 +10,8 @@ import me.zhanghai.android.files.provider.common.PosixFileAttributeView
 import me.zhanghai.android.files.provider.common.PosixFileStore
 
 abstract class RemoteFileService(private val remoteInterface: RemoteInterface<IRemoteFileService>) {
+    fun isReady(): Boolean = remoteInterface.has()
+
     @Throws(RemoteFileSystemException::class)
     fun getRemoteFileSystemProviderInterface(scheme: String): IRemoteFileSystemProvider =
         remoteInterface.get().call { getRemoteFileSystemProviderInterface(scheme) }

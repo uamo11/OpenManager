@@ -9,6 +9,16 @@ import android.os.Build
 import android.system.OsConstants
 
 object Constants {
+    // dirent d_type values (<dirent.h>)
+    const val DT_UNKNOWN = 0
+    const val DT_FIFO = 1
+    const val DT_CHR = 2
+    const val DT_DIR = 4
+    const val DT_BLK = 6
+    const val DT_REG = 8
+    const val DT_LNK = 10
+    const val DT_SOCK = 12
+
     // 0x0000125D
     const val BLKROSET = (0x12 shl 8) or 93
 

@@ -14,14 +14,16 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.os.PowerManager
 import android.util.TypedValue
+import android.view.HapticFeedbackConstants
 import android.view.KeyEvent
 import android.view.Menu
-import android.view.MenuItem
 import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.inputmethod.InputMethodManager
+import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
-import kotlin.math.roundToInt
 import androidx.appcompat.widget.PopupMenu
 import com.google.android.material.appbar.MaterialToolbar
 import com.termux.terminal.TerminalEmulator
@@ -32,16 +34,23 @@ import com.termux.view.TerminalViewClient
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import java.io.File
+import kotlin.math.roundToInt
 
 class TerminalActivity : AppActivity() {
 
     private lateinit var toolbar: MaterialToolbar
     private lateinit var terminalView: TerminalView
     private lateinit var extraKeysView: TerminalExtraKeysView
+    private var btnZoomOut: TextView? = null
+    private var btnZoomIn: TextView? = null
+    private var tvZoomSize: TextView? = null
+    private var btnCopyScreen: ImageButton? = null
 
     private var terminalSession: TerminalSession? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var currentPid: Int = -1
+    private lateinit var pinchScaleDetector: ScaleGestureDetector
+    private var isPinching: Boolean = false
 
     companion object {
         const val EXTRA_PATH = "me.zhanghai.android.files.terminal.extra.PATH"
@@ -82,8 +91,13 @@ class TerminalActivity : AppActivity() {
         toolbar = findViewById(R.id.toolbar)
         terminalView = findViewById(R.id.terminalView)
         extraKeysView = findViewById(R.id.extraKeysView)
+        btnZoomOut = findViewById(R.id.btnZoomOut)
+        btnZoomIn = findViewById(R.id.btnZoomIn)
+        tvZoomSize = findViewById(R.id.tvZoomSize)
+        btnCopyScreen = findViewById(R.id.btnCopyScreen)
 
         setupToolbar()
+        setupPinchZoomDetector()
         setupExtraKeys()
         applyPreferences()
         startTerminalSession()
@@ -92,6 +106,83 @@ class TerminalActivity : AppActivity() {
     private fun setupToolbar() {
         toolbar.setNavigationOnClickListener {
             finish()
+        }
+
+        btnZoomOut?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            changeFontSizeBy(-1)
+        }
+
+        btnZoomIn?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            changeFontSizeBy(+1)
+        }
+
+        tvZoomSize?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            TerminalSettings.setFontSize(this, TerminalSettings.DEFAULT_FONT_SIZE_SP)
+            applyPreferences()
+            Toast.makeText(this, "Zoom restablecido (${TerminalSettings.DEFAULT_FONT_SIZE_SP}sp)", Toast.LENGTH_SHORT).show()
+        }
+
+        btnCopyScreen?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            copyTerminalTranscript()
+        }
+    }
+
+    private fun setupPinchZoomDetector() {
+        pinchScaleDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                private var accumulatedFactor = 1.0f
+
+                override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                    isPinching = true
+                    accumulatedFactor = 1.0f
+                    return true
+                }
+
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    accumulatedFactor *= detector.scaleFactor
+                    if (accumulatedFactor < 0.91f || accumulatedFactor > 1.09f) {
+                        val delta = if (accumulatedFactor > 1.0f) 1 else -1
+                        changeFontSizeBy(delta)
+                        accumulatedFactor = 1.0f
+                    }
+                    return true
+                }
+
+                override fun onScaleEnd(detector: ScaleGestureDetector) {
+                    isPinching = false
+                    accumulatedFactor = 1.0f
+                }
+            }
+        )
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.pointerCount >= 2 || isPinching) {
+            pinchScaleDetector.onTouchEvent(ev)
+            if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+                isPinching = false
+            }
+            if (ev.pointerCount >= 2) {
+                return true
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun changeFontSizeBy(delta: Int) {
+        val currentSize = TerminalSettings.getFontSize(this)
+        val newSize = (currentSize + delta).coerceIn(
+            TerminalSettings.MIN_FONT_SIZE_SP,
+            TerminalSettings.MAX_FONT_SIZE_SP
+        )
+        if (newSize != currentSize) {
+            TerminalSettings.setFontSize(this, newSize)
+            applyPreferences()
         }
     }
 
@@ -116,9 +207,10 @@ class TerminalActivity : AppActivity() {
             TypedValue.COMPLEX_UNIT_SP,
             fontSizeSp.toFloat(),
             resources.displayMetrics
-        ).roundToInt().coerceAtLeast(14)
+        ).roundToInt().coerceAtLeast(10)
         terminalView.setTextSize(fontSizePx)
         terminalView.setTypeface(Typeface.MONOSPACE)
+        tvZoomSize?.text = "${fontSizeSp}sp"
 
         if (TerminalSettings.isKeepBlackTheme(this)) {
             terminalView.setBackgroundColor(Color.BLACK)
@@ -127,13 +219,16 @@ class TerminalActivity : AppActivity() {
         }
     }
 
-    private fun startTerminalSession() {
+    private fun startTerminalSession(forceRootOverride: Boolean? = null) {
+        terminalSession?.finishIfRunning()
+
         val overridePath = intent.getStringExtra(EXTRA_PATH)
             ?: intent.getStringExtra(EXTRA_CWD)
             ?: intent.data?.path
 
         val initialCommand = intent.getStringExtra(EXTRA_COMMAND)
-        val forceRoot = if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
+        val forceRoot = forceRootOverride
+            ?: if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
         val forceTermex = if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null
 
         val config = TerminalExpansionManager.prepareLaunchConfig(
@@ -211,16 +306,12 @@ class TerminalActivity : AppActivity() {
 
         val viewClient = object : TerminalViewClient {
             override fun onScale(scale: Float): Float {
-                if (scale < 0.95f || scale > 1.05f) {
-                    val currentSize = TerminalSettings.getFontSize(this@TerminalActivity)
+                if (scale < 0.90f || scale > 1.10f) {
                     val delta = if (scale > 1.0f) 1 else -1
-                    val newSize = (currentSize + delta).coerceIn(10, 30)
-                    if (newSize != currentSize) {
-                        TerminalSettings.setFontSize(this@TerminalActivity, newSize)
-                        applyPreferences()
-                    }
+                    changeFontSizeBy(delta)
+                    return 1.0f
                 }
-                return 1.0f
+                return scale
             }
 
             override fun onSingleTapUp(e: MotionEvent?) {
@@ -243,10 +334,25 @@ class TerminalActivity : AppActivity() {
                         return true
                     }
                 }
+                // Volume Up / Down zoom shortcuts
+                if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+                    changeFontSizeBy(+1)
+                    return true
+                }
+                if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    changeFontSizeBy(-1)
+                    return true
+                }
                 return false
             }
 
-            override fun onKeyUp(keyCode: Int, e: KeyEvent?): Boolean = false
+            override fun onKeyUp(keyCode: Int, e: KeyEvent?): Boolean {
+                if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                    return true
+                }
+                return false
+            }
+
             override fun onLongPress(event: MotionEvent?): Boolean = false
 
             override fun readControlKey(): Boolean {
@@ -278,7 +384,6 @@ class TerminalActivity : AppActivity() {
         terminalView.setTerminalViewClient(viewClient)
         terminalView.attachSession(session)
 
-        // Show start info in subtitle
         val mode = if (config.isRoot) "Root (#)" else if (config.isTermex) "Termex (bash)" else "Sistema (sh)"
         if (initialCommand != null) {
             val lastPathPart = initialCommand.split(" ", ";").lastOrNull { it.contains("/") } ?: initialCommand
@@ -286,7 +391,23 @@ class TerminalActivity : AppActivity() {
             toolbar.title = if (fileName.isNotEmpty()) fileName else initialCommand
             toolbar.subtitle = "$mode • Ejecutando..."
         } else {
-            toolbar.subtitle = "$mode • ${File(config.cwd).name}"
+            val dirName = File(config.cwd).name.ifEmpty { "/" }
+            toolbar.subtitle = "$mode • $dirName"
+        }
+    }
+
+    private fun copyTerminalTranscript() {
+        val transcript = try {
+            terminalSession?.emulator?.screen?.transcriptText?.trim()
+        } catch (_: Throwable) {
+            null
+        }
+        if (!transcript.isNullOrEmpty()) {
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            cm?.setPrimaryClip(ClipData.newPlainText("Terminal Output", transcript))
+            Toast.makeText(this, "Salida de terminal copiada al portapapeles", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "No hay texto en pantalla para copiar", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -299,10 +420,14 @@ class TerminalActivity : AppActivity() {
                 getString(R.string.terminal_wakelock)
             }
             add(Menu.NONE, 1, 1, wakeTitle)
-            add(Menu.NONE, 2, 2, R.string.terminal_close)
-            add(Menu.NONE, 3, 3, R.string.terminal_reset)
-            add(Menu.NONE, 4, 4, R.string.terminal_preferences)
-            add(Menu.NONE, 5, 5, R.string.terminal_paste)
+            add(Menu.NONE, 5, 2, R.string.terminal_paste)
+            add(Menu.NONE, 6, 3, "Copiar toda la pantalla")
+            add(Menu.NONE, 7, 4, "Limpiar pantalla (clear)")
+            add(Menu.NONE, 8, 5, "Cambiar a Root (su)")
+            add(Menu.NONE, 9, 6, "Nueva sesión limpia")
+            add(Menu.NONE, 3, 7, R.string.terminal_reset)
+            add(Menu.NONE, 4, 8, R.string.terminal_preferences)
+            add(Menu.NONE, 2, 9, R.string.terminal_close)
         }
 
         popup.setOnMenuItemClickListener { item ->
@@ -331,6 +456,23 @@ class TerminalActivity : AppActivity() {
                 }
                 5 -> {
                     pasteFromClipboard()
+                    true
+                }
+                6 -> {
+                    copyTerminalTranscript()
+                    true
+                }
+                7 -> {
+                    terminalSession?.write("clear\n")
+                    true
+                }
+                8 -> {
+                    terminalSession?.write("su\n")
+                    true
+                }
+                9 -> {
+                    startTerminalSession()
+                    Toast.makeText(this, "Nueva sesión iniciada", Toast.LENGTH_SHORT).show()
                     true
                 }
                 else -> false

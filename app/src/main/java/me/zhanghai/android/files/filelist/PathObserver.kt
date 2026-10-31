@@ -37,6 +37,10 @@ class PathObserver(path: Path, @MainThread onChange: () -> Unit) : Closeable {
                     // Ignored.
                     e.printStackTrace()
                     return@execute
+                } catch (t: Throwable) {
+                    // Safely ignore any initializer or permission error during background watch setup
+                    t.printStackTrace()
+                    return@execute
                 }.apply {
                     val mainHandler = Handler(Looper.getMainLooper())
                     addObserver { mainHandler.post(onChange) }

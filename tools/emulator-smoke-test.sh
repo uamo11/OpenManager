@@ -127,6 +127,14 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG file_properties" \
     "14_file_properties_dialog.png" "Universal File Properties Dialog"
 
+# 15. Unprivileged Root & /data Directory Browsing (MT Manager Style)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG root_unprivileged" \
+    "15_root_dir_unprivileged.png" "Unprivileged Root & /data Directory Browsing"
+
+# 16. Enhanced Terminal with Zoom Controls & Extra Keys
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal" \
+    "16_terminal_zoom_and_keys.png" "Enhanced Terminal with Zoom Controls & Extra Keys"
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt

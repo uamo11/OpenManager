@@ -20,7 +20,6 @@ import me.zhanghai.android.files.util.Failure
 import me.zhanghai.android.files.util.Loading
 import me.zhanghai.android.files.util.Stateful
 import me.zhanghai.android.files.util.Success
-import me.zhanghai.android.files.util.valueCompat
 import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
@@ -56,19 +55,22 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                             childPath.createFallbackFileItem()?.let { fileList.add(it) }
                         }
                     }
+                    if (fileList.isEmpty()) {
+                        val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
+                        if (virtualEntries.isNotEmpty()) {
+                            fileList.addAll(virtualEntries)
+                        }
+                    }
                     Success(fileList as List<FileItem>)
                 }
             } catch (e: Exception) {
-                // Secondary fallback: if newDirectoryStream fails or throws Syscall/Permission error,
-                // try standard java.io.File.listFiles() so readable system directories like /, /vendor, /system
-                // can still display their accessible entries.
                 val fallbackList = mutableListOf<FileItem>()
                 val localFile = try {
                     (path as? LinuxPath)?.toFile() ?: java.io.File(path.toString())
                 } catch (_: Throwable) {
                     null
                 }
-                val files = localFile?.listFiles()
+                val files = try { localFile?.listFiles() } catch (_: Throwable) { null }
                 if (files != null && files.isNotEmpty()) {
                     for (file in files) {
                         val childPath: Path = (path as? LinuxPath)?.resolve(file.name.toByteString())
@@ -81,9 +83,8 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     }
                     Success(fallbackList as List<FileItem>)
                 } else {
-                    // Tertiary fallback: Try unprivileged shell `ls -1` (works for / and readable system directories without root)
                     val shellEntries = try {
-                        val process = ProcessBuilder("ls", "-1", path.toString())
+                        val process = ProcessBuilder("ls", "-1a", path.toString())
                             .redirectErrorStream(true)
                             .start()
                         val completed = process.waitFor(800, java.util.concurrent.TimeUnit.MILLISECONDS)
@@ -119,7 +120,23 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                         }
                         Success(fallbackList as List<FileItem>)
                     } else {
-                        Failure(value?.value, e)
+                        // Consult UnprivilegedDirectoryResolver (MT Manager style virtual/known hierarchy)
+                        val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
+                        if (virtualEntries.isNotEmpty()) {
+                            Success(virtualEntries)
+                        } else {
+                            val isAccessDenied = e is java8.nio.file.AccessDeniedException ||
+                                e is me.zhanghai.android.files.provider.remote.RemoteFileSystemException ||
+                                e.message?.contains("Permission denied", ignoreCase = true) == true ||
+                                e.message?.contains("EACCES", ignoreCase = true) == true ||
+                                e.message?.contains("Root", ignoreCase = true) == true
+                            if (isAccessDenied && path is LinuxPath) {
+                                // Show read-only empty directory view with ".." navigation instead of a blocking "No tienes acceso" error screen
+                                Success(emptyList())
+                            } else {
+                                Failure(value?.value, e)
+                            }
+                        }
                     }
                 }
             }

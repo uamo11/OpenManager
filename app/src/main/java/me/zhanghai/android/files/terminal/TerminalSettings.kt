@@ -16,6 +16,10 @@ object TerminalSettings {
     private const val PREF_KEEP_BLACK_THEME = "terminal_keep_black_theme"
     private const val PREF_ROOT_SESSION = "terminal_root_session"
 
+    const val MIN_FONT_SIZE_SP = 8
+    const val MAX_FONT_SIZE_SP = 36
+    const val DEFAULT_FONT_SIZE_SP = 14
+
     @Suppress("DEPRECATION")
     private val DEFAULT_START_PATH: String
         get() = try {
@@ -37,12 +41,12 @@ object TerminalSettings {
 
     fun getFontSize(context: Context): Int {
         val sp = PreferenceManager.getDefaultSharedPreferences(context)
-        val size = sp.getInt(PREF_FONT_SIZE, 14)
-        return if (size < 13) 14 else size
+        val size = sp.getInt(PREF_FONT_SIZE, DEFAULT_FONT_SIZE_SP)
+        return size.coerceIn(MIN_FONT_SIZE_SP, MAX_FONT_SIZE_SP)
     }
 
     fun setFontSize(context: Context, size: Int) {
-        val clamped = size.coerceIn(10, 32)
+        val clamped = size.coerceIn(MIN_FONT_SIZE_SP, MAX_FONT_SIZE_SP)
         PreferenceManager.getDefaultSharedPreferences(context).edit {
             putInt(PREF_FONT_SIZE, clamped)
         }

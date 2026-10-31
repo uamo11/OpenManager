@@ -19,13 +19,70 @@
         android:layout_height="wrap_content"
         android:background="#1E1E1E">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbar"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:navigationIcon="@drawable/arrow_back_icon_white_24dp"
-            app:title="@string/terminal_title"
-            app:titleTextColor="#FFFFFF" />
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbar"
+                android:layout_width="0dp"
+                android:layout_height="?attr/actionBarSize"
+                android:layout_weight="1"
+                app:navigationIcon="@drawable/arrow_back_icon_white_24dp"
+                app:title="@string/terminal_title"
+                app:titleTextColor="#FFFFFF"
+                app:subtitleTextColor="#B0BEC5" />
+
+            <TextView
+                android:id="@+id/btnZoomOut"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="4dp"
+                android:gravity="center"
+                android:text="A-"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Reducir fuente" />
+
+            <TextView
+                android:id="@+id/tvZoomSize"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:paddingHorizontal="4dp"
+                android:gravity="center"
+                android:text="14sp"
+                android:textColor="#64B5F6"
+                android:textSize="12sp"
+                android:fontFamily="monospace" />
+
+            <TextView
+                android:id="@+id/btnZoomIn"
+                android:layout_width="36dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="6dp"
+                android:gravity="center"
+                android:text="A+"
+                android:textColor="#FFFFFF"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Aumentar fuente" />
+
+            <ImageButton
+                android:id="@+id/btnCopyScreen"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/copy_icon_control_normal_24dp"
+                app:tint="#FFFFFF"
+                android:contentDescription="Copiar salida" />
+        </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout

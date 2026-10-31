@@ -403,6 +403,20 @@ class FileListActivity : AppActivity() {
                             }
                         }
                     }
+                    "root_unprivileged" -> {
+                        if (this::fragmentA.isInitialized && this::fragmentB.isInitialized) {
+                            fragmentA.navigateTo(java8.nio.file.Paths.get("/"))
+                            fragmentB.navigateTo(java8.nio.file.Paths.get("/data"))
+                        }
+                    }
+                    "terminal" -> {
+                        startActivity(
+                            me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                                context = this,
+                                path = "/storage/emulated/0"
+                            )
+                        )
+                    }
                 }
             } catch (e: Throwable) {
                 android.util.Log.e("DemoReceiver", "Error executing demo action $action", e)

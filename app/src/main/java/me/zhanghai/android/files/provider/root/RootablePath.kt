@@ -15,7 +15,18 @@ interface RootablePath {
 }
 
 private val rootStrategy: RootStrategy
-    get() = if (isRunningAsRoot) RootStrategy.NEVER else Settings.ROOT_STRATEGY.valueCompat
+    get() {
+        if (isRunningAsRoot) return RootStrategy.NEVER
+        val requestRoot = Settings.REQUEST_ROOT_PERMISSION.valueCompat
+        val shizukuReady = ShizukuManager.ready()
+        if (!requestRoot && !shizukuReady) {
+            return RootStrategy.NEVER
+        }
+        if (!shizukuReady && LibSuFileServiceLauncher.isInFailureCooldown()) {
+            return RootStrategy.NEVER
+        }
+        return Settings.ROOT_STRATEGY.valueCompat
+    }
 
 @Throws(IOException::class)
 fun <T, R> callRootable(
@@ -38,6 +49,9 @@ fun <T, R> callRootable(
                 try {
                     localObject.block()
                 } catch (e: Exception) {
+                    if (isAttributeAccess && !RootFileService.isReady()) {
+                        throw e
+                    }
                     try {
                         rootObject.block()
                     } catch (e2: Exception) {
