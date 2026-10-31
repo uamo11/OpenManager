@@ -763,47 +763,6 @@ class FileListActivity : AppActivity() {
                     }
                     true
                 }
-                R.id.mt_menu_ftp -> {
-                    startActivity(Intent(this, FtpServerActivity::class.java))
-                    true
-                }
-                R.id.mt_menu_text_editor -> {
-                    startActivity(Intent(this, TextEditorActivity::class.java))
-                    true
-                }
-                R.id.mt_menu_installed_apps -> {
-                    startActivity(Intent(this, InstalledAppsActivity::class.java))
-                    true
-                }
-                R.id.mt_menu_apktool -> {
-                    ApktoolHelper.showApktoolHubDialog(this, activeFragment.currentPath)
-                    true
-                }
-                R.id.mt_menu_keystore_generator -> {
-                    activeFragment.showKeystoreGeneratorDialog()
-                    true
-                }
-                R.id.mt_menu_add_storage -> {
-                    startActivity(AddStorageDialogActivity::class.createIntent())
-                    true
-                }
-                R.id.mt_menu_recycle_bin -> {
-                    val recyclePath = Settings.recycleBinDirectory
-                    val recycleDir = java.io.File(recyclePath.toString())
-                    if (!recycleDir.exists()) {
-                        recycleDir.mkdirs()
-                    }
-                    activeFragment.navigateTo(recyclePath)
-                    true
-                }
-                R.id.mt_menu_preferences -> {
-                    startActivity(Intent(this, SettingsActivity::class.java))
-                    true
-                }
-                R.id.mt_menu_about -> {
-                    startActivity(Intent(this, AboutActivity::class.java))
-                    true
-                }
                 R.id.mt_menu_exit -> {
                     finishAffinity()
                     true
