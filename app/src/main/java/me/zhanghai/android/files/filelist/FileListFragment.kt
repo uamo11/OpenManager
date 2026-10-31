@@ -939,12 +939,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val isFailureWithoutFiles = stateful is Failure && !hasFiles
         val isAndroidDataOrObbCurrent = isAndroidDataOrObb(currentPath) && !currentPath.isDocumentPath
 
-        // MT Manager Style: Only show layoutError if it's Android/data or Android/obb needing SAF permission.
-        // For general protected folders (e.g. /data or unreadable directories), keep RecyclerView visible (empty list) and show a toast/status!
-        binding.layoutError.fadeToVisibilityUnsafe(isFailureWithoutFiles && isAndroidDataOrObbCurrent)
+        // Show error layout for any inaccessible directory without files (includes back and home buttons)
+        binding.layoutError.fadeToVisibilityUnsafe(isFailureWithoutFiles)
         if (isFailureWithoutFiles && !isAndroidDataOrObbCurrent) {
             val displayPathStr = currentPath.toDisplayPath(trailingSlash = true)
-            showToast("Acceso restringido: Permiso denegado en $displayPathStr")
             val deniedSubtitle = "0 Carpetas · 0 Archivos · Permiso denegado"
             binding.toolbar.subtitle = deniedSubtitle
             currentStatsSubtitle = deniedSubtitle
@@ -1115,8 +1113,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (files != null) {
             updateAdapterFileList()
         } else {
-            // This resets animation as well.
-            adapter.clear()
+            val isSearching = viewModel.searchState.isSearching
+            val hasParent = !isHomeOrRootPath(currentPath) && currentPath.parentOrArchiveParent != null
+            if (!isSearching && hasParent) {
+                adapter.replaceListAndIsSearching(listOf(createParentDirectoryItem(currentPath)), false)
+            } else {
+                adapter.clear()
+            }
         }
         if (stateful is Success) {
             viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }

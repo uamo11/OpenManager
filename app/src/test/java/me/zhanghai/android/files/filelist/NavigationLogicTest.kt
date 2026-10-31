@@ -78,31 +78,33 @@ class NavigationLogicTest {
         assertEquals("/", rootPath)
     }
 
-    enum class ToolbarNavMode {
+    enum class ToolbarNavIcon {
         CLEAR_SELECTION,
-        NAVIGATE_UP,
         OPEN_DRAWER
     }
 
-    private fun resolveToolbarNavMode(selectedCount: Int, canNavigateUp: Boolean): ToolbarNavMode {
-        return when {
-            selectedCount > 0 -> ToolbarNavMode.CLEAR_SELECTION
-            canNavigateUp -> ToolbarNavMode.NAVIGATE_UP
-            else -> ToolbarNavMode.OPEN_DRAWER
-        }
+    private fun resolveToolbarNavIcon(selectedCount: Int): ToolbarNavIcon {
+        return if (selectedCount > 0) ToolbarNavIcon.CLEAR_SELECTION else ToolbarNavIcon.OPEN_DRAWER
+    }
+
+    private fun isToolbarBackButtonVisible(selectedCount: Int, canNavigateUp: Boolean): Boolean {
+        return selectedCount == 0 && canNavigateUp
     }
 
     @Test
     fun testToolbarNavigationModeResolution() {
-        // When items are selected, back/navigation always clears selection
-        assertEquals(ToolbarNavMode.CLEAR_SELECTION, resolveToolbarNavMode(selectedCount = 1, canNavigateUp = true))
-        assertEquals(ToolbarNavMode.CLEAR_SELECTION, resolveToolbarNavMode(selectedCount = 5, canNavigateUp = false))
+        // When items are selected, navigation icon clears selection and back button is hidden
+        assertEquals(ToolbarNavIcon.CLEAR_SELECTION, resolveToolbarNavIcon(selectedCount = 1))
+        assertEquals(ToolbarNavIcon.CLEAR_SELECTION, resolveToolbarNavIcon(selectedCount = 5))
+        assertFalse(isToolbarBackButtonVisible(selectedCount = 1, canNavigateUp = true))
+        assertFalse(isToolbarBackButtonVisible(selectedCount = 5, canNavigateUp = false))
 
-        // When no items are selected and canNavigateUp is true, toolbar navigates up
-        assertEquals(ToolbarNavMode.NAVIGATE_UP, resolveToolbarNavMode(selectedCount = 0, canNavigateUp = true))
+        // When no items are selected, navigation icon ALWAYS opens drawer (hamburger menu)
+        assertEquals(ToolbarNavIcon.OPEN_DRAWER, resolveToolbarNavIcon(selectedCount = 0))
 
-        // When no items are selected and at root (cannot navigate up), toolbar opens drawer
-        assertEquals(ToolbarNavMode.OPEN_DRAWER, resolveToolbarNavMode(selectedCount = 0, canNavigateUp = false))
+        // Dedicated toolbar back button appears whenever canNavigateUp is true
+        assertTrue(isToolbarBackButtonVisible(selectedCount = 0, canNavigateUp = true))
+        assertFalse(isToolbarBackButtonVisible(selectedCount = 0, canNavigateUp = false))
     }
 
     @Test

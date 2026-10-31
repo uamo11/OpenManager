@@ -89,6 +89,7 @@ class FileListActivity : AppActivity() {
     private lateinit var fragmentB: FileListFragment
 
     private lateinit var mainToolbar: Toolbar
+    private lateinit var btnMainBack: ImageButton
     private lateinit var tvPathTitle: TextView
     private lateinit var tvStatsSubtitle: TextView
     private lateinit var btnMainMore: ImageButton
@@ -149,6 +150,11 @@ class FileListActivity : AppActivity() {
         mainToolbar = findViewById(R.id.mainToolbar)
         mainToolbar.setNavigationOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        btnMainBack = findViewById(R.id.btnMainBack)
+        btnMainBack.setOnClickListener {
+            activeFragment.navigateUp()
         }
 
         btnMainMore = findViewById(R.id.btnMainMore)
@@ -985,27 +991,23 @@ class FileListActivity : AppActivity() {
         val selectedCount = try { activeFragment.selectedFiles.size } catch (e: Exception) { 0 }
         val canNavigateUp = try { activeFragment.canNavigateUp } catch (e: Exception) { false }
 
-        when {
-            selectedCount > 0 -> {
-                mainToolbar.setNavigationIcon(R.drawable.close_icon_control_normal_24dp)
-                mainToolbar.navigationContentDescription = getString(android.R.string.cancel)
-                mainToolbar.setNavigationOnClickListener {
-                    activeFragment.clearSelectedFiles()
-                }
+        if (selectedCount > 0) {
+            mainToolbar.setNavigationIcon(R.drawable.close_icon_control_normal_24dp)
+            mainToolbar.navigationContentDescription = getString(android.R.string.cancel)
+            mainToolbar.setNavigationOnClickListener {
+                activeFragment.clearSelectedFiles()
             }
-            canNavigateUp -> {
-                mainToolbar.setNavigationIcon(R.drawable.arrow_back_icon_white_24dp)
-                mainToolbar.navigationContentDescription = getString(R.string.file_list_action_navigate_up)
-                mainToolbar.setNavigationOnClickListener {
-                    activeFragment.navigateUp()
-                }
+            if (::btnMainBack.isInitialized) {
+                btnMainBack.visibility = View.GONE
             }
-            else -> {
-                mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
-                mainToolbar.navigationContentDescription = getString(R.string.open_navigation_drawer)
-                mainToolbar.setNavigationOnClickListener {
-                    drawerLayout.openDrawer(GravityCompat.START)
-                }
+        } else {
+            mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
+            mainToolbar.navigationContentDescription = getString(R.string.open_navigation_drawer)
+            mainToolbar.setNavigationOnClickListener {
+                drawerLayout.openDrawer(GravityCompat.START)
+            }
+            if (::btnMainBack.isInitialized) {
+                btnMainBack.visibility = if (canNavigateUp) View.VISIBLE else View.GONE
             }
         }
 

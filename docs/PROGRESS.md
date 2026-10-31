@@ -294,3 +294,15 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - `AxmlDecoder.kt`: Envuelto el procesamiento de binario XML en bloque `try-catch`, retornando el contenido legible o crudo en caso de formatos no estándar o corruptos sin propagar excepciones fatales.
   - `ApktoolExecutionService.kt`: Descompilación tolerante a fallos para `AndroidManifest.xml` y recursos XML (`res/*.xml`); si algún XML específico no puede decodificarse a texto limpio, se escribe su contenido original directamente y se continúa con el resto de archivos del APK.
   - Diálogo de error enriquecido con botón interactivo "Copiar" al portapapeles y ubicación precisa de la excepción (`simpleName (clase.metodo:linea)`) para diagnóstico inmediato.
+
+37. **Conservación Permanente del Menú Hamburguesa (`☰`), Botón Atrás Superior Adyacente y Navegación Segura en Rutas sin Acceso (`FileListActivity.kt`, `FileListFragment.kt`, `file_list_activity.xml`, `NavigationLogicTest.kt`) (v1.9.20)**: ✅
+- **Icono del Menú Hamburguesa (`☰`) Permanente en la Barra Superior**:
+  - En `mainToolbar`, el icono de navegación principal ya no se reemplaza por una flecha al navegar por subdirectorios o almacenamiento. Se mantiene fijo como el icono de tres líneas (`☰`) para desplegar el Navigation Drawer en cualquier momento.
+  - Al seleccionar archivos (`selectedCount > 0`), el icono cambia limpiamente a `✕` para deseleccionar.
+- **Botón Atrás Superior Adyacente Dedicado (`btnMainBack` - `←`)**:
+  - Se añadió un botón independiente de retroceso inmediato inmediatamente al lado del menú hamburguesa en `mainToolbar`.
+  - Este botón se muestra dinámicamente (`VISIBLE`) solo cuando el panel activo tiene capacidad para subir de nivel (`canNavigateUp`), ofreciendo retroceso con un solo toque sin perder el acceso directo al menú lateral.
+- **Navegación de Retorno Garantizada en Rutas sin Acceso**:
+  - Al ingresar en directorios denegados o sin permisos (por ejemplo, `/root`, `/sys` o `/data` sin root), se restauró la visibilidad del diseño de error (`layoutError`), exponiendo claramente los botones "Volver" (`btnErrorBack`) e "Ir al inicio" (`btnErrorHome`).
+  - Cuando una carpeta inaccesible tiene directorio padre (`hasParent`), se inyecta automáticamente el elemento `..` en la lista para que el usuario pueda retroceder inmediatamente pulsando sobre la fila `..`.
+
