@@ -364,6 +364,40 @@ class FileListActivity : AppActivity() {
                     "add_storage" -> startActivity(Intent(this, me.zhanghai.android.files.storage.AddStorageDialogActivity::class.java))
                     "ftp" -> startActivity(Intent(this, me.zhanghai.android.files.ftpserver.FtpServerActivity::class.java))
                     "about" -> startActivity(Intent(this, me.zhanghai.android.files.about.AboutActivity::class.java))
+                    "script_dialog" -> {
+                        val sampleScript = java.io.File(filesDir, "install_module.sh")
+                        sampleScript.writeText("#!/system/bin/sh\n# Script de prueba OpenManager\necho \"Ejecutando script con permisos 777...\"\nid\n")
+                        sampleScript.setExecutable(true, false)
+                        val scriptPath = java8.nio.file.Paths.get(sampleScript.absolutePath)
+                        me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.applyPermissions(
+                            context = this,
+                            path = scriptPath,
+                            newMode = me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.modeFromInt(0b111_111_111)
+                        )
+                        ScriptRunnerHelper.showScriptActionDialog(this, scriptPath)
+                    }
+                    "permissions_dialog" -> {
+                        val sampleScript = java.io.File(filesDir, "install_module.sh")
+                        if (!sampleScript.exists()) {
+                            sampleScript.writeText("#!/system/bin/sh\necho \"Hello\"\n")
+                        }
+                        val scriptPath = java8.nio.file.Paths.get(sampleScript.absolutePath)
+                        me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.showPermissionsDialog(
+                            context = this,
+                            path = scriptPath
+                        )
+                    }
+                    "file_properties" -> {
+                        if (this::fragmentA.isInitialized) {
+                            val sampleFile = java.io.File(filesDir, "sample_test.kt")
+                            if (!sampleFile.exists()) {
+                                sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
+                            }
+                            val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
+                            val fileItem = me.zhanghai.android.files.file.loadFileItem(samplePath)
+                            activeFragment.showPropertiesDialog(fileItem)
+                        }
+                    }
                 }
             } catch (e: Throwable) {
                 android.util.Log.e("DemoReceiver", "Error executing demo action $action", e)

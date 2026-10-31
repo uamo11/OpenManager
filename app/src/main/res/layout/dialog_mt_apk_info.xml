@@ -112,6 +112,24 @@
                 android:textSize="13sp" />
         </TableRow>
 
+        <!-- Permissions (Interactive MT Manager style) -->
+        <TableRow
+            android:id="@+id/rowApkPermissions"
+            android:paddingVertical="3dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
+            <TextView
+                android:text="@string/file_properties_permission"
+                android:textColor="#9E9E9E"
+                android:textSize="13sp" />
+            <TextView
+                android:id="@+id/tvApkPermissions"
+                android:textColor="#64B5F6"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+        </TableRow>
+
         <!-- Signature -->
         <TableRow android:paddingVertical="3dp">
             <TextView

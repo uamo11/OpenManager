@@ -306,3 +306,15 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Al ingresar en directorios denegados o sin permisos (por ejemplo, `/root`, `/sys` o `/data` sin root), se restauró la visibilidad del diseño de error (`layoutError`), exponiendo claramente los botones "Volver" (`btnErrorBack`) e "Ir al inicio" (`btnErrorHome`).
   - Cuando una carpeta inaccesible tiene directorio padre (`hasParent`), se inyecta automáticamente el elemento `..` en la lista para que el usuario pueda retroceder inmediatamente pulsando sobre la fila `..`.
 
+38. **UI de Propiedades Universal Estilo APK, Diálogo de Scripts (`.sh`) con Info y Permisos Interactivos (`777`) y Mejora de Permisos Estilo MT Manager (`FilePropertiesDialogFragment.kt`, `ScriptRunnerHelper.kt`, `MtPermissionsHelper.kt`, `SetModeDialogFragment.kt`, `dialog_mt_file_properties.xml`, `set_mode_dialog.xml`) (v1.9.21)**: ✅
+- **Eliminación de Campos de Texto ("UI para escribir") y Adopción Universal del Estilo APK**:
+  - Reemplazada la antigua vista de pestañas basada en `ReadOnlyTextInputLayout` / `ReadOnlyTextInputEditText` por una tarjeta oscura unificada estilo MT Manager (`dialog_mt_file_properties.xml`) idéntica a la ventana de información de APKs.
+  - Cualquier archivo o carpeta muestra cabecera con icono, título, subtítulo, tabla limpia de dos columnas (con toque para copiar), cálculo de hashes (`CRC32`, `MD5`, `SHA-1`, `SHA-256`) y barra inferior de acciones rápidas.
+- **Diálogo de Scripts Ejecutables (`.sh`) con Información Básica + Permisos `777` Arriba de Editar/Ejecutar**:
+  - Al tocar cualquier archivo `.sh` o ejecutable (`ScriptRunnerHelper.showScriptActionDialog`), se muestra la tarjeta estilo APK con Ruta, Tamaño, Fecha de modificación, Intérprete/Shebang, Formato de línea (`LF` / conversión interactiva desde `CRLF`) y la fila interactiva **Permisos: `777 (rwxrwxrwx) ✎`** arriba de los botones `PREFERENCIAS`, `HASH`, `EDITAR` y `EJECUTAR`.
+- **UI de Permisos Estilo MT Manager Mejorada (Cuadros 3x3 + Número Octal + Presets)**:
+  - Al tocar la fila de permisos (`Permisos: 777 (rwxrwxrwx)`) desde un script, APK o propiedades de cualquier archivo/carpeta, se abre el diálogo de permisos de MT Manager (`MtPermissionsHelper.showPermissionsDialog`).
+  - Solucionado el bug de sobrescritura al escribir dígitos octales (`777`) en `octalEdit`, añadido filtrado octal estricto (`digits="01234567"`), selección automática al enfocar y botones rápidos de presets (`777`, `755`, `644`, `600`).
+  - Aplicación híbrida (`Os.chmod`, `File.setExecutable`, `FileJobService.setMode`, shell root `chmod` y persistencia en rutas FUSE) con actualización instantánea en pantalla.
+
+

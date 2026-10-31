@@ -72,12 +72,21 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
                 lineEndingListener
             )
 
-            // POSIX permissions with execute toggle
+            // POSIX permissions with interactive MT Manager permissions dialog
+            val permInfo = me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.getPermissions(
+                requireContext(),
+                args.path
+            )
             addItemView(
                 R.string.file_properties_script_permissions,
-                scriptInfo.posixPermissions ?: getString(R.string.file_properties_script_permissions_unknown)
+                "${permInfo.displayString}  ✎"
             ) {
-                toggleExecutePermission()
+                me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.showPermissionsDialog(
+                    context = requireContext(),
+                    path = args.path
+                ) {
+                    viewModel.reload()
+                }
             }
 
             // Code statistics

@@ -115,6 +115,18 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG apktool_hub" \
     "11_apktool_hub.png" "Apktool Hub"
 
+# 12. Script Action Dialog (APK-style Script Info + Interactive Permissions 777)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG script_dialog" \
+    "12_script_action_dialog.png" "Script Action Dialog"
+
+# 13. MT Manager Permissions Dialog (Checkboxes + Octal 777 + Presets)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG permissions_dialog" \
+    "13_mt_permissions_dialog.png" "MT Manager Permissions Dialog"
+
+# 14. Universal APK-style File Properties Dialog
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG file_properties" \
+    "14_file_properties_dialog.png" "Universal File Properties Dialog"
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt

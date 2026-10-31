@@ -101,6 +101,24 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         tvSize.text = sizeStr
         tvProtection.text = "No Detected"
 
+        val rowPermissions = view.findViewById<TableRow>(R.id.rowApkPermissions)
+        val tvPermissions = view.findViewById<TextView>(R.id.tvApkPermissions)
+        val initialPerm = me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.getPermissions(
+            context, file.path, file
+        )
+        tvPermissions?.text = "${initialPerm.displayString}  ✎"
+        val openPermDialog = View.OnClickListener {
+            me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper.showPermissionsDialog(
+                context = context,
+                path = file.path,
+                fileItem = file
+            ) { updated ->
+                tvPermissions?.text = "${updated.displayString}  ✎"
+            }
+        }
+        rowPermissions?.setOnClickListener(openPermDialog)
+        tvPermissions?.setOnClickListener(openPermDialog)
+
         fun copyToClipboard(label: String, text: CharSequence?) {
             val textStr = text?.toString() ?: return
             if (textStr.isNotEmpty() && textStr != "-") {

@@ -17,11 +17,8 @@ import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.SetModeDialogBinding
 import me.zhanghai.android.files.file.FileItem
-import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
-import me.zhanghai.android.files.provider.common.PosixFileMode
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
-import me.zhanghai.android.files.provider.common.toInt
 import me.zhanghai.android.files.provider.common.toModeString
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
@@ -38,6 +35,7 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
 
     private lateinit var binding: SetModeDialogBinding
     private var isUpdatingUi = false
+    private var isTypingOctal = false
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
         MaterialAlertDialogBuilder(requireContext(), theme)
@@ -89,11 +87,28 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
 
         binding.octalEdit.doAfterTextChanged { text ->
             if (isUpdatingUi) return@doAfterTextChanged
-            val str = text?.toString()?.trim() ?: ""
-            val octal = str.toIntOrNull(8)
+            val octal = MtPermissionsHelper.parseOctalInput(text?.toString() ?: "")
             if (octal != null) {
-                viewModel.setFromOctal(octal)
+                isTypingOctal = true
+                try {
+                    viewModel.setMode(MtPermissionsHelper.modeFromInt(octal))
+                } finally {
+                    isTypingOctal = false
+                }
             }
+        }
+
+        binding.btnPreset777.setOnClickListener {
+            viewModel.setMode(MtPermissionsHelper.modeFromInt(0b111_111_111))
+        }
+        binding.btnPreset755.setOnClickListener {
+            viewModel.setMode(MtPermissionsHelper.modeFromInt(0b111_101_101))
+        }
+        binding.btnPreset644.setOnClickListener {
+            viewModel.setMode(MtPermissionsHelper.modeFromInt(0b110_100_100))
+        }
+        binding.btnPreset600.setOnClickListener {
+            viewModel.setMode(MtPermissionsHelper.modeFromInt(0b110_000_000))
         }
     }
 
@@ -137,13 +152,12 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
 
             binding.modeStringText.text = mode.toModeString()
 
-            val modeInt = mode.toInt()
-            val octalStr = if (modeInt >= 512) String.format("%04o", modeInt) else String.format("%03o", modeInt)
-            if (binding.octalEdit.text.toString() != octalStr) {
-                val selection = binding.octalEdit.selectionStart
-                binding.octalEdit.setText(octalStr)
-                if (binding.octalEdit.hasFocus() && selection <= octalStr.length) {
-                    binding.octalEdit.setSelection(selection)
+            if (!isTypingOctal) {
+                val modeInt = MtPermissionsHelper.modeToInt(mode)
+                val octalStr = MtPermissionsHelper.formatOctal(modeInt)
+                if (binding.octalEdit.text.toString() != octalStr) {
+                    binding.octalEdit.setText(octalStr)
+                    binding.octalEdit.setSelection(octalStr.length)
                 }
             }
         } finally {
@@ -152,21 +166,31 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
     }
 
     private fun setMode() {
-        val mode = viewModel.mode
-        val recursive = binding.recursiveCheck.isChecked
-        if (!recursive) {
-            if (mode == argsMode) {
-                return
-            }
+        val typedOctal = MtPermissionsHelper.parseOctalInput(binding.octalEdit.text?.toString() ?: "")
+        val mode = if (typedOctal != null) {
+            MtPermissionsHelper.modeFromInt(typedOctal)
+        } else {
+            viewModel.mode
         }
+        val recursive = binding.recursiveCheck.isChecked
         val uppercaseX = binding.uppercaseXCheck.isChecked
-        FileJobService.setMode(args.file.path, mode, recursive, uppercaseX, requireContext())
+        MtPermissionsHelper.applyPermissions(
+            context = requireContext(),
+            path = args.file.path,
+            fileItem = args.file,
+            newMode = mode,
+            recursive = recursive,
+            uppercaseX = uppercaseX
+        )
     }
 
     private val argsMode: Set<PosixFileModeBit>
         get() {
-            val attributes = args.file.attributes as PosixFileAttributes
-            return attributes.mode() ?: emptySet()
+            return try {
+                MtPermissionsHelper.getPermissions(context, args.file.path, args.file).modeBits
+            } catch (_: Throwable) {
+                (args.file.attributes as? PosixFileAttributes)?.mode() ?: emptySet()
+            }
         }
 
     companion object {
