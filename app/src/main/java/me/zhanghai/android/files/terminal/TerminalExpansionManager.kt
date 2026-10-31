@@ -197,7 +197,7 @@ object TerminalExpansionManager {
             }
         }
 
-        // Standard Android shell fallback
+        // Standard Android shell fallback (mksh)
         val env = arrayOf(
             "PATH=$EXTENDED_SYSTEM_PATH",
             "TERM=xterm-256color",
@@ -207,7 +207,7 @@ object TerminalExpansionManager {
             "TMPDIR=${context.cacheDir.absolutePath}",
             "HISTFILE=$histFile",
             "ENV=${initScript.absolutePath}",
-            "PS1=\\[\\e[1;32m\\]➜\\[\\e[m\\] \\[\\e[1;36m\\]\\w\\[\\e[m\\] \\$ "
+            "PS1=➜ \${PWD##*/} \$ "
         )
         val args = if (shellCmd != null) {
             arrayOf("sh", "-c", shellCmd)
