@@ -1328,6 +1328,7 @@ class FileListActivity : AppActivity() {
                 tvPathTitle.text = pathStr
                 val disk = getDiskStats()
                 tvStatsSubtitle.text = if (disk.isNotEmpty()) "$stats  $disk" else stats
+                updateMainToolbarNavigationIcon()
             }
         }
         fragmentB.onPathOrStatsChanged = { path, stats ->
@@ -1336,6 +1337,7 @@ class FileListActivity : AppActivity() {
                 tvPathTitle.text = pathStr
                 val disk = getDiskStats()
                 tvStatsSubtitle.text = if (disk.isNotEmpty()) "$stats  $disk" else stats
+                updateMainToolbarNavigationIcon()
             }
         }
 

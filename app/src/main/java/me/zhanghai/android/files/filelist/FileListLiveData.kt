@@ -81,7 +81,46 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     }
                     Success(fallbackList as List<FileItem>)
                 } else {
-                    Failure(value?.value, e)
+                    // Tertiary fallback: Try unprivileged shell `ls -1` (works for / and readable system directories without root)
+                    val shellEntries = try {
+                        val process = ProcessBuilder("ls", "-1", path.toString())
+                            .redirectErrorStream(true)
+                            .start()
+                        val completed = process.waitFor(800, java.util.concurrent.TimeUnit.MILLISECONDS)
+                        if (completed && process.exitValue() == 0) {
+                            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
+                            val names = mutableListOf<String>()
+                            var line: String?
+                            while (reader.readLine().also { line = it } != null) {
+                                val trimmed = line?.trim()
+                                if (!trimmed.isNullOrEmpty() && trimmed != "." && trimmed != "..") {
+                                    names.add(trimmed)
+                                }
+                            }
+                            names
+                        } else {
+                            process.destroyForcibly()
+                            null
+                        }
+                    } catch (_: Throwable) {
+                        null
+                    }
+
+                    if (shellEntries != null && shellEntries.isNotEmpty()) {
+                        for (name in shellEntries) {
+                            val file = java.io.File(path.toString(), name)
+                            val childPath: Path = (path as? LinuxPath)?.resolve(name.toByteString())
+                                ?: Paths.get(file.absolutePath)
+                            try {
+                                fallbackList.add(childPath.loadFileItem())
+                            } catch (_: Throwable) {
+                                childPath.createFallbackFileItem(file)?.let { fallbackList.add(it) }
+                            }
+                        }
+                        Success(fallbackList as List<FileItem>)
+                    } else {
+                        Failure(value?.value, e)
+                    }
                 }
             }
             postValue(value)

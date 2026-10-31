@@ -32,6 +32,8 @@ import me.zhanghai.android.files.provider.common.newOutputStream
 import me.zhanghai.android.files.viewer.dex.JadxDecompilerEngine
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -175,20 +177,20 @@ class ApktoolExecutionService : Service() {
     }
 
     private fun executeDecompileApk(inputApkPathStr: String, outputDirStr: String, packageName: String) {
-        val apkPath = Paths.get(inputApkPathStr)
-        val projectDir = Paths.get(outputDirStr)
-        val projectFile = projectDir.toFile()
+        val apkFile = File(inputApkPathStr)
+        val projectFile = File(outputDirStr)
 
         if (!projectFile.exists()) {
             projectFile.mkdirs()
         }
+        val canonicalProjectDir = projectFile.canonicalPath + File.separator
 
         updateNotificationAndState("Contando archivos del APK...", "", -1, true)
 
         // Count total entries for progress calculation
         var totalEntries = 0
         try {
-            apkPath.newInputStream().use { inStream ->
+            FileInputStream(apkFile).use { inStream ->
                 ZipInputStream(inStream).use { zipIn ->
                     while (zipIn.nextEntry != null) {
                         totalEntries++
@@ -202,7 +204,7 @@ class ApktoolExecutionService : Service() {
         var currentEntry = 0
         val buffer = ByteArray(65536)
 
-        apkPath.newInputStream().use { inStream ->
+        FileInputStream(apkFile).use { inStream ->
             ZipInputStream(inStream).use { zipIn ->
                 var entry = zipIn.nextEntry
                 while (entry != null) {
@@ -216,18 +218,14 @@ class ApktoolExecutionService : Service() {
                     }
 
                     if (!entry.isDirectory && !name.startsWith("META-INF/")) {
-                        val targetFile = projectDir.resolve(name).normalize()
-                        val normalizedProjectDir = projectDir.normalize()
-                        if (!targetFile.startsWith(normalizedProjectDir)) {
+                        val targetFile = File(projectFile, name).canonicalFile
+                        if (!targetFile.canonicalPath.startsWith(canonicalProjectDir)) {
                             // Defensive protection: Skip entry attempting Zip Slip path traversal
                             zipIn.closeEntry()
                             entry = zipIn.nextEntry
                             continue
                         }
-                        val parent = targetFile.parent
-                        if (parent != null && !Files.exists(parent)) {
-                            Files.createDirectories(parent)
-                        }
+                        targetFile.parentFile?.mkdirs()
 
                         val baos = ByteArrayOutputStream()
                         var bytesRead: Int
@@ -239,18 +237,19 @@ class ApktoolExecutionService : Service() {
 
                         if (name == "AndroidManifest.xml" && AxmlDecoder.isAxml(entryBytes)) {
                             val decoded = AxmlDecoder.decode(entryBytes)
-                            targetFile.newOutputStream().use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                            val origFile = projectDir.resolve("AndroidManifest.xml.orig")
-                            origFile.newOutputStream().use { it.write(entryBytes) }
+                            FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
+                            val origFile = File(projectFile, "AndroidManifest.xml.orig")
+                            FileOutputStream(origFile).use { it.write(entryBytes) }
                         } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
                             val decoded = AxmlDecoder.decode(entryBytes)
-                            targetFile.newOutputStream().use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                            val origFile = projectDir.resolve("$name.orig").normalize()
-                            if (origFile.startsWith(normalizedProjectDir)) {
-                                origFile.newOutputStream().use { it.write(entryBytes) }
+                            FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
+                            val origFile = File(projectFile, "$name.orig").canonicalFile
+                            if (origFile.canonicalPath.startsWith(canonicalProjectDir)) {
+                                origFile.parentFile?.mkdirs()
+                                FileOutputStream(origFile).use { it.write(entryBytes) }
                             }
                         } else {
-                            targetFile.newOutputStream().use { it.write(entryBytes) }
+                            FileOutputStream(targetFile).use { it.write(entryBytes) }
                         }
                     }
                     zipIn.closeEntry()
@@ -264,7 +263,7 @@ class ApktoolExecutionService : Service() {
         // Generate apktool.yml metadata
         val yml = """
             version: 2.9.3
-            apkFileName: ${apkPath.fileName}
+            apkFileName: ${apkFile.name}
             packageName: $packageName
             isFrameworkApk: false
             packageInfo:
@@ -281,8 +280,8 @@ class ApktoolExecutionService : Service() {
             - ogg
             - mp3
         """.trimIndent()
-        val ymlFile = projectDir.resolve("apktool.yml")
-        ymlFile.newOutputStream().use { it.write(yml.toByteArray(Charsets.UTF_8)) }
+        val ymlFile = File(projectFile, "apktool.yml")
+        FileOutputStream(ymlFile).use { it.write(yml.toByteArray(Charsets.UTF_8)) }
     }
 
     private fun executeDecompileJava(inputApkPathStr: String, outputDirStr: String, packageName: String) {
@@ -311,25 +310,23 @@ class ApktoolExecutionService : Service() {
     }
 
     private fun executeRecompileApk(projectDirStr: String, outputApkPathStr: String, packageName: String) {
-        val projectDir = Paths.get(projectDirStr)
-        val outApkPath = Paths.get(outputApkPathStr)
-        val outApkFile = outApkPath.toFile()
+        val projectDir = File(projectDirStr)
+        val outApkFile = File(outputApkPathStr)
         outApkFile.parentFile?.mkdirs()
 
         updateNotificationAndState("Recompilando proyecto APK...", "", -1, true)
 
         // Count files in projectDir for progress bar
         var totalFiles = 0
-        fun countFiles(dir: Path) {
-            Files.newDirectoryStream(dir).use { stream ->
-                for (path in stream) {
-                    if (Files.isDirectory(path)) {
-                        countFiles(path)
-                    } else {
-                        val name = path.fileName.toString()
-                        if (name != "apktool.yml" && !name.endsWith(".orig")) {
-                            totalFiles++
-                        }
+        fun countFiles(dir: File) {
+            val list = dir.listFiles() ?: return
+            for (f in list) {
+                if (f.isDirectory) {
+                    countFiles(f)
+                } else {
+                    val name = f.name
+                    if (name != "apktool.yml" && !name.endsWith(".orig")) {
+                        totalFiles++
                     }
                 }
             }
@@ -337,77 +334,77 @@ class ApktoolExecutionService : Service() {
         try { countFiles(projectDir) } catch (ignored: Throwable) {}
 
         var currentFile = 0
-        outApkPath.newOutputStream().use { outStream ->
+        val baseCanonical = projectDir.canonicalPath
+        FileOutputStream(outApkFile).use { outStream ->
             ZipOutputStream(outStream).use { zipOut ->
-                fun addDirectoryToZip(currentDir: Path, basePath: Path) {
-                    Files.newDirectoryStream(currentDir).use { stream ->
-                        for (path in stream) {
-                            if (isCancelled.get()) throw InterruptedException()
+                fun addDirectoryToZip(currentDir: File) {
+                    val list = currentDir.listFiles() ?: return
+                    for (file in list) {
+                        if (isCancelled.get()) throw InterruptedException()
 
-                            val relPath = basePath.relativize(path).toString().replace('\\', '/')
-                            if (Files.isDirectory(path)) {
-                                addDirectoryToZip(path, basePath)
-                            } else {
-                                if (relPath == "apktool.yml" || relPath.endsWith(".orig")) {
-                                    continue
-                                }
-
-                                currentFile++
-                                val pct = if (totalFiles > 0) (currentFile * 100) / totalFiles else -1
-                                if (currentFile % 15 == 0 || currentFile == totalFiles) {
-                                    updateNotificationAndState(
-                                        "Empaquetando APK ($pct%)",
-                                        relPath,
-                                        pct,
-                                        pct < 0
-                                    )
-                                }
-
-                                var dataBytes: ByteArray
-                                val origFile = currentDir.resolve("${path.fileName}.orig")
-                                if (Files.exists(origFile)) {
-                                    val currentText = path.newInputStream().use { it.readBytes().toString(Charsets.UTF_8) }
-                                    val origBytes = origFile.newInputStream().use { it.readBytes() }
-                                    val origText = if (AxmlDecoder.isAxml(origBytes)) {
-                                        AxmlDecoder.decode(origBytes)
-                                    } else {
-                                        origBytes.toString(Charsets.UTF_8)
-                                    }
-                                    dataBytes = if (currentText == origText) {
-                                        origBytes
-                                    } else {
-                                        path.newInputStream().use { it.readBytes() }
-                                    }
-                                } else {
-                                    dataBytes = path.newInputStream().use { it.readBytes() }
-                                }
-
-                                val entry = ZipEntry(relPath)
-                                val lower = relPath.lowercase()
-                                val isStored = lower.endsWith(".arsc") || lower.endsWith(".png") ||
-                                    lower.endsWith(".jpg") || lower.endsWith(".webp") ||
-                                    lower.endsWith(".ogg") || lower.endsWith(".mp3")
-
-                                if (isStored) {
-                                    entry.method = ZipEntry.STORED
-                                    entry.size = dataBytes.size.toLong()
-                                    entry.compressedSize = dataBytes.size.toLong()
-                                    val crc = CRC32()
-                                    crc.update(dataBytes)
-                                    entry.crc = crc.value
-                                } else {
-                                    entry.method = ZipEntry.DEFLATED
-                                }
-
-                                zipOut.putNextEntry(entry)
-                                zipOut.write(dataBytes)
-                                zipOut.closeEntry()
+                        val relPath = file.canonicalPath.removePrefix(baseCanonical).trimStart('/', '\\').replace('\\', '/')
+                        if (file.isDirectory) {
+                            addDirectoryToZip(file)
+                        } else {
+                            if (relPath == "apktool.yml" || relPath.endsWith(".orig")) {
+                                continue
                             }
+
+                            currentFile++
+                            val pct = if (totalFiles > 0) (currentFile * 100) / totalFiles else -1
+                            if (currentFile % 15 == 0 || currentFile == totalFiles) {
+                                updateNotificationAndState(
+                                    "Empaquetando APK ($pct%)",
+                                    relPath,
+                                    pct,
+                                    pct < 0
+                                )
+                            }
+
+                            var dataBytes: ByteArray
+                            val origFile = File(currentDir, "${file.name}.orig")
+                            if (origFile.exists()) {
+                                val currentText = file.readText(Charsets.UTF_8)
+                                val origBytes = origFile.readBytes()
+                                val origText = if (AxmlDecoder.isAxml(origBytes)) {
+                                    AxmlDecoder.decode(origBytes)
+                                } else {
+                                    origBytes.toString(Charsets.UTF_8)
+                                }
+                                dataBytes = if (currentText == origText) {
+                                    origBytes
+                                } else {
+                                    file.readBytes()
+                                }
+                            } else {
+                                dataBytes = file.readBytes()
+                            }
+
+                            val entry = ZipEntry(relPath)
+                            val lower = relPath.lowercase()
+                            val isStored = lower.endsWith(".arsc") || lower.endsWith(".png") ||
+                                lower.endsWith(".jpg") || lower.endsWith(".webp") ||
+                                lower.endsWith(".ogg") || lower.endsWith(".mp3")
+
+                            if (isStored) {
+                                entry.method = ZipEntry.STORED
+                                entry.size = dataBytes.size.toLong()
+                                entry.compressedSize = dataBytes.size.toLong()
+                                val crc = CRC32()
+                                crc.update(dataBytes)
+                                entry.crc = crc.value
+                            } else {
+                                entry.method = ZipEntry.DEFLATED
+                            }
+
+                            zipOut.putNextEntry(entry)
+                            zipOut.write(dataBytes)
+                            zipOut.closeEntry()
                         }
                     }
                 }
 
-                addDirectoryToZip(projectDir, projectDir)
+                addDirectoryToZip(projectDir)
                 zipOut.finish()
             }
         }

@@ -14,7 +14,7 @@ class NavigationLogicTest {
 
     private fun isHomeOrRootPath(pathStr: String): Boolean {
         val s = pathStr.trimEnd('/')
-        return s == "/storage/emulated/0" || s == "/sdcard" || s.isEmpty() || s == "/"
+        return s.isEmpty() || s == "/"
     }
 
     private fun canNavigateUp(pathStr: String, hasArchiveParent: Boolean = false): Boolean {
@@ -30,10 +30,10 @@ class NavigationLogicTest {
 
     @Test
     fun testHomePathsIdentifiedCorrectly() {
-        assertTrue(isHomeOrRootPath("/storage/emulated/0"))
-        assertTrue(isHomeOrRootPath("/storage/emulated/0/"))
-        assertTrue(isHomeOrRootPath("/sdcard"))
-        assertTrue(isHomeOrRootPath("/sdcard/"))
+        assertFalse(isHomeOrRootPath("/storage/emulated/0"))
+        assertFalse(isHomeOrRootPath("/storage/emulated/0/"))
+        assertFalse(isHomeOrRootPath("/sdcard"))
+        assertFalse(isHomeOrRootPath("/sdcard/"))
         assertTrue(isHomeOrRootPath("/"))
         assertTrue(isHomeOrRootPath(""))
     }
@@ -49,9 +49,9 @@ class NavigationLogicTest {
     }
 
     @Test
-    fun testHomePathCannotNavigateUp() {
-        assertFalse(canNavigateUp("/storage/emulated/0"))
-        assertFalse(canNavigateUp("/storage/emulated/0/"))
+    fun testHomePathCanNavigateUpToStorageAndRoot() {
+        assertTrue(canNavigateUp("/storage/emulated/0"))
+        assertTrue(canNavigateUp("/storage/emulated/0/"))
         assertFalse(canNavigateUp("/"))
     }
 

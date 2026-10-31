@@ -271,3 +271,17 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - `SuperuserDetector.kt`: `testRootExecutionSafe()` evalúa en tiempo real `su -c id` asegurando que no se usen cachés obsoletos en memoria y cerrando instancias caducadas con `Shell.getCachedShell()?.close()`.
 - **Desempaquetado Limpio de Excepciones en Apktool (`ApktoolExecutionService.kt`)**:
   - Incorporado desempaquetado de causa raíz (`generateSequence(t) { it.cause }.lastOrNull()`) para mostrar mensajes claros y descriptivos en lugar del nombre genérico de clase `ExceptionInInitializerError`.
+
+35. **Navegación Fluida hacia Arriba, Acción de Ejecutar Scripts (.sh), Listado sin Root en `/` y Blindaje I/O Directo en Apktool (`FileListFragment.kt`, `FileListActivity.kt`, `FileListLiveData.kt`, `ApktoolExecutionService.kt`, `NavigationLogicTest.kt`) (v1.9.18)**: ✅
+- **Solución a `Apktool error: UnsupportedOperationException`**:
+  - Reemplazado el uso de `Path.newOutputStream()` y proveedores de sistemas de archivos virtuales por I/O directo nativo `java.io.File`, `FileInputStream` y `FileOutputStream` en `executeDecompileApk` y `executeRecompileApk`.
+  - Inmune al 100% frente a restricciones de opciones de apertura de proveedores virtuales y a ataques Zip Slip con canonical path.
+- **Botón Atrás y Navegación Dinámica en `/storage/emulated/0` y Visor de APKs**:
+  - Sincronización inmediata de `updateMainToolbarNavigationIcon()` al cambiar de ruta (`onPathOrStatsChanged`) para que el botón de retroceso (`<-`) aparezca de inmediato al entrar en un APK (`archive:/...`) o subdirectorio.
+  - Corrección de `canNavigateUp` y `hasParent`: `/storage/emulated/0` ahora muestra el botón atrás y la carpeta `..` para subir a `/storage/emulated`, `/storage` y `/` al igual que MT Manager. Únicamente la raíz absoluta `/` desactiva la navegación hacia arriba.
+- **Acción Directa de Ejecución para Scripts `.sh`**:
+  - En `FileListFragment.kt:openFile()`, se priorizó `ScriptRunnerHelper.isExecutableOrScript(file)` sobre la detección genérica de texto.
+  - Al pulsar cualquier archivo `.sh`, `.bash` o script ejecutable, ahora se despliega inmediatamente el diálogo de acción con opciones para "Ejecutar en Terminal", "Ejecutar con Root", "Editar código" y "Propiedades".
+- **Listado de Directorios del Sistema en `/` sin Root (Estilo MT Manager)**:
+  - En `FileListLiveData.kt`, se implementó un fallback terciario con shell sin privilegios (`ls -1 /`) cuando `newDirectoryStream` y `File.listFiles()` no tienen acceso Java directo.
+  - Permite visualizar las carpetas y enlaces simbólicos de `/` (`system`, `vendor`, `apex`, `sdcard`, `etc`, etc.) en modo lectura segura, bloqueando únicamente modificaciones no autorizadas.

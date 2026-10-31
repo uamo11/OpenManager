@@ -1190,7 +1190,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     fun isHomeOrRootPath(path: Path): Boolean {
         val s = path.toString().trimEnd('/')
-        return s == "/storage/emulated/0" || s == "/sdcard" || s.isEmpty() || s == "/"
+        return s.isEmpty() || s == "/"
     }
 
     fun navigateToHome() {
@@ -1203,7 +1203,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         collapseSearchView()
         if (!viewModel.navigateUp()) {
             val parent = currentPath.parentOrArchiveParent
-            if (parent != null && !isHomeOrRootPath(parent)) {
+            if (parent != null) {
                 navigateTo(parent)
             } else {
                 navigateToHome()
@@ -1213,13 +1213,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun goBackSafely() {
         collapseSearchView()
-        if (isHomeOrRootPath(currentPath)) {
-            navigateToHome()
+        val s = currentPath.toString().trimEnd('/')
+        if (s.isEmpty() || s == "/") {
             return
         }
         if (!viewModel.navigateUp()) {
             val parent = currentPath.parentOrArchiveParent
-            if (parent != null && !isHomeOrRootPath(parent)) {
+            if (parent != null) {
                 navigateTo(parent)
             } else {
                 navigateToHome()
@@ -1987,6 +1987,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             navigateTo(file.listablePath)
             return
         }
+        if (ScriptRunnerHelper.isExecutableOrScript(file)) {
+            ScriptRunnerHelper.showScriptActionDialog(requireActivity(), file)
+            return
+        }
         val fileExtension = file.extension.lowercase()
         val isTxtOrTextDoc = fileExtension in setOf("txt", "text", "log", "md", "markdown", "json", "xml", "html", "htm", "css", "csv", "properties", "ini", "conf", "yaml", "yml", "toml", "java", "kt", "smali", "c", "cpp", "h") ||
             fileName.endsWith(".txt", ignoreCase = true) || fileName.endsWith(".log", ignoreCase = true)
@@ -1995,10 +1999,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 extraPath = file.path
             }
             startActivity(intent)
-            return
-        }
-        if (ScriptRunnerHelper.isExecutableOrScript(file)) {
-            ScriptRunnerHelper.showScriptActionDialog(requireActivity(), file)
             return
         }
         val fontExtensions = setOf("ttf", "otf", "woff", "woff2", "ttc")
