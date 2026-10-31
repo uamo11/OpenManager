@@ -385,7 +385,7 @@ object MtPermissionsHelper {
 
         val fileName = try { path.fileName?.toString() ?: path.toString() } catch (_: Throwable) { "" }
 
-        MaterialAlertDialogBuilder(context)
+        val dialog = MaterialAlertDialogBuilder(context)
             .setTitle("${context.getString(R.string.file_properties_permission_set_mode_title)} · $fileName")
             .setView(binding.root)
             .setPositiveButton(android.R.string.ok) { _, _ ->
@@ -407,7 +407,19 @@ object MtPermissionsHelper {
                 )
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
+            try {
+                val titleId = context.resources.getIdentifier("alertTitle", "id", "android")
+                val titleIdCompat = context.resources.getIdentifier("alertTitle", "id", context.packageName)
+                (dialog.findViewById<TextView>(titleId) ?: dialog.findViewById<TextView>(titleIdCompat))?.setTextColor(Color.WHITE)
+            } catch (_: Throwable) {}
+            dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)?.setTextColor(Color.parseColor("#64B5F6"))
+            dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)?.setTextColor(Color.parseColor("#BDBDBD"))
+        }
+        dialog.show()
     }
 
     fun applyPermissions(

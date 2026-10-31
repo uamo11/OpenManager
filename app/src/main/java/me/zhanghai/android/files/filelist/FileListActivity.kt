@@ -149,6 +149,8 @@ class FileListActivity : AppActivity() {
             }
         })
         mainToolbar = findViewById(R.id.mainToolbar)
+        mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
+        mainToolbar.navigationIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
         mainToolbar.setNavigationOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }

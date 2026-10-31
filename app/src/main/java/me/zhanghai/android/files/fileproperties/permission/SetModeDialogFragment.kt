@@ -62,6 +62,17 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
             .setPositiveButton(android.R.string.ok) { _, _ -> setMode() }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
+            .also { dialog ->
+                dialog.setOnShowListener {
+                    dialog.window?.setBackgroundDrawable(
+                        android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor("#303030"))
+                    )
+                    dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                        ?.setTextColor(android.graphics.Color.parseColor("#64B5F6"))
+                    dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)
+                        ?.setTextColor(android.graphics.Color.parseColor("#BDBDBD"))
+                }
+            }
 
     private fun setupListeners() {
         val checkListener = CompoundButton.OnCheckedChangeListener { _, _ ->

@@ -390,6 +390,7 @@ object ScriptRunnerHelper {
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(view)
             .create()
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
 
         // Button 1: PREFERENCIAS
         btnAction1.visibility = View.VISIBLE

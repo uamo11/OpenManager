@@ -489,6 +489,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         val dialog = MaterialAlertDialogBuilder(context, theme)
             .setView(view)
             .create()
+        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
 
         // Bottom Buttons Bar (APK Info style)
         if (!path.isArchivePath) {
