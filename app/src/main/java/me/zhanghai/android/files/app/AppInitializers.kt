@@ -27,11 +27,13 @@ import me.zhanghai.android.files.theme.night.NightModeHelper
 import java.util.Properties
 import me.zhanghai.android.files.provider.ftp.client.Client as FtpClient
 import me.zhanghai.android.files.provider.sftp.client.Client as SftpClient
+import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
 import me.zhanghai.android.files.provider.smb.client.Client as SmbClient
 import me.zhanghai.android.files.provider.webdav.client.Client as WebDavClient
 
 val appInitializers = listOf(
     ::initializeCrashHandler,
+    ::initializeLibSu,
     ::disableHiddenApiChecks,
     ::initializeWebViewDebugging,
     ::initializeCoil,
@@ -45,6 +47,14 @@ val appInitializers = listOf(
 
 private fun initializeCrashHandler() {
     CrashHandler.install(application)
+}
+
+private fun initializeLibSu() {
+    try {
+        LibSuFileServiceLauncher.initBuilder()
+    } catch (e: Throwable) {
+        e.printStackTrace()
+    }
 }
 
 private fun disableHiddenApiChecks() {

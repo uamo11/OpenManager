@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeout
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.provider.remote.IRemoteFileService
 import me.zhanghai.android.files.provider.remote.RemoteFileServiceInterface
 import me.zhanghai.android.files.provider.remote.RemoteFileSystemException
@@ -31,15 +32,32 @@ import kotlin.coroutines.resumeWithException
 
 object LibSuFileServiceLauncher {
     private val lock = Any()
+    @Volatile
+    private var isBuilderInitialized = false
 
     init {
-        Shell.enableVerboseLogging = true
-        Shell.setDefaultBuilder(
-            Shell.Builder.create()
-                .setInitializers(LibSuShellInitializer::class.java)
-                .setFlags(Shell.FLAG_MOUNT_MASTER or Shell.FLAG_REDIRECT_STDERR)
-                .setTimeout(TimeUnit.MILLISECONDS.toSeconds(RootFileService.TIMEOUT_MILLIS))
-        )
+        initBuilder()
+    }
+
+    @JvmStatic
+    fun initBuilder() {
+        if (isBuilderInitialized) return
+        synchronized(lock) {
+            if (isBuilderInitialized) return
+            try {
+                Shell.enableVerboseLogging = BuildConfig.DEBUG
+                Shell.setDefaultBuilder(
+                    Shell.Builder.create()
+                        .setInitializers(LibSuShellInitializer::class.java)
+                        .setFlags(Shell.FLAG_MOUNT_MASTER or Shell.FLAG_REDIRECT_STDERR)
+                        .setTimeout(TimeUnit.MILLISECONDS.toSeconds(RootFileService.TIMEOUT_MILLIS))
+                )
+            } catch (t: Throwable) {
+                // Main shell was already created or builder already set; safely ignore to prevent ExceptionInInitializerError
+            } finally {
+                isBuilderInitialized = true
+            }
+        }
     }
 
     fun isSuAvailable(): Boolean {

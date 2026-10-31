@@ -252,3 +252,13 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Incorporado interruptor `SwitchPreferenceCompat` en la categoría 2 (Apariencia y Lista de archivos) de la pantalla de Ajustes con clave `pref_key_file_list_show_hidden_files`.
   - Títulos y descripciones localizadas en español e inglés (`settings_show_hidden_files_title`, `settings_show_hidden_files_summary`).
   - Sincronización instantánea con el estado reactivo `Settings.FILE_LIST_SHOW_HIDDEN_FILES` y actualización en vivo del filtrado de archivos y directorios que empiezan por `.` en `FileListFragment`.
+
+33. **Corrección Crítica de Inicialización de LibSU y Blindaje contra NoClassDefFoundError (`LibSuFileServiceLauncher.kt`, `AppInitializers.kt`, `FileListActivity.kt`, `ApkInstallHelper.kt`, `RootFileService.kt`) (v1.9.16)**: ✅
+- **Diagnóstico del Crash en Dispositivos Reales (Samsung SM-A075M / Android 16)**:
+  - Causa raíz identificada a partir de los logs de error de usuario: `Shell.setDefaultBuilder()` en `LibSuFileServiceLauncher.<clinit>` arrojaba `IllegalStateException: The main shell was already created` porque un hilo en segundo plano o componente invocaba `Shell.getShell()` antes de que el singleton `LibSuFileServiceLauncher` fuera inicializado.
+  - Al fallar el inicializador estático de la clase, la JVM de Android marcaba `LibSuFileServiceLauncher` como no disponible (`ExceptionInInitializerError`), provocando fallos en cascada de `NoClassDefFoundError` en cada toque o acción que consultara permisos root o abriera archivos APK (`OpenApkDialogFragment`, `ApkInstallHelper.isRootAvailable`, `RootFileService`, `SuperuserDetector`).
+- **Solución y Blindaje Integral**:
+  - `LibSuFileServiceLauncher.kt`: Implementado método seguro `@JvmStatic fun initBuilder()` con bandera atómica `@Volatile private var isBuilderInitialized` y bloque `try-catch` para capturar cualquier excepción si el builder o shell ya existían, impidiendo de forma total y permanente el fallo de inicialización de clase (`<clinit>`).
+  - `AppInitializers.kt`: Añadido `::initializeLibSu` en la lista prioritaria `appInitializers` de `AppProvider.onCreate()` para configurar el builder oficial de libSU antes de que cualquier actividad o hilo en segundo plano intente invocar un shell.
+  - `FileListActivity.kt`: Llamada explícita a `LibSuFileServiceLauncher.initBuilder()` previa a `Shell.getShell()` al solicitar permisos en el arranque.
+  - `ApkInstallHelper.kt` y `RootFileService.kt`: Blindaje defensivo con `try-catch` para consultas de disponibilidad de superusuario.

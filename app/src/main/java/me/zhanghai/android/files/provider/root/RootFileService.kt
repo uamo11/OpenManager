@@ -31,7 +31,16 @@ lateinit var rootContext: Context private set
 object RootFileService : RemoteFileService(
     RemoteInterface {
         val requestRoot = me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat
-        if (requestRoot && LibSuFileServiceLauncher.isSuAvailable()) {
+        val isSuAvail = if (requestRoot) {
+            try {
+                LibSuFileServiceLauncher.isSuAvailable()
+            } catch (_: Throwable) {
+                false
+            }
+        } else {
+            false
+        }
+        if (requestRoot && isSuAvail) {
             try {
                 LibSuFileServiceLauncher.launchService()
             } catch (e: Exception) {

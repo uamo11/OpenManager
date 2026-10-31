@@ -231,6 +231,7 @@ class FileListActivity : AppActivity() {
         if (Settings.REQUEST_ROOT_PERMISSION.valueCompat) {
             kotlin.concurrent.thread {
                 try {
+                    me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher.initBuilder()
                     com.topjohnwu.superuser.Shell.getShell()
                 } catch (e: Exception) {
                     e.printStackTrace()

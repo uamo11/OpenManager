@@ -18,7 +18,11 @@ import java.io.FileOutputStream
 object ApkInstallHelper {
 
     fun isRootAvailable(): Boolean {
-        return LibSuFileServiceLauncher.isSuAvailable() || (Shell.isAppGrantedRoot() == true)
+        return try {
+            LibSuFileServiceLauncher.isSuAvailable() || (Shell.isAppGrantedRoot() == true)
+        } catch (_: Throwable) {
+            false
+        }
     }
 
     fun isShizukuAvailable(): Boolean {
