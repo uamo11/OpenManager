@@ -48,6 +48,15 @@ object AxmlDecoder {
             return String(bytes, StandardCharsets.UTF_8)
         }
 
+        return try {
+            decodeInternal(bytes)
+        } catch (e: Throwable) {
+            String(bytes, StandardCharsets.UTF_8)
+        }
+    }
+
+    private fun decodeInternal(bytes: ByteArray): String {
+
         val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
         val magic = buffer.int
         val fileSize = buffer.int

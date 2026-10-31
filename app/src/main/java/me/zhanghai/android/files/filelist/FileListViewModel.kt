@@ -98,7 +98,7 @@ class FileListViewModel : ViewModel() {
 
     val breadcrumbLiveData: LiveData<BreadcrumbData> = BreadcrumbLiveData(trailLiveData)
     val canNavigateUpBreadcrumb: Boolean
-        get() = breadcrumbLiveData.valueCompat.selectedIndex > 0
+        get() = breadcrumbLiveData.value?.let { it.selectedIndex > 0 } ?: false
 
     private val _viewTypeLiveData = FileViewTypeLiveData(currentPathLiveData)
     val viewTypeLiveData: LiveData<FileViewType> = _viewTypeLiveData

@@ -133,7 +133,15 @@ class ApktoolExecutionService : Service() {
                 t.printStackTrace()
                 CrashHandler.logHandledException(t, "ApktoolExecutionService")
                 val rootCause = generateSequence(t) { it.cause }.lastOrNull() ?: t
-                errorMsg = rootCause.localizedMessage ?: rootCause.message ?: t.localizedMessage ?: t.javaClass.simpleName
+                val detail = rootCause.localizedMessage ?: rootCause.message ?: t.localizedMessage ?: t.message
+                val simpleName = rootCause.javaClass.simpleName
+                errorMsg = if (!detail.isNullOrBlank()) {
+                    "$simpleName: $detail"
+                } else {
+                    val frame = rootCause.stackTrace.firstOrNull()
+                    val loc = if (frame != null) "${frame.className.substringAfterLast('.')}.${frame.methodName}(L:${frame.lineNumber})" else "execute"
+                    "$simpleName en $loc"
+                }
             }
 
             withContext(Dispatchers.Main) {
@@ -236,17 +244,33 @@ class ApktoolExecutionService : Service() {
                         val entryBytes = baos.toByteArray()
 
                         if (name == "AndroidManifest.xml" && AxmlDecoder.isAxml(entryBytes)) {
-                            val decoded = AxmlDecoder.decode(entryBytes)
-                            FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                            val origFile = File(projectFile, "AndroidManifest.xml.orig")
-                            FileOutputStream(origFile).use { it.write(entryBytes) }
-                        } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
-                            val decoded = AxmlDecoder.decode(entryBytes)
-                            FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                            val origFile = File(projectFile, "$name.orig").canonicalFile
-                            if (origFile.canonicalPath.startsWith(canonicalProjectDir)) {
-                                origFile.parentFile?.mkdirs()
+                            val decoded = try {
+                                AxmlDecoder.decode(entryBytes)
+                            } catch (_: Throwable) {
+                                null
+                            }
+                            if (decoded != null) {
+                                FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
+                                val origFile = File(projectFile, "AndroidManifest.xml.orig")
                                 FileOutputStream(origFile).use { it.write(entryBytes) }
+                            } else {
+                                FileOutputStream(targetFile).use { it.write(entryBytes) }
+                            }
+                        } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
+                            val decoded = try {
+                                AxmlDecoder.decode(entryBytes)
+                            } catch (_: Throwable) {
+                                null
+                            }
+                            if (decoded != null) {
+                                FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
+                                val origFile = File(projectFile, "$name.orig").canonicalFile
+                                if (origFile.canonicalPath.startsWith(canonicalProjectDir)) {
+                                    origFile.parentFile?.mkdirs()
+                                    FileOutputStream(origFile).use { it.write(entryBytes) }
+                                }
+                            } else {
+                                FileOutputStream(targetFile).use { it.write(entryBytes) }
                             }
                         } else {
                             FileOutputStream(targetFile).use { it.write(entryBytes) }

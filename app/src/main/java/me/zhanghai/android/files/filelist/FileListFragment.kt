@@ -2484,10 +2484,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     val canNavigateUp: Boolean
         get() {
             if (!isAdded) return false
-            if (isHomeOrRootPath(viewModel.currentPath)) {
+            val current = try { viewModel.currentPath } catch (_: Exception) { null } ?: return false
+            if (isHomeOrRootPath(current)) {
                 return false
             }
-            return viewModel.canNavigateUpBreadcrumb || viewModel.currentPath.parentOrArchiveParent != null
+            return viewModel.canNavigateUpBreadcrumb || current.parentOrArchiveParent != null
         }
 
     fun setDualPaneUiMode(enabled: Boolean) {

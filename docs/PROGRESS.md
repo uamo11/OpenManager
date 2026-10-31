@@ -285,3 +285,12 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Listado de Directorios del Sistema en `/` sin Root (Estilo MT Manager)**:
   - En `FileListLiveData.kt`, se implementó un fallback terciario con shell sin privilegios (`ls -1 /`) cuando `newDirectoryStream` y `File.listFiles()` no tienen acceso Java directo.
   - Permite visualizar las carpetas y enlaces simbólicos de `/` (`system`, `vendor`, `apex`, `sdcard`, `etc`, etc.) en modo lectura segura, bloqueando únicamente modificaciones no autorizadas.
+
+36. **Blindaje de Inicio en Frío (NPE Breadcrumb) y Tolerancia Total a Fallos en Apktool (`FileListViewModel.kt`, `FileListFragment.kt`, `ApktoolExecutionService.kt`, `ApktoolHelper.kt`, `AxmlDecoder.kt`) (v1.9.19)**: ✅
+- **Solución a Crash en Arranque en Frío (`NullPointerException` en `BreadcrumbData.getSelectedIndex`)**:
+  - Eliminada la aserción forzada `breadcrumbLiveData.valueCompat` en `FileListViewModel.canNavigateUpBreadcrumb`, reemplazándola por acceso nulo seguro `breadcrumbLiveData.value?.let { it.selectedIndex > 0 } ?: false`.
+  - En `FileListFragment.kt`, blindado `canNavigateUp` para manejar de forma robusta llamadas tempranas antes de que la vista o el ViewModel hayan emitido su primera ruta o miga de pan.
+- **Tolerancia a Errores y Decodificación Resiliente de Recursos AXML en Apktool**:
+  - `AxmlDecoder.kt`: Envuelto el procesamiento de binario XML en bloque `try-catch`, retornando el contenido legible o crudo en caso de formatos no estándar o corruptos sin propagar excepciones fatales.
+  - `ApktoolExecutionService.kt`: Descompilación tolerante a fallos para `AndroidManifest.xml` y recursos XML (`res/*.xml`); si algún XML específico no puede decodificarse a texto limpio, se escribe su contenido original directamente y se continúa con el resto de archivos del APK.
+  - Diálogo de error enriquecido con botón interactivo "Copiar" al portapapeles y ubicación precisa de la excepción (`simpleName (clase.metodo:linea)`) para diagnóstico inmediato.

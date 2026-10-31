@@ -6,6 +6,7 @@
 package me.zhanghai.android.files.filelist
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -327,10 +328,16 @@ object ApktoolHelper {
                             (activity as? FileListActivity)?.activeFragment?.navigateTo(targetPath)
                         }
                     } else if (!state.isCancelled && state.errorMessage != null) {
+                        val errMsg = state.errorMessage
                         MaterialAlertDialogBuilder(activity)
                             .setTitle(R.string.apktool_error_title)
-                            .setMessage(state.errorMessage)
+                            .setMessage(errMsg)
                             .setPositiveButton(android.R.string.ok, null)
+                            .setNeutralButton("Copiar") { _, _ ->
+                                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Apktool Error", errMsg))
+                                Toast.makeText(activity, "Error copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                            }
                             .show()
                     }
                 }
