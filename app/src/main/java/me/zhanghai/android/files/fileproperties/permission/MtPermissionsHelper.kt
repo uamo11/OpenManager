@@ -201,7 +201,7 @@ object MtPermissionsHelper {
                         modeBits = modeFromInt(stat.st_mode and 0xFFF)
                     }
                     if (ownerDisplay == null) {
-                        val uName = try { android.os.Process.getNameForUid(stat.st_uid) } catch (_: Throwable) { null }
+                        val uName = try { context?.packageManager?.getNameForUid(stat.st_uid) } catch (_: Throwable) { null }
                         ownerDisplay = if (!uName.isNullOrBlank()) "$uName (${stat.st_uid})" else "${stat.st_uid}"
                     }
                     if (groupDisplay == null) {

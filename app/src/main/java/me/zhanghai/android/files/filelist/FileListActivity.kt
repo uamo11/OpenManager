@@ -58,6 +58,7 @@ import me.zhanghai.android.files.about.AboutActivity
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.file.MimeType
+import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.ftpserver.FtpServerService
 import me.zhanghai.android.files.settings.Settings
@@ -394,7 +395,7 @@ class FileListActivity : AppActivity() {
                                 sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
                             }
                             val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
-                            val fileItem = with(samplePath) { me.zhanghai.android.files.file.createFallbackFileItem(sampleFile) }
+                            val fileItem = samplePath.createFallbackFileItem(sampleFile)
                             if (fileItem != null) {
                                 activeFragment.showPropertiesDialog(fileItem)
                             }
