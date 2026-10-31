@@ -6,9 +6,11 @@
 package me.zhanghai.android.files.fileproperties.permission
 
 import android.content.Context
+import android.graphics.Color
 import android.system.Os
 import android.view.LayoutInflater
 import android.widget.CompoundButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
