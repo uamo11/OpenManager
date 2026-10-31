@@ -394,8 +394,10 @@ class FileListActivity : AppActivity() {
                                 sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
                             }
                             val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
-                            val fileItem = me.zhanghai.android.files.file.loadFileItem(samplePath)
-                            activeFragment.showPropertiesDialog(fileItem)
+                            val fileItem = with(samplePath) { me.zhanghai.android.files.file.createFallbackFileItem(sampleFile) }
+                            if (fileItem != null) {
+                                activeFragment.showPropertiesDialog(fileItem)
+                            }
                         }
                     }
                 }
