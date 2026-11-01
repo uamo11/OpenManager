@@ -359,5 +359,25 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Blindaje Estricto de Strings y Offsets en `AxmlDecoder.kt`**:
   - Verificación exhaustiva de límites en `parseStringPool` contra tamaños de buffer y recuentos de cadenas negativos o anómalos.
 
+43. **Apktool CLI Ejecutable Autónomo para Android, Instalador Automático de Expansión de Terminal y Corrección de Bash (`ApktoolCli.kt`, `ApktoolEngine.kt`, `TerminalExpansionManager.kt`, `ScriptRunnerHelper.kt`, `TerminalPreferencesDialog.kt`, `ApktoolExecutionService.kt`, `ApktoolHelper.kt`, `DexEngine.kt`, `JadxDecompilerEngine.kt`) (v1.9.28)**: ✅
+- **Apktool CLI Ejecutable Autónomo en Android (`app_process`)**:
+  - Implementado `ApktoolCli.kt` con punto de entrada `@JvmStatic fun main(args: Array<String>)` completamente ejecutable desde terminal mediante `/system/bin/app_process`.
+  - Despliegue automático de wrapper script ejecutable en `context.filesDir/bin/apktool` con permisos `0755` y auto-resolución de APK base vía `.apk_path` y `pm path`.
+  - Inclusión de `context.filesDir/bin` en el `$PATH` de todas las sesiones de terminal (estándar, Termex y Root), permitiendo usar comandos como `apktool d file.apk`, `apktool b dir -o file.apk --sign` y `apktool sign file.apk`.
+  - Motor centralizado `ApktoolEngine.kt` con soporte multi-API resiliente (API 34 a 19), ensamblado/desensamblado smali tolerante a fallos y empaquetado AXML con alineación STORED/DEFLATED.
+- **Solución Raíz al Error de la Extensión de Terminal (`sh: bash: inaccessible or not found`)**:
+  - Corrección en `TerminalExpansionManager.kt` de la comprobación del binario bash: PackageManager extrae bibliotecas nativas como `.so` (`libbash.so`), por lo que buscar `bash` fallaba siempre. Ahora se detecta `libbash.so`, `bash` o se extrae a `filesDir/termex/bin/bash` con permisos de ejecución.
+  - En `ScriptRunnerHelper.kt`, se verifica `TerminalExpansionManager.isBashAvailable(activity)` antes de invocar `bash`, haciendo fallback transparente e inmediato a `/system/bin/sh` para evitar códigos de error 127.
+- **Sistema de Instalación Completo de la Expansión de Terminal (Termex)**:
+  - Diálogo interactivo `TerminalExpansionManager.showExpansionInstallerDialog`:
+    1. Escáner local: Detecta APKs de Termex descargados en `/sdcard/Download`, `/sdcard/Downloads`, etc. con botón de instalación inmediata en 1 toque.
+    2. Descargador automático: Descarga en segundo plano desde release oficial con barra de progreso interactiva (MB/%, velocidad) y lanza el instalador del sistema (`PackageInstaller`).
+    3. Selector de archivos: Permite elegir manualmente cualquier APK desde el almacenamiento.
+  - Conectado directamente a las preferencias de terminal y a la selección de entorno en scripts.
+- **Erradicación Total de `Opcodes.getDefault()` en el Proyecto**:
+  - Reemplazadas todas las llamadas a `Opcodes.getDefault()` (bloqueadas en API 20) por `ApktoolEngine.loadDexSafely` y `ApktoolEngine.getSafeOpcodes` en `DexEngine`, `JadxDecompilerEngine` y `ApktoolExecutionService`, eliminando cualquier error de incompatibilidad en DEX 038-040+.
+  - Títulos dinámicos contextuales en diálogos de error de `ApktoolHelper` distinguiendo Descompilador Java vs Recompilador vs Apktool.
+
+
 
 

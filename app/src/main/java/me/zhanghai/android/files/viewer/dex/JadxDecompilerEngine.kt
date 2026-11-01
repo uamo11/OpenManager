@@ -244,7 +244,7 @@ object JadxDecompilerEngine {
             val targetDescriptor = "L" + targetName.replace('.', '/') + ";"
             for (dex in dexFiles) {
                 try {
-                    val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
+                    val dexBacked: DexBackedDexFile = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dex)
                     val match = dexBacked.classes.find {
                         it.type == targetDescriptor || normalizeClassName(it.type) == targetName
                     }
@@ -355,7 +355,7 @@ object JadxDecompilerEngine {
             val allClassDefs = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
             for (dex in dexFiles) {
                 try {
-                    val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
+                    val dexBacked = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dex)
                     allClassDefs.addAll(dexBacked.classes)
                 } catch (_: Throwable) {}
             }
@@ -451,7 +451,7 @@ object JadxDecompilerEngine {
             for (dex in dexFiles) {
                 if (isCancelled?.invoke() == true) throw InterruptedException()
                 try {
-                    val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
+                    val dexBacked = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dex)
                     allClassDefs.addAll(dexBacked.classes)
                 } catch (_: Throwable) {}
             }

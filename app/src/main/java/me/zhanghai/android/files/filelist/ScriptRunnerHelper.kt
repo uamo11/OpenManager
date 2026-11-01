@@ -479,10 +479,22 @@ object ScriptRunnerHelper {
         val savedRoot = if (isRoot) sp.getBoolean(KEY_EXEC_ROOT, false) else false
 
         val binding = ScriptPreferencesDialogBinding.inflate(LayoutInflater.from(activity))
-        if (savedEnv == "termex") {
+        if (savedEnv == "termex" && TerminalExpansionManager.isTermexInstalled(activity)) {
             binding.radioTermex.isChecked = true
         } else {
             binding.radioSystem.isChecked = true
+        }
+
+        binding.radioTermex.setOnClickListener {
+            if (!TerminalExpansionManager.isTermexInstalled(activity)) {
+                TerminalExpansionManager.showExpansionInstallerDialog(activity) {
+                    if (TerminalExpansionManager.isTermexInstalled(activity)) {
+                        binding.radioTermex.isChecked = true
+                    } else {
+                        binding.radioSystem.isChecked = true
+                    }
+                }
+            }
         }
 
         // Hide root option completely when no root is available on the device
@@ -533,6 +545,12 @@ object ScriptRunnerHelper {
         val execCmd: String
         val isElf = isElfBinary(path)
 
+        val isTermex = (env == "termex")
+        val isBashUsable = isTermex && TerminalExpansionManager.isBashAvailable(activity)
+        if (isTermex && !isBashUsable) {
+            Toast.makeText(activity, "Expansión Termex no disponible, usando shell del sistema", Toast.LENGTH_SHORT).show()
+        }
+
         if (isElf) {
             execCmd = if (withRoot) {
                 "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null; ${scriptPath.escapeShellArg()}"
@@ -552,7 +570,7 @@ object ScriptRunnerHelper {
                 }
             }
         } else {
-            val shell = if (env == "termex") "bash" else "sh"
+            val shell = if (isBashUsable) "bash" else "sh"
             execCmd = if (withRoot) {
                 "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null; $shell ${scriptPath.escapeShellArg()}"
             } else {
@@ -565,7 +583,7 @@ object ScriptRunnerHelper {
             path = parentDir,
             command = execCmd,
             forceRoot = withRoot,
-            forceTermex = env == "termex"
+            forceTermex = isBashUsable
         )
         activity.startActivity(intent)
     }

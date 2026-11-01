@@ -42,7 +42,8 @@ val appInitializers = listOf(
     ::initializeLiveDataObjects,
     ::initializeCustomTheme,
     ::initializeNightMode,
-    ::createNotificationChannels
+    ::createNotificationChannels,
+    ::initializeTerminalBinTools
 )
 
 private fun initializeCrashHandler() {
@@ -109,5 +110,13 @@ private fun createNotificationChannels() {
                 apktoolNotificationTemplate.channelTemplate
             ).map { it.create(application) }
         )
+    }
+}
+
+private fun initializeTerminalBinTools() {
+    AsyncTask.THREAD_POOL_EXECUTOR.execute {
+        try {
+            me.zhanghai.android.files.terminal.TerminalExpansionManager.ensureBinTools(application)
+        } catch (_: Throwable) {}
     }
 }

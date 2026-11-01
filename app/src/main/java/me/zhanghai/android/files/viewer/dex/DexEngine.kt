@@ -28,7 +28,7 @@ import java.io.StringWriter
 
 object DexEngine {
 
-    val defaultOpcodes: Opcodes by lazy { Opcodes.getDefault() }
+    val defaultOpcodes: Opcodes by lazy { me.zhanghai.android.files.filelist.ApktoolEngine.getSafeOpcodes() }
 
     fun prepareLocalDexFile(context: Context, path: Path): File {
         if (path.isLinuxPath) {
@@ -59,7 +59,7 @@ object DexEngine {
     }
 
     fun parseDexClasses(dexFile: File): Pair<List<DexClassModel>, List<DexStringModel>> {
-        val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dexFile, defaultOpcodes)
+        val dexBacked: DexBackedDexFile = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dexFile)
         val classModels = mutableListOf<DexClassModel>()
 
         for (classDef in dexBacked.classes) {
@@ -136,7 +136,7 @@ object DexEngine {
 
     fun disassembleClass(dexFile: File, classDescriptor: String): String {
         return try {
-            val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dexFile, defaultOpcodes)
+            val dexBacked: DexBackedDexFile = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dexFile)
             val classDef = dexBacked.classes.find { it.type == classDescriptor }
                 ?: return "# Error: Clase no encontrada: $classDescriptor"
 
@@ -159,7 +159,7 @@ object DexEngine {
         dexFile: File,
         classDescriptor: String
     ): Pair<List<DexMethodModel>, List<DexFieldModel>> {
-        val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dexFile, defaultOpcodes)
+        val dexBacked: DexBackedDexFile = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dexFile)
         val classDef = dexBacked.classes.find { it.type == classDescriptor }
             ?: return Pair(emptyList(), emptyList())
 

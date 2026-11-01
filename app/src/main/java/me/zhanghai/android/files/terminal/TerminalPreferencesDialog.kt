@@ -6,18 +6,14 @@
 package me.zhanghai.android.files.terminal
 
 import android.app.Dialog
-import android.content.Context
-import android.content.DialogInterface
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -50,15 +46,18 @@ class TerminalPreferencesDialog : DialogFragment() {
         switchBlackTheme.isChecked = TerminalSettings.isKeepBlackTheme(ctx)
         switchRootSession.isChecked = TerminalSettings.isRootSession(ctx)
 
-        val isInstalled = TerminalExpansionManager.isTermexInstalled(ctx)
-        if (isInstalled) {
-            val ver = TerminalExpansionManager.getTermexVersion(ctx) ?: "v3.8 arm64"
-            textExpansionValue.text = getString(R.string.terminal_pref_expansion_installed) + " ($ver)"
-            textExpansionValue.setTextColor(Color.parseColor("#4CAF50"))
-        } else {
-            textExpansionValue.text = getString(R.string.terminal_pref_expansion_not_installed)
-            textExpansionValue.setTextColor(Color.parseColor("#FF9800"))
+        fun updateExpansionStatus() {
+            val isInstalled = TerminalExpansionManager.isTermexInstalled(ctx)
+            if (isInstalled) {
+                val ver = TerminalExpansionManager.getTermexVersion(ctx) ?: "v3.8 arm64"
+                textExpansionValue.text = getString(R.string.terminal_pref_expansion_installed) + " ($ver)"
+                textExpansionValue.setTextColor(Color.parseColor("#4CAF50"))
+            } else {
+                textExpansionValue.text = getString(R.string.terminal_pref_expansion_not_installed)
+                textExpansionValue.setTextColor(Color.parseColor("#FF9800"))
+            }
         }
+        updateExpansionStatus()
 
         // Start path click
         container.findViewById<View>(R.id.layoutStartPath).setOnClickListener {
@@ -125,16 +124,12 @@ class TerminalPreferencesDialog : DialogFragment() {
             onSettingsChanged?.invoke()
         }
 
-        // Expansion pack click
+        // Expansion pack click: shows complete installer dialog if not installed
         container.findViewById<View>(R.id.layoutExpansion).setOnClickListener {
             if (!TerminalExpansionManager.isTermexInstalled(ctx)) {
-                val ok = TerminalExpansionManager.installTermexApk(ctx)
-                if (!ok) {
-                    Toast.makeText(
-                        ctx,
-                        "Por favor coloque termex_v3008_arm64.apk en /sdcard/Download/",
-                        Toast.LENGTH_LONG
-                    ).show()
+                TerminalExpansionManager.showExpansionInstallerDialog(requireActivity()) {
+                    updateExpansionStatus()
+                    onSettingsChanged?.invoke()
                 }
             } else {
                 Toast.makeText(ctx, "Paquete de expansión ya instalado y activo", Toast.LENGTH_SHORT).show()

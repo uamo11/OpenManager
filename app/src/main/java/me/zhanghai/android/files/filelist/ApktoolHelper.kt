@@ -329,8 +329,13 @@ object ApktoolHelper {
                         }
                     } else if (!state.isCancelled && state.errorMessage != null) {
                         val errMsg = state.errorMessage
+                        val errorDialogTitle = when (state.taskType) {
+                            ApktoolExecutionService.TASK_TYPE_DECOMPILE_JAVA -> "Error en Descompilador Java (JADX)"
+                            ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK -> "Error al Recompilar APK"
+                            else -> activity.getString(R.string.apktool_error_title)
+                        }
                         MaterialAlertDialogBuilder(activity)
-                            .setTitle(R.string.apktool_error_title)
+                            .setTitle(errorDialogTitle)
                             .setMessage(errMsg)
                             .setPositiveButton(android.R.string.ok, null)
                             .setNeutralButton("Copiar") { _, _ ->
