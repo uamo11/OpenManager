@@ -15,9 +15,11 @@ import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.smali.Smali
 import com.android.tools.smali.smali.SmaliOptions
 import jadx.api.JadxArgs
+import jadx.core.codegen.CodeGen
 import jadx.core.dex.nodes.ClassNode
 import jadx.core.dex.nodes.ProcessState
 import jadx.core.dex.nodes.RootNode
+import jadx.core.dex.visitors.DepthTraversal
 import jadx.plugins.input.dex.DexInputPlugin
 import java.io.File
 import java.io.FileOutputStream
@@ -37,14 +39,32 @@ import java.util.zip.ZipOutputStream
 object JadxDecompilerEngine {
 
     /**
-     * Converts a DEX descriptor (e.g., "Lcom/example/MyClass;") or path into a standard Java class name ("com.example.MyClass").
+     * Converts a DEX descriptor (e.g., "Lcom/example/MyClass;" or "I") or path into a standard Java type/class name ("com.example.MyClass" or "int").
      */
     fun normalizeClassName(descriptorOrName: String): String {
-        var clean = descriptorOrName.trim()
-        if (clean.startsWith("L") && clean.endsWith(";")) {
-            clean = clean.substring(1, clean.length - 1)
+        val clean = descriptorOrName.trim()
+        if (clean.startsWith("[")) {
+            return normalizeClassName(clean.substring(1)) + "[]"
         }
-        return clean.replace('/', '.')
+        return when (clean) {
+            "V" -> "void"
+            "Z" -> "boolean"
+            "B" -> "byte"
+            "S" -> "short"
+            "C" -> "char"
+            "I" -> "int"
+            "J" -> "long"
+            "F" -> "float"
+            "D" -> "double"
+            else -> {
+                val stripped = if (clean.startsWith("L") && clean.endsWith(";")) {
+                    clean.substring(1, clean.length - 1)
+                } else {
+                    clean
+                }
+                stripped.replace('/', '.')
+            }
+        }
     }
 
     /**
@@ -62,9 +82,11 @@ object JadxDecompilerEngine {
             isRenameValid = false
             isRenamePrintable = false
             inputFiles = listOf(inputFile)
-            // Use simple in-memory/no-op code cache so JADX never touches java.nio.file.Path desktop cache
             try {
                 codeCache = jadx.api.impl.NoOpCodeCache()
+            } catch (_: Throwable) {}
+            try {
+                codeWriterProvider = java.util.function.Function { args -> jadx.api.impl.SimpleCodeWriter(args) }
             } catch (_: Throwable) {}
         }
     }
@@ -93,19 +115,23 @@ object JadxDecompilerEngine {
     }
 
     /**
-     * Decompiles a single ClassNode using RootNode passes without JadxDecompiler's desktop plugin manager.
+     * Decompiles a single ClassNode using RootNode passes + DepthTraversal + CodeGen
+     * without JadxDecompiler's desktop plugin manager.
      */
     private fun decompileClassNodeDirect(root: RootNode, cls: ClassNode): String? {
         return try {
             val topParent = cls.topParentClass
-            if (topParent.state != ProcessState.GENERATED_AND_UNLOADED) {
+            synchronized(topParent) {
+                topParent.load()
                 for (pass in root.passes) {
-                    pass.visit(topParent)
+                    DepthTraversal.visit(pass, topParent)
                 }
+                val codeGen = CodeGen()
+                codeGen.init(root)
+                DepthTraversal.visit(codeGen, topParent)
+                val codeStr = topParent.code?.codeStr
+                if (!codeStr.isNullOrBlank()) codeStr else null
             }
-            val codeInfo = topParent.code
-            val codeStr = codeInfo?.codeStr
-            if (!codeStr.isNullOrBlank()) codeStr else null
         } catch (t: Throwable) {
             t.printStackTrace()
             null
