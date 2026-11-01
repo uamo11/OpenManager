@@ -529,9 +529,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 swipingPosition = RecyclerView.NO_POSITION
             }
 
-            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.08f
+            // Never let ItemTouchHelper "complete" the swipe: selection is triggered in onChildDraw
+            // once the drag passes triggerDxPx, and the row always springs back to its normal
+            // position (showing the blue selected state) instead of staying shifted/stuck.
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = Float.MAX_VALUE
 
-            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = defaultValue * 0.2f
+            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = Float.MAX_VALUE
+
+            override fun getSwipeVelocityThreshold(defaultValue: Float): Float = 0f
 
             override fun onChildDraw(
                 c: Canvas,
