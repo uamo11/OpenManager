@@ -204,6 +204,12 @@ object SuperuserDetector {
         )
     }
 
+    internal fun safeFileExists(path: String): Boolean = try {
+        File(path).exists()
+    } catch (_: Throwable) {
+        false
+    }
+
     internal fun identifySuperuserType(
         pm: PackageManager,
         suVersion: String?,
@@ -212,11 +218,11 @@ object SuperuserDetector {
         val vUpper = suVersion?.uppercase() ?: ""
 
         // A. Comprobación por KernelSU Next / ResuKisu
-        val hasKsuDriver = File("/dev/kernelsu").exists()
-        val hasKsuDir = File("/data/adb/ksu").exists()
-        val hasKsuBinDir = File("/data/adb/ksu/bin").exists()
-        val hasKsuNextDir = File("/data/adb/ksun").exists()
-        val hasKsud = File("/system/bin/ksud").exists() || File("/data/adb/ksu/bin/ksud").exists() || hasKsuBinDir
+        val hasKsuDriver = safeFileExists("/dev/kernelsu")
+        val hasKsuDir = safeFileExists("/data/adb/ksu")
+        val hasKsuBinDir = safeFileExists("/data/adb/ksu/bin")
+        val hasKsuNextDir = safeFileExists("/data/adb/ksun")
+        val hasKsud = safeFileExists("/system/bin/ksud") || safeFileExists("/data/adb/ksu/bin/ksud") || hasKsuBinDir
 
         if (vUpper.contains("NEXT") ||
             vUpper.contains("RESUKISU") ||
@@ -233,9 +239,9 @@ object SuperuserDetector {
                 else -> "org.kernelsu.next"
             }
             val bin = when {
-                File("/data/adb/ksu/bin/ksud").exists() -> "/data/adb/ksu/bin/ksud"
+                safeFileExists("/data/adb/ksu/bin/ksud") -> "/data/adb/ksu/bin/ksud"
                 hasKsuBinDir -> "/data/adb/ksu/bin"
-                File("/system/bin/ksud").exists() -> "/system/bin/ksud"
+                safeFileExists("/system/bin/ksud") -> "/system/bin/ksud"
                 else -> "/data/adb/ksu"
             }
             return Triple(SuperuserType.KERNEL_SU_NEXT, pkg, bin)
@@ -245,9 +251,9 @@ object SuperuserDetector {
         if (hasKsuDriver || hasKsuDir || hasKsuBinDir || hasKsud || vUpper.contains("KERNELSU") || isPkgInstalled(pm, "me.weishu.kernelsu") || isPkgInstalled(pm, "org.kernelsu")) {
             val pkg = if (isPkgInstalled(pm, "org.kernelsu")) "org.kernelsu" else "me.weishu.kernelsu"
             val bin = when {
-                File("/data/adb/ksu/bin/ksud").exists() -> "/data/adb/ksu/bin/ksud"
+                safeFileExists("/data/adb/ksu/bin/ksud") -> "/data/adb/ksu/bin/ksud"
                 hasKsuBinDir -> "/data/adb/ksu/bin"
-                File("/system/bin/ksud").exists() -> "/system/bin/ksud"
+                safeFileExists("/system/bin/ksud") -> "/system/bin/ksud"
                 hasKsuDriver -> "/dev/kernelsu"
                 else -> "/data/adb/ksu"
             }
@@ -255,28 +261,28 @@ object SuperuserDetector {
         }
 
         // C. Comprobación por APatch
-        val hasApatchDriver = File("/dev/apatch").exists()
-        val hasApatchDir = File("/data/adb/ap").exists()
-        val hasApd = File("/system/bin/apd").exists() || File("/data/adb/ap/bin/apd").exists()
+        val hasApatchDriver = safeFileExists("/dev/apatch")
+        val hasApatchDir = safeFileExists("/data/adb/ap")
+        val hasApd = safeFileExists("/system/bin/apd") || safeFileExists("/data/adb/ap/bin/apd")
 
         if (hasApatchDriver || hasApatchDir || hasApd || vUpper.contains("APATCH") || vUpper.contains("APD") || isPkgInstalled(pm, "me.bmax.apatch")) {
             return Triple(SuperuserType.APATCH, "me.bmax.apatch", if (hasApatchDriver) "/dev/apatch" else "/data/adb/ap")
         }
 
         // D. Comprobación por Magisk Delta / Kitsune
-        val hasMagiskDelta = File("/data/adb/magisk/delta").exists()
+        val hasMagiskDelta = safeFileExists("/data/adb/magisk/delta")
         if (hasMagiskDelta || vUpper.contains("DELTA") || vUpper.contains("KITSUNE") || isPkgInstalled(pm, "io.github.huskydg.magisk")) {
             return Triple(SuperuserType.MAGISK_DELTA, "io.github.huskydg.magisk", "/data/adb/magisk")
         }
 
         // E. Comprobación por Magisk Oficial
-        val hasMagiskDir = File("/data/adb/magisk").exists()
+        val hasMagiskDir = safeFileExists("/data/adb/magisk")
         if (hasMagiskDir || vUpper.contains("MAGISK") || isPkgInstalled(pm, "com.topjohnwu.magisk")) {
             return Triple(SuperuserType.MAGISK, "com.topjohnwu.magisk", "/data/adb/magisk")
         }
 
         // F. Comprobación por Baka-SU
-        val hasBakaDir = File("/data/adb/bakasu").exists() || File("/system/bin/bakasu").exists()
+        val hasBakaDir = safeFileExists("/data/adb/bakasu") || safeFileExists("/system/bin/bakasu")
         if (hasBakaDir || vUpper.contains("BAKA") || isPkgInstalled(pm, "com.shatyuka.bakasu") || isPkgInstalled(pm, "io.github.shatyuka.bakasu")) {
             return Triple(SuperuserType.BAKA_SU, "com.shatyuka.bakasu", "/data/adb/bakasu")
         }
@@ -297,11 +303,11 @@ object SuperuserDetector {
         }
 
         // H. Comprobación genérica de Superusuario (gestor con nombre modificado o binario su independiente)
-        if (isSuAvailable || suVersion != null || File("/system/bin/su").exists() || File("/system/xbin/su").exists() || File("/sbin/su").exists()) {
+        if (isSuAvailable || suVersion != null || safeFileExists("/system/bin/su") || safeFileExists("/system/xbin/su") || safeFileExists("/sbin/su")) {
             val binary = when {
-                File("/system/bin/su").exists() -> "/system/bin/su"
-                File("/system/xbin/su").exists() -> "/system/xbin/su"
-                File("/sbin/su").exists() -> "/sbin/su"
+                safeFileExists("/system/bin/su") -> "/system/bin/su"
+                safeFileExists("/system/xbin/su") -> "/system/xbin/su"
+                safeFileExists("/sbin/su") -> "/sbin/su"
                 else -> "su"
             }
             return Triple(SuperuserType.GENERIC_ROOT, null, binary)
@@ -323,7 +329,7 @@ object SuperuserDetector {
             "/data/local/tmp/dfroot",
             "/data/local/tmp/dfroot.sh"
         )
-        return dfRootFiles.any { File(it).exists() }
+        return dfRootFiles.any { safeFileExists(it) }
     }
 
     internal fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {
@@ -359,8 +365,11 @@ object SuperuserDetector {
                 .start()
             val completed = process.waitFor(1500, TimeUnit.MILLISECONDS)
             if (completed && process.exitValue() == 0) {
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readLine() ?: "" }
-                val isRoot = output.contains("uid=0")
+                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+                val isRoot = output.lineSequence().any { line ->
+                    val trimmed = line.trim()
+                    trimmed.startsWith("uid=0(root)") || trimmed.startsWith("uid=0 ") || trimmed == "uid=0"
+                }
                 if (!isRoot) {
                     try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
                 }

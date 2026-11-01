@@ -94,19 +94,34 @@ object LibSuFileServiceLauncher {
             "/data/adb/ap/bin/su",
             "/data/adb/magisk/su"
         )
+        var suBinaryFound = false
         for (path in paths) {
-            val f = java.io.File(path)
-            if (f.exists() && f.canExecute()) return true
+            try {
+                val f = java.io.File(path)
+                if (f.exists() && f.canExecute()) {
+                    suBinaryFound = true
+                    break
+                }
+            } catch (_: Throwable) {}
         }
+
+        // Also test PATH if no explicit path matched
         return try {
             val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-            val finished = process.waitFor(700, TimeUnit.MILLISECONDS)
+            val finished = process.waitFor(800, TimeUnit.MILLISECONDS)
             if (!finished) {
                 process.destroyForcibly()
                 false
             } else {
                 val out = process.inputStream.bufferedReader().readText()
-                process.exitValue() == 0 && out.contains("uid=0")
+                val isGranted = process.exitValue() == 0 && (
+                    out.contains("uid=0(root)") ||
+                    out.lineSequence().any { line ->
+                        val trimmed = line.trim()
+                        trimmed.startsWith("uid=0(root)") || trimmed.startsWith("uid=0 ") || trimmed == "uid=0"
+                    }
+                )
+                isGranted
             }
         } catch (e: Exception) {
             false

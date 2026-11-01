@@ -134,6 +134,8 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
 
+        findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Refresh locale preference summary because we aren't notified for an external change
             // between system default and the locale that's the current system default.

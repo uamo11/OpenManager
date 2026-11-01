@@ -75,32 +75,11 @@ object TerminalExpansionManager {
     }
 
     fun isRootAvailable(): Boolean {
-        val paths = arrayOf(
-            "/system/bin/su",
-            "/system/xbin/su",
-            "/sbin/su",
-            "/vendor/bin/su",
-            "/system/sd/xbin/su",
-            "/data/adb/ksu/bin/su",
-            "/data/adb/ap/bin/su",
-            "/data/adb/magisk/su"
-        )
-        for (path in paths) {
-            val f = File(path)
-            if (f.exists() && f.canExecute()) return true
-        }
         return try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "--version"))
-            val exitCode = process.waitFor()
-            exitCode == 0
-        } catch (_: Exception) {
-            try {
-                val process = Runtime.getRuntime().exec(arrayOf("which", "su"))
-                val exitCode = process.waitFor()
-                exitCode == 0
-            } catch (_: Exception) {
-                false
-            }
+            me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher.isSuAvailable() ||
+                (com.topjohnwu.superuser.Shell.isAppGrantedRoot() == true)
+        } catch (_: Throwable) {
+            false
         }
     }
 

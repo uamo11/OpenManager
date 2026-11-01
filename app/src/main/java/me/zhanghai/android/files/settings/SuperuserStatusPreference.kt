@@ -87,13 +87,20 @@ class SuperuserStatusPreference : Preference {
         val ivCornerStatus = holder.itemView.findViewById<ImageView>(R.id.ivCornerStatus)
         val tvManagerHeader = holder.itemView.findViewById<TextView>(R.id.tvManagerHeader)
 
-        currentStatus?.let { status ->
-            if (cardInner != null && flIconContainer != null && ivIcon != null &&
-                tvStatus != null && tvJailbreakTag != null && ivDfRootMini != null &&
-                ivCornerStatus != null && tvManagerHeader != null
-            ) {
+        val status = currentStatus
+        if (cardInner != null && flIconContainer != null && ivIcon != null &&
+            tvStatus != null && tvJailbreakTag != null && ivDfRootMini != null &&
+            ivCornerStatus != null && tvManagerHeader != null
+        ) {
+            if (status != null) {
                 bindStatus(
                     status, cardInner, flIconContainer, ivIcon,
+                    tvStatus, tvJailbreakTag, ivDfRootMini,
+                    tvManagerHeader, ivCornerStatus
+                )
+            } else {
+                bindDefaultGrayState(
+                    cardInner, flIconContainer, ivIcon,
                     tvStatus, tvJailbreakTag, ivDfRootMini,
                     tvManagerHeader, ivCornerStatus
                 )
@@ -105,19 +112,42 @@ class SuperuserStatusPreference : Preference {
         }
 
         scope.launch {
-            val status = SuperuserDetector.detect(context)
-            currentStatus = status
+            val detected = SuperuserDetector.detect(context)
+            currentStatus = detected
             if (cardInner != null && flIconContainer != null && ivIcon != null &&
                 tvStatus != null && tvJailbreakTag != null && ivDfRootMini != null &&
                 ivCornerStatus != null && tvManagerHeader != null
             ) {
                 bindStatus(
-                    status, cardInner, flIconContainer, ivIcon,
+                    detected, cardInner, flIconContainer, ivIcon,
                     tvStatus, tvJailbreakTag, ivDfRootMini,
                     tvManagerHeader, ivCornerStatus
                 )
             }
         }
+    }
+
+    private fun bindDefaultGrayState(
+        cardInner: View,
+        flIconContainer: View,
+        ivIcon: ImageView,
+        tvStatus: TextView,
+        tvJailbreakTag: TextView,
+        ivDfRootMini: ImageView,
+        tvManagerHeader: TextView,
+        ivCornerStatus: ImageView
+    ) {
+        cardInner.setBackgroundResource(R.drawable.bg_superuser_card_gray)
+        flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_gray)
+        ivIcon.setImageResource(R.drawable.ic_shield_locked)
+        ivIcon.setColorFilter(0xFFB0BEC5.toInt(), PorterDuff.Mode.SRC_IN)
+        tvManagerHeader.visibility = View.GONE
+        tvStatus.text = "No Root"
+        tvStatus.setTextColor(0xFFE2E8F0.toInt())
+        tvJailbreakTag.visibility = View.GONE
+        ivDfRootMini.visibility = View.GONE
+        ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+        ivCornerStatus.visibility = View.VISIBLE
     }
 
     private fun bindStatus(
@@ -131,8 +161,8 @@ class SuperuserStatusPreference : Preference {
         tvManagerHeader: TextView,
         ivCornerStatus: ImageView
     ) {
-        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted || status.hasDfRoot)
-        val isShizukuOnly = status.type == SuperuserDetector.SuperuserType.SHIZUKU && !status.isRootGranted && !status.hasDfRoot && status.isShizukuReady
+        val hasRoot = status.isRootEnabledInSettings && status.isRootGranted
+        val isShizukuOnly = status.type == SuperuserDetector.SuperuserType.SHIZUKU && !status.isRootGranted && status.isShizukuReady
         val isActive = hasRoot || isShizukuOnly
 
         if (isActive) {
@@ -208,7 +238,7 @@ class SuperuserStatusPreference : Preference {
     }
 
     private fun showDetailsDialog(status: SuperuserDetector.SuperuserStatus) {
-        val hasRoot = status.isRootEnabledInSettings && (status.isRootGranted || status.hasDfRoot)
+        val hasRoot = status.isRootEnabledInSettings && status.isRootGranted
 
         val dialogTitle = if (hasRoot) {
             when {
@@ -244,18 +274,25 @@ class SuperuserStatusPreference : Preference {
                 }
             } else {
                 append("• Estado: No Root\n")
-                if (status.type != SuperuserDetector.SuperuserType.NONE) {
-                    append("• Gestor detectado en el sistema: ${status.type.displayName}\n")
+                if (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) {
+                    append("• Gestor instalado en el sistema: ${status.type.displayName}\n")
                     if (!status.isRootEnabledInSettings) {
                         append("• Nota: La solicitud de root está desactivada en los Ajustes de OpenManager.\n")
                     } else {
-                        append("• Nota: OpenManager no tiene permisos de root concedidos en ${status.type.displayName}.\n")
+                        append("• Nota: La app del gestor está presente, pero el dispositivo no tiene acceso root o OpenManager no tiene permisos concedidos.\n")
                     }
+                } else if (status.hasDfRoot) {
+                    append("• Herramienta instalada: DFRoot (Sin acceso root activo)\n")
                 } else {
                     append("• No se detectó ningún gestor de superusuario activo en el sistema.\n")
                 }
+                append("• Privilegios Root: No concedido\n")
                 append("• La aplicación opera en modo estándar seguro sin elevación de privilegios.\n")
             }
+            if (status.managerPackage != null) {
+                append("• Paquete del gestor: ${status.managerPackage}\n")
+            }
+        }
             if (status.managerPackage != null) {
                 append("• Paquete del gestor: ${status.managerPackage}\n")
             }

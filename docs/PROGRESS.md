@@ -378,6 +378,29 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Reemplazadas todas las llamadas a `Opcodes.getDefault()` (bloqueadas en API 20) por `ApktoolEngine.loadDexSafely` y `ApktoolEngine.getSafeOpcodes` en `DexEngine`, `JadxDecompilerEngine` y `ApktoolExecutionService`, eliminando cualquier error de incompatibilidad en DEX 038-040+.
   - Títulos dinámicos contextuales en diálogos de error de `ApktoolHelper` distinguiendo Descompilador Java vs Recompilador vs Apktool.
 
+44. **Corrección Estricta del Verificador de Superusuario en Ajustes: Eliminación de Falsos Positivos por Apps de Gestores Instaladas (`SuperuserStatusPreference.kt`, `SuperuserDetector.kt`, `LibSuFileServiceLauncher.kt`, `TerminalExpansionManager.kt`, `preference_superuser_flag.xml`, `SettingsPreferenceFragment.kt`, `SuperuserDetectorTest.kt`) (v1.9.29)**: ✅
+- **Erradicación de Falsos Positivos de Root en Ajustes**:
+  - Resuelto el problema reportado donde la presencia de APKs de gestores de superusuario (Magisk, KernelSU, APatch, DFRoot, etc.) provocaba que la tarjeta de estado en Ajustes se marcara en verde como "Working" a pesar de que el dispositivo no tuviese acceso root real.
+  - Se eliminó el atajo `|| status.hasDfRoot` en `SuperuserStatusPreference.kt`: `hasRoot` ahora exige estricta y obligatoriamente `status.isRootEnabledInSettings && status.isRootGranted`.
+  - La tarjeta de Ajustes solo se torna verde y muestra "Working" si la ejecución de `su -c id` retorna exit code 0 y confirma fehacientemente privilegios `uid=0(root)`.
+- **Comportamiento Visual y Diagnóstico Honesto sin Root**:
+  - Si una app de gestor está instalada pero el dispositivo no tiene root o OpenManager no fue autorizado:
+    - Tarjeta en gris tenue (`bg_superuser_card_gray`), icono de escudo cerrado (`ic_shield_locked`), texto `"No Root"` e icono rojo de error (`ic_circle_error_red`) en la esquina.
+    - Encabezado oculto (`GONE`) de acuerdo con la especificación de diseño ("en el nombre del manager no dirá nd").
+    - Diálogo interactivo al pulsar: aclara con total precisión que la app de gestión está instalada en el sistema pero el dispositivo opera en modo estándar seguro sin elevación de privilegios, ofreciendo un botón para abrir el gestor.
+- **Blindaje de la Carga Inicial y Evitación de Parpadeo Verde**:
+  - `preference_superuser_flag.xml`: El diseño predeterminado se configuró en modo seguro apagado (gris, "No Root", escudo bloqueado, encabezado oculto).
+  - En `SuperuserStatusPreference.kt:onBindViewHolder`, si la detección asíncrona aún no ha concluido (`currentStatus == null`), se vincula inmediatamente el estado neutro gris para evitar que el usuario perciba un falso positivo temporal de "Working".
+- **Comprobación Estricta de Binario SU en `LibSuFileServiceLauncher.kt` y `TerminalExpansionManager.kt`**:
+  - Eliminada la asunción prematura de disponibilidad de SU basada únicamente en `File(path).exists() && File(path).canExecute()`.
+  - Ahora se verifica obligatoriamente mediante ejecución protegida de `su -c id` con validación estricta de salida `uid=0(root)`.
+  - Protección de comprobaciones de archivos con `safeFileExists` para prevenir `SecurityException` bajo SELinux estricto.
+- **Refresco Automático al Reanudar en Ajustes**:
+  - En `SettingsPreferenceFragment.kt:onResume()`, se dispara automáticamente el refresco del estado de superusuario para sincronizar cualquier cambio realizado en la app del gestor o Shizuku al regresar a la aplicación.
+- **Suite de Pruebas Unitarias Ampliada (`SuperuserDetectorTest.kt`)**:
+  - Añadidas pruebas unitarias específicas validando escenarios con gestores instalados (Magisk, KernelSU, APatch, DFRoot) en dispositivos sin root, verificando que `isRootGranted == false`, `statusTag == "ESTÁNDAR"` y los subtítulos reflejan fielmente la ausencia de privilegios concedidos.
+
+
 
 
 

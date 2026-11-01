@@ -237,6 +237,64 @@ class SuperuserDetectorTest {
     }
 
     @Test
+    fun testMagiskAppInstalledWithoutRootAccess() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.MAGISK,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = false,
+            suVersion = null,
+            managerPackage = "com.topjohnwu.magisk",
+            detectedBinaryPath = "/data/adb/magisk"
+        )
+
+        assertEquals("Magisk (No autorizado)", status.title)
+        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("Gestor instalado pero permiso no concedido", status.subtitle)
+        assertFalse(status.isRootGranted)
+        assertFalse(status.hasDfRoot)
+        assertFalse(status.isShizukuReady)
+    }
+
+    @Test
+    fun testKernelSuAppInstalledWithoutRootAccess() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.KERNEL_SU,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = false,
+            suVersion = null,
+            managerPackage = "me.weishu.kernelsu",
+            detectedBinaryPath = "/dev/kernelsu"
+        )
+
+        assertEquals("KernelSU (No autorizado)", status.title)
+        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("Gestor instalado pero permiso no concedido", status.subtitle)
+        assertFalse(status.isRootGranted)
+    }
+
+    @Test
+    fun testApatchAppInstalledWithoutRootAccess() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.APATCH,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = false,
+            suVersion = null,
+            managerPackage = "me.bmax.apatch",
+            detectedBinaryPath = "/dev/apatch"
+        )
+
+        assertEquals("APatch (No autorizado)", status.title)
+        assertEquals("ESTÁNDAR", status.statusTag)
+        assertFalse(status.isRootGranted)
+    }
+
+    @Test
     fun testNewIconResourcesAndNoneType() {
         assertEquals(R.drawable.ic_shield_locked, SuperuserDetector.SuperuserType.NONE.iconRes)
         assertTrue(R.drawable.ic_check_circle_green != 0)
