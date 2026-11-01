@@ -187,11 +187,18 @@ object AxmlDecoder {
     }
 
     private fun parseStringPool(buffer: ByteBuffer, chunkPos: Int, chunkSize: Int): List<String> {
+        val bytes = buffer.array()
+        if (chunkPos + 28 > bytes.size) return emptyList()
+
         val stringCount = buffer.getInt(chunkPos + 8)
         val styleCount = buffer.getInt(chunkPos + 12)
         val flags = buffer.getInt(chunkPos + 16)
         val stringsStart = chunkPos + buffer.getInt(chunkPos + 20)
         val isUtf8 = (flags and (1 shl 8)) != 0
+
+        if (stringCount <= 0 || stringCount > 500000) return emptyList()
+        if (chunkPos + 28 + stringCount * 4 > bytes.size) return emptyList()
+        if (stringsStart < 0 || stringsStart > bytes.size) return emptyList()
 
         val stringOffsets = IntArray(stringCount)
         for (i in 0 until stringCount) {
@@ -199,28 +206,39 @@ object AxmlDecoder {
         }
 
         val result = ArrayList<String>(stringCount)
-        val bytes = buffer.array()
 
         for (i in 0 until stringCount) {
             val offset = stringsStart + stringOffsets[i]
-            if (offset >= bytes.size) {
+            if (offset < 0 || offset >= bytes.size) {
                 result.add("")
                 continue
             }
             if (isUtf8) {
                 // Skip character length byte(s)
                 var pos = offset
+                if (pos >= bytes.size) {
+                    result.add("")
+                    continue
+                }
                 if ((bytes[pos].toInt() and 0x80) != 0) pos += 2 else pos += 1
+                if (pos >= bytes.size) {
+                    result.add("")
+                    continue
+                }
                 // Byte length
                 val len: Int
                 if ((bytes[pos].toInt() and 0x80) != 0) {
+                    if (pos + 1 >= bytes.size) {
+                        result.add("")
+                        continue
+                    }
                     len = ((bytes[pos].toInt() and 0x7F) shl 8) or (bytes[pos + 1].toInt() and 0xFF)
                     pos += 2
                 } else {
                     len = bytes[pos].toInt() and 0xFF
                     pos += 1
                 }
-                val str = if (pos + len <= bytes.size) {
+                val str = if (pos + len <= bytes.size && len >= 0) {
                     String(bytes, pos, len, StandardCharsets.UTF_8)
                 } else {
                     ""
@@ -229,6 +247,10 @@ object AxmlDecoder {
             } else {
                 // UTF-16LE
                 var pos = offset
+                if (pos + 1 >= bytes.size) {
+                    result.add("")
+                    continue
+                }
                 val charLen: Int
                 val b0 = bytes[pos].toInt() and 0xFF
                 val b1 = bytes[pos + 1].toInt() and 0xFF
@@ -240,7 +262,7 @@ object AxmlDecoder {
                     pos += 2
                 }
                 val byteLen = charLen * 2
-                val str = if (pos + byteLen <= bytes.size) {
+                val str = if (pos + byteLen <= bytes.size && byteLen >= 0) {
                     String(bytes, pos, byteLen, StandardCharsets.UTF_16LE)
                 } else {
                     ""

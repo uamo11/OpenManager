@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Process
 import com.topjohnwu.superuser.Shell
 import me.zhanghai.android.files.filelist.ApkInstallHelper
+import me.zhanghai.android.files.provider.root.ShizukuShell
 import me.zhanghai.android.files.util.escapeShellArg
 import java.io.BufferedReader
 import java.io.File
@@ -102,12 +103,22 @@ object RunningAppsLoader {
                 val output = Shell.cmd("dumpsys activity processes").exec().out
                 parseDumpsysOutput(output, installedMap, processMap, pm)
             } catch (_: Throwable) {}
+        } else if (ApkInstallHelper.isShizukuAvailable()) {
+            try {
+                val res = ShizukuShell.exec("dumpsys activity processes")
+                if (res.isSuccess && res.out.isNotEmpty()) {
+                    parseDumpsysOutput(res.out.lines(), installedMap, processMap, pm)
+                }
+            } catch (_: Throwable) {}
         }
 
         // 2. Tier 2: ps -A or ps command
         try {
             val psOutput = if (ApkInstallHelper.isRootAvailable()) {
                 Shell.cmd("ps -A -o PID,PPID,USER,RSS,STAT,NAME").exec().out
+            } else if (ApkInstallHelper.isShizukuAvailable()) {
+                val res = ShizukuShell.exec("ps -A -o PID,PPID,USER,RSS,STAT,NAME")
+                if (res.isSuccess && res.out.isNotEmpty()) res.out.lines() else emptyList()
             } else {
                 val p = Runtime.getRuntime().exec(arrayOf("ps", "-A"))
                 p.inputStream.bufferedReader().use { it.readLines() }
@@ -405,6 +416,9 @@ object RunningAppsLoader {
         if (ApkInstallHelper.isRootAvailable()) {
             val res = Shell.cmd("kill -9 $pid").exec()
             if (res.isSuccess) return true
+        } else if (ApkInstallHelper.isShizukuAvailable()) {
+            val res = ShizukuShell.exec("kill -9 $pid")
+            if (res.isSuccess) return true
         }
         return true
     }
@@ -416,6 +430,9 @@ object RunningAppsLoader {
         if (packageName.isBlank()) return false
         if (ApkInstallHelper.isRootAvailable()) {
             val res = Shell.cmd("am force-stop ${packageName.escapeShellArg()}").exec()
+            return res.isSuccess
+        } else if (ApkInstallHelper.isShizukuAvailable()) {
+            val res = ShizukuShell.exec("am force-stop ${packageName.escapeShellArg()}")
             return res.isSuccess
         }
         return false

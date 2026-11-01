@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.security
 
+import me.zhanghai.android.files.file.AxmlDecoder
 import me.zhanghai.android.files.filelist.ApktoolPaths
 import me.zhanghai.android.files.util.ShellEscapeUtils
 import me.zhanghai.android.files.util.escapeShellArg
@@ -15,6 +16,24 @@ import org.junit.Test
 import java.io.File
 
 class SecurityHardeningTest {
+
+    @Test
+    fun testAxmlDecoderSafetyOnCorruptedInput() {
+        // Empty bytes
+        assertFalse(AxmlDecoder.isAxml(byteArrayOf()))
+        assertEquals("", AxmlDecoder.decode(byteArrayOf()))
+
+        // Plain text XML should pass through
+        val plainXml = "<manifest package=\"com.test\" />"
+        assertFalse(AxmlDecoder.isAxml(plainXml.toByteArray(Charsets.UTF_8)))
+        assertEquals(plainXml, AxmlDecoder.decode(plainXml.toByteArray(Charsets.UTF_8)))
+
+        // Truncated header with AXML magic
+        val truncatedAxml = byteArrayOf(0x03, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00)
+        assertTrue(AxmlDecoder.isAxml(truncatedAxml))
+        val decoded = AxmlDecoder.decode(truncatedAxml)
+        assertTrue(decoded.contains("<?xml"))
+    }
 
     @Test
     fun testShellArgumentEscaping() {

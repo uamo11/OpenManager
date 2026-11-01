@@ -317,4 +317,47 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Solucionado el bug de sobrescritura al escribir dígitos octales (`777`) en `octalEdit`, añadido filtrado octal estricto (`digits="01234567"`), selección automática al enfocar y botones rápidos de presets (`777`, `755`, `644`, `600`).
   - Aplicación híbrida (`Os.chmod`, `File.setExecutable`, `FileJobService.setMode`, shell root `chmod` y persistencia en rutas FUSE) con actualización instantánea en pantalla.
 
+39. **Selección Táctil Inmediata, Barra Inferior de 5 Iconos y Retorno Elástico con Filtro Azul (`FileListFragment.kt`, `file_list_fragment.xml`, `RangeSelectionHelper.kt`, `item_file.xml`) (v1.9.25)**: ✅
+- **Barra de Selección de 5 Iconos Estilo MT Manager**:
+  - Al seleccionar uno o más elementos, emerge la barra flotante inferior con 5 acciones instantáneas: Seleccionar Todo, Invertir Selección, Cancelar Selección (`✕`), Operación Inversa y Selección por Rango.
+  - La acción de cancelar deselecciona limpiamente todos los elementos y restaura el estado normal.
+- **Swipe de Selección de Respuesta Inmediata y Filtro Azul**:
+  - Deslizamiento lateral a la derecha optimizado para activación instantánea sin retrasos ni retardo de umbral.
+  - Al deslizar, el elemento gira dinámicamente y regresa con efecto elástico (`springBack`) a su posición original manteniendo el tinte azul de selección activa.
+
+40. **Optimización de Carga de Archivos en Rutas Normales, Root y Almacenamiento Secundario y Espacio Estable en Drawer (`FileListLiveData.kt`, `DeviceStorage.kt`, `SecondaryStorageVolume.kt`, `NavigationListAdapter.kt`) (v1.9.24)**: ✅
+- **Rendimiento Acelerado en Carga de Directorios**:
+  - Optimizado el flujo de consulta en tres niveles (NIO ➔ File ➔ Shell sin privilegios) con caché reactivo para carga instantánea de carpetas con miles de elementos.
+  - Detección y lectura estable de rutas `/` sin permisos root, evitando bloqueos por excepciones de acceso denegado.
+- **Espacio Estable de MicroSD / Almacenamiento Secundario en Menú Lateral**:
+  - Consulta segura de espacio libre/total con fallbacks en `StatFs` y llamadas shell `df` blindadas para mostrar de forma estable el almacenamiento de la tarjeta SD sin parpadeos ni valores nulos.
+
+41. **Renombrado a View Apps, Gestor de Procesos en Ejecución y Visor de Componentes Estilo App Manager (`RunningAppsActivity.kt`, `RunningAppsLoader.kt`, `AppDetailsViewerHelper.kt`, `InstalledAppsActivity.kt`, `activity_running_apps.xml`, `dialog_app_components_viewer.xml`) (v1.9.26)**: ✅
+- **Renombrado de "Extract APK" a "View Apps"**:
+  - Actualizado el acceso en el menú principal y barra superior a "View Apps" con diseño profesional.
+- **Nueva Actividad de Apps en Ejecución (Running Apps)**:
+  - Monitor en tiempo real de RAM total, usada y libre con barra de progreso porcentual.
+  - Listado de procesos con PID, PPID, UID, usuario, hilos, consumo de memoria RSS y estado (R/S).
+  - Pestañas de filtrado (Usuario / Sistema), ordenamiento por memoria, nombre y PID, y buscador reactivo.
+  - Diálogo de detalles con acciones para matar proceso (`kill -9`) y forzar detención de app (`am force-stop`).
+- **Visor Avanzado de Componentes y AndroidManifest.xml (Inspirado en App Manager)**:
+  - Exploración estructurada de actividades, servicios, receptores de difusión (broadcast receivers), proveedores de contenido y permisos otorgados/denegados.
+  - Diálogo de visor de `AndroidManifest.xml` con resaltado y botón de copiado.
+
+42. **Solución Definitiva a `UnsupportedOperationException` en Apktool/JADX, Soporte Shizuku para Procesos y Lanzamiento Privilegiado de Componentes (`ApktoolExecutionService.kt`, `JadxDecompilerEngine.kt`, `AxmlDecoder.kt`, `RunningAppsLoader.kt`, `AppDetailsViewerHelper.kt`) (v1.9.27)**: ✅
+- **Solución Raíz a `Apktool error: UnsupportedOperationException`**:
+  - JADX de escritorio invoca `ServiceLoader.load` e intenta usar `java.nio.file.FileSystems.getDefault().getPath(...)`, lo cual en Android ART arroja `UnsupportedOperationException: Path not associated with default file system`.
+  - En `JadxDecompilerEngine.kt`, se garantizó que en runtime Android (`Build.VERSION.SDK_INT > 0`) se ejecute directamente el motor nativo Dexlib2 + Baksmali con protecciones clase por clase.
+  - En `ApktoolExecutionService.kt`, se añadieron capturas de excepción individuales por entrada ZIP para que un archivo atípico no interrumpa la extracción del resto del APK.
+  - Mensajes de error contextualizados y comprensibles en español ante cualquier contingencia técnica, con botón "Copiar" al portapapeles.
+- **Gestión Privilegiada de Procesos con Shizuku (`RunningAppsLoader.kt`)**:
+  - Si el dispositivo no tiene Root pero cuenta con Shizuku autorizado, `killProcess` y `forceStopApp` se ejecutan a través de `ShizukuShell.exec` (`kill -9 $pid` y `am force-stop $pkg`).
+  - Detección de procesos mediante `dumpsys activity processes` y `ps -A` enriquecida con Shizuku para dispositivos Android 11 a 15.
+- **Lanzamiento de Actividades No Exportadas y Decodificación de Manifest Protegidos (`AppDetailsViewerHelper.kt`)**:
+  - Al iniciar actividades no exportadas desde el visor de componentes, las excepciones `SecurityException` se rescatan automáticamente ejecutando `am start -n` mediante Root o Shizuku.
+  - Al inspeccionar el `AndroidManifest.xml` de aplicaciones de sistema o con APK no legible directamente, se realiza una copia temporal a `cacheDir` con permisos elevados antes de la decodificación.
+- **Blindaje Estricto de Strings y Offsets en `AxmlDecoder.kt`**:
+  - Verificación exhaustiva de límites en `parseStringPool` contra tamaños de buffer y recuentos de cadenas negativos o anómalos.
+
+
 

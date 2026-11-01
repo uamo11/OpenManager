@@ -152,7 +152,22 @@ class ApktoolExecutionService : Service() {
                 }
                 val detail = rootCause.localizedMessage ?: rootCause.message ?: t.localizedMessage ?: t.message
                 val simpleName = rootCause.javaClass.simpleName
-                errorMsg = if (!detail.isNullOrBlank()) {
+                val userFriendlyHint = when {
+                    rootCause is java.lang.UnsupportedOperationException -> "Operación no soportada por el sistema o formato incompatible"
+                    rootCause is java.io.FileNotFoundException -> "Archivo o directorio no encontrado"
+                    rootCause is java.util.zip.ZipException -> "Archivo APK corrupto o protegido con compresión incompatible"
+                    rootCause is java.lang.OutOfMemoryError -> "Memoria insuficiente para procesar la aplicación"
+                    else -> null
+                }
+                errorMsg = if (userFriendlyHint != null) {
+                    if (!detail.isNullOrBlank()) {
+                        "$userFriendlyHint ($simpleName: $detail)"
+                    } else {
+                        val frame = rootCause.stackTrace.firstOrNull()
+                        val loc = if (frame != null) "${frame.className.substringAfterLast('.')}.${frame.methodName}(L:${frame.lineNumber})" else "execute"
+                        "$userFriendlyHint ($simpleName en $loc)"
+                    }
+                } else if (!detail.isNullOrBlank()) {
                     "$simpleName: $detail"
                 } else {
                     val frame = rootCause.stackTrace.firstOrNull()
@@ -243,54 +258,60 @@ class ApktoolExecutionService : Service() {
                     }
 
                     if (!entry.isDirectory && !name.startsWith("META-INF/")) {
-                        val targetFile = File(projectFile, name).canonicalFile
-                        if (!targetFile.canonicalPath.startsWith(canonicalProjectDir)) {
-                            // Defensive protection: Skip entry attempting Zip Slip path traversal
-                            zipIn.closeEntry()
-                            entry = zipIn.nextEntry
-                            continue
-                        }
-                        targetFile.parentFile?.mkdirs()
+                        try {
+                            val targetFile = File(projectFile, name).canonicalFile
+                            if (!targetFile.canonicalPath.startsWith(canonicalProjectDir)) {
+                                // Defensive protection: Skip entry attempting Zip Slip path traversal
+                                zipIn.closeEntry()
+                                entry = zipIn.nextEntry
+                                continue
+                            }
+                            targetFile.parentFile?.mkdirs()
 
-                        val baos = ByteArrayOutputStream()
-                        var bytesRead: Int
-                        while (zipIn.read(buffer).also { bytesRead = it } != -1) {
-                            if (isCancelled.get()) throw InterruptedException()
-                            baos.write(buffer, 0, bytesRead)
-                        }
-                        val entryBytes = baos.toByteArray()
+                            val baos = ByteArrayOutputStream()
+                            var bytesRead: Int
+                            while (zipIn.read(buffer).also { bytesRead = it } != -1) {
+                                if (isCancelled.get()) throw InterruptedException()
+                                baos.write(buffer, 0, bytesRead)
+                            }
+                            val entryBytes = baos.toByteArray()
 
-                        if (name == "AndroidManifest.xml" && AxmlDecoder.isAxml(entryBytes)) {
-                            val decoded = try {
-                                AxmlDecoder.decode(entryBytes)
-                            } catch (_: Throwable) {
-                                null
-                            }
-                            if (decoded != null) {
-                                FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                                val origFile = File(projectFile, "AndroidManifest.xml.orig")
-                                FileOutputStream(origFile).use { it.write(entryBytes) }
-                            } else {
-                                FileOutputStream(targetFile).use { it.write(entryBytes) }
-                            }
-                        } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
-                            val decoded = try {
-                                AxmlDecoder.decode(entryBytes)
-                            } catch (_: Throwable) {
-                                null
-                            }
-                            if (decoded != null) {
-                                FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
-                                val origFile = File(projectFile, "$name.orig").canonicalFile
-                                if (origFile.canonicalPath.startsWith(canonicalProjectDir)) {
-                                    origFile.parentFile?.mkdirs()
+                            if (name == "AndroidManifest.xml" && AxmlDecoder.isAxml(entryBytes)) {
+                                val decoded = try {
+                                    AxmlDecoder.decode(entryBytes)
+                                } catch (_: Throwable) {
+                                    null
+                                }
+                                if (decoded != null) {
+                                    FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
+                                    val origFile = File(projectFile, "AndroidManifest.xml.orig")
                                     FileOutputStream(origFile).use { it.write(entryBytes) }
+                                } else {
+                                    FileOutputStream(targetFile).use { it.write(entryBytes) }
+                                }
+                            } else if (name.startsWith("res/") && name.endsWith(".xml") && AxmlDecoder.isAxml(entryBytes)) {
+                                val decoded = try {
+                                    AxmlDecoder.decode(entryBytes)
+                                } catch (_: Throwable) {
+                                    null
+                                }
+                                if (decoded != null) {
+                                    FileOutputStream(targetFile).use { it.write(decoded.toByteArray(Charsets.UTF_8)) }
+                                    val origFile = File(projectFile, "$name.orig").canonicalFile
+                                    if (origFile.canonicalPath.startsWith(canonicalProjectDir)) {
+                                        origFile.parentFile?.mkdirs()
+                                        FileOutputStream(origFile).use { it.write(entryBytes) }
+                                    }
+                                } else {
+                                    FileOutputStream(targetFile).use { it.write(entryBytes) }
                                 }
                             } else {
                                 FileOutputStream(targetFile).use { it.write(entryBytes) }
                             }
-                        } else {
-                            FileOutputStream(targetFile).use { it.write(entryBytes) }
+                        } catch (ie: InterruptedException) {
+                            throw ie
+                        } catch (entryErr: Throwable) {
+                            entryErr.printStackTrace()
                         }
                     }
                     zipIn.closeEntry()

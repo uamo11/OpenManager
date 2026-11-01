@@ -30,6 +30,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.AxmlDecoder
+import com.topjohnwu.superuser.Shell
+import me.zhanghai.android.files.filelist.ApkInstallHelper
+import me.zhanghai.android.files.provider.root.ShizukuShell
+import me.zhanghai.android.files.util.escapeShellArg
 import java.io.File
 import java.util.zip.ZipFile
 
@@ -215,7 +219,23 @@ object AppDetailsViewerHelper {
                                 activity.startActivity(launchIntent)
                                 Toast.makeText(activity, "Iniciando: ${item.name.substringAfterLast('.')}", Toast.LENGTH_SHORT).show()
                             } catch (se: SecurityException) {
-                                Toast.makeText(activity, "Seguridad: Actividad privada / requiere permisos", Toast.LENGTH_LONG).show()
+                                // Try starting with elevated privileges (Root / Shizuku) for private or unexported activities
+                                var startedElevated = false
+                                val compName = "$packageName/${item.name}"
+                                val amCmd = "am start -n $compName"
+                                if (ApkInstallHelper.isRootAvailable()) {
+                                    val res = Shell.cmd(amCmd).exec()
+                                    if (res.isSuccess) startedElevated = true
+                                } else if (ApkInstallHelper.isShizukuAvailable()) {
+                                    val res = ShizukuShell.exec(amCmd)
+                                    if (res.isSuccess) startedElevated = true
+                                }
+
+                                if (startedElevated) {
+                                    Toast.makeText(activity, "Iniciando con privilegios: ${item.name.substringAfterLast('.')}", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(activity, "Seguridad: Actividad privada / requiere permisos", Toast.LENGTH_LONG).show()
+                                }
                             } catch (e: Exception) {
                                 Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                             }
@@ -297,14 +317,37 @@ object AppDetailsViewerHelper {
      * Decodes and displays AndroidManifest.xml from an APK or installed app in a dedicated viewer.
      */
     fun showManifestViewer(activity: Activity, apkFile: File, appLabel: String) {
-        if (!apkFile.exists() || !apkFile.canRead()) {
-            Toast.makeText(activity, "El archivo APK no es accesible", Toast.LENGTH_SHORT).show()
-            return
+        var effectiveApk = apkFile
+        var tempCopiedFile: File? = null
+
+        if (!effectiveApk.exists() || !effectiveApk.canRead()) {
+            // Attempt elevated copy to cacheDir if root or Shizuku available (for protected system APKs)
+            val cacheCopy = File(activity.cacheDir, "manifest_tmp_${System.currentTimeMillis()}.apk")
+            var copied = false
+            if (ApkInstallHelper.isRootAvailable()) {
+                val res = Shell.cmd("cp ${effectiveApk.absolutePath.escapeShellArg()} ${cacheCopy.absolutePath.escapeShellArg()} && chmod 644 ${cacheCopy.absolutePath.escapeShellArg()}").exec()
+                if (res.isSuccess && cacheCopy.exists() && cacheCopy.length() > 0L) {
+                    copied = true
+                }
+            } else if (ApkInstallHelper.isShizukuAvailable()) {
+                val res = ShizukuShell.exec("cp ${effectiveApk.absolutePath.escapeShellArg()} ${cacheCopy.absolutePath.escapeShellArg()} && chmod 644 ${cacheCopy.absolutePath.escapeShellArg()}")
+                if (res.isSuccess && cacheCopy.exists() && cacheCopy.length() > 0L) {
+                    copied = true
+                }
+            }
+
+            if (copied) {
+                effectiveApk = cacheCopy
+                tempCopiedFile = cacheCopy
+            } else {
+                Toast.makeText(activity, "El archivo APK no es accesible", Toast.LENGTH_SHORT).show()
+                return
+            }
         }
 
         var xmlText: String? = null
         try {
-            ZipFile(apkFile).use { zip ->
+            ZipFile(effectiveApk).use { zip ->
                 val entry = zip.getEntry("AndroidManifest.xml")
                 if (entry != null) {
                     val bytes = zip.getInputStream(entry).use { it.readBytes() }
@@ -317,6 +360,8 @@ object AppDetailsViewerHelper {
             }
         } catch (e: Exception) {
             xmlText = "// Error al decodificar AndroidManifest.xml: ${e.message}\n"
+        } finally {
+            tempCopiedFile?.delete()
         }
 
         if (xmlText.isNullOrBlank()) {
