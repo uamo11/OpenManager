@@ -1133,7 +1133,28 @@
     <string name="open_as_html_edit">Edit</string>
 
     <!-- MT Manager Features: Installed Apps, Swap Names, Split & Merge, Symlink, Export List -->
-    <string name="navigation_installed_apps">Extract APK</string>
+    <string name="navigation_installed_apps">View Apps</string>
+    <string name="navigation_running_apps">Running Apps</string>
+    <string name="running_apps_title">Running Apps</string>
+    <string name="running_apps_tab_user">User</string>
+    <string name="running_apps_tab_system">System</string>
+    <string name="running_apps_tab_all">All</string>
+    <string name="running_apps_ram_usage">RAM: %1$s / %2$s (%3$d%%)</string>
+    <string name="running_apps_ram_available">%1$s available</string>
+    <string name="running_apps_kill">Kill Process</string>
+    <string name="running_apps_kill_success">Process killed (%1$d)</string>
+    <string name="running_apps_kill_failed">Failed to kill process</string>
+    <string name="running_apps_force_stop">Force Stop</string>
+    <string name="running_apps_force_stop_success">App stopped</string>
+    <string name="running_apps_force_stop_failed">Failed to force stop</string>
+    <string name="running_apps_details">Process Details</string>
+    <string name="running_apps_app_details">App Details</string>
+    <string name="running_apps_app_settings">App Settings</string>
+    <string name="running_apps_open_app">Open App</string>
+    <string name="running_apps_empty">No running processes found</string>
+    <string name="running_apps_sort_ram">RAM Usage (Highest first)</string>
+    <string name="running_apps_sort_name">Name (A - Z)</string>
+    <string name="running_apps_sort_pid">PID (Lowest first)</string>
     <string name="user_apps">User</string>
     <string name="system_apps">System</string>
     <string name="extract_apk">Extract APK</string>

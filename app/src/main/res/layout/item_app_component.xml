@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ App Component Item Layout (App Manager Style)
+  -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="56dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:background="?selectableItemBackground">
+
+    <ImageView
+        android:id="@+id/ivComponentIcon"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:src="@drawable/description_icon_white_24dp"
+        app:tint="#64B5F6" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvComponentName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textColor="#FFFFFF"
+            android:textSize="12.5sp"
+            android:textStyle="bold"
+            tools:text="com.example.MainActivity" />
+
+        <TextView
+            android:id="@+id/tvComponentSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="#9E9E9E"
+            android:textSize="11sp"
+            tools:text="Exported: true • Permission: none" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnLaunchComponent"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginStart="8dp"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="0dp"
+        android:paddingBottom="0dp"
+        android:text="Iniciar"
+        android:textColor="#00E676"
+        android:textSize="11.5sp"
+        app:strokeColor="#00E676"
+        android:visibility="gone"
+        tools:visibility="visible" />
+</LinearLayout>

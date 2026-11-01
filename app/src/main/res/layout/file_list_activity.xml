@@ -651,7 +651,7 @@
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:layout_gravity="center"
-                            android:src="@drawable/ic_apk_extract" />
+                            android:src="@drawable/ic_apps_white_24dp" />
                     </FrameLayout>
 
                     <TextView
@@ -659,6 +659,37 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
                         android:text="@string/navigation_installed_apps"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13.5sp" />
+                </LinearLayout>
+
+                <!-- Running Apps (App Manager System) -->
+                <LinearLayout
+                    android:id="@+id/drawerItemRunningApps"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="?selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/drawer_icon_circle">
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_running_apps" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:text="@string/navigation_running_apps"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>

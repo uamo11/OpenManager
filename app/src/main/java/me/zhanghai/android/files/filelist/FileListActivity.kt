@@ -57,6 +57,7 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.about.AboutActivity
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
+import me.zhanghai.android.files.appmanager.running.RunningAppsActivity
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
@@ -357,6 +358,7 @@ class FileListActivity : AppActivity() {
                         }
                     }
                     "apps" -> startActivity(Intent(this, InstalledAppsActivity::class.java))
+                    "running", "running_apps" -> startActivity(Intent(this, RunningAppsActivity::class.java))
                     "editor" -> {
                         val sampleFile = java.io.File(filesDir, "sample_test.kt")
                         if (!sampleFile.exists()) {
@@ -604,6 +606,11 @@ class FileListActivity : AppActivity() {
         findViewById<View>(R.id.drawerItemInstalledApps)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, InstalledAppsActivity::class.java))
+        }
+
+        findViewById<View>(R.id.drawerItemRunningApps)?.setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            startActivity(Intent(this, RunningAppsActivity::class.java))
         }
 
         findViewById<View>(R.id.drawerItemTextEditor).setOnClickListener {

@@ -296,6 +296,13 @@
             android:theme="@style/Theme.MaterialFiles" />
 
         <activity
+            android:name="me.zhanghai.android.files.appmanager.running.RunningAppsActivity"
+            android:exported="false"
+            android:label="@string/navigation_running_apps"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.MaterialFiles" />
+
+        <activity
             android:name="me.zhanghai.android.files.viewer.dex.DexEditorActivity"
             android:exported="false"
             android:label="@string/dex_editor_plus_title"

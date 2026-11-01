@@ -53,6 +53,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.appmanager.AppDetailsViewerHelper
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.viewer.dex.JadxDecompilerEngine
 
@@ -328,6 +329,8 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             }
             optionsList.addAll(listOf(
                 ApkFunctionOption(getString(R.string.apk_quick_edit), R.drawable.edit_icon, Color.parseColor("#FF9800")),
+                ApkFunctionOption("Ver componentes (App Manager)", R.drawable.ic_apps_white_24dp, Color.parseColor("#42A5F5")),
+                ApkFunctionOption("Ver AndroidManifest.xml", R.drawable.description_icon_white_24dp, Color.parseColor("#FFCA28")),
                 ApkFunctionOption("AntiSplit (Fusionar Splits)", R.drawable.ic_apktool_antisplit, Color.parseColor("#FFB300")),
                 ApkFunctionOption("Descompilar APK a Java (JADX)", R.drawable.ic_open_as_code, Color.parseColor("#64B5F6")),
                 ApkFunctionOption("Descompilar APK (Apktool)", R.drawable.ic_apktool_decompile, Color.parseColor("#FFA000")),
@@ -380,6 +383,33 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             val hostActivity = requireActivity()
                             dialog.dismiss()
                             ApkQuickEditDialogFragment.show(file, hostActivity)
+                        }
+                        "Ver componentes (App Manager)" -> {
+                            dialog.dismiss()
+                            try {
+                                val apkJavaFile = file.path.toFile()
+                                AppDetailsViewerHelper.showComponentsViewer(
+                                    requireActivity(),
+                                    parsedPackageName ?: "",
+                                    file.name,
+                                    apkJavaFile
+                                )
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error al abrir componentes: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                        "Ver AndroidManifest.xml" -> {
+                            dialog.dismiss()
+                            try {
+                                val apkJavaFile = file.path.toFile()
+                                AppDetailsViewerHelper.showManifestViewer(
+                                    requireActivity(),
+                                    apkJavaFile,
+                                    file.name
+                                )
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Error al decodificar manifiesto: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
                         }
                         "AntiSplit (Fusionar Splits)" -> {
                             dialog.dismiss()

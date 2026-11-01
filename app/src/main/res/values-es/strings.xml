@@ -1029,7 +1029,28 @@
     <string name="open_as_html_edit">Editar</string>
 
     <!-- MT Manager Features: Installed Apps, Swap Names, Split & Merge, Symlink, Export List -->
-    <string name="navigation_installed_apps">Extraer APK</string>
+    <string name="navigation_installed_apps">Ver aplicaciones</string>
+    <string name="navigation_running_apps">Apps en ejecución</string>
+    <string name="running_apps_title">Apps en ejecución</string>
+    <string name="running_apps_tab_user">Usuario</string>
+    <string name="running_apps_tab_system">Sistema</string>
+    <string name="running_apps_tab_all">Todos</string>
+    <string name="running_apps_ram_usage">RAM: %1$s / %2$s (%3$d%%)</string>
+    <string name="running_apps_ram_available">%1$s disponible</string>
+    <string name="running_apps_kill">Finalizar proceso</string>
+    <string name="running_apps_kill_success">Proceso finalizado (%1$d)</string>
+    <string name="running_apps_kill_failed">No se pudo finalizar el proceso</string>
+    <string name="running_apps_force_stop">Forzar detención</string>
+    <string name="running_apps_force_stop_success">Aplicación detenida</string>
+    <string name="running_apps_force_stop_failed">Error al forzar detención</string>
+    <string name="running_apps_details">Detalles del proceso</string>
+    <string name="running_apps_app_details">Detalles de la app</string>
+    <string name="running_apps_app_settings">Ajustes de la app</string>
+    <string name="running_apps_open_app">Abrir aplicación</string>
+    <string name="running_apps_empty">No se encontraron procesos en ejecución</string>
+    <string name="running_apps_sort_ram">Uso de RAM (Mayor a menor)</string>
+    <string name="running_apps_sort_name">Nombre (A - Z)</string>
+    <string name="running_apps_sort_pid">PID (Menor a mayor)</string>
     <string name="user_apps">Usuario</string>
     <string name="system_apps">Sistema</string>
     <string name="extract_apk">Extraer APK</string>

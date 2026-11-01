@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ Running App / Process Item Layout (App Manager Style)
+  -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="68dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:background="?selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- App / Process Icon -->
+    <ImageView
+        android:id="@+id/ivProcessIcon"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:scaleType="fitCenter"
+        tools:src="@drawable/ic_running_apps" />
+
+    <!-- Process Info Container -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="14dp"
+        android:orientation="vertical">
+
+        <!-- Title Row: App Name / Process Name + State Badge -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvProcessLabel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#FFFFFF"
+                android:textSize="14.5sp"
+                android:textStyle="bold"
+                tools:text="WhatsApp" />
+
+            <TextView
+                android:id="@+id/tvProcessStateBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@drawable/badge_apks_bg"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:paddingTop="1dp"
+                android:paddingBottom="1dp"
+                android:textColor="#00E676"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                tools:text="RUNNING" />
+        </LinearLayout>
+
+        <!-- Subtitle: Process name / Package name -->
+        <TextView
+            android:id="@+id/tvProcessName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:ellipsize="end"
+            android:fontFamily="monospace"
+            android:maxLines="1"
+            android:textColor="#9E9E9E"
+            android:textSize="11.5sp"
+            tools:text="com.whatsapp" />
+
+        <!-- Details Row: PID, UID, RAM usage -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tvProcessPid"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#757575"
+                android:textSize="11sp"
+                tools:text="PID: 14820" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" • "
+                android:textColor="#555555"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/tvProcessMemory"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#42A5F5"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="142.5 MB RAM" />
+
+            <TextView
+                android:id="@+id/tvProcessUser"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="#757575"
+                android:textSize="10.5sp"
+                tools:text="u0_a210" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Context Menu Action Button -->
+    <ImageButton
+        android:id="@+id/btnProcessMenu"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="6dp"
+        android:background="?selectableItemBackgroundBorderless"
+        android:src="@drawable/more_icon_white_24dp"
+        app:tint="#B0BEC5" />
+</LinearLayout>

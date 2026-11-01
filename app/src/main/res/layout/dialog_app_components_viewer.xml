@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ App Components & Permissions Viewer Dialog (App Manager Style)
+  -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#191919">
+
+    <!-- Header Toolbar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:gravity="center_vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:background="#222222">
+
+        <ImageView
+            android:id="@+id/ivDialogAppIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            tools:src="@drawable/ic_apps_white_24dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvDialogAppTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                tools:text="WhatsApp" />
+
+            <TextView
+                android:id="@+id/tvDialogAppSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="#888888"
+                android:textSize="11sp"
+                tools:text="com.whatsapp" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnDialogClose"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Cerrar"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+
+    <!-- TabLayout: Actividades | Servicios | Receptores | Proveedores | Permisos -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/tabLayoutComponents"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:background="#1F1F1F"
+        app:tabIndicatorColor="#2196F3"
+        app:tabIndicatorHeight="2dp"
+        app:tabMode="scrollable"
+        app:tabSelectedTextColor="#2196F3"
+        app:tabTextColor="#9E9E9E" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#2E2E2E" />
+
+    <!-- Search filter -->
+    <androidx.appcompat.widget.SearchView
+        android:id="@+id/searchViewComponents"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:background="#161616"
+        app:iconifiedByDefault="false"
+        app:queryHint="Filtrar componentes..." />
+
+    <!-- Components List -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvComponents"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scrollbars="vertical" />
+
+        <TextView
+            android:id="@+id/tvEmptyComponents"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="No se encontraron elementos en esta categoría"
+            android:textColor="#757575"
+            android:textSize="13sp"
+            android:visibility="gone" />
+    </FrameLayout>
+</LinearLayout>

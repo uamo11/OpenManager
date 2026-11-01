@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ Process Details Dialog (App Manager Style)
+  -->
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#1E1E1E">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingTop="18dp"
+        android:paddingBottom="18dp">
+
+        <!-- Header: Icon, Name, Process -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="14dp">
+
+            <ImageView
+                android:id="@+id/dialogProcessIcon"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:scaleType="fitCenter"
+                tools:src="@drawable/ic_running_apps" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/dialogProcessLabel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FFFFFF"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    tools:text="WhatsApp" />
+
+                <TextView
+                    android:id="@+id/dialogProcessName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="monospace"
+                    android:textColor="#81D4FA"
+                    android:textSize="12sp"
+                    tools:text="com.whatsapp" />
+
+                <TextView
+                    android:id="@+id/dialogProcessState"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:background="@drawable/badge_apks_bg"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:paddingTop="1dp"
+                    android:paddingBottom="1dp"
+                    android:textColor="#00E676"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    tools:text="RUNNING (State: R)" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#2E2E2E" />
+
+        <!-- Process Metrics Details Table -->
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp">
+
+            <!-- PID & PPID -->
+            <TableRow android:paddingVertical="3dp">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="PID / PPID:"
+                    android:textColor="#888888"
+                    android:textSize="12.5sp" />
+                <TextView
+                    android:id="@+id/dialogTvPidPpid"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    tools:text="14820 / 1205" />
+            </TableRow>
+
+            <!-- Memory RSS -->
+            <TableRow android:paddingVertical="3dp">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="Memoria RAM:"
+                    android:textColor="#888888"
+                    android:textSize="12.5sp" />
+                <TextView
+                    android:id="@+id/dialogTvMemory"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:textColor="#42A5F5"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    tools:text="142.5 MB (Resident VmRSS)" />
+            </TableRow>
+
+            <!-- UID & User -->
+            <TableRow android:paddingVertical="3dp">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="UID / Usuario:"
+                    android:textColor="#888888"
+                    android:textSize="12.5sp" />
+                <TextView
+                    android:id="@+id/dialogTvUidUser"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    tools:text="10183 (u0_a183)" />
+            </TableRow>
+
+            <!-- Threads -->
+            <TableRow android:paddingVertical="3dp">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="Hilos activos:"
+                    android:textColor="#888888"
+                    android:textSize="12.5sp" />
+                <TextView
+                    android:id="@+id/dialogTvThreads"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    tools:text="32 hilos" />
+            </TableRow>
+
+            <!-- SELinux Context -->
+            <TableRow android:paddingVertical="3dp">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="SELinux:"
+                    android:textColor="#888888"
+                    android:textSize="12.5sp" />
+                <TextView
+                    android:id="@+id/dialogTvSelinux"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:textColor="#AAAAAA"
+                    android:textSize="11.5sp"
+                    tools:text="u:r:untrusted_app:s0:c183,c256" />
+            </TableRow>
+
+            <!-- Command line -->
+            <TableRow android:paddingVertical="3dp">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="Línea de comandos:"
+                    android:textColor="#888888"
+                    android:textSize="12.5sp" />
+                <TextView
+                    android:id="@+id/dialogTvCmdline"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:textColor="#B0BEC5"
+                    android:textSize="11.5sp"
+                    tools:text="com.whatsapp" />
+            </TableRow>
+        </TableLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#2E2E2E" />
+
+        <!-- Actions List -->
+        <!-- 1. Finalizar proceso (Kill) -->
+        <LinearLayout
+            android:id="@+id/btnDialogKillProcess"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/delete_icon_white_24dp"
+                app:tint="#F44336" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="Finalizar proceso (kill -9)"
+                android:textColor="#FF5252"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- 2. Forzar detención (Force Stop) -->
+        <LinearLayout
+            android:id="@+id/btnDialogForceStop"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/stop_icon_white_24dp"
+                app:tint="#FF9800" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="Forzar detención de la aplicación"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 3. Ver detalles de la app (App Manager) -->
+        <LinearLayout
+            android:id="@+id/btnDialogAppDetails"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/ic_apps_white_24dp"
+                app:tint="#42A5F5" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="Ver detalles de la aplicación (App Manager)"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 4. Abrir Ajustes de la app en el sistema -->
+        <LinearLayout
+            android:id="@+id/btnDialogAppSettings"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/settings_icon_white_24dp"
+                app:tint="#80CBC4" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="Ajustes de la aplicación"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 5. Abrir / Ejecutar app -->
+        <LinearLayout
+            android:id="@+id/btnDialogLaunchApp"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/exit_to_app_icon_white_24dp"
+                app:tint="#00E676" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="Abrir aplicación"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 6. Copiar info del proceso -->
+        <LinearLayout
+            android:id="@+id/btnDialogCopyProcessInfo"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/copy_icon_white_24dp"
+                app:tint="#B0BEC5" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="Copiar información del proceso"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

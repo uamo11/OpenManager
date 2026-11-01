@@ -139,6 +139,10 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG selection_bar" \
     "17_selection_bottom_bar.png" "Selection Bottom Bar with 5 Icon Buttons"
 
+# 18. Running Apps / Process Manager (App Manager Style)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG running_apps" \
+    "18_running_apps_manager.png" "Running Apps / Process Manager"
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt

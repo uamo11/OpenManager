@@ -47,7 +47,10 @@ import me.zhanghai.android.files.databinding.ActivityInstalledAppsBinding
 import me.zhanghai.android.files.databinding.DialogInstalledAppDetailsBinding
 import me.zhanghai.android.files.databinding.InstalledAppItemBinding
 import me.zhanghai.android.files.file.fileProviderUri
+import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.filelist.ApkInstallHelper
+import me.zhanghai.android.files.filelist.ApkQuickEditDialogFragment
+import me.zhanghai.android.files.filelist.ApktoolHelper
 import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.file.MimeType
@@ -347,6 +350,18 @@ class InstalledAppsActivity : AppActivity() {
         }
     }
 
+    private var hasCheckedInitialTarget = false
+
+    private fun checkInitialTargetPackage() {
+        if (hasCheckedInitialTarget) return
+        val targetPkg = intent.getStringExtra("package_name") ?: return
+        hasCheckedInitialTarget = true
+        val found = allApps.find { it.packageName == targetPkg }
+        if (found != null) {
+            showAppDetails(found)
+        }
+    }
+
     private fun filterApps() {
         displayedApps.clear()
         val query = searchQuery.trim().lowercase()
@@ -364,6 +379,7 @@ class InstalledAppsActivity : AppActivity() {
 
         adapter.notifyDataSetChanged()
         binding.emptyText.visibility = if (displayedApps.isEmpty()) View.VISIBLE else View.GONE
+        checkInitialTargetPackage()
     }
 
     private fun showSortDialog() {
@@ -470,6 +486,36 @@ class InstalledAppsActivity : AppActivity() {
             } else {
                 Toast.makeText(this, "Esta aplicación no tiene interfaz ejecutable", Toast.LENGTH_SHORT).show()
             }
+        }
+
+        // 4b. Ver Componentes (App Manager Style)
+        dialogBinding.btnActionViewComponents.setOnClickListener {
+            dialog.dismiss()
+            AppDetailsViewerHelper.showComponentsViewer(this, app.packageName, app.label, File(app.sourceDir))
+        }
+
+        // 4c. Ver AndroidManifest.xml decodificado
+        dialogBinding.btnActionViewManifest.setOnClickListener {
+            dialog.dismiss()
+            AppDetailsViewerHelper.showManifestViewer(this, File(app.sourceDir), app.label)
+        }
+
+        // 4d. Edición Rápida (Quick Edit)
+        dialogBinding.btnActionQuickEdit.setOnClickListener {
+            dialog.dismiss()
+            val apkFile = File(app.sourceDir)
+            val fileItem = Paths.get(apkFile.absolutePath).createFallbackFileItem(apkFile)
+            if (fileItem != null) {
+                ApkQuickEditDialogFragment.show(fileItem, this)
+            } else {
+                Toast.makeText(this, "No se pudo preparar el APK para edición", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // 4e. Descompilar a Java (JADX)
+        dialogBinding.btnActionDecompileJava.setOnClickListener {
+            dialog.dismiss()
+            ApktoolHelper.decompileJava(this, Paths.get(app.sourceDir))
         }
 
         // 5. Ajustes de la aplicación

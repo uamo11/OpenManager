@@ -24,6 +24,7 @@ import me.zhanghai.android.files.file.JavaFile
 import me.zhanghai.android.files.file.asFileSize
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
+import me.zhanghai.android.files.appmanager.running.RunningAppsActivity
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.settings.SettingsActivity
@@ -365,8 +366,12 @@ private class BookmarkDirectoryItem(
 private val menuItems: List<NavigationItem>
     get() = listOf(
         IntentMenuItem(
-            R.drawable.ic_apk_extract, R.string.navigation_installed_apps,
+            R.drawable.ic_apps_white_24dp, R.string.navigation_installed_apps,
             InstalledAppsActivity::class.createIntent()
+        ),
+        IntentMenuItem(
+            R.drawable.ic_running_apps, R.string.navigation_running_apps,
+            RunningAppsActivity::class.createIntent()
         ),
         IntentMenuItem(
             R.drawable.terminal_icon_white_24dp, R.string.navigation_terminal,
