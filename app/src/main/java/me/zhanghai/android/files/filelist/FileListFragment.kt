@@ -488,6 +488,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 color = Color.parseColor("#1565C0")
                 isAntiAlias = true
             }
+            private var triggeredInCurrentSwipe = false
+            private var swipingPosition = RecyclerView.NO_POSITION
 
             override fun onMove(
                 recyclerView: RecyclerView,
@@ -511,13 +513,19 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val position = viewHolder.bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
-                    handleSwipeToSelect(position)
+                    if (!triggeredInCurrentSwipe || swipingPosition != position) {
+                        handleSwipeToSelect(position)
+                    } else {
+                        adapter.notifyItemChanged(position)
+                    }
                 }
+                triggeredInCurrentSwipe = false
+                swipingPosition = RecyclerView.NO_POSITION
             }
 
-            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.18f
+            override fun getSwipeThreshold(viewHolder: RecyclerView.ViewHolder): Float = 0.08f
 
-            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = defaultValue * 0.4f
+            override fun getSwipeEscapeVelocity(defaultValue: Float): Float = defaultValue * 0.2f
 
             override fun onChildDraw(
                 c: Canvas,
@@ -528,7 +536,25 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 actionState: Int,
                 isCurrentlyActive: Boolean
             ) {
-                val maxDx = recyclerView.width * 0.35f
+                val density = recyclerView.resources.displayMetrics.density
+                val triggerDxPx = 22f * density
+                val maxDx = 32f * density
+                val position = viewHolder.bindingAdapterPosition
+
+                if (isCurrentlyActive && position != RecyclerView.NO_POSITION) {
+                    if (swipingPosition != position) {
+                        swipingPosition = position
+                        triggeredInCurrentSwipe = false
+                    }
+                    if (!triggeredInCurrentSwipe && dX >= triggerDxPx) {
+                        triggeredInCurrentSwipe = true
+                        handleSwipeToSelect(position)
+                    }
+                } else if (!isCurrentlyActive && dX <= 0f) {
+                    triggeredInCurrentSwipe = false
+                    swipingPosition = RecyclerView.NO_POSITION
+                }
+
                 val clampedDx = dX.coerceIn(0f, maxDx)
                 if (clampedDx > 0f) {
                     val itemView = viewHolder.itemView
@@ -549,6 +575,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             ) {
                 super.clearView(recyclerView, viewHolder)
                 viewHolder.itemView.translationX = 0f
+                triggeredInCurrentSwipe = false
+                swipingPosition = RecyclerView.NO_POSITION
             }
         }
         ItemTouchHelper(swipeSelectionCallback).attachToRecyclerView(binding.recyclerView)

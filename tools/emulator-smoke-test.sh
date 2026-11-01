@@ -135,6 +135,10 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal" \
     "16_terminal_zoom_and_keys.png" "Enhanced Terminal with Zoom Controls & Extra Keys"
 
+# 17. Selection Bottom Bar with 5 Icon Buttons
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG selection_bar" \
+    "17_selection_bottom_bar.png" "Selection Bottom Bar with 5 Icon Buttons"
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt

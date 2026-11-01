@@ -108,11 +108,11 @@ class FileListActivity : AppActivity() {
     private lateinit var btnBottomSwap: ImageButton
     private lateinit var btnBottomUp: ImageButton
 
-    private lateinit var btnSelectAll: TextView
-    private lateinit var btnCopyOpposite: TextView
-    private lateinit var btnMoveOpposite: TextView
-    private lateinit var btnDeleteSelection: TextView
-    private lateinit var btnMoreSelection: TextView
+    private lateinit var btnSelectAll: ImageButton
+    private lateinit var btnClearSelection: ImageButton
+    private lateinit var btnInvertSelection: ImageButton
+    private lateinit var btnCopyOpposite: ImageButton
+    private lateinit var btnMoreSelection: ImageButton
 
     private lateinit var progressRootStorage: ProgressBar
     private lateinit var tvRootStorageStats: TextView
@@ -201,9 +201,9 @@ class FileListActivity : AppActivity() {
         btnBottomUp = findViewById(R.id.btnBottomUp)
 
         btnSelectAll = findViewById(R.id.btnSelectAll)
+        btnClearSelection = findViewById(R.id.btnClearSelection)
+        btnInvertSelection = findViewById(R.id.btnInvertSelection)
         btnCopyOpposite = findViewById(R.id.btnCopyOpposite)
-        btnMoveOpposite = findViewById(R.id.btnMoveOpposite)
-        btnDeleteSelection = findViewById(R.id.btnDeleteSelection)
         btnMoreSelection = findViewById(R.id.btnMoreSelection)
 
         if (savedInstanceState == null) {
@@ -416,6 +416,11 @@ class FileListActivity : AppActivity() {
                                 path = "/storage/emulated/0"
                             )
                         )
+                    }
+                    "selection_bar" -> {
+                        if (this::fragmentA.isInitialized) {
+                            activeFragment.selectAllFiles()
+                        }
                     }
                 }
             } catch (e: Throwable) {
@@ -872,7 +877,7 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        // Selection Mode Buttons (5 equal columns, MT Manager style)
+        // Selection Mode: 5 Icon Buttons: [1. Seleccionar Todo] [2. Desmarcar (X en cuadro)] [3. Invertir Selección] [4. Copiar/Mover al panel opuesto] [5. Más acciones]
         btnSelectAll.setOnClickListener {
             val totalSelectable = activeFragment.selectableItemCount
             val currentSelected = activeFragment.selectedFiles.size
@@ -881,6 +886,14 @@ class FileListActivity : AppActivity() {
             } else {
                 activeFragment.selectAllFiles()
             }
+        }
+
+        btnClearSelection.setOnClickListener {
+            activeFragment.clearSelectedFiles()
+        }
+
+        btnInvertSelection.setOnClickListener {
+            activeFragment.invertSelection()
         }
 
         btnCopyOpposite.setOnClickListener {
@@ -895,26 +908,17 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        btnMoveOpposite.setOnClickListener {
+        btnCopyOpposite.setOnLongClickListener {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
                 if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
                     Toast.makeText(this, "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
+                    return@setOnLongClickListener true
                 }
                 activeFragment.moveFilesTo(selected, opposite.currentPath)
             }
-        }
-
-        btnDeleteSelection.setOnClickListener {
-            if (activeFragment.selectedFiles.isNotEmpty()) {
-                if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
-                    Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                activeFragment.deleteSelectedFiles()
-            }
+            true
         }
 
         btnMoreSelection.setOnClickListener { view ->
@@ -924,14 +928,16 @@ class FileListActivity : AppActivity() {
 
     private fun updateSelectionButtons(count: Int) {
         val totalSelectable = activeFragment.selectableItemCount
-        btnSelectAll.text = if (count > 0 && count >= totalSelectable && totalSelectable > 0) {
-            "Desmarcar"
+        val allSelected = count > 0 && count >= totalSelectable && totalSelectable > 0
+        btnSelectAll.imageTintList = android.content.res.ColorStateList.valueOf(
+            if (allSelected) android.graphics.Color.parseColor("#42A5F5") else android.graphics.Color.WHITE
+        )
+        val disk = getDiskStats()
+        tvStatsSubtitle.text = if (disk.isNotEmpty()) {
+            "Seleccionados: $count / $totalSelectable  $disk"
         } else {
-            "Todo ($count)"
+            "Seleccionados: $count / $totalSelectable"
         }
-        val isPanelA = (activePanelIndex == 0)
-        btnCopyOpposite.text = if (isPanelA) "Copiar ➔" else "⬅ Copiar"
-        btnMoveOpposite.text = if (isPanelA) "Mover ➔" else "⬅ Mover"
     }
 
     private fun updateBottomBarMargin() {
@@ -1405,6 +1411,7 @@ class FileListActivity : AppActivity() {
                 } else {
                     bottomBarNormal.visibility = View.VISIBLE
                     bottomBarSelection.visibility = View.GONE
+                    updateTopBarInfo()
                 }
                 updateMainToolbarNavigationIcon()
             }
@@ -1453,20 +1460,61 @@ class FileListActivity : AppActivity() {
 
     private fun showMoreSelectionMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
+        val isPanelA = (activePanelIndex == 0)
+        val moveLabel = if (isPanelA) "Mover al panel derecho ➔" else "⬅ Mover al panel izquierdo"
         popup.menu.apply {
-            add(0, 4, 0, "Invertir selección")
-            add(0, 1, 0, "Desmarcar todo")
-            add(0, 2, 0, getString(R.string.action_export_file_list))
+            add(0, 10, 0, moveLabel)
+            add(0, 11, 0, getString(R.string.delete))
+            if (activeFragment.selectedFiles.size == 1) {
+                add(0, 12, 0, getString(R.string.rename))
+                add(0, 5, 0, getString(R.string.file_item_action_properties))
+            }
             if (activeFragment.selectedFiles.size == 2) {
                 add(0, 3, 0, getString(R.string.action_swap_file_names))
             }
-            if (activeFragment.selectedFiles.size == 1) {
-                add(0, 5, 0, getString(R.string.file_item_action_properties))
-            }
             add(0, 6, 0, "Comprimir / Añadir a ZIP...")
+            add(0, 13, 0, getString(R.string.share))
+            add(0, 2, 0, getString(R.string.action_export_file_list))
+            add(0, 4, 0, "Invertir selección")
+            add(0, 1, 0, "Desmarcar todo")
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                10 -> {
+                    val selected = activeFragment.selectedFiles
+                    if (selected.isNotEmpty()) {
+                        val opposite = getOppositeFragment(activeFragment)
+                        if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
+                            Toast.makeText(this, "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                        } else {
+                            activeFragment.moveFilesTo(selected, opposite.currentPath)
+                        }
+                    }
+                    true
+                }
+                11 -> {
+                    if (activeFragment.selectedFiles.isNotEmpty()) {
+                        if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
+                            Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                        } else {
+                            activeFragment.deleteSelectedFiles()
+                        }
+                    }
+                    true
+                }
+                12 -> {
+                    val file = activeFragment.selectedFiles.firstOrNull()
+                    if (file != null) {
+                        activeFragment.showRenameFileDialog(file)
+                    }
+                    true
+                }
+                13 -> {
+                    if (activeFragment.selectedFiles.isNotEmpty()) {
+                        activeFragment.shareFiles(activeFragment.selectedFiles)
+                    }
+                    true
+                }
                 1 -> {
                     activeFragment.clearSelectedFiles()
                     true
