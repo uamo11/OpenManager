@@ -16,6 +16,7 @@ import com.android.tools.smali.smali.Smali
 import com.android.tools.smali.smali.SmaliOptions
 import jadx.api.JadxArgs
 import jadx.core.ProcessClass
+import jadx.core.codegen.CodeGen
 import jadx.core.dex.nodes.ClassNode
 import jadx.core.dex.nodes.RootNode
 import jadx.plugins.input.dex.DexInputPlugin
@@ -113,13 +114,14 @@ object JadxDecompilerEngine {
     }
 
     /**
-     * Decompiles a single ClassNode using ProcessClass.generateCode(topParent)
-     * without JadxDecompiler's desktop plugin manager.
+     * Decompiles a single ClassNode using CodeGen.generate(topParent) after running RootNode passes,
+     * completely bypassing JadxDecompiler's desktop plugin manager.
      */
     private fun decompileClassNodeDirect(root: RootNode, cls: ClassNode): String? {
         return try {
             val topParent = cls.topParentClass
-            val codeInfo = ProcessClass.generateCode(topParent)
+            ProcessClass.process(topParent)
+            val codeInfo = CodeGen.generate(topParent)
             val codeStr = codeInfo?.codeStr ?: topParent.code?.codeStr
             if (!codeStr.isNullOrBlank()) codeStr else null
         } catch (t: Throwable) {
