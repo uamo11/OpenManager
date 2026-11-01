@@ -293,10 +293,6 @@ class SuperuserStatusPreference : Preference {
                 append("• Paquete del gestor: ${status.managerPackage}\n")
             }
         }
-            if (status.managerPackage != null) {
-                append("• Paquete del gestor: ${status.managerPackage}\n")
-            }
-        }
 
         val dialogIcon = if (hasRoot) {
             if (status.type == SuperuserDetector.SuperuserType.DFROOT) R.drawable.ic_root_dfroot else status.type.iconRes
