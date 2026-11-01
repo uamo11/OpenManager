@@ -13,6 +13,7 @@ import java8.nio.file.Paths
 import me.zhanghai.android.files.app.application
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.createFallbackFileItem
+import me.zhanghai.android.files.file.createFastVirtualFileItem
 import me.zhanghai.android.files.file.loadFileItem
 import me.zhanghai.android.files.provider.common.BasicFileType
 import me.zhanghai.android.files.provider.common.toByteString
@@ -24,6 +25,31 @@ import java.io.File
  * Android paths without root privileges, matching MT Manager's unprivileged directory view.
  */
 object UnprivilegedDirectoryResolver {
+
+    @Volatile
+    private var cachedInstalledPackages: List<String> = emptyList()
+
+    @Volatile
+    private var lastPackageCacheTimeMs: Long = 0L
+
+    private const val PACKAGE_CACHE_TTL_MS = 30_000L
+
+    private fun getInstalledPackagesCached(): List<String> {
+        val now = System.currentTimeMillis()
+        val current = cachedInstalledPackages
+        if (current.isNotEmpty() && now - lastPackageCacheTimeMs < PACKAGE_CACHE_TTL_MS) {
+            return current
+        }
+        return try {
+            val pkgs = application.packageManager.getInstalledApplications(0)
+                .mapNotNull { it.packageName }
+            cachedInstalledPackages = pkgs
+            lastPackageCacheTimeMs = now
+            pkgs
+        } catch (_: Throwable) {
+            current
+        }
+    }
 
     data class VirtualEntry(
         val name: String,
@@ -120,23 +146,27 @@ object UnprivilegedDirectoryResolver {
         val normalized = if (rawPath.length > 1) rawPath.trimEnd('/') else rawPath
         val resultMap = LinkedHashMap<String, FileItem>()
 
-        fun addChildEntry(name: String, forcedType: BasicFileType? = null) {
+        fun addChildEntry(name: String, forcedType: BasicFileType? = null, fastVirtual: Boolean = false) {
             if (name.isBlank() || name == "." || name == ".." || resultMap.containsKey(name)) return
             val childFile = File(normalized, name)
             val childPath: Path = (directoryPath as? LinuxPath)?.resolve(name.toByteString())
                 ?: Paths.get(childFile.absolutePath)
-            val item = try {
-                if (forcedType == null) {
-                    childPath.loadFileItem()
-                } else {
-                    try {
+            val item = if (fastVirtual && forcedType != null) {
+                childPath.createFastVirtualFileItem(forcedType)
+            } else {
+                try {
+                    if (forcedType == null) {
                         childPath.loadFileItem()
-                    } catch (_: Throwable) {
-                        childPath.createFallbackFileItem(childFile, forcedType)
+                    } else {
+                        try {
+                            childPath.loadFileItem()
+                        } catch (_: Throwable) {
+                            childPath.createFallbackFileItem(childFile, forcedType)
+                        }
                     }
+                } catch (_: Throwable) {
+                    childPath.createFallbackFileItem(childFile, forcedType)
                 }
-            } catch (_: Throwable) {
-                childPath.createFallbackFileItem(childFile, forcedType)
             }
             if (item != null) {
                 resultMap[name] = item
@@ -181,37 +211,35 @@ object UnprivilegedDirectoryResolver {
         // 3. Special handling for /data/data, /data/user/0, /data/user_de/0
         if (normalized == "/data/data" || normalized == "/data/user/0" || normalized == "/data/user_de/0") {
             val ownPkg = application.packageName
-            addChildEntry(ownPkg, BasicFileType.DIRECTORY)
-            try {
-                val apps = application.packageManager.getInstalledApplications(0)
-                for (app in apps) {
-                    val pkg = app.packageName ?: continue
-                    addChildEntry(pkg, BasicFileType.DIRECTORY)
-                }
-            } catch (_: Throwable) {}
+            addChildEntry(ownPkg, BasicFileType.DIRECTORY, fastVirtual = false)
+            for (pkg in getInstalledPackagesCached()) {
+                if (pkg == ownPkg) continue
+                addChildEntry(pkg, BasicFileType.DIRECTORY, fastVirtual = true)
+            }
         }
 
         // 4. Special handling for /storage/emulated/0/Android/data and /sdcard/Android/data (and obb)
         val lowerNorm = normalized.lowercase()
         if (lowerNorm.endsWith("/android/data") || lowerNorm.endsWith("/android/obb")) {
             val ownPkg = application.packageName
-            addChildEntry(ownPkg, BasicFileType.DIRECTORY)
-            try {
-                val apps = application.packageManager.getInstalledApplications(0)
-                for (app in apps) {
-                    val pkg = app.packageName ?: continue
+            addChildEntry(ownPkg, BasicFileType.DIRECTORY, fastVirtual = false)
+            val isData = lowerNorm.endsWith("/android/data")
+            for (pkg in getInstalledPackagesCached()) {
+                if (pkg == ownPkg) continue
+                if (isData) {
+                    addChildEntry(pkg, BasicFileType.DIRECTORY, fastVirtual = true)
+                } else {
                     val candidate = File(normalized, pkg)
                     val exists = try {
                         candidate.exists() || Os.lstat(candidate.absolutePath) != null
                     } catch (_: Throwable) {
                         false
                     }
-                    // Include if stat confirms it exists or for user-installed apps in Android/data
-                    if (exists || lowerNorm.endsWith("/android/data")) {
-                        addChildEntry(pkg, BasicFileType.DIRECTORY)
+                    if (exists) {
+                        addChildEntry(pkg, BasicFileType.DIRECTORY, fastVirtual = true)
                     }
                 }
-            } catch (_: Throwable) {}
+            }
         }
 
         // 5. Special handling for own package inside /data/data/<ownPkg> or /data/user/0/<ownPkg>

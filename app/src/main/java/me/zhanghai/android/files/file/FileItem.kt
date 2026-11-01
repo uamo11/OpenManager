@@ -66,6 +66,12 @@ class FallbackBasicFileAttributes(
     override val fileKey: Parcelable get() = key
 }
 
+private val threadLocalCollator = object : ThreadLocal<Collator>() {
+    override fun initialValue(): Collator = Collator.getInstance()
+}
+
+private fun getReusableCollator(): Collator = threadLocalCollator.get() ?: Collator.getInstance()
+
 private val KNOWN_ANDROID_DIRECTORIES = setOf(
     "/", "/acct", "/apex", "/bin", "/bugreports", "/cache", "/config", "/d",
     "/data", "/data_mirror", "/debug_ramdisk", "/dev", "/efs", "/etc",
@@ -158,7 +164,7 @@ fun Path.createFallbackFileItem(
         } else {
             null
         }
-        val nameCollationKey = Collator.getInstance().getCollationKeyForFileName(this.name)
+        val nameCollationKey = getReusableCollator().getCollationKeyForFileName(this.name)
         val effectiveIsDir = isDir || type == BasicFileType.DIRECTORY || targetAttrs?.isDirectory == true
         val mimeType = if (effectiveIsDir) {
             MimeType.DIRECTORY
@@ -179,10 +185,56 @@ fun Path.createFallbackFileItem(
     }
 }
 
+/**
+ * Fast, zero-exception constructor for virtual/unprivileged directory items (e.g. /data/data/<pkg>)
+ * where SELinux blocks lstat/readlink for other apps.
+ */
+fun Path.createFastVirtualFileItem(
+    forcedType: BasicFileType = BasicFileType.DIRECTORY,
+    lastModifiedMillis: Long = System.currentTimeMillis(),
+    size: Long = 0L,
+    symlinkTarget: String? = null
+): FileItem {
+    val pathStr = this.toString()
+    val itemName = this.name
+    val attrs = FallbackBasicFileAttributes(
+        lastModifiedMillis = lastModifiedMillis,
+        fileType = forcedType,
+        fileSize = size,
+        key = pathStr.toByteString()
+    )
+    val targetAttrs = if (forcedType == BasicFileType.SYMBOLIC_LINK) {
+        FallbackBasicFileAttributes(
+            lastModifiedMillis = lastModifiedMillis,
+            fileType = BasicFileType.DIRECTORY,
+            fileSize = 0L,
+            key = (symlinkTarget ?: pathStr).toByteString()
+        )
+    } else {
+        null
+    }
+    val nameCollationKey = getReusableCollator().getCollationKeyForFileName(itemName)
+    val isDir = forcedType == BasicFileType.DIRECTORY || targetAttrs?.isDirectory == true
+    val mimeType = if (isDir) {
+        MimeType.DIRECTORY
+    } else {
+        AndroidFileTypeDetector.getMimeType(this, targetAttrs ?: attrs).asMimeType()
+    }
+    return FileItem(
+        this,
+        nameCollationKey,
+        attrs,
+        symlinkTarget,
+        targetAttrs,
+        itemName.startsWith("."),
+        mimeType
+    )
+}
+
 @WorkerThread
 @Throws(IOException::class)
 fun Path.loadFileItem(): FileItem {
-    val nameCollationKey = Collator.getInstance().getCollationKeyForFileName(name)
+    val nameCollationKey = getReusableCollator().getCollationKeyForFileName(name)
     val attributes = readAttributes(BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
     val isHidden = isHidden
     if (!attributes.isSymbolicLink) {

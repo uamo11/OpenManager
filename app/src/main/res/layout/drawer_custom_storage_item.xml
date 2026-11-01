@@ -40,6 +40,17 @@
             android:textColor="#FFFFFF"
             android:textSize="13.5sp" />
 
+        <ProgressBar
+            android:id="@+id/progressCustomStorage"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
+            android:progress="0"
+            android:progressTint="#2196F3"
+            android:visibility="gone" />
+
         <TextView
             android:id="@+id/tvStorageSubtitle"
             android:layout_width="wrap_content"

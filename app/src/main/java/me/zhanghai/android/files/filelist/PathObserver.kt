@@ -12,6 +12,9 @@ import androidx.annotation.MainThread
 import java8.nio.file.Path
 import me.zhanghai.android.files.provider.common.PathObservable
 import me.zhanghai.android.files.provider.common.observe
+import me.zhanghai.android.files.provider.linux.LinuxPath
+import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
+import me.zhanghai.android.files.provider.root.ShizukuManager
 import me.zhanghai.android.files.util.closeSafe
 import java.io.Closeable
 import java.io.IOException
@@ -27,6 +30,12 @@ class PathObserver(path: Path, @MainThread onChange: () -> Unit) : Closeable {
             synchronized(lock) {
                 if (closed) {
                     return@execute
+                }
+                if (path is LinuxPath) {
+                    val file = try { path.toFile() } catch (_: Throwable) { null }
+                    if (file != null && !file.canRead() && !LibSuFileServiceLauncher.isSuAvailable() && !ShizukuManager.ready()) {
+                        return@execute
+                    }
                 }
                 pathObservable = try {
                     path.observe(THROTTLE_INTERVAL_MILLIS)

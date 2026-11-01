@@ -85,6 +85,18 @@ class JadxDecompilerEngineTest {
                 val entry = zf.getEntry("com/openmanager/test/Calculator.java")
                 assertNotNull("com/openmanager/test/Calculator.java entry must exist in ZIP", entry)
             }
+
+            // Test export to directory (Apktool JADX mode)
+            val outDir = File(tempDir, "decomp_java")
+            var dirProgressCalls = 0
+            JadxDecompilerEngine.decompileToDirectory(dexFile, outDir) { _, _, _ ->
+                dirProgressCalls++
+            }
+            val javaFile = File(outDir, "com/openmanager/test/Calculator.java")
+            assertTrue("Calculator.java must be written to directory", javaFile.exists())
+            assertTrue("Directory progress callback must be invoked", dirProgressCalls > 0)
+            val dirCode = javaFile.readText()
+            assertTrue("Directory Java file must contain class Calculator: $dirCode", dirCode.contains("class Calculator"))
         } finally {
             tempDir.deleteRecursively()
         }

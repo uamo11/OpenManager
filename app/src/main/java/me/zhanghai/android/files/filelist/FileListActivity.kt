@@ -124,6 +124,9 @@ class FileListActivity : AppActivity() {
     private var allFilesDialog: androidx.appcompat.app.AlertDialog? = null
 
     private var activePanelIndex = 0 // 0 = Panel A, 1 = Panel B
+    val sharedRecycledViewPool = androidx.recyclerview.widget.RecyclerView.RecycledViewPool().apply {
+        setMaxRecycledViews(0, 36)
+    }
 
     val activeFragment: FileListFragment
         get() = if (activePanelIndex == 0) fragmentA else fragmentB
@@ -143,6 +146,8 @@ class FileListActivity : AppActivity() {
         drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
             override fun onDrawerOpened(drawerView: View) {
                 drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
+                updateDrawerStats()
+                refreshCustomStoragesList()
             }
             override fun onDrawerClosed(drawerView: View) {
                 drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
@@ -646,75 +651,261 @@ class FileListActivity : AppActivity() {
         tvInternalStorageStats = findViewById(R.id.tvInternalStorageStats)
     }
 
-    private fun observeCustomStorages() {
-        val update = {
-            layoutCustomStorages.removeAllViews()
-            val storages = Settings.STORAGES.valueCompat
-            val addedPaths = mutableSetOf<String>()
-            for (storage in storages) {
-                if (storage is FileSystemRoot || storage is PrimaryStorageVolume) {
-                    continue
-                }
-                storage.linuxPath?.let { addedPaths.add(it) }
-                val itemView = layoutInflater.inflate(R.layout.drawer_custom_storage_item, layoutCustomStorages, false)
-                val iconView = itemView.findViewById<ImageView>(R.id.ivStorageIcon)
-                val titleView = itemView.findViewById<TextView>(R.id.tvStorageTitle)
-                val subtitleView = itemView.findViewById<TextView>(R.id.tvStorageSubtitle)
+    private data class StorageSpaceStats(
+        val percent: Int,
+        val formattedText: String,
+        val resolvedLinuxPath: String
+    )
 
-                iconView.setImageResource(storage.iconRes)
-                titleView.text = storage.getName(this)
-                subtitleView.text = storage.description
+    private data class DetectedVolumeInfo(
+        val uuid: String,
+        val pathStr: String,
+        val title: String
+    )
 
-                itemView.setOnClickListener {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    storage.path?.let { path -> activeFragment.navigateTo(path) }
+    /**
+     * Resolves a real Linux filesystem path (e.g. /storage/XXXX-XXXX) for any Storage entry
+     * (SecondaryStorageVolume, DocumentTree with externalstorage UUID, etc.) if it maps to a local volume.
+     */
+    private fun resolveStorageFilesystemPath(storage: Storage): String? {
+        storage.linuxPath?.takeIf { it.isNotBlank() }?.let { return it }
+        if (storage is me.zhanghai.android.files.storage.DocumentTree) {
+            val uriStr = Uri.decode(storage.uri.value.toString())
+            // Match e.g. content://com.android.externalstorage.documents/tree/1234-5678: or .../tree/primary:
+            val treeMarker = "/tree/"
+            val idx = uriStr.indexOf(treeMarker)
+            if (idx != -1) {
+                val docId = uriStr.substring(idx + treeMarker.length).substringBefore('/')
+                val volId = docId.substringBefore(':')
+                val subPath = docId.substringAfter(':', "").trim('/')
+                val base = if (volId.equals("primary", ignoreCase = true)) {
+                    "/storage/emulated/0"
+                } else if (volId.matches(Regex("[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}")) || File("/storage/$volId").exists()) {
+                    "/storage/$volId"
+                } else {
+                    null
                 }
-                itemView.setOnLongClickListener {
-                    showCustomStorageOptions(storage)
-                    true
+                if (base != null) {
+                    return if (subPath.isEmpty()) base else "$base/$subPath"
                 }
-                layoutCustomStorages.addView(itemView)
-            }
-
-            // Auto-detect mounted non-primary volumes (MicroSD card, USB drives)
-            val detectedVolumes = StorageVolumeListLiveData.valueCompat.filter {
-                !it.isPrimaryCompat && it.isMounted && it.pathCompat !in addedPaths
-            }
-            for (volume in detectedVolumes) {
-                val pathStr = volume.pathCompat
-                val itemView = layoutInflater.inflate(R.layout.drawer_custom_storage_item, layoutCustomStorages, false)
-                val iconView = itemView.findViewById<ImageView>(R.id.ivStorageIcon)
-                val titleView = itemView.findViewById<TextView>(R.id.tvStorageTitle)
-                val subtitleView = itemView.findViewById<TextView>(R.id.tvStorageSubtitle)
-
-                iconView.setImageResource(R.drawable.sd_card_icon_white_24dp)
-                titleView.text = volume.getDescriptionCompat(this)
-                subtitleView.text = pathStr
-
-                itemView.setOnClickListener {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    activeFragment.navigateTo(Paths.get(pathStr))
-                }
-                itemView.setOnLongClickListener {
-                    val options = arrayOf(getString(R.string.storage_add_to_my_storages))
-                    MaterialAlertDialogBuilder(this)
-                        .setTitle(volume.getDescriptionCompat(this))
-                        .setItems(options) { _, which ->
-                            if (which == 0) {
-                                val uuid = volume.uuidCompat ?: File(pathStr).name
-                                Storages.addOrReplace(SecondaryStorageVolume(uuid, null, true))
-                                showToast(getString(R.string.storage_added_success))
-                            }
-                        }
-                        .show()
-                    true
-                }
-                layoutCustomStorages.addView(itemView)
             }
         }
+        return null
+    }
 
-        Settings.STORAGES.observe(this) { update() }
-        StorageVolumeListLiveData.observe(this) { update() }
+    /**
+     * Computes total/used/available space safely for a storage path (such as an SD card),
+     * falling back to the app-specific external files directory on the same volume if root StatFs throws EACCES.
+     */
+    private fun computeStorageSpaceStats(rawPathStr: String?): StorageSpaceStats? {
+        if (rawPathStr.isNullOrBlank()) return null
+        val cleanPath = if (rawPathStr.length > 1) rawPathStr.trimEnd('/') else rawPathStr
+        val candidates = mutableListOf(cleanPath)
+        if (cleanPath.startsWith("/storage/") && !cleanPath.startsWith("/storage/emulated")) {
+            val volRoot = "/storage/" + cleanPath.removePrefix("/storage/").substringBefore('/')
+            if (volRoot !in candidates) candidates.add(volRoot)
+            candidates.add("$volRoot/Android/data/$packageName/files")
+            candidates.add("$volRoot/Android/data")
+        }
+        try {
+            getExternalFilesDirs(null)?.forEach { dir ->
+                if (dir != null && dir.absolutePath.startsWith(cleanPath)) {
+                    candidates.add(dir.absolutePath)
+                }
+            }
+        } catch (_: Throwable) {}
+
+        for (candidate in candidates) {
+            try {
+                val stat = StatFs(candidate)
+                val total = stat.totalBytes
+                if (total <= 0L) continue
+                val avail = stat.availableBytes.coerceIn(0L, total)
+                val used = (total - avail).coerceAtLeast(0L)
+                val percent = ((used * 100L) / total).toInt().coerceIn(0, 100)
+                val usedStr = Formatter.formatFileSize(this, used)
+                val availStr = Formatter.formatFileSize(this, avail)
+                return StorageSpaceStats(
+                    percent = percent,
+                    formattedText = "$usedStr usado, $availStr disponible ($percent%)",
+                    resolvedLinuxPath = cleanPath
+                )
+            } catch (_: Throwable) {
+                // Try next candidate
+            }
+        }
+        return null
+    }
+
+    /**
+     * Discovers all mounted removable SD card / USB OTG volumes across Android versions,
+     * combining StorageVolumeListLiveData, getExternalFilesDirs(null), and /storage scan.
+     */
+    private fun discoverRemovableVolumes(alreadyAddedPaths: Set<String>): List<DetectedVolumeInfo> {
+        val result = LinkedHashMap<String, DetectedVolumeInfo>()
+        val normalizedAdded = alreadyAddedPaths.map { it.trimEnd('/') }.toSet()
+
+        // 1. From StorageVolumeListLiveData
+        try {
+            for (volume in StorageVolumeListLiveData.valueCompat) {
+                if (volume.isPrimaryCompat) continue
+                if (!volume.isMounted) continue
+                val p = volume.pathCompat.trimEnd('/')
+                if (p.isBlank() || p == "/storage/emulated/0" || p in normalizedAdded) continue
+                val uuid = volume.uuidCompat ?: File(p).name
+                val desc = volume.getDescriptionCompat(this).ifBlank { "Tarjeta SD ($uuid)" }
+                result[p] = DetectedVolumeInfo(uuid = uuid, pathStr = p, title = desc)
+            }
+        } catch (_: Throwable) {}
+
+        // 2. Fallback from getExternalFilesDirs(null) (always works for removable SD cards even without root)
+        try {
+            val extDirs = getExternalFilesDirs(null)
+            if (extDirs != null) {
+                for (dir in extDirs) {
+                    if (dir == null) continue
+                    val abs = dir.absolutePath
+                    if (abs.startsWith("/storage/emulated/")) continue
+                    val markerIdx = abs.indexOf("/Android/data")
+                    val volPath = if (markerIdx > 0) abs.substring(0, markerIdx).trimEnd('/') else continue
+                    if (volPath !in normalizedAdded && !result.containsKey(volPath)) {
+                        val uuid = File(volPath).name
+                        result[volPath] = DetectedVolumeInfo(
+                            uuid = uuid,
+                            pathStr = volPath,
+                            title = "Tarjeta SD ($uuid)"
+                        )
+                    }
+                }
+            }
+        } catch (_: Throwable) {}
+
+        // 3. Fallback from /storage/<UUID> scan
+        try {
+            val storageRoot = File("/storage")
+            storageRoot.listFiles()?.forEach { child ->
+                val name = child.name
+                if (name != "emulated" && name != "self" && name != "enc_emulated") {
+                    val volPath = child.absolutePath.trimEnd('/')
+                    if (volPath !in normalizedAdded && !result.containsKey(volPath)) {
+                        val stats = computeStorageSpaceStats(volPath)
+                        if (stats != null) {
+                            result[volPath] = DetectedVolumeInfo(
+                                uuid = name,
+                                pathStr = volPath,
+                                title = "Tarjeta SD ($name)"
+                            )
+                        }
+                    }
+                }
+            }
+        } catch (_: Throwable) {}
+
+        return result.values.toList()
+    }
+
+    private fun refreshCustomStoragesList() {
+        if (!this::layoutCustomStorages.isInitialized) return
+        layoutCustomStorages.removeAllViews()
+        val storages = Settings.STORAGES.valueCompat
+        val addedPaths = mutableSetOf<String>()
+
+        for (storage in storages) {
+            if (storage is FileSystemRoot || storage is PrimaryStorageVolume || !storage.isVisible) {
+                continue
+            }
+            val resolvedPath = resolveStorageFilesystemPath(storage)
+            if (resolvedPath != null) {
+                addedPaths.add(resolvedPath.trimEnd('/'))
+            }
+            val itemView = layoutInflater.inflate(R.layout.drawer_custom_storage_item, layoutCustomStorages, false)
+            val iconView = itemView.findViewById<ImageView>(R.id.ivStorageIcon)
+            val titleView = itemView.findViewById<TextView>(R.id.tvStorageTitle)
+            val progressView = itemView.findViewById<ProgressBar>(R.id.progressCustomStorage)
+            val subtitleView = itemView.findViewById<TextView>(R.id.tvStorageSubtitle)
+
+            val isSdCard = storage is SecondaryStorageVolume ||
+                (resolvedPath != null && resolvedPath.startsWith("/storage/") && !resolvedPath.startsWith("/storage/emulated"))
+            iconView.setImageResource(if (isSdCard) R.drawable.sd_card_icon_white_24dp else storage.iconRes)
+            titleView.text = storage.getName(this)
+
+            val spaceStats = computeStorageSpaceStats(resolvedPath)
+            if (spaceStats != null) {
+                progressView?.isVisible = true
+                progressView?.progress = spaceStats.percent
+                subtitleView.text = spaceStats.formattedText
+                itemView.tag = resolvedPath
+            } else {
+                progressView?.isVisible = false
+                subtitleView.text = resolvedPath ?: storage.description
+                itemView.tag = resolvedPath
+            }
+
+            itemView.setOnClickListener {
+                drawerLayout.closeDrawer(GravityCompat.START)
+                // Prefer direct fast LinuxPath when readable (e.g. MANAGE_EXTERNAL_STORAGE granted on Android 11+)
+                val fastLinuxDir = resolvedPath?.let { File(it) }
+                if (fastLinuxDir != null && fastLinuxDir.exists() && fastLinuxDir.canRead()) {
+                    activeFragment.navigateTo(Paths.get(fastLinuxDir.absolutePath))
+                } else {
+                    storage.path?.let { path -> activeFragment.navigateTo(path) }
+                }
+            }
+            itemView.setOnLongClickListener {
+                showCustomStorageOptions(storage)
+                true
+            }
+            layoutCustomStorages.addView(itemView)
+        }
+
+        // Auto-detect mounted non-primary volumes (MicroSD card, USB drives)
+        val detectedVolumes = discoverRemovableVolumes(addedPaths)
+        for (volume in detectedVolumes) {
+            val pathStr = volume.pathStr
+            val itemView = layoutInflater.inflate(R.layout.drawer_custom_storage_item, layoutCustomStorages, false)
+            val iconView = itemView.findViewById<ImageView>(R.id.ivStorageIcon)
+            val titleView = itemView.findViewById<TextView>(R.id.tvStorageTitle)
+            val progressView = itemView.findViewById<ProgressBar>(R.id.progressCustomStorage)
+            val subtitleView = itemView.findViewById<TextView>(R.id.tvStorageSubtitle)
+
+            iconView.setImageResource(R.drawable.sd_card_icon_white_24dp)
+            titleView.text = volume.title
+            itemView.tag = pathStr
+
+            val spaceStats = computeStorageSpaceStats(pathStr)
+            if (spaceStats != null) {
+                progressView?.isVisible = true
+                progressView?.progress = spaceStats.percent
+                subtitleView.text = spaceStats.formattedText
+            } else {
+                progressView?.isVisible = false
+                subtitleView.text = pathStr
+            }
+
+            itemView.setOnClickListener {
+                drawerLayout.closeDrawer(GravityCompat.START)
+                activeFragment.navigateTo(Paths.get(pathStr))
+            }
+            itemView.setOnLongClickListener {
+                val options = arrayOf(getString(R.string.storage_add_to_my_storages))
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(volume.title)
+                    .setItems(options) { _, which ->
+                        if (which == 0) {
+                            Storages.addOrReplace(SecondaryStorageVolume(volume.uuid, null, true))
+                            showToast(getString(R.string.storage_added_success))
+                        }
+                    }
+                    .show()
+                true
+            }
+            layoutCustomStorages.addView(itemView)
+        }
+    }
+
+    private fun observeCustomStorages() {
+        Settings.STORAGES.observe(this) { refreshCustomStoragesList() }
+        StorageVolumeListLiveData.observe(this) { refreshCustomStoragesList() }
     }
 
     private fun showCustomStorageOptions(storage: Storage) {
@@ -757,6 +948,20 @@ class FileListActivity : AppActivity() {
             tvInternalStorageStats.text = "$emulatedUsedStr usado, $emulatedAvailStr disponible ($emulatedPercent%)"
         } catch (e: Exception) {
             tvInternalStorageStats.text = "/storage/emulated/0"
+        }
+
+        // Also update live space stats for any SD card / custom storage items in the drawer
+        if (this::layoutCustomStorages.isInitialized) {
+            for (i in 0 until layoutCustomStorages.childCount) {
+                val child = layoutCustomStorages.getChildAt(i) ?: continue
+                val pathTag = child.tag as? String ?: continue
+                val stats = computeStorageSpaceStats(pathTag) ?: continue
+                val progressView = child.findViewById<ProgressBar>(R.id.progressCustomStorage)
+                val subtitleView = child.findViewById<TextView>(R.id.tvStorageSubtitle)
+                progressView?.isVisible = true
+                progressView?.progress = stats.percent
+                subtitleView?.text = stats.formattedText
+            }
         }
     }
 
@@ -1052,6 +1257,7 @@ class FileListActivity : AppActivity() {
 
         if (selectedCount > 0) {
             mainToolbar.setNavigationIcon(R.drawable.close_icon_control_normal_24dp)
+            mainToolbar.navigationIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
             mainToolbar.navigationContentDescription = getString(android.R.string.cancel)
             mainToolbar.setNavigationOnClickListener {
                 activeFragment.clearSelectedFiles()
@@ -1061,6 +1267,7 @@ class FileListActivity : AppActivity() {
             }
         } else {
             mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
+            mainToolbar.navigationIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
             mainToolbar.navigationContentDescription = getString(R.string.open_navigation_drawer)
             mainToolbar.setNavigationOnClickListener {
                 drawerLayout.openDrawer(GravityCompat.START)

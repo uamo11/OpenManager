@@ -101,6 +101,6 @@ abstract class AnimatedListAdapter<T, VH : RecyclerView.ViewHolder>(
         get() = true
 
     companion object {
-        private const val ANIMATION_STAGGER_MILLIS = 20
+        private const val ANIMATION_STAGGER_MILLIS = 0
     }
 }

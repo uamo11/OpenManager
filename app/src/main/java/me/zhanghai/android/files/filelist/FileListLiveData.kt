@@ -5,7 +5,7 @@
 
 package me.zhanghai.android.files.filelist
 
-import android.os.AsyncTask
+import android.util.LruCache
 import java8.nio.file.DirectoryIteratorException
 import java8.nio.file.Path
 import java8.nio.file.Paths
@@ -22,10 +22,34 @@ import me.zhanghai.android.files.util.Stateful
 import me.zhanghai.android.files.util.Success
 import java.io.IOException
 import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
+/**
+ * In-memory LRU snapshot cache of directory listings so navigating back/up or switching
+ * between panels displays the last known folder contents immediately (0ms blank screen)
+ * while the background directory stream refreshes.
+ */
+object DirectorySnapshotCache {
+    private val cache = LruCache<String, List<FileItem>>(80)
+
+    fun get(path: Path): List<FileItem>? {
+        val key = path.toString()
+        synchronized(cache) {
+            return cache.get(key)
+        }
+    }
+
+    fun put(path: Path, items: List<FileItem>) {
+        val key = path.toString()
+        synchronized(cache) {
+            cache.put(key, items)
+        }
+    }
+}
+
 class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List<FileItem>>>() {
-    private var future: Future<Unit>? = null
+    private var future: Future<*>? = null
 
     private val observer: PathObserver
 
@@ -39,12 +63,14 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
 
     fun loadValue() {
         future?.cancel(true)
-        value = Loading(value?.value)
-        future = (AsyncTask.THREAD_POOL_EXECUTOR as ExecutorService).submit<Unit> {
-            val value = try {
+        val currentOrCached = value?.value ?: DirectorySnapshotCache.get(path)
+        value = Loading(currentOrCached)
+        future = DIRECTORY_LOAD_EXECUTOR.submit {
+            val resultState = try {
                 path.newDirectoryStream().use { directoryStream ->
-                    val fileList = mutableListOf<FileItem>()
+                    val fileList = ArrayList<FileItem>(64)
                     for (childPath in directoryStream) {
+                        if (Thread.currentThread().isInterrupted) return@submit
                         try {
                             fileList.add(childPath.loadFileItem())
                         } catch (e: DirectoryIteratorException) {
@@ -61,10 +87,11 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                             fileList.addAll(virtualEntries)
                         }
                     }
+                    DirectorySnapshotCache.put(path, fileList)
                     Success(fileList as List<FileItem>)
                 }
             } catch (e: Exception) {
-                val fallbackList = mutableListOf<FileItem>()
+                val fallbackList = ArrayList<FileItem>(64)
                 val localFile = try {
                     (path as? LinuxPath)?.toFile() ?: java.io.File(path.toString())
                 } catch (_: Throwable) {
@@ -73,6 +100,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                 val files = try { localFile?.listFiles() } catch (_: Throwable) { null }
                 if (files != null && files.isNotEmpty()) {
                     for (file in files) {
+                        if (Thread.currentThread().isInterrupted) return@submit
                         val childPath: Path = (path as? LinuxPath)?.resolve(file.name.toByteString())
                             ?: Paths.get(file.absolutePath)
                         try {
@@ -81,66 +109,31 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                             childPath.createFallbackFileItem(file)?.let { fallbackList.add(it) }
                         }
                     }
+                    DirectorySnapshotCache.put(path, fallbackList)
                     Success(fallbackList as List<FileItem>)
                 } else {
-                    val shellEntries = try {
-                        val process = ProcessBuilder("ls", "-1a", path.toString())
-                            .redirectErrorStream(true)
-                            .start()
-                        val completed = process.waitFor(800, java.util.concurrent.TimeUnit.MILLISECONDS)
-                        if (completed && process.exitValue() == 0) {
-                            val reader = java.io.BufferedReader(java.io.InputStreamReader(process.inputStream))
-                            val names = mutableListOf<String>()
-                            var line: String?
-                            while (reader.readLine().also { line = it } != null) {
-                                val trimmed = line?.trim()
-                                if (!trimmed.isNullOrEmpty() && trimmed != "." && trimmed != "..") {
-                                    names.add(trimmed)
-                                }
-                            }
-                            names
-                        } else {
-                            process.destroyForcibly()
-                            null
-                        }
-                    } catch (_: Throwable) {
-                        null
-                    }
-
-                    if (shellEntries != null && shellEntries.isNotEmpty()) {
-                        for (name in shellEntries) {
-                            val file = java.io.File(path.toString(), name)
-                            val childPath: Path = (path as? LinuxPath)?.resolve(name.toByteString())
-                                ?: Paths.get(file.absolutePath)
-                            try {
-                                fallbackList.add(childPath.loadFileItem())
-                            } catch (_: Throwable) {
-                                childPath.createFallbackFileItem(file)?.let { fallbackList.add(it) }
-                            }
-                        }
-                        Success(fallbackList as List<FileItem>)
+                    // Immediately consult UnprivilegedDirectoryResolver (MT Manager style virtual/known hierarchy)
+                    // without spawning a blocking 800ms `ls` subprocess that shares the same unprivileged UID.
+                    val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
+                    if (virtualEntries.isNotEmpty()) {
+                        DirectorySnapshotCache.put(path, virtualEntries)
+                        Success(virtualEntries)
                     } else {
-                        // Consult UnprivilegedDirectoryResolver (MT Manager style virtual/known hierarchy)
-                        val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
-                        if (virtualEntries.isNotEmpty()) {
-                            Success(virtualEntries)
+                        val isAccessDenied = e is java8.nio.file.AccessDeniedException ||
+                            e is me.zhanghai.android.files.provider.remote.RemoteFileSystemException ||
+                            e.message?.contains("Permission denied", ignoreCase = true) == true ||
+                            e.message?.contains("EACCES", ignoreCase = true) == true ||
+                            e.message?.contains("Root", ignoreCase = true) == true
+                        if (isAccessDenied && path is LinuxPath) {
+                            // Show read-only empty directory view with ".." navigation instead of a blocking "No tienes acceso" error screen
+                            Success(emptyList())
                         } else {
-                            val isAccessDenied = e is java8.nio.file.AccessDeniedException ||
-                                e is me.zhanghai.android.files.provider.remote.RemoteFileSystemException ||
-                                e.message?.contains("Permission denied", ignoreCase = true) == true ||
-                                e.message?.contains("EACCES", ignoreCase = true) == true ||
-                                e.message?.contains("Root", ignoreCase = true) == true
-                            if (isAccessDenied && path is LinuxPath) {
-                                // Show read-only empty directory view with ".." navigation instead of a blocking "No tienes acceso" error screen
-                                Success(emptyList())
-                            } else {
-                                Failure(value?.value, e)
-                            }
+                            Failure(value?.value, e)
                         }
                     }
                 }
             }
-            postValue(value)
+            postValue(resultState)
         }
     }
 
@@ -162,5 +155,9 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
     override fun close() {
         observer.close()
         future?.cancel(true)
+    }
+
+    companion object {
+        private val DIRECTORY_LOAD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(4)
     }
 }

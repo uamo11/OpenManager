@@ -475,6 +475,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         layoutManager = GridLayoutManager(activity, 1)
         binding.recyclerView.layoutManager = layoutManager
+        binding.recyclerView.setHasFixedSize(true)
+        binding.recyclerView.setItemViewCacheSize(24)
+        binding.recyclerView.itemAnimator = null
+        (activity as? FileListActivity)?.sharedRecycledViewPool?.let {
+            binding.recyclerView.setRecycledViewPool(it)
+        }
         adapter = FileListAdapter(this)
         binding.recyclerView.adapter = adapter
         binding.recyclerView.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {

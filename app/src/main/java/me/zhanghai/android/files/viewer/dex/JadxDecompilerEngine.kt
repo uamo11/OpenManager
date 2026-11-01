@@ -17,6 +17,54 @@ import com.android.tools.smali.smali.SmaliOptions
 import jadx.api.JadxArgs
 import jadx.api.JadxDecompiler
 import jadx.api.JavaClass
+import jadx.core.dex.instructions.args.ArgType
+import jadx.core.dex.nodes.ClassNode
+import jadx.core.dex.nodes.ProcessState
+import jadx.core.dex.nodes.RootNode
+import jadx.core.dex.visitors.ClassModifier
+import jadx.core.dex.visitors.ConstInlineVisitor
+import jadx.core.dex.visitors.ConstructorVisitor
+import jadx.core.dex.visitors.DeboxingVisitor
+import jadx.core.dex.visitors.DotGraphVisitor
+import jadx.core.dex.visitors.EnumVisitor
+import jadx.core.dex.visitors.ExtractFieldInit
+import jadx.core.dex.visitors.FallbackModeVisitor
+import jadx.core.dex.visitors.FixAccessModifiers
+import jadx.core.dex.visitors.GenericTypesVisitor
+import jadx.core.dex.visitors.InitCodeVariables
+import jadx.core.dex.visitors.InlineMethods
+import jadx.core.dex.visitors.MarkFinallyVisitor
+import jadx.core.dex.visitors.MethodInlineVisitor
+import jadx.core.dex.visitors.ModVisitor
+import jadx.core.dex.visitors.MoveInlineVisitor
+import jadx.core.dex.visitors.OverrideMethodVisitor
+import jadx.core.dex.visitors.PrepareForCodeGen
+import jadx.core.dex.visitors.ProcessAnonymous
+import jadx.core.dex.visitors.RenameVisitor
+import jadx.core.dex.visitors.RestoreSwitchOverString
+import jadx.core.dex.visitors.SaveCode
+import jadx.core.dex.visitors.ShadowFieldVisitor
+import jadx.core.dex.visitors.SimplifyVisitor
+import jadx.core.dex.visitors.blocks.BlockExceptionHandler
+import jadx.core.dex.visitors.blocks.BlockFINALLYExtract
+import jadx.core.dex.visitors.blocks.BlockProcessor
+import jadx.core.dex.visitors.blocks.BlockSplitter
+import jadx.core.dex.visitors.debuginfo.DebugInfoApplyVisitor
+import jadx.core.dex.visitors.debuginfo.DebugInfoAttachVisitor
+import jadx.core.dex.visitors.finaly.MarkFinallyVisitor as NewMarkFinallyVisitor
+import jadx.core.dex.visitors.regions.CheckRegions
+import jadx.core.dex.visitors.regions.IfRegionVisitor
+import jadx.core.dex.visitors.regions.LoopRegionVisitor
+import jadx.core.dex.visitors.regions.ProcessVariables
+import jadx.core.dex.visitors.regions.RegionMakerVisitor
+import jadx.core.dex.visitors.regions.ReturnVisitor
+import jadx.core.dex.visitors.regions.SynchronizedRegionVisitor
+import jadx.core.dex.visitors.regions.TernaryMod
+import jadx.core.dex.visitors.shrink.CodeShrinkVisitor
+import jadx.core.dex.visitors.ssa.SSATransform
+import jadx.core.dex.visitors.typeinference.FinishTypeInference
+import jadx.core.dex.visitors.typeinference.TypeInferenceVisitor
+import jadx.plugins.input.dex.DexInputPlugin
 import java.io.File
 import java.io.FileOutputStream
 import java.io.StringWriter
@@ -26,9 +74,11 @@ import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
 /**
- * Engine for Java/Smali decompilation using JADX with an automatic Android-compatible
- * Dexlib2 / Baksmali fallback when JADX's desktop plugin loader throws
- * UnsupportedOperationException or ExceptionInInitializerError on Android ART.
+ * Engine for Java/Smali decompilation on Android ART.
+ * Bypasses JADX's desktop plugin loader (`JadxPluginManager` -> `ServiceLoader`), which throws
+ * `UnsupportedOperationException` ("Path not associated with default file system") and
+ * `ExceptionInInitializerError` on Android ART by directly loading DEX files via `DexInputPlugin`
+ * and `RootNode`. Includes a full Android-native Dexlib2 + Baksmali fallback.
  */
 object JadxDecompilerEngine {
 
@@ -58,6 +108,53 @@ object JadxDecompilerEngine {
             isRenameValid = false
             isRenamePrintable = false
             inputFiles = listOf(inputFile)
+            // Use simple in-memory/no-op code cache so JADX never touches java.nio.file.Path desktop cache
+            try {
+                codeCache = jadx.api.impl.NoOpCodeCache()
+            } catch (_: Throwable) {}
+        }
+    }
+
+    /**
+     * Directly initializes a JADX RootNode using DexInputPlugin on extracted .dex files,
+     * completely bypassing JadxPluginManager / ServiceLoader (which crashes on Android ART
+     * with UnsupportedOperationException / ExceptionInInitializerError).
+     */
+    private fun loadJadxRootDirect(dexFiles: List<File>, args: JadxArgs): RootNode? {
+        if (dexFiles.isEmpty()) return null
+        return try {
+            val root = RootNode(args)
+            val dexPlugin = DexInputPlugin()
+            val nioPaths = dexFiles.map { it.toPath() }
+            val loadResult = dexPlugin.loadFiles(nioPaths)
+            root.loadClasses(listOf(loadResult))
+            root.initClassPath()
+            root.runPreDecompileStage()
+            root.initPasses()
+            root
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Decompiles a single ClassNode using RootNode passes without JadxDecompiler's desktop plugin manager.
+     */
+    private fun decompileClassNodeDirect(root: RootNode, cls: ClassNode): String? {
+        return try {
+            val topParent = cls.topParentClass
+            if (topParent.state != ProcessState.GENERATED_AND_UNLOADED) {
+                for (pass in root.passes) {
+                    pass.visit(topParent)
+                }
+            }
+            val codeInfo = topParent.code
+            val codeStr = codeInfo?.codeStr
+            if (!codeStr.isNullOrBlank()) codeStr else null
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            null
         }
     }
 
@@ -174,37 +271,29 @@ object JadxDecompilerEngine {
      */
     fun decompileClass(inputFile: File, classDescriptorOrName: String): String {
         val targetName = normalizeClassName(classDescriptorOrName)
-        try {
+        val tempDir = File(inputFile.parentFile ?: File("/data/local/tmp"), ".dex_cls_${System.currentTimeMillis()}").apply { mkdirs() }
+        return try {
+            val dexFiles = extractDexFiles(inputFile, tempDir)
             val args = createAndroidSafeJadxArgs(inputFile)
-            JadxDecompiler(args).use { decompiler ->
-                decompiler.load()
-                val javaClass: JavaClass? = decompiler.searchJavaClassByOrigFullName(targetName)
-                    ?: decompiler.searchJavaClassOrItsParentByOrigFullName(targetName)
-                    ?: decompiler.classes.find {
-                        it.fullName == targetName ||
-                            it.fullName.replace('$', '.') == targetName.replace('$', '.')
-                    }
-                    ?: decompiler.classesWithInners.find {
-                        it.fullName == targetName ||
-                            it.fullName.replace('$', '.') == targetName.replace('$', '.')
-                    }
 
-                if (javaClass != null) {
-                    javaClass.decompile()
-                    val code = javaClass.code
-                    if (!code.isNullOrBlank()) {
-                        return code
+            // 1. Primary path on Android ART: Direct RootNode + DexInputPlugin (no JadxPluginManager / ServiceLoader)
+            val root = loadJadxRootDirect(dexFiles, args)
+            if (root != null) {
+                val matchNode = root.classes.find { cls ->
+                    val origFull = cls.classInfo.fullName
+                    val aliasFull = cls.classInfo.aliasFullName
+                    origFull == targetName || aliasFull == targetName ||
+                        origFull.replace('$', '.') == targetName.replace('$', '.')
+                }
+                if (matchNode != null) {
+                    val directCode = decompileClassNodeDirect(root, matchNode)
+                    if (!directCode.isNullOrBlank()) {
+                        return directCode
                     }
                 }
             }
-        } catch (t: Throwable) {
-            t.printStackTrace()
-        }
 
-        // Fallback via Dexlib2 + Baksmali if JADX fails on this Android runtime
-        val tempDir = File(inputFile.parentFile ?: File("/data/local/tmp"), "dex_fb_${System.currentTimeMillis()}").apply { mkdirs() }
-        return try {
-            val dexFiles = extractDexFiles(inputFile, tempDir)
+            // 2. Fallback via Dexlib2 + Baksmali
             val targetDescriptor = "L" + targetName.replace('.', '/') + ";"
             for (dex in dexFiles) {
                 val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
@@ -265,63 +354,49 @@ object JadxDecompilerEngine {
         isCancelled: (() -> Boolean)? = null,
         onProgress: ((current: Int, total: Int, currentClass: String) -> Unit)? = null
     ): File {
-        var jadxSucceeded = false
+        val workDir = File(outputZipFile.parentFile ?: File("/data/local/tmp"), ".dex_zip_${System.currentTimeMillis()}").apply { mkdirs() }
         try {
+            val dexFiles = extractDexFiles(inputFile, workDir)
             val args = createAndroidSafeJadxArgs(inputFile)
-            JadxDecompiler(args).use { decompiler ->
-                decompiler.load()
-                val classes = decompiler.classes
-                val total = classes.size
+
+            // 1. Primary path: Direct RootNode + DexInputPlugin
+            val root = loadJadxRootDirect(dexFiles, args)
+            if (root != null) {
+                val topClasses = root.classes.filter { !it.isInner }
+                val total = topClasses.size
                 if (total > 0) {
+                    var writtenCount = 0
                     ZipOutputStream(FileOutputStream(outputZipFile).buffered()).use { zos ->
                         val manifestEntry = ZipEntry("META-INF/MANIFEST.MF")
                         zos.putNextEntry(manifestEntry)
                         zos.write("Manifest-Version: 1.0\nCreated-By: OpenManager (JADX Decompiler)\n".toByteArray(StandardCharsets.UTF_8))
                         zos.closeEntry()
 
-                        for ((index, javaClass) in classes.withIndex()) {
+                        for ((index, cls) in topClasses.withIndex()) {
                             if (isCancelled?.invoke() == true) {
                                 throw InterruptedException("JADX export cancelled by user")
                             }
-                            val fullName = javaClass.fullName
+                            val fullName = cls.classInfo.fullName
                             if (fullName.isNullOrBlank()) continue
                             onProgress?.invoke(index + 1, total, fullName)
 
-                            try {
-                                javaClass.decompile()
-                                val code = javaClass.code
-                                if (!code.isNullOrBlank()) {
-                                    val entryPath = fullName.replace('.', '/') + ".java"
-                                    zos.putNextEntry(ZipEntry(entryPath))
-                                    zos.write(code.toByteArray(StandardCharsets.UTF_8))
-                                    zos.closeEntry()
-                                }
-                            } catch (e: Throwable) {
+                            val code = decompileClassNodeDirect(root, cls)
+                            if (!code.isNullOrBlank()) {
                                 val entryPath = fullName.replace('.', '/') + ".java"
                                 zos.putNextEntry(ZipEntry(entryPath))
-                                val errorComment = "// Error al descompilar clase $fullName: ${e.message}\n"
-                                zos.write(errorComment.toByteArray(StandardCharsets.UTF_8))
+                                zos.write(code.toByteArray(StandardCharsets.UTF_8))
                                 zos.closeEntry()
+                                writtenCount++
                             }
                         }
                     }
-                    jadxSucceeded = true
+                    if (writtenCount > 0) {
+                        return outputZipFile
+                    }
                 }
             }
-        } catch (ie: InterruptedException) {
-            throw ie
-        } catch (t: Throwable) {
-            t.printStackTrace()
-        }
 
-        if (jadxSucceeded) {
-            return outputZipFile
-        }
-
-        // Fallback: Dexlib2 + Baksmali ZIP export
-        val workDir = File(outputZipFile.parentFile ?: File("/data/local/tmp"), "dex_zip_fb_${System.currentTimeMillis()}").apply { mkdirs() }
-        try {
-            val dexFiles = extractDexFiles(inputFile, workDir)
+            // 2. Fallback: Dexlib2 + Baksmali ZIP export
             val allClassDefs = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
             for (dex in dexFiles) {
                 val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
@@ -351,7 +426,8 @@ object JadxDecompilerEngine {
     /**
      * Batch decompiles all classes from a DEX or APK file directly into a directory of .java source files.
      * Preserves standard package hierarchy (e.g. com/example/MainActivity.java).
-     * Automatically falls back to Dexlib2 + Baksmali if JADX throws UnsupportedOperationException or ExceptionInInitializerError on Android.
+     * Bypasses JadxPluginManager (ServiceLoader) via loadJadxRootDirect and automatically falls back
+     * to Dexlib2 + Baksmali for any class or runtime where needed.
      */
     fun decompileToDirectory(
         inputFile: File,
@@ -363,56 +439,53 @@ object JadxDecompilerEngine {
             outputDir.mkdirs()
         }
 
-        var writtenCount = 0
+        val workDir = File(outputDir.parentFile ?: outputDir, ".tmp_dex_${System.currentTimeMillis()}").apply { mkdirs() }
         try {
-            val args = createAndroidSafeJadxArgs(inputFile)
-            JadxDecompiler(args).use { decompiler ->
-                decompiler.load()
-                val classes = decompiler.classes
-                val total = classes.size
+            val dexFiles = extractDexFiles(inputFile, workDir)
+            var writtenCount = 0
 
-                for ((index, javaClass) in classes.withIndex()) {
-                    if (isCancelled?.invoke() == true) {
-                        throw InterruptedException("JADX decompilation cancelled by user")
-                    }
+            // 1. Primary path: Direct JADX RootNode + DexInputPlugin (no desktop ServiceLoader)
+            try {
+                val args = createAndroidSafeJadxArgs(inputFile)
+                val root = loadJadxRootDirect(dexFiles, args)
+                if (root != null) {
+                    val topClasses = root.classes.filter { !it.isInner }
+                    val total = topClasses.size
+                    val canonicalOutPrefix = outputDir.canonicalPath + File.separator
 
-                    val fullName = javaClass.fullName
-                    if (fullName.isNullOrBlank()) continue
-                    onProgress?.invoke(index + 1, total, fullName)
+                    for ((index, cls) in topClasses.withIndex()) {
+                        if (isCancelled?.invoke() == true) {
+                            throw InterruptedException("JADX decompilation cancelled by user")
+                        }
+                        val fullName = cls.classInfo.fullName
+                        if (fullName.isNullOrBlank()) continue
+                        onProgress?.invoke(index + 1, total, fullName)
 
-                    val relPath = fullName.replace('.', File.separatorChar) + ".java"
-                    val targetFile = File(outputDir, relPath)
-                    if (!targetFile.canonicalPath.startsWith(outputDir.canonicalPath + File.separator)) {
-                        continue
-                    }
-                    targetFile.parentFile?.mkdirs()
+                        val relPath = fullName.replace('.', File.separatorChar) + ".java"
+                        val targetFile = File(outputDir, relPath)
+                        if (!targetFile.canonicalPath.startsWith(canonicalOutPrefix)) {
+                            continue
+                        }
+                        targetFile.parentFile?.mkdirs()
 
-                    try {
-                        javaClass.decompile()
-                        val code = javaClass.code
+                        val code = decompileClassNodeDirect(root, cls)
                         if (!code.isNullOrBlank()) {
                             targetFile.writeText(code, StandardCharsets.UTF_8)
                             writtenCount++
                         }
-                    } catch (e: Throwable) {
-                        // Will fallback if none succeeded, or write fallback for this class
                     }
                 }
+            } catch (ie: InterruptedException) {
+                throw ie
+            } catch (t: Throwable) {
+                t.printStackTrace()
             }
-        } catch (ie: InterruptedException) {
-            throw ie
-        } catch (t: Throwable) {
-            t.printStackTrace()
-        }
 
-        if (writtenCount > 0) {
-            return outputDir
-        }
+            if (writtenCount > 0) {
+                return outputDir
+            }
 
-        // Android ART Fallback: Use Dexlib2 + Baksmali to guarantee 100% reliable decompilation without desktop JVM plugins
-        val workDir = File(outputDir.parentFile ?: outputDir, ".tmp_dex_${System.currentTimeMillis()}").apply { mkdirs() }
-        try {
-            val dexFiles = extractDexFiles(inputFile, workDir)
+            // 2. Android ART Fallback: Use Dexlib2 + Baksmali to guarantee 100% reliable decompilation
             val allClassDefs = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
             for (dex in dexFiles) {
                 if (isCancelled?.invoke() == true) throw InterruptedException()
@@ -421,6 +494,7 @@ object JadxDecompilerEngine {
             }
 
             val total = allClassDefs.size
+            val canonicalOutPrefix = outputDir.canonicalPath + File.separator
             for ((index, classDef) in allClassDefs.withIndex()) {
                 if (isCancelled?.invoke() == true) {
                     throw InterruptedException("Decompilation cancelled by user")
@@ -431,7 +505,7 @@ object JadxDecompilerEngine {
 
                 val relPath = fullName.replace('.', File.separatorChar) + ".java"
                 val targetFile = File(outputDir, relPath)
-                if (!targetFile.canonicalPath.startsWith(outputDir.canonicalPath + File.separator)) {
+                if (!targetFile.canonicalPath.startsWith(canonicalOutPrefix)) {
                     continue
                 }
                 targetFile.parentFile?.mkdirs()

@@ -31,6 +31,13 @@ class ListDiffer<T>(
                 return
             }
             val oldList = _list
+            if (oldList.size + newList.size > 300) {
+                val oldSize = oldList.size
+                _list = newList
+                updateCallback.onRemoved(0, oldSize)
+                updateCallback.onInserted(0, newList.size)
+                return
+            }
             val result = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
                 override fun getOldListSize(): Int {
                     return oldList.size

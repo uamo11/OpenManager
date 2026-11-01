@@ -62,9 +62,9 @@ object DocumentResolver {
         MTP_DOCUMENTS_PROVIDER_AUTHORITY
     )
 
-    private val pathDocumentIdCache = Collections.synchronizedMap(WeakHashMap<Path, String>())
+    private val pathDocumentIdCache = java.util.concurrent.ConcurrentHashMap<Path, String>()
 
-    private val directoryCursorCache = Collections.synchronizedMap(WeakHashMap<Path, Cursor>())
+    private val directoryCursorCache = java.util.concurrent.ConcurrentHashMap<Path, Cursor>()
 
     @Throws(ResolverException::class)
     fun checkExistence(path: Path) {
@@ -403,6 +403,12 @@ object DocumentResolver {
                 if (cursor.extras.getBoolean(DocumentsContract.EXTRA_LOADING)) {
                     cursor.waitUntilChanged()
                     return@use
+                }
+                if (pathDocumentIdCache.size > 8192) {
+                    pathDocumentIdCache.clear()
+                }
+                if (directoryCursorCache.size > 4096) {
+                    directoryCursorCache.clear()
                 }
                 val childrenPaths = mutableListOf<Path>()
                 while (cursor.moveToNext()) {
