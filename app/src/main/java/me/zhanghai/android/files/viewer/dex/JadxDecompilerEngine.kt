@@ -15,11 +15,9 @@ import com.android.tools.smali.dexlib2.dexbacked.DexBackedDexFile
 import com.android.tools.smali.smali.Smali
 import com.android.tools.smali.smali.SmaliOptions
 import jadx.api.JadxArgs
-import jadx.core.codegen.CodeGen
+import jadx.core.ProcessClass
 import jadx.core.dex.nodes.ClassNode
-import jadx.core.dex.nodes.ProcessState
 import jadx.core.dex.nodes.RootNode
-import jadx.core.dex.visitors.DepthTraversal
 import jadx.plugins.input.dex.DexInputPlugin
 import java.io.File
 import java.io.FileOutputStream
@@ -115,23 +113,15 @@ object JadxDecompilerEngine {
     }
 
     /**
-     * Decompiles a single ClassNode using RootNode passes + DepthTraversal + CodeGen
+     * Decompiles a single ClassNode using ProcessClass.generateCode(topParent)
      * without JadxDecompiler's desktop plugin manager.
      */
     private fun decompileClassNodeDirect(root: RootNode, cls: ClassNode): String? {
         return try {
             val topParent = cls.topParentClass
-            synchronized(topParent) {
-                topParent.load()
-                for (pass in root.passes) {
-                    DepthTraversal.visit(pass, topParent)
-                }
-                val codeGen = CodeGen()
-                codeGen.init(root)
-                DepthTraversal.visit(codeGen, topParent)
-                val codeStr = topParent.code?.codeStr
-                if (!codeStr.isNullOrBlank()) codeStr else null
-            }
+            val codeInfo = ProcessClass.generateCode(topParent)
+            val codeStr = codeInfo?.codeStr ?: topParent.code?.codeStr
+            if (!codeStr.isNullOrBlank()) codeStr else null
         } catch (t: Throwable) {
             t.printStackTrace()
             null
