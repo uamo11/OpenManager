@@ -361,7 +361,7 @@
             <ImageView
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@drawable/copy_icon_white_24dp"
+                android:src="@drawable/copy_icon_control_normal_24dp"
                 app:tint="#B0BEC5" />
 
             <TextView

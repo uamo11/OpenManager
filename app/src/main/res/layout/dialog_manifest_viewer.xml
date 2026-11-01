@@ -24,7 +24,7 @@
         <ImageView
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@drawable/description_icon_white_24dp"
+            android:src="@drawable/document_icon_white_24dp"
             app:tint="#64B5F6" />
 
         <TextView

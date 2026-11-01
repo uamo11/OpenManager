@@ -134,6 +134,6 @@
         android:layout_height="36dp"
         android:layout_marginStart="6dp"
         android:background="?selectableItemBackgroundBorderless"
-        android:src="@drawable/more_icon_white_24dp"
+        android:src="@drawable/more_vertical_icon_white_24dp"
         app:tint="#B0BEC5" />
 </LinearLayout>

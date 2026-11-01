@@ -124,13 +124,14 @@ object RunningAppsLoader {
                     if (processMap.containsKey(info.pid)) continue
                     val mainPkg = info.pkgList?.firstOrNull() ?: info.processName.substringBefore(':')
                     val pkgInfo = installedMap[mainPkg]
-                    val isSystem = if (pkgInfo != null) {
-                        (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                    val appInfo = pkgInfo?.applicationInfo
+                    val isSystem = if (appInfo != null) {
+                        (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                     } else {
                         info.uid < 10000
                     }
-                    val label = if (pkgInfo != null) {
-                        try { pm.getApplicationLabel(pkgInfo.applicationInfo).toString() } catch (_: Throwable) { mainPkg }
+                    val label = if (appInfo != null) {
+                        try { pm.getApplicationLabel(appInfo).toString() } catch (_: Throwable) { mainPkg }
                     } else {
                         info.processName
                     }
@@ -187,13 +188,14 @@ object RunningAppsLoader {
 
                 val mainPkg = processName.substringBefore(':')
                 val pkgInfo = installedMap[mainPkg]
-                val isSystem = if (pkgInfo != null) {
-                    (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val appInfo = pkgInfo?.applicationInfo
+                val isSystem = if (appInfo != null) {
+                    (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
                 } else {
                     uid < 10000
                 }
-                val label = if (pkgInfo != null) {
-                    try { pm.getApplicationLabel(pkgInfo.applicationInfo).toString() } catch (_: Throwable) { mainPkg }
+                val label = if (appInfo != null) {
+                    try { pm.getApplicationLabel(appInfo).toString() } catch (_: Throwable) { mainPkg }
                 } else {
                     processName
                 }
@@ -264,13 +266,14 @@ object RunningAppsLoader {
             val cleanName = name.trimStart('[').trimEnd(']')
             val basePkg = cleanName.substringBefore(':')
             val pkgInfo = installedMap[basePkg]
-            val isSystem = if (pkgInfo != null) {
-                (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+            val appInfo = pkgInfo?.applicationInfo
+            val isSystem = if (appInfo != null) {
+                (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
             } else {
                 user == "root" || user == "system"
             }
-            val label = if (pkgInfo != null) {
-                try { pm.getApplicationLabel(pkgInfo.applicationInfo).toString() } catch (_: Throwable) { basePkg }
+            val label = if (appInfo != null) {
+                try { pm.getApplicationLabel(appInfo).toString() } catch (_: Throwable) { basePkg }
             } else {
                 cleanName
             }
@@ -341,15 +344,16 @@ object RunningAppsLoader {
         val effectiveName = if (cmdline.isNotEmpty()) cmdline.split(' ')[0] else name
         val basePkg = effectiveName.substringBefore(':')
         val pkgInfo = installedMap[basePkg] ?: uidPackageMap[uid]?.let { installedMap[it] }
+        val appInfo = pkgInfo?.applicationInfo
 
-        val isSystem = if (pkgInfo != null) {
-            (pkgInfo.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+        val isSystem = if (appInfo != null) {
+            (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
         } else {
             uid < 10000
         }
 
-        val label = if (pkgInfo != null) {
-            try { pm.getApplicationLabel(pkgInfo.applicationInfo).toString() } catch (_: Throwable) { basePkg }
+        val label = if (appInfo != null) {
+            try { pm.getApplicationLabel(appInfo).toString() } catch (_: Throwable) { basePkg }
         } else {
             effectiveName
         }

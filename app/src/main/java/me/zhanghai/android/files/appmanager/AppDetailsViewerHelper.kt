@@ -113,9 +113,10 @@ object AppDetailsViewerHelper {
             )
         } ?: emptyList()
 
+        val permFlags = pkgInfo.requestedPermissionsFlags
         val permissionsList = pkgInfo.requestedPermissions?.mapIndexed { idx, perm ->
-            val granted = if (pkgInfo.requestedPermissionsFlags != null && idx < pkgInfo.requestedPermissionsFlags.size) {
-                (pkgInfo.requestedPermissionsFlags[idx] and PackageInfoCompat.REQUESTED_PERMISSION_GRANTED) != 0
+            val granted = if (permFlags != null && idx < permFlags.size) {
+                (permFlags[idx] and PackageInfoCompat.REQUESTED_PERMISSION_GRANTED) != 0
             } else {
                 pm.checkPermission(perm, packageName) == PackageManager.PERMISSION_GRANTED
             }
@@ -231,12 +232,12 @@ object AppDetailsViewerHelper {
                         btnLaunch.visibility = View.GONE
                     }
                     ComponentType.PROVIDER -> {
-                        ivIcon.setImageResource(R.drawable.storage_icon_white_24dp)
+                        ivIcon.setImageResource(R.drawable.shared_directory_icon_white_24dp)
                         ivIcon.setColorFilter(Color.parseColor("#AB47BC"))
                         btnLaunch.visibility = View.GONE
                     }
                     ComponentType.PERMISSION -> {
-                        ivIcon.setImageResource(R.drawable.security_icon_white_24dp)
+                        ivIcon.setImageResource(R.drawable.shield_icon_white_24dp)
                         if (item.isGranted) {
                             ivIcon.setColorFilter(Color.parseColor("#00E676"))
                             tvSub.setTextColor(Color.parseColor("#00E676"))

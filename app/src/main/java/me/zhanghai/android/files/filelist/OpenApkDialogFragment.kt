@@ -330,7 +330,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             optionsList.addAll(listOf(
                 ApkFunctionOption(getString(R.string.apk_quick_edit), R.drawable.edit_icon, Color.parseColor("#FF9800")),
                 ApkFunctionOption("Ver componentes (App Manager)", R.drawable.ic_apps_white_24dp, Color.parseColor("#42A5F5")),
-                ApkFunctionOption("Ver AndroidManifest.xml", R.drawable.description_icon_white_24dp, Color.parseColor("#FFCA28")),
+                ApkFunctionOption("Ver AndroidManifest.xml", R.drawable.document_icon_white_24dp, Color.parseColor("#FFCA28")),
                 ApkFunctionOption("AntiSplit (Fusionar Splits)", R.drawable.ic_apktool_antisplit, Color.parseColor("#FFB300")),
                 ApkFunctionOption("Descompilar APK a Java (JADX)", R.drawable.ic_open_as_code, Color.parseColor("#64B5F6")),
                 ApkFunctionOption("Descompilar APK (Apktool)", R.drawable.ic_apktool_decompile, Color.parseColor("#FFA000")),

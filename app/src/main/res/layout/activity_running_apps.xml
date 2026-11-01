@@ -142,7 +142,7 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="20dp"
         android:contentDescription="Refrescar"
-        android:src="@drawable/refresh_icon_white_24dp"
+        android:src="@drawable/reset_icon_white_24dp"
         app:backgroundTint="#00E676"
         app:tint="#121212" />
 

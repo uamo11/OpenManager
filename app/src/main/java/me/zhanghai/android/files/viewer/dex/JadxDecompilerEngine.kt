@@ -90,12 +90,16 @@ object JadxDecompilerEngine {
      * Checks whether the current runtime is Android ART/Dalvik (where JADX's desktop
      * ServiceLoader / java.nio.file.FileSystems plugin scanner is unsupported).
      */
-    private fun isAndroidRuntime(): Boolean {
-        val vmName = System.getProperty("java.vm.name") ?: ""
-        val runtimeName = System.getProperty("java.runtime.name") ?: ""
-        return vmName.contains("Dalvik", ignoreCase = true) ||
-            vmName.contains("ART", ignoreCase = true) ||
-            runtimeName.contains("Android", ignoreCase = true)
+    fun isAndroidRuntime(): Boolean {
+        return try {
+            android.os.Build.VERSION.SDK_INT > 0
+        } catch (_: Throwable) {
+            val vmName = System.getProperty("java.vm.name") ?: ""
+            val runtimeName = System.getProperty("java.runtime.name") ?: ""
+            vmName.contains("Dalvik", ignoreCase = true) ||
+                vmName.contains("ART", ignoreCase = true) ||
+                runtimeName.contains("Android", ignoreCase = true)
+        }
     }
 
     /**
@@ -239,13 +243,15 @@ object JadxDecompilerEngine {
             // 2. Android ART Native Path via Dexlib2 + Baksmali
             val targetDescriptor = "L" + targetName.replace('.', '/') + ";"
             for (dex in dexFiles) {
-                val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
-                val match = dexBacked.classes.find {
-                    it.type == targetDescriptor || normalizeClassName(it.type) == targetName
-                }
-                if (match != null) {
-                    return decompileClassDefFallback(match)
-                }
+                try {
+                    val dexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
+                    val match = dexBacked.classes.find {
+                        it.type == targetDescriptor || normalizeClassName(it.type) == targetName
+                    }
+                    if (match != null) {
+                        return decompileClassDefFallback(match)
+                    }
+                } catch (_: Throwable) {}
             }
             "// No se encontró la clase '$targetName' en ${inputFile.name}\n"
         } catch (e: Throwable) {
@@ -348,8 +354,10 @@ object JadxDecompilerEngine {
             // 2. Android ART Native Path: Dexlib2 + Baksmali ZIP export
             val allClassDefs = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
             for (dex in dexFiles) {
-                val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
-                allClassDefs.addAll(dexBacked.classes)
+                try {
+                    val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
+                    allClassDefs.addAll(dexBacked.classes)
+                } catch (_: Throwable) {}
             }
             val total = allClassDefs.size
             ZipOutputStream(FileOutputStream(outputZipFile).buffered()).use { zos ->
@@ -361,7 +369,11 @@ object JadxDecompilerEngine {
                     onProgress?.invoke(index + 1, total, fullName)
                     val entryPath = fullName.replace('.', '/') + ".java"
                     zos.putNextEntry(ZipEntry(entryPath))
-                    val code = decompileClassDefFallback(classDef)
+                    val code = try {
+                        decompileClassDefFallback(classDef)
+                    } catch (t: Throwable) {
+                        "// Error al descompilar clase $fullName: ${t.message}\n"
+                    }
                     zos.write(code.toByteArray(StandardCharsets.UTF_8))
                     zos.closeEntry()
                 }
@@ -438,8 +450,10 @@ object JadxDecompilerEngine {
             val allClassDefs = mutableListOf<com.android.tools.smali.dexlib2.iface.ClassDef>()
             for (dex in dexFiles) {
                 if (isCancelled?.invoke() == true) throw InterruptedException()
-                val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
-                allClassDefs.addAll(dexBacked.classes)
+                try {
+                    val dexBacked = DexFileFactory.loadDexFile(dex, Opcodes.getDefault())
+                    allClassDefs.addAll(dexBacked.classes)
+                } catch (_: Throwable) {}
             }
 
             val total = allClassDefs.size
@@ -459,8 +473,12 @@ object JadxDecompilerEngine {
                 }
                 targetFile.parentFile?.mkdirs()
 
-                val code = decompileClassDefFallback(classDef)
-                targetFile.writeText(code, StandardCharsets.UTF_8)
+                try {
+                    val code = decompileClassDefFallback(classDef)
+                    targetFile.writeText(code, StandardCharsets.UTF_8)
+                } catch (t: Throwable) {
+                    targetFile.writeText("// Error al descompilar clase $fullName: ${t.message}\n", StandardCharsets.UTF_8)
+                }
             }
         } finally {
             try { workDir.deleteRecursively() } catch (_: Throwable) {}

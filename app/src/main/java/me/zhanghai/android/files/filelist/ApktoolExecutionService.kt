@@ -30,10 +30,18 @@ import me.zhanghai.android.files.file.AxmlDecoder
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.newOutputStream
 import me.zhanghai.android.files.viewer.dex.JadxDecompilerEngine
+import com.android.tools.smali.baksmali.Adaptors.ClassDefinition
+import com.android.tools.smali.baksmali.BaksmaliOptions
+import com.android.tools.smali.baksmali.formatter.BaksmaliWriter
+import com.android.tools.smali.dexlib2.DexFileFactory
+import com.android.tools.smali.dexlib2.Opcodes
+import com.android.tools.smali.smali.Smali
+import com.android.tools.smali.smali.SmaliOptions
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.StringWriter
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.zip.CRC32
 import java.util.zip.ZipEntry
@@ -132,7 +140,16 @@ class ApktoolExecutionService : Service() {
             } catch (t: Throwable) {
                 t.printStackTrace()
                 CrashHandler.logHandledException(t, "ApktoolExecutionService")
-                val rootCause = generateSequence(t) { it.cause }.lastOrNull() ?: t
+                var current: Throwable? = t
+                var rootCause: Throwable = t
+                while (current != null) {
+                    rootCause = current
+                    current = if (current is java.lang.ExceptionInInitializerError) {
+                        current.exception ?: current.cause
+                    } else {
+                        current.cause
+                    }
+                }
                 val detail = rootCause.localizedMessage ?: rootCause.message ?: t.localizedMessage ?: t.message
                 val simpleName = rootCause.javaClass.simpleName
                 errorMsg = if (!detail.isNullOrBlank()) {
@@ -306,6 +323,34 @@ class ApktoolExecutionService : Service() {
         """.trimIndent()
         val ymlFile = File(projectFile, "apktool.yml")
         FileOutputStream(ymlFile).use { it.write(yml.toByteArray(Charsets.UTF_8)) }
+
+        // Disassemble classes*.dex into smali/ directories
+        val dexFilesInProject = projectFile.listFiles { f -> f.isFile && f.name.startsWith("classes") && f.name.endsWith(".dex") } ?: emptyArray()
+        for (dexFile in dexFilesInProject) {
+            if (isCancelled.get()) throw InterruptedException()
+            val smaliDirName = if (dexFile.name == "classes.dex") "smali" else "smali_${dexFile.name.removeSuffix(".dex")}"
+            val smaliOutDir = File(projectFile, smaliDirName)
+            try {
+                updateNotificationAndState("Desensamblando ${dexFile.name} a smali...", "", -1, true)
+                val dexBacked = DexFileFactory.loadDexFile(dexFile, Opcodes.getDefault())
+                val baksmaliOpts = BaksmaliOptions().apply {
+                    deodex = false
+                    parameterRegisters = true
+                }
+                for (classDef in dexBacked.classes) {
+                    if (isCancelled.get()) throw InterruptedException()
+                    val cType = classDef.type
+                    val relPath = cType.removePrefix("L").removeSuffix(";").replace('/', File.separatorChar) + ".smali"
+                    val targetSmaliFile = File(smaliOutDir, relPath)
+                    targetSmaliFile.parentFile?.mkdirs()
+                    val sw = StringWriter()
+                    BaksmaliWriter(sw).use { w ->
+                        ClassDefinition(baksmaliOpts, classDef).writeTo(w)
+                    }
+                    targetSmaliFile.writeText(sw.toString(), Charsets.UTF_8)
+                }
+            } catch (_: Throwable) {}
+        }
     }
 
     private fun executeDecompileJava(inputApkPathStr: String, outputDirStr: String, packageName: String) {
@@ -340,13 +385,38 @@ class ApktoolExecutionService : Service() {
 
         updateNotificationAndState("Recompilando proyecto APK...", "", -1, true)
 
+        // Reassemble smali directories into classes*.dex if present
+        val smaliDirs = projectDir.listFiles { f -> f.isDirectory && f.name.startsWith("smali") } ?: emptyArray()
+        for (sDir in smaliDirs) {
+            if (isCancelled.get()) throw InterruptedException()
+            val dexName = if (sDir.name == "smali") "classes.dex" else "${sDir.name.removePrefix("smali_")}.dex"
+            val targetDexFile = File(projectDir, dexName)
+            val smaliFiles = mutableListOf<String>()
+            sDir.walkTopDown().filter { it.isFile && it.extension == "smali" }.forEach {
+                smaliFiles.add(it.absolutePath)
+            }
+            if (smaliFiles.isNotEmpty()) {
+                updateNotificationAndState("Ensamblando $dexName (${smaliFiles.size} archivos smali)...", "", -1, true)
+                try {
+                    val smaliOpts = SmaliOptions().apply {
+                        apiLevel = 28
+                        outputDexFile = targetDexFile.absolutePath
+                        verboseErrors = false
+                    }
+                    Smali.assemble(smaliOpts, smaliFiles)
+                } catch (ignored: Throwable) {}
+            }
+        }
+
         // Count files in projectDir for progress bar
         var totalFiles = 0
         fun countFiles(dir: File) {
             val list = dir.listFiles() ?: return
             for (f in list) {
                 if (f.isDirectory) {
-                    countFiles(f)
+                    if (!f.name.startsWith("smali")) {
+                        countFiles(f)
+                    }
                 } else {
                     val name = f.name
                     if (name != "apktool.yml" && !name.endsWith(".orig")) {
@@ -368,9 +438,11 @@ class ApktoolExecutionService : Service() {
 
                         val relPath = file.canonicalPath.removePrefix(baseCanonical).trimStart('/', '\\').replace('\\', '/')
                         if (file.isDirectory) {
-                            addDirectoryToZip(file)
+                            if (!file.name.startsWith("smali")) {
+                                addDirectoryToZip(file)
+                            }
                         } else {
-                            if (relPath == "apktool.yml" || relPath.endsWith(".orig")) {
+                            if (relPath == "apktool.yml" || relPath.endsWith(".orig") || relPath.startsWith("smali/") || relPath.startsWith("smali\\")) {
                                 continue
                             }
 

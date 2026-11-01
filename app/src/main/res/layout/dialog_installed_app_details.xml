@@ -331,7 +331,7 @@
             <ImageView
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@drawable/description_icon_white_24dp"
+                android:src="@drawable/document_icon_white_24dp"
                 app:tint="#FFCA28" />
 
             <LinearLayout
@@ -373,7 +373,7 @@
             <ImageView
                 android:layout_width="22dp"
                 android:layout_height="22dp"
-                android:src="@drawable/edit_icon_white_24dp"
+                android:src="@drawable/edit_icon"
                 app:tint="#29B6F6" />
 
             <LinearLayout
