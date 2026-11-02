@@ -48,7 +48,9 @@ class TerminalActivity : AppActivity() {
     private var btnZoomIn: TextView? = null
     private var tvZoomSize: TextView? = null
     private var btnCopyScreen: ImageButton? = null
+    private var btnScriptAudit: ImageButton? = null
     private var btnDeadManSkull: ImageButton? = null
+    private var btnOverflowMenu: ImageButton? = null
     private var layoutDeadManAlertBadge: android.widget.LinearLayout? = null
     private var lastDeadManTarget: String = ""
     private var lastDeadManCmd: String = ""
@@ -107,8 +109,17 @@ class TerminalActivity : AppActivity() {
         btnZoomIn = findViewById(R.id.btnZoomIn)
         tvZoomSize = findViewById(R.id.tvZoomSize)
         btnCopyScreen = findViewById(R.id.btnCopyScreen)
+        btnScriptAudit = findViewById(R.id.btnScriptAudit)
         btnDeadManSkull = findViewById(R.id.btnDeadManSkull)
+        btnOverflowMenu = findViewById(R.id.btnOverflowMenu)
         layoutDeadManAlertBadge = findViewById(R.id.layoutDeadManAlertBadge)
+
+        btnScriptAudit?.setOnClickListener {
+            showScriptAuditDialog()
+        }
+        btnOverflowMenu?.setOnClickListener {
+            showOverflowMenu(it)
+        }
 
         btnDeadManSkull?.setOnClickListener {
             if (lastDeadManTarget.isNotEmpty()) {
@@ -135,6 +146,13 @@ class TerminalActivity : AppActivity() {
         if (cmd != null && cmd != ScriptExecutionManager.activeCommand) {
             startTerminalSession()
         }
+    }
+
+    fun showScriptAuditDialog() {
+        val activeScript = ScriptExecutionManager.activeScriptPath
+            ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
+            ?: intent.getStringExtra(EXTRA_PATH)
+        me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(this, activeScript)
     }
 
     fun showDeadManSkullAlert(target: String, cmd: String) {
@@ -592,10 +610,7 @@ class TerminalActivity : AppActivity() {
                     true
                 }
                 12 -> {
-                    val activeScript = ScriptExecutionManager.activeScriptPath
-                        ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
-                        ?: intent.getStringExtra(EXTRA_PATH)
-                    BinaryTracerDialog.show(this, activeScript)
+                    showScriptAuditDialog()
                     true
                 }
                 else -> false

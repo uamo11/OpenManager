@@ -1467,4 +1467,24 @@
     <string name="tracer_policy_block">Bloquear todas automáticamente (Seguro)</string>
     <string name="tracer_policy_allow">Permitir todas las eliminaciones</string>
     <string name="tracer_log_title">Registro de auditoría en tiempo real:</string>
+    <string name="script_audit_title">Auditoría de Script</string>
+    <string name="script_audit_subtitle">Telemetría y control de seguridad en tiempo real</string>
+    <string name="script_audit_enable_tracer">Rastreador de Actividad (Syscalls &amp; Kernel)</string>
+    <string name="script_audit_enable_tracer_desc">Desactiva si el script realiza miles de lecturas masivas para optimizar rendimiento</string>
+    <string name="script_audit_deletion_policy">Política de Eliminación:</string>
+    <string name="script_audit_policy_ask">Preguntar (ASK)</string>
+    <string name="script_audit_policy_block">Bloquear todo (BLOCK)</string>
+    <string name="script_audit_policy_allow">Permitir todo (ALLOW)</string>
+    <string name="script_audit_stats_deletions">Borrados</string>
+    <string name="script_audit_stats_syscalls">Syscalls</string>
+    <string name="script_audit_stats_kernel">Kernel / Proc</string>
+    <string name="script_audit_stats_deadman">Dead Man</string>
+    <string name="script_audit_history_title">Historial de Eventos en Vivo</string>
+    <string name="script_audit_empty">No se han registrado eventos para este script todavía. Las operaciones de borrado, syscalls y lecturas de kernel se auditarán aquí en tiempo real.</string>
+    <string name="script_audit_copied">Historial de auditoría copiado al portapapeles</string>
+    <string name="script_audit_cleared">Historial de auditoría limpiado</string>
+    <string name="script_audit_btn_copy">Copiar Registro</string>
+    <string name="script_audit_btn_clear">Limpiar</string>
+    <string name="script_audit_status_running">En ejecución</string>
+    <string name="script_audit_status_finished">Terminado</string>
 </resources>

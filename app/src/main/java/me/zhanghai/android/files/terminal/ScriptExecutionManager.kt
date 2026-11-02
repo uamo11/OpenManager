@@ -111,34 +111,49 @@ object ScriptExecutionManager {
         ScriptExecutionService.updateNotification(context.applicationContext)
     }
 
+    private val isTerminating = java.util.concurrent.atomic.AtomicBoolean(false)
+
     fun terminateShell(context: Context): Boolean {
-        val session = activeSession
-        val pid = activePid
-
-        if (session != null && session.isRunning) {
-            session.finishIfRunning()
+        if (!isTerminating.compareAndSet(false, true)) {
+            return false
         }
+        try {
+            val session = activeSession
+            val pid = activePid
+            activeSession = null
+            activePid = -1
+            activeCommand = null
+            activeScriptName = ""
 
-        if (pid > 0) {
-            runCatching { Os.kill(pid, OsConstants.SIGKILL) }
-            runCatching { Os.kill(-pid, OsConstants.SIGKILL) }
-            if (isRoot) {
-                CoroutineScope(Dispatchers.IO).launch {
-                    runCatching {
-                        com.topjohnwu.superuser.Shell.cmd("kill -9 $pid 2>/dev/null || true").exec()
+            if (session != null && session.isRunning) {
+                runCatching { session.finishIfRunning() }
+            }
+
+            if (pid > 0) {
+                runCatching { Os.kill(pid, OsConstants.SIGKILL) }
+                runCatching { Os.kill(-pid, OsConstants.SIGKILL) }
+                if (isRoot) {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        runCatching {
+                            com.topjohnwu.superuser.Shell.cmd("kill -9 $pid 2>/dev/null || true").exec()
+                        }
                     }
                 }
             }
-        }
 
-        releaseWakeLock()
-        lastExitCode = -9
-        notifySessionFinished(-9)
-        ScriptExecutionService.onTerminatedByUser(context.applicationContext)
-        return true
+            releaseWakeLock()
+            lastExitCode = -9
+            notifySessionFinished(-9)
+            return true
+        } finally {
+            isTerminating.set(false)
+        }
     }
 
     fun onSessionFinished(exitCode: Int, context: Context?) {
+        if (isTerminating.get()) {
+            return
+        }
         lastExitCode = exitCode
         releaseWakeLock()
         notifySessionFinished(exitCode)

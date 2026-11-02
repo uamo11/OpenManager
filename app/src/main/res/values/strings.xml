@@ -1571,4 +1571,24 @@
     <string name="tracer_policy_block">Block all deletions automatically</string>
     <string name="tracer_policy_allow">Allow all deletions</string>
     <string name="tracer_log_title">Real-time Audit Log:</string>
+    <string name="script_audit_title">Script Audit</string>
+    <string name="script_audit_subtitle">Real-time telemetry &amp; security control</string>
+    <string name="script_audit_enable_tracer">Activity Tracer (Syscalls &amp; Kernel)</string>
+    <string name="script_audit_enable_tracer_desc">Disable if script executes thousands of heavy syscalls to optimize performance</string>
+    <string name="script_audit_deletion_policy">Deletion Policy:</string>
+    <string name="script_audit_policy_ask">Always Ask (ASK)</string>
+    <string name="script_audit_policy_block">Block All (BLOCK)</string>
+    <string name="script_audit_policy_allow">Allow All (ALLOW)</string>
+    <string name="script_audit_stats_deletions">Deletions</string>
+    <string name="script_audit_stats_syscalls">Syscalls</string>
+    <string name="script_audit_stats_kernel">Kernel / Proc</string>
+    <string name="script_audit_stats_deadman">Dead Man</string>
+    <string name="script_audit_history_title">Real-Time Event Ledger</string>
+    <string name="script_audit_empty">No events recorded for this script yet. Deletion attempts, syscalls, and kernel reads will be audited here in real time.</string>
+    <string name="script_audit_copied">Audit log copied to clipboard</string>
+    <string name="script_audit_cleared">Audit log cleared</string>
+    <string name="script_audit_btn_copy">Copy Log</string>
+    <string name="script_audit_btn_clear">Clear</string>
+    <string name="script_audit_status_running">Running</string>
+    <string name="script_audit_status_finished">Finished</string>
 </resources>

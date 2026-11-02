@@ -84,6 +84,16 @@
                 android:contentDescription="Copiar salida" />
 
             <ImageButton
+                android:id="@+id/btnScriptAudit"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/shield_icon_white_24dp"
+                app:tint="#64B5F6"
+                android:contentDescription="@string/script_audit_title" />
+
+            <ImageButton
                 android:id="@+id/btnDeadManSkull"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
@@ -93,6 +103,16 @@
                 android:src="@drawable/ic_dead_man_skull"
                 app:tint="#E53935"
                 android:contentDescription="@string/dead_man_skull_button_desc" />
+
+            <ImageButton
+                android:id="@+id/btnOverflowMenu"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/more_vertical_icon_white_24dp"
+                app:tint="#FFFFFF"
+                android:contentDescription="Más opciones" />
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 

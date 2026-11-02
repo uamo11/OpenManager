@@ -199,96 +199,17 @@ object TerminalExpansionManager {
             } catch (_: Throwable) {}
         }
 
-        // 4. Deploy non-fatal deletion tracer interceptor wrappers (rm, rmdir, om_tracer)
-        val rmFile = File(binDir, "rm")
-        val rmContent = """
-            #!/system/bin/sh
-            if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
-                case "${'$'}*" in
-                    *" /"*|*" /*"*|*"-rf / "*|*"-rf /"*|*"-fr / "*|*"-fr /"*|*"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
-                        echo "[OM_TRACER:DEADMAN_DELETE:rm:${'$'}*]"
-                        echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
-                        exit 0
-                        ;;
-                esac
-            fi
-            if [ "${'$'}OM_TRACER_DISABLED" = "1" ]; then
-                exec /system/bin/rm "${'$'}@"
-            fi
-            echo "[OM_TRACER:DELETE:rm:${'$'}*]"
-            if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
-                echo "[OM_TRACER:BLOCKED] rm ${'$'}*" >&2
-                exit 0
-            fi
-            exec /system/bin/rm "${'$'}@"
-        """.trimIndent() + "\n"
+        // 4. Clean up any legacy shim scripts (rm, rmdir, om_tracer) in binDir.
+        // Android 10+ (targetSdk 29+) SELinux strictly blocks untrusted apps from executing
+        // scripts or binaries from internal storage (app_data_file) via execve (W^X violation).
+        // Deleting these files ensures invocations fallback safely to system binaries (/system/bin/rm).
         try {
-            if (!rmFile.exists() || rmFile.readText() != rmContent) {
-                rmFile.writeText(rmContent)
-            }
-            rmFile.setReadable(true, false)
-            rmFile.setExecutable(true, false)
-        } catch (_: Throwable) {}
-
-        val rmdirFile = File(binDir, "rmdir")
-        val rmdirContent = """
-            #!/system/bin/sh
-            if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
-                case "${'$'}*" in
-                    *"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
-                        echo "[OM_TRACER:DEADMAN_DELETE:rmdir:${'$'}*]"
-                        echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
-                        exit 0
-                        ;;
-                esac
-            fi
-            if [ "${'$'}OM_TRACER_DISABLED" = "1" ]; then
-                exec /system/bin/rmdir "${'$'}@"
-            fi
-            echo "[OM_TRACER:DELETE:rmdir:${'$'}*]"
-            if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
-                echo "[OM_TRACER:BLOCKED] rmdir ${'$'}*" >&2
-                exit 0
-            fi
-            exec /system/bin/rmdir "${'$'}@"
-        """.trimIndent() + "\n"
-        try {
-            if (!rmdirFile.exists() || rmdirFile.readText() != rmdirContent) {
-                rmdirFile.writeText(rmdirContent)
-            }
-            rmdirFile.setReadable(true, false)
-            rmdirFile.setExecutable(true, false)
-        } catch (_: Throwable) {}
-
-        val tracerHelperFile = File(binDir, "om_tracer")
-        val tracerHelperContent = """
-            #!/system/bin/sh
-            ACTION="${'$'}1"
-            shift
-            case "${'$'}ACTION" in
-                deadman_delete)
-                    echo "[OM_TRACER:DEADMAN_DELETE:${'$'}*]"
-                    ;;
-                delete)
-                    echo "[OM_TRACER:DELETE:${'$'}*]"
-                    ;;
-                syscall)
-                    echo "[OM_TRACER:SYSCALL:${'$'}*]"
-                    ;;
-                probe)
-                    echo "[OM_TRACER:KERNEL:${'$'}*]"
-                    ;;
-                *)
-                    echo "[OM_TRACER:${'$'}ACTION:${'$'}*]"
-                    ;;
-            esac
-        """.trimIndent() + "\n"
-        try {
-            if (!tracerHelperFile.exists() || tracerHelperFile.readText() != tracerHelperContent) {
-                tracerHelperFile.writeText(tracerHelperContent)
-            }
-            tracerHelperFile.setReadable(true, false)
-            tracerHelperFile.setExecutable(true, false)
+            val legacyRm = File(binDir, "rm")
+            if (legacyRm.exists()) legacyRm.delete()
+            val legacyRmdir = File(binDir, "rmdir")
+            if (legacyRmdir.exists()) legacyRmdir.delete()
+            val legacyTracer = File(binDir, "om_tracer")
+            if (legacyTracer.exists()) legacyTracer.delete()
         } catch (_: Throwable) {}
 
         return binDir
@@ -306,6 +227,47 @@ object TerminalExpansionManager {
                 alias ...='cd ../..'
                 export LANG=en_US.UTF-8
                 export COLORTERM=truecolor
+
+                # Shell function interceptors for dead man & deletion policy without SELinux execve violations
+                rm() {
+                    if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
+                        case "${'$'}*" in
+                            *" /"*|*" /*"*|*"-rf / "*|*"-rf /"*|*"-fr / "*|*"-fr /"*|*"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
+                                echo "[OM_TRACER:DEADMAN_DELETE:rm:${'$'}*]"
+                                echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
+                                return 1
+                                ;;
+                        esac
+                    fi
+                    if [ "${'$'}OM_TRACER_DISABLED" != "1" ]; then
+                        echo "[OM_TRACER:DELETE:rm:${'$'}*]"
+                        if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
+                            echo "[OM_TRACER:BLOCKED] rm ${'$'}*" >&2
+                            return 1
+                        fi
+                    fi
+                    command rm "${'$'}@"
+                }
+
+                rmdir() {
+                    if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
+                        case "${'$'}*" in
+                            *"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
+                                echo "[OM_TRACER:DEADMAN_DELETE:rmdir:${'$'}*]"
+                                echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
+                                return 1
+                                ;;
+                        esac
+                    fi
+                    if [ "${'$'}OM_TRACER_DISABLED" != "1" ]; then
+                        echo "[OM_TRACER:DELETE:rmdir:${'$'}*]"
+                        if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
+                            echo "[OM_TRACER:BLOCKED] rmdir ${'$'}*" >&2
+                            return 1
+                        fi
+                    fi
+                    command rmdir "${'$'}@"
+                }
             """.trimIndent() + "\n"
             if (!initFile.exists() || initFile.readText() != rcContent) {
                 initFile.writeText(rcContent)
@@ -342,7 +304,7 @@ object TerminalExpansionManager {
         val binDir = ensureBinTools(context)
 
         val shellCmd = if (initialCommand != null) {
-            "cd '$escapedCwd' && ($initialCommand); _mt_status=\$?; exit \$_mt_status"
+            ". '${initScript.absolutePath}' 2>/dev/null; cd '$escapedCwd' && ($initialCommand); _mt_status=\$?; exit \$_mt_status"
         } else null
 
         if (asRoot && isRootAvailable()) {

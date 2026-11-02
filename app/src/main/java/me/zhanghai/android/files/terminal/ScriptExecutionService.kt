@@ -133,26 +133,9 @@ class ScriptExecutionService : Service() {
             Toast.makeText(this, getString(R.string.script_exec_killed_toast, if (pid > 0) pid else 0), Toast.LENGTH_SHORT).show()
         }
 
-        val openIntent = createOpenTerminalPendingIntent()
-        val dismissIntent = createActionPendingIntent(ACTION_DISMISS, 99)
-
-        val notification = scriptExecutionNotificationTemplate.createBuilder(this)
-            .setContentTitle(getString(R.string.script_exec_notification_shell))
-            .setContentText("Proceso terminado por el usuario")
-            .setOngoing(false)
-            .setAutoCancel(true)
-            .setContentIntent(openIntent)
-            .addAction(R.drawable.close_icon_white_24dp, getString(R.string.script_exec_notification_dismiss), dismissIntent)
-            .build()
-
-        stopForeground(false)
-        NotificationManagerCompat.from(this).notify(NotificationIds.SCRIPT_EXECUTION, notification)
-
-        mainHandler.postDelayed({
-            if (!ScriptExecutionManager.isRunning()) {
-                stopSelf()
-            }
-        }, 3000L)
+        NotificationManagerCompat.from(this).cancel(NotificationIds.SCRIPT_EXECUTION)
+        stopForeground(true)
+        stopSelf()
     }
 
     private fun handleKeepBackground() {
@@ -170,6 +153,12 @@ class ScriptExecutionService : Service() {
     }
 
     private fun handleFinished(exitCode: Int) {
+        if (!ScriptExecutionManager.isRunning() && ScriptExecutionManager.activePid <= 0 && exitCode == -9) {
+            NotificationManagerCompat.from(this).cancel(NotificationIds.SCRIPT_EXECUTION)
+            stopForeground(true)
+            stopSelf()
+            return
+        }
         val scriptName = ScriptExecutionManager.activeScriptName.ifEmpty { "Script" }
         val title = if (exitCode == 0) {
             getString(R.string.script_exec_completed_success)
