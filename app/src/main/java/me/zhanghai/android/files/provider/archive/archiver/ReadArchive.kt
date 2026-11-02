@@ -35,7 +35,7 @@ class ReadArchive : Closeable {
         try {
             Archive.setCharset(archive, StandardCharsets.UTF_8.name().toByteArray())
             Archive.readSupportFilterAll(archive)
-            Archive.readSupportFormatAll(archive)
+            ArchiveSecurityManager.configureSecureFormats(archive)
             Archive.readSetCallbackData(archive, null)
             val buffer = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE)
             Archive.readSetReadCallback<Any?>(archive) { _, _ ->
@@ -46,6 +46,7 @@ class ReadArchive : Closeable {
                     throw e.toArchiveException("InputStream.read")
                 }
                 if (bytesRead != -1) {
+                    ArchiveSecuritySanitizer.sanitizeBuffer(buffer.array(), 0, bytesRead)
                     buffer.limit(bytesRead)
                     buffer
                 } else {
@@ -77,7 +78,7 @@ class ReadArchive : Closeable {
         try {
             Archive.setCharset(archive, StandardCharsets.UTF_8.name().toByteArray())
             Archive.readSupportFilterAll(archive)
-            Archive.readSupportFormatAll(archive)
+            ArchiveSecurityManager.configureSecureFormats(archive)
             Archive.readSetCallbackData(archive, null)
             val buffer = ByteBuffer.allocateDirect(DEFAULT_BUFFER_SIZE)
             Archive.readSetReadCallback<Any?>(archive) { _, _ ->
@@ -89,6 +90,7 @@ class ReadArchive : Closeable {
                 }
                 if (bytesRead != -1) {
                     buffer.flip()
+                    ArchiveSecuritySanitizer.sanitizeDirectBuffer(buffer)
                     buffer
                 } else {
                     null

@@ -132,6 +132,24 @@ object ArchiveReader {
         file: Path,
         passwords: List<String>
     ): Pair<ReadArchive, ArchiveCloseable> {
+        // Guard against CVE-2026-14164 (RAR5 Double-Free in unpacking state reinitialization)
+        try {
+            val headerBytes = ByteArray(8)
+            val bytesRead = file.newInputStream().use { it.read(headerBytes) }
+            if (bytesRead >= 8 && ArchiveSecuritySanitizer.isRar5Header(headerBytes)) {
+                if (!ArchiveSecurityPreferences.isRar5Enabled()) {
+                    ArchiveSecurityPreferences.recordCve2026_14164Blocked()
+                    throw me.zhanghai.android.files.provider.archive.ArchiveSecurityException(
+                        file,
+                        "Formato RAR5 bloqueado por protección activa contra la vulnerabilidad crítica CVE-2026-14164 (doble liberación en libarchive). Puedes activarlo bajo tu propio riesgo en Ajustes.",
+                        "CVE-2026-14164"
+                    )
+                }
+            }
+        } catch (e: me.zhanghai.android.files.provider.archive.ArchiveSecurityException) {
+            throw e
+        } catch (_: Throwable) {}
+
         val channel = try {
             CacheSizeSeekableByteChannel(file.newByteChannel())
         } catch (e: Exception) {

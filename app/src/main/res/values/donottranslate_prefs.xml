@@ -92,6 +92,13 @@
     <bool name="pref_default_value_dead_man_root_protection">true</bool>
     <string name="pref_key_dead_man_root_rules">key_dead_man_root_rules</string>
 
+    <!-- Libarchive Vulnerability Protection (CVE-2026-15028, CVE-2026-14164) -->
+    <string name="pref_key_category_archive_security">key_category_archive_security</string>
+    <string name="pref_key_archive_security_sanitize_tar_pax">pref_key_archive_security_sanitize_tar_pax</string>
+    <bool name="pref_default_value_archive_security_sanitize_tar_pax">true</bool>
+    <string name="pref_key_archive_security_enable_rar5">pref_key_archive_security_enable_rar5</string>
+    <bool name="pref_default_value_archive_security_enable_rar5">false</bool>
+
     <!-- MT Manager Startup Preferences -->
     <string name="pref_key_request_root_permission">key_request_root_permission</string>
     <bool name="pref_default_value_request_root_permission">true</bool>

@@ -1591,4 +1591,13 @@
     <string name="script_audit_btn_clear">Clear</string>
     <string name="script_audit_status_running">Running</string>
     <string name="script_audit_status_finished">Finished</string>
+    <!-- Libarchive Security (CVE-2026-15028, CVE-2026-14164) -->
+    <string name="settings_category_archive_security_title">Archive Security &amp; CVE Guard</string>
+    <string name="settings_category_archive_security_summary">Protection against libarchive vulnerabilities (CVE-2026-15028 and CVE-2026-14164)</string>
+    <string name="settings_archive_security_tar_title">TAR PAX Sanitizer (CVE-2026-15028)</string>
+    <string name="settings_archive_security_tar_summary">Neutralizes malformed SUN.holesdata sparse attributes to prevent heap buffer overflow</string>
+    <string name="settings_archive_security_rar5_title">Enable RAR5 Format (CVE-2026-14164)</string>
+    <string name="settings_archive_security_rar5_summary">Keep vulnerable RAR5 reader disabled by default to prevent Double-Free vulnerability</string>
+    <string name="archive_security_rar5_blocked">RAR5 format blocked by security guard (CVE-2026-14164)</string>
+    <string name="archive_security_tar_neutralized">Malformed SUN.holesdata PAX attribute neutralized (CVE-2026-15028)</string>
 </resources>
