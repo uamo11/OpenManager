@@ -238,7 +238,6 @@ class TerminalActivity : AppActivity() {
             ?: intent.getStringExtra(EXTRA_CWD)
             ?: intent.data?.path
 
-        val initialCommand = intent.getStringExtra(EXTRA_COMMAND)
         val forceRoot = forceRootOverride
             ?: if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
         val forceTermex = if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null

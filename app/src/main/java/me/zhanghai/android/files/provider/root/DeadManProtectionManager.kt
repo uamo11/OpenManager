@@ -424,7 +424,7 @@ object DeadManProtectionManager {
                 override fun onFinish() {
                     leftCountdownBtn?.text = activity.getString(R.string.dirtyflag_protection_proceed)
                     leftCountdownBtn?.isEnabled = true
-                    leftCountdownBtn?.setTextColor(ContextCompat.getColor(activity, R.color.color_accent))
+                    leftCountdownBtn?.setTextColor(Color.parseColor("#2196F3"))
                     leftCountdownBtn?.setOnClickListener {
                         hasWaitedCountdown = true
                         dialog.dismiss()
