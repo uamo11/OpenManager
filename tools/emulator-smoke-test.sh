@@ -163,6 +163,16 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG dirtyflag_dialog" \
     "23_dirtyflag_protection_dialog.png" "DirtyFlag Protection Warning Dialog"
 
+# 24. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
+echo "=========================================================="
+echo ">>> 24. Testing Native C / C++ ImGui & Low-Level Syscalls..."
+echo "=========================================================="
+if [ -f "TestCompiledScript/run_emulator_test.sh" ]; then
+    chmod +x TestCompiledScript/run_emulator_test.sh
+    echo "--- Native C / C++ & Dear ImGui Syscall Probe ---" >> emulator-performance.txt
+    ./TestCompiledScript/run_emulator_test.sh 2>&1 | tee -a emulator-performance.txt
+fi
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt
