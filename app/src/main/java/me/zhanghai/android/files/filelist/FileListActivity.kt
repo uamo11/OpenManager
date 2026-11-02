@@ -252,6 +252,14 @@ class FileListActivity : AppActivity() {
                     e.printStackTrace()
                 }
             }
+        } else if (Settings.REQUEST_SHELL_PERMISSION.valueCompat) {
+            if (me.zhanghai.android.files.provider.root.ShizukuManager.isAvailable() &&
+                !me.zhanghai.android.files.provider.root.ShizukuManager.hasPermission()
+            ) {
+                me.zhanghai.android.files.provider.root.ShizukuManager.requestPermission(this) {
+                    me.zhanghai.android.files.provider.root.SuperuserDetector.cachedStatus = null
+                }
+            }
         }
 
         setupDrawerControls()

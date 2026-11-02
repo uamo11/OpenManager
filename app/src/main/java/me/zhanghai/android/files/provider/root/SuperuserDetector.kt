@@ -71,7 +71,7 @@ object SuperuserDetector {
         ),
         SHIZUKU(
             "Shizuku",
-            R.drawable.ic_shizuku,
+            R.drawable.ic_shizuku_logo,
             "Servidor de privilegios Shizuku conectado vía Binder"
         ),
         NONE(
@@ -86,6 +86,10 @@ object SuperuserDetector {
         val isRootGranted: Boolean,
         val isRootEnabledInSettings: Boolean = true,
         val isShizukuReady: Boolean = false,
+        val isShizukuAvailable: Boolean = false,
+        val isShizukuExecutionEnabled: Boolean = false,
+        val shizukuUid: Int = -1,
+        val shizukuVersion: Int = -1,
         val hasDfRoot: Boolean = false,
         val suVersion: String? = null,
         val managerPackage: String? = null,
@@ -98,13 +102,17 @@ object SuperuserDetector {
                 !isRootEnabledInSettings && type == SuperuserType.NONE ->
                     "Modo Estándar (Root desactivado)"
                 type == SuperuserType.SHIZUKU ->
-                    "Shizuku Conectado"
+                    if (shizukuUid >= 0) "Shizuku Conectado (${if (shizukuUid == 0) "Root" else "ADB"})" else "Shizuku Conectado"
+                isRootGranted && isShizukuReady ->
+                    "Superusuario: ${type.displayName} + Shizuku"
                 isRootGranted ->
                     "Superusuario: ${type.displayName}"
                 type != SuperuserType.NONE ->
                     "${type.displayName} (No autorizado)"
                 hasDfRoot ->
                     "DFRoot (No autorizado)"
+                isShizukuAvailable ->
+                    "Shizuku (Sin permiso de ejecución)"
                 else ->
                     "Modo Estándar (Sin Root)"
             }
@@ -114,13 +122,17 @@ object SuperuserDetector {
                 !isRootEnabledInSettings ->
                     "La solicitud de root está desactivada en Ajustes > Inicio"
                 type == SuperuserType.SHIZUKU ->
-                    "Acceso elevado mediante Binder API"
+                    "Acceso elevado mediante Binder API (${if (shizukuUid == 0) "Modo Root" else "Modo ADB Shell"})"
+                isRootGranted && isShizukuReady ->
+                    "Privilegios Root y servidor Shizuku activos simultáneamente"
                 isRootGranted ->
                     "Privilegios administrativos activos para operaciones de sistema"
                 type != SuperuserType.NONE ->
                     "Gestor instalado pero permiso no concedido"
                 hasDfRoot ->
                     "DFRoot Jailbreak detectado en el dispositivo"
+                isShizukuAvailable ->
+                    "Servidor Shizuku detectado pero falta autorizar permiso de ejecución"
                 else ->
                     "Permisos estándar de almacenamiento y aplicación"
             }
@@ -147,11 +159,23 @@ object SuperuserDetector {
         val hasDfRoot = detectDfRoot(pm)
 
         // 2. Verificar estado de Shizuku
+        val isShizukuExecutionEnabled = try {
+            me.zhanghai.android.files.settings.Settings.REQUEST_SHELL_PERMISSION.valueCompat
+        } catch (_: Throwable) {
+            false
+        }
+        val isShizukuAvailable = try {
+            ShizukuManager.isAvailable()
+        } catch (_: Throwable) {
+            false
+        }
         val isShizukuReady = try {
             ShizukuManager.ready()
         } catch (_: Throwable) {
             false
         }
+        val shizukuUid = if (isShizukuReady) ShizukuManager.getUid() else -1
+        val shizukuVersion = if (isShizukuAvailable) ShizukuManager.getVersion() else -1
 
         // 3. Verificar si el comando su está disponible en el sistema
         val isSuAvailable = try {
@@ -200,6 +224,10 @@ object SuperuserDetector {
             isRootGranted = isRootGranted,
             isRootEnabledInSettings = isRootEnabledInSettings,
             isShizukuReady = isShizukuReady,
+            isShizukuAvailable = isShizukuAvailable,
+            isShizukuExecutionEnabled = isShizukuExecutionEnabled,
+            shizukuUid = shizukuUid,
+            shizukuVersion = shizukuVersion,
             hasDfRoot = hasDfRoot,
             suVersion = suVersion,
             managerPackage = detectedPkg,

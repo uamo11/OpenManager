@@ -338,4 +338,72 @@ class SuperuserDetectorTest {
         assertTrue(SuperuserDetector.isKernelSuDetected(null))
         SuperuserDetector.cachedStatus = null
     }
+
+    @Test
+    fun testShizukuTypeUsesOfficialLogo() {
+        val type = SuperuserDetector.SuperuserType.SHIZUKU
+        assertEquals("Shizuku", type.displayName)
+        assertEquals(R.drawable.ic_shizuku_logo, type.iconRes)
+    }
+
+    @Test
+    fun testShizukuStatusWithAdbModeAndExecutionPermission() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.SHIZUKU,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = true,
+            isShizukuAvailable = true,
+            isShizukuExecutionEnabled = true,
+            shizukuUid = 2000,
+            shizukuVersion = 13,
+            hasDfRoot = false
+        )
+
+        assertEquals("Shizuku Conectado (ADB)", status.title)
+        assertEquals("SHIZUKU", status.statusTag)
+        assertTrue(status.subtitle.contains("Modo ADB Shell"))
+        assertTrue(status.isShizukuReady)
+        assertTrue(status.isShizukuExecutionEnabled)
+        assertEquals(2000, status.shizukuUid)
+        assertEquals(13, status.shizukuVersion)
+    }
+
+    @Test
+    fun testRootAndShizukuCoPresence() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.KERNEL_SU,
+            isRootGranted = true,
+            isRootEnabledInSettings = true,
+            isShizukuReady = true,
+            isShizukuAvailable = true,
+            isShizukuExecutionEnabled = true,
+            shizukuUid = 0,
+            hasDfRoot = false
+        )
+
+        assertEquals("Superusuario: KernelSU + Shizuku", status.title)
+        assertEquals("ROOT", status.statusTag)
+        assertTrue(status.subtitle.contains("simultáneamente"))
+        assertTrue(status.isRootGranted)
+        assertTrue(status.isShizukuReady)
+    }
+
+    @Test
+    fun testShizukuAvailableWithoutPermission() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.NONE,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            isShizukuAvailable = true,
+            isShizukuExecutionEnabled = false
+        )
+
+        assertEquals("Shizuku (Sin permiso de ejecución)", status.title)
+        assertEquals("ESTÁNDAR", status.statusTag)
+        assertTrue(status.subtitle.contains("falta autorizar permiso de ejecución"))
+        assertFalse(status.isShizukuReady)
+        assertTrue(status.isShizukuAvailable)
+    }
 }

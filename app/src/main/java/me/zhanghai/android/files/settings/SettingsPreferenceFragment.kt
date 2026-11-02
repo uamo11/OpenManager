@@ -34,7 +34,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_install_shizuku))?.setOnPreferenceClickListener {
-            requireContext().startActivitySafe(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://shizuku.rikka.app/")))
+            me.zhanghai.android.files.provider.root.ShizukuManager.openShizukuApp(requireContext())
             true
         }
 
@@ -173,9 +173,21 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         Settings.NIGHT_MODE.observe(viewLifecycleOwner, this::onNightModeChanged)
         Settings.BLACK_NIGHT_MODE.observe(viewLifecycleOwner, this::onBlackNightModeChanged)
         Settings.REQUEST_ROOT_PERMISSION.observe(viewLifecycleOwner, this::onRequestRootPermissionChanged)
+        Settings.REQUEST_SHELL_PERMISSION.observe(viewLifecycleOwner, this::onRequestShellPermissionChanged)
     }
 
     private fun onRequestRootPermissionChanged(enabled: Boolean) {
+        findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
+    }
+
+    private fun onRequestShellPermissionChanged(enabled: Boolean) {
+        if (enabled && me.zhanghai.android.files.provider.root.ShizukuManager.isAvailable() && !me.zhanghai.android.files.provider.root.ShizukuManager.hasPermission()) {
+            activity?.let { act ->
+                me.zhanghai.android.files.provider.root.ShizukuManager.requestPermission(act) {
+                    findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
+                }
+            }
+        }
         findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
     }
 

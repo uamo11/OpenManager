@@ -212,6 +212,12 @@ object Settings {
             R.bool.pref_default_value_request_root_permission
         )
 
+    val REQUEST_SHELL_PERMISSION: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_request_shell_permission,
+            R.bool.pref_default_value_request_shell_permission
+        )
+
     val MAX_LINES_FILE_NAME: SettingLiveData<String> =
         StringSettingLiveData(
             R.string.pref_key_max_lines_file_name,

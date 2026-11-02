@@ -562,3 +562,29 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - En `RunningAppsAdapter.kt`, etiquetado estricto `holder.ivIcon.tag = item.packageName` previo a la carga asíncrona en hilo de fondo para eliminar parpadeos o asignaciones erróneas de iconos en RecyclerView.
 - **Suite de Pruebas Unitarias Ampliada**:
   - Incorporadas nuevas pruebas en `RunningAppsLogicTest.kt` validando `parseDumpsysOutput`, `parsePsOutput` con cabeceras personalizadas y enriquecimiento de memoria RSS.
+
+### Hito 51: Permiso de Ejecución de Shizuku, Mostrador de Superusuario con Logo Oficial e Integración Completa (v1.9.36)
+- **Implementación del Ajuste 'Permiso de ejecución de Shizuku'**:
+  - Añadido `Settings.REQUEST_SHELL_PERMISSION` en `Settings.kt` enlazado con la clave de preferencias `pref_key_request_shell_permission`.
+  - Título y descripción actualizados en `values-es/strings.xml` y `values/strings.xml`: *"Permiso de ejecución de Shizuku"* / *"Shizuku execution permission"*.
+  - Observador reactivo en `SettingsPreferenceFragment.kt`: al activar el switch, si Shizuku está en ejecución y no autorizado, solicita inmediatamente la autorización a través de `ShizukuManager.requestPermission`.
+  - Enlace al selector de `pref_key_install_shizuku` para abrir directamente la app o el sitio oficial de Shizuku (`https://shizuku.rikka.app/`).
+  - Al iniciar `FileListActivity.kt`, si el permiso de ejecución de Shizuku está habilitado y no se dispone de root, se solicita la vinculación de Shizuku automáticamente.
+- **Mostrador de Superusuario con Logo Oficial de Shizuku**:
+  - Descarga e integración del logotipo vectorial/PNG oficial de Shizuku (`https://shizuku.rikka.app/logo.png`) en `res/drawable/ic_shizuku_logo.png` y `res/drawable-nodpi/ic_shizuku_logo.png`.
+  - `SuperuserType.SHIZUKU` configurado con `R.drawable.ic_shizuku_logo`.
+  - En `preference_superuser_flag.xml`:
+    - Incorporación de `ivShizukuMini` para coexistencia visual junto a gestores de root (`Magisk + Shizuku`, `KernelSU + Shizuku`, etc.).
+  - En `SuperuserStatusPreference.kt`:
+    - Modos de visualización dinámicos:
+      1. **Root activo**: Si Shizuku también está activo, muestra cabecera combinada (ej. `KernelSU + Shizuku`), insignia `[+ Shizuku]` y el mini logo oficial de Shizuku.
+      2. **Solo Shizuku activo (sin Root)**: Muestra la tarjeta verde con el logo oficial de Shizuku a todo color, cabecera `Shizuku (ADB API)` o `Shizuku (Root API)` según el UID del servidor, estado `Working` y etiqueta `[Permiso de Ejecución]`.
+      3. **Shizuku detectado pero sin autorizar**: Tarjeta con logo de Shizuku, cabecera `Shizuku Detectado`, texto `No Root` y etiqueta `[Pedir permiso de ejecución]`. Al tocar la tarjeta, el diálogo ofrece el botón directo *"Pedir permiso Shizuku"* para autorizar la ejecución en el momento.
+      4. **Modo estándar (sin Root ni Shizuku)**: Tarjeta gris con escudo bloqueado y detalles informativos.
+    - Observadores automáticos de `REQUEST_ROOT_PERMISSION`, `REQUEST_SHELL_PERMISSION` y eventos de binder reactivos de Shizuku.
+- **Métodos Auxiliares en ShizukuManager**:
+  - `ShizukuManager.getUid()`: Devuelve el UID del servidor Shizuku (0 para Root, 2000 para ADB Shell).
+  - `ShizukuManager.getVersion()`: Devuelve la versión de la API de Shizuku.
+  - `ShizukuManager.isRootMode()`: Informa si Shizuku corre con privilegios de root nativos.
+- **Suite de Pruebas Unitarias**:
+  - Nuevos tests en `SuperuserDetectorTest.kt` validando el uso del logo oficial de Shizuku, formateo de estados ADB/Root, coexistencia de Root + Shizuku y detección de Shizuku sin permisos.

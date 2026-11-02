@@ -996,8 +996,8 @@
     <!-- MT Manager Startup Preferences -->
     <string name="settings_request_root_permission_title">Request root permission</string>
     <string name="settings_request_root_permission_summary">Request root permissions at startup. After modifying this setting, you need to restart to take effect.</string>
-    <string name="settings_request_shell_permission_title">Request shell permission</string>
-    <string name="settings_request_shell_permission_summary">If root permission is not obtained at startup, OpenManager will try to call Shizuku to obtain shell permission. After modifying this setting, you need to restart to take effect.</string>
+    <string name="settings_request_shell_permission_title">Shizuku execution permission</string>
+    <string name="settings_request_shell_permission_summary">Allows OpenManager to connect with Shizuku to execute shell commands, manage processes, install apps, and access system directories without root.</string>
     <string name="settings_customize_su_command_title">Customize su command</string>
     <string name="settings_customize_su_command_summary">Command used to request root permission, leave blank for automatic identification.</string>
     <string name="settings_install_shizuku_title">Install Shizuku</string>

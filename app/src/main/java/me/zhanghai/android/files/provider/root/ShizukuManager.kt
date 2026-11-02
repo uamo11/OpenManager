@@ -94,6 +94,20 @@ object ShizukuManager {
 
     fun ready(): Boolean = isAvailable() && hasPermission()
 
+    fun getUid(): Int = try {
+        if (ready()) Shizuku.getUid() else -1
+    } catch (_: Throwable) {
+        -1
+    }
+
+    fun getVersion(): Int = try {
+        if (isAvailable()) Shizuku.getVersion() else -1
+    } catch (_: Throwable) {
+        -1
+    }
+
+    fun isRootMode(): Boolean = getUid() == 0
+
     fun requestPermission(
         activity: Activity,
         callback: ((Boolean) -> Unit)? = null

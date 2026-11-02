@@ -105,6 +105,17 @@
                     android:src="@drawable/ic_root_dfroot"
                     android:visibility="gone"
                     tools:visibility="visible" />
+
+                <!-- Mini Shizuku Logo Icon -->
+                <ImageView
+                    android:id="@+id/ivShizukuMini"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:layout_marginStart="5dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_shizuku_logo"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
             </LinearLayout>
 
             <!-- Bottom-right / Side Corner Status Icon (Check / X) -->
