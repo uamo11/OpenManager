@@ -813,6 +813,17 @@
 
     <!-- MT Manager Settings Categories -->
     <string name="settings_category_superuser_title">Estado de Privilegios y Root</string>
+    <string name="settings_category_dead_man_title">Hombre muerto</string>
+    <string name="settings_category_dead_man_summary">Protección contra bricks, bootloops y scripts destructivos (Exclusivo Root)</string>
+    <string name="settings_dead_man_dfroot_protection_title">DFROOT protection</string>
+    <string name="settings_dead_man_dfroot_protection_summary">Protege contra la modificación, flasheo o eliminación de archivos críticos (boot.img, init_boot, vbmeta, particiones de arranque) que impiden que el celular vuelva a encender al reiniciar con DFRoot.</string>
+    <string name="settings_dead_man_root_protection_title">Root protection</string>
+    <string name="settings_dead_man_root_protection_summary">Protege contra scripts o binarios compilados maliciosos que intentan borrar estratégicamente el sistema o formatear particiones críticas.</string>
+    <string name="dead_man_dfroot_dialog_title">⚠️ Hombre Muerto: Protección DFROOT</string>
+    <string name="dead_man_dfroot_dialog_message">El archivo o partición \'%1$s\' es fundamental para el arranque del sistema (Kernel / Boot / VBMeta).\n\nEn entornos DFRoot (jailbreak/exploit en memoria), modificar, sobrescribir, eliminar o flashear este elemento impedirá que el celular vuelva a encender al reiniciar (Bootloop / Soft-brick irreversible sin PC).\n\nAcción: %2$s\n\n¿Deseas bloquear esta acción por tu seguridad?</string>
+    <string name="dead_man_dialog_block_recommended">🛡️ Bloquear (Recomendado)</string>
+    <string name="dead_man_dialog_proceed_anyway">Continuar bajo mi propio riesgo</string>
+    <string name="dead_man_dfroot_blocked_toast">Operación bloqueada por Protección DFROOT (Hombre Muerto).</string>
     <string name="settings_category_startup_title">1. Inicio y Privilegios Root</string>
     <string name="settings_category_startup_summary">Permisos de superusuario, comando su, Shizuku y rutas de arranque</string>
     <string name="settings_category_appearance_title">2. Apariencia e Interfaz Visual</string>

@@ -38,6 +38,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.TextEditorFragmentBinding
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.ui.ThemedFastScroller
 import me.zhanghai.android.files.util.ActionState
 import me.zhanghai.android.files.util.DataState
@@ -969,6 +970,20 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun save() {
+        if (DeadManProtectionManager.isDfrootProtectionActive() && DeadManProtectionManager.isCriticalBootFile(argsFile)) {
+            DeadManProtectionManager.showDfrootProtectionDialog(
+                requireActivity(),
+                argsFile.fileName?.toString() ?: argsFile.toString(),
+                operationName = getString(R.string.save)
+            ) {
+                performSave()
+            }
+            return
+        }
+        performSave()
+    }
+
+    private fun performSave() {
         val text = binding.textEdit.text.toString()
         viewModel.writeFile(argsFile, text, requireContext())
     }

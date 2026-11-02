@@ -916,6 +916,17 @@
 
     <!-- MT Manager Settings Categories -->
     <string name="settings_category_superuser_title">Privilege &amp; Root Status</string>
+    <string name="settings_category_dead_man_title">Dead Man</string>
+    <string name="settings_category_dead_man_summary">Root safeguards against bootloops, bricking, and malicious wipe scripts (Root exclusive)</string>
+    <string name="settings_dead_man_dfroot_protection_title">DFROOT protection</string>
+    <string name="settings_dead_man_dfroot_protection_summary">Protects against modifying, flashing, or deleting critical boot files (boot.img, init_boot, vbmeta, recovery) that prevent the device from booting after restarting with DFRoot.</string>
+    <string name="settings_dead_man_root_protection_title">Root protection</string>
+    <string name="settings_dead_man_root_protection_summary">Protects against malicious scripts and compiled binaries that strategically wipe system or format critical partitions.</string>
+    <string name="dead_man_dfroot_dialog_title">⚠️ Dead Man: DFROOT Protection</string>
+    <string name="dead_man_dfroot_dialog_message">The file or partition \'%1$s\' is critical for system boot (Kernel / Boot / VBMeta).\n\nIn DFRoot environments (temporary in-memory exploit), modifying, overwriting, deleting, or flashing this item will prevent the device from booting after a restart (Bootloop / Soft-brick).\n\nAction: %2$s\n\nDo you want to block this action for your device\'s safety?</string>
+    <string name="dead_man_dialog_block_recommended">🛡️ Block (Recommended)</string>
+    <string name="dead_man_dialog_proceed_anyway">Proceed at own risk</string>
+    <string name="dead_man_dfroot_blocked_toast">Operation blocked by Dead Man DFRoot Protection.</string>
     <string name="settings_category_startup_title">1. Startup &amp; Privileges</string>
     <string name="settings_category_startup_summary">Root permissions, su command, Shizuku and startup paths</string>
     <string name="settings_category_appearance_title">2. Appearance &amp; Interface</string>

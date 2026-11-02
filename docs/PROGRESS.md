@@ -400,6 +400,26 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Suite de Pruebas Unitarias Ampliada (`SuperuserDetectorTest.kt`)**:
   - Añadidas pruebas unitarias específicas validando escenarios con gestores instalados (Magisk, KernelSU, APatch, DFRoot) en dispositivos sin root, verificando que `isRootGranted == false`, `statusTag == "ESTÁNDAR"` y los subtítulos reflejan fielmente la ausencia de privilegios concedidos.
 
+45. **Categoría Hombre Muerto (Dead Man) y Sistema de Protección DFROOT contra Bricks/Bootloops (`DeadManProtectionManager.kt`, `Settings.kt`, `settings.xml`, `strings.xml`, `FileListFragment.kt`, `ScriptRunnerHelper.kt`, `TextEditorFragment.kt`, `HexEditorActivity.kt`, `DeadManProtectionManagerTest.kt`) (v1.9.30)**: ✅
+- **Nueva Categoría de Ajustes Hombre Muerto / Dead Man (Exclusiva Root)**:
+  - Creada la categoría en Ajustes denominada **"Hombre muerto"** (Español) / **"Dead Man"** (Inglés) con layout material `preference_category_mp` y subtítulo descriptivo del propósito de protección contra bricks, bootloops y scripts destructivos.
+  - Implementada la opción 1: **DFROOT protection** (`key_dead_man_dfroot_protection`, activada por defecto): Protege contra la modificación, borrado, renombrado o flasheo de archivos críticos de arranque que bajo la sesión temporal de DFRoot harían que el dispositivo no encienda o caiga en bootloop tras reiniciar.
+  - Configurada la base y switch de la opción 2: **Root protection** (`key_dead_man_root_protection`, activada por defecto) para defensa frente a scripts o binarios dañinos orientados a la destrucción del sistema.
+- **Motor Central de Protección (`DeadManProtectionManager.kt`)**:
+  - Reconocimiento de archivos de imagen de arranque y kernel críticos: `boot.img`, `init_boot.img`, `vendor_boot.img`, `vbmeta.img`, `recovery.img`, `dtbo.img`, `abl.img`, `xbl.img`, etc.
+  - Detección de ficheros esenciales de inicio del sistema: `/init`, `/system/bin/init`, `/default.prop`, `/system/etc/fstab.*`, `/vendor/etc/fstab.*`.
+  - Detección de nodos de dispositivos de bloques en `/dev/block/by-name/` y `/dev/block/bootdevice/by-name/`.
+  - Detección en scripts de comandos de flasheo directo de riesgo (`dd of=...boot`, `flash_image`, `blockdev --setrw`).
+  - Diálogo de advertencia preventiva con icono de alerta (`ic_shield_alert`), botón preferente de bloqueo seguro ("Bloquear operación (Recomendado)") y opción de confirmación manual consciente.
+- **Blindaje en Operaciones de Archivos y Editores**:
+  - `FileListFragment.kt`: Intercepción preventiva ante borrado masivo o individual (`confirmDeleteFiles`), pegado o movimiento (`pasteFiles`) y renombrado (`renameFile`).
+  - `ScriptRunnerHelper.kt`: Análisis del archivo o script antes de su ejecución para interceptar scripts con comandos directos de flasheo hacia particiones de inicio.
+  - `TextEditorFragment.kt` y `HexEditorActivity.kt`: Intercepción al guardar archivos que correspondan a componentes críticos de arranque.
+- **Pruebas Unitarias Exhaustivas (`DeadManProtectionManagerTest.kt`)**:
+  - Validación de nombres críticos e imágenes de arranque comunes.
+  - Verificación de no interferencia con archivos regulares y scripts seguros.
+  - Validación de rutas de particiones de bloque y scripts con llamadas a `dd` o `flash_image`.
+
 
 
 

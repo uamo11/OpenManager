@@ -83,6 +83,13 @@
     <string name="pref_key_read_remote_files_for_thumbnail">key_read_remote_files_for_thumbnail</string>
     <bool name="pref_default_value_read_remote_files_for_thumbnail">true</bool>
 
+    <!-- Dead Man Preferences (Root Protection & DFRoot Protection) -->
+    <string name="pref_key_category_dead_man">key_category_dead_man</string>
+    <string name="pref_key_dead_man_dfroot_protection">key_dead_man_dfroot_protection</string>
+    <bool name="pref_default_value_dead_man_dfroot_protection">true</bool>
+    <string name="pref_key_dead_man_root_protection">key_dead_man_root_protection</string>
+    <bool name="pref_default_value_dead_man_root_protection">true</bool>
+
     <!-- MT Manager Startup Preferences -->
     <string name="pref_key_request_root_permission">key_request_root_permission</string>
     <bool name="pref_default_value_request_root_permission">true</bool>

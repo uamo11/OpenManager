@@ -34,6 +34,7 @@ import me.zhanghai.android.files.databinding.DialogHexFillBinding
 import me.zhanghai.android.files.databinding.DialogHexGotoBinding
 import me.zhanghai.android.files.databinding.DialogHexInsertBinding
 import me.zhanghai.android.files.filejob.FileJobService
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.util.showToast
@@ -613,6 +614,20 @@ class HexEditorActivity : AppActivity() {
             return
         }
 
+        if (DeadManProtectionManager.isDfrootProtectionActive() && DeadManProtectionManager.isCriticalBootFile(path)) {
+            DeadManProtectionManager.showDfrootProtectionDialog(
+                this,
+                path.fileName?.toString() ?: path.toString(),
+                operationName = getString(R.string.save)
+            ) {
+                performSaveFile(onComplete)
+            }
+            return
+        }
+        performSaveFile(onComplete)
+    }
+
+    private fun performSaveFile(onComplete: ((Boolean) -> Unit)? = null) {
         val content = buffer.toByteArray()
         FileJobService.write(path, content, this) { successful ->
             if (successful) {

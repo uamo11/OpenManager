@@ -35,6 +35,7 @@ import me.zhanghai.android.files.file.asFileSize
 import me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
 import me.zhanghai.android.files.util.escapeShellArg
@@ -533,14 +534,41 @@ object ScriptRunnerHelper {
     }
 
     private fun executeScriptOrBinary(activity: Activity, path: Path) {
+        if (DeadManProtectionManager.isDfrootProtectionActive()) {
+            val isCriticalScript = runCatching {
+                if (!isElfBinary(path)) {
+                    val snippet = path.newInputStream().use { stream ->
+                        val buf = ByteArray(65536)
+                        val read = stream.read(buf)
+                        if (read > 0) String(buf, 0, read, StandardCharsets.UTF_8) else ""
+                    }
+                    DeadManProtectionManager.containsCriticalBootModification(snippet)
+                } else false
+            }.getOrDefault(false)
+
+            if (DeadManProtectionManager.isCriticalBootFile(path) || isCriticalScript) {
+                DeadManProtectionManager.showDfrootProtectionDialog(
+                    activity,
+                    path.fileName?.toString() ?: path.toString(),
+                    operationName = activity.getString(R.string.script_action_execute)
+                ) {
+                    performExecuteScriptOrBinary(activity, path)
+                }
+                return
+            }
+        }
+        performExecuteScriptOrBinary(activity, path)
+    }
+
+    private fun performExecuteScriptOrBinary(activity: Activity, path: Path) {
         val sp = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val defaultEnv = if (TerminalExpansionManager.isTermexInstalled(activity)) "termex" else "system"
         val env = sp.getString(KEY_EXEC_ENV, defaultEnv) ?: defaultEnv
         val isRoot = TerminalExpansionManager.isRootAvailable()
         val withRoot = isRoot && sp.getBoolean(KEY_EXEC_ROOT, false)
 
-        val scriptPath = path.toFile().absolutePath
-        val parentDir = path.toFile().parent ?: "/storage/emulated/0"
+        val scriptPath = if (path.isLinuxPath) path.toFile().absolutePath else path.toString()
+        val parentDir = if (path.isLinuxPath) path.toFile().parent ?: "/storage/emulated/0" else "/storage/emulated/0"
 
         val execCmd: String
         val isElf = isElfBinary(path)

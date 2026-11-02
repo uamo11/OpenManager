@@ -266,6 +266,18 @@ object Settings {
             R.string.pref_default_value_custom_openmanager_dir
         )
 
+    val DEAD_MAN_DFROOT_PROTECTION: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_dead_man_dfroot_protection,
+            R.bool.pref_default_value_dead_man_dfroot_protection
+        )
+
+    val DEAD_MAN_ROOT_PROTECTION: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_dead_man_root_protection,
+            R.bool.pref_default_value_dead_man_root_protection
+        )
+
     val recycleBinDirectory: Path
         get() {
             val base = CUSTOM_OPENMANAGER_DIR.valueCompat.let {

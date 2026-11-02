@@ -112,6 +112,7 @@ import me.zhanghai.android.files.navigation.NavigationRootMapLiveData
 import me.zhanghai.android.files.provider.archive.createArchiveRootPath
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.terminal.Terminal
 import me.zhanghai.android.files.ui.AppBarLayoutExpandHackListener
@@ -1719,6 +1720,23 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun confirmDeleteFiles(files: FileItemSet) {
+        if (DeadManProtectionManager.isDfrootProtectionActive()) {
+            val criticalPath = files.firstOrNull { DeadManProtectionManager.isCriticalBootFile(it.path) }?.path
+            if (criticalPath != null) {
+                DeadManProtectionManager.showDfrootProtectionDialog(
+                    requireActivity(),
+                    criticalPath.fileName?.toString() ?: criticalPath.toString(),
+                    operationName = getString(R.string.delete)
+                ) {
+                    proceedConfirmDeleteFiles(files)
+                }
+                return
+            }
+        }
+        proceedConfirmDeleteFiles(files)
+    }
+
+    private fun proceedConfirmDeleteFiles(files: FileItemSet) {
         if (!Settings.SHOW_DELETION_WARNING.valueCompat) {
             deleteFiles(files)
         } else {
@@ -1921,6 +1939,29 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun pasteFiles(targetDirectory: Path) {
+        val pasteState = viewModel.pasteState
+        if (DeadManProtectionManager.isDfrootProtectionActive()) {
+            val criticalSource = pasteState.files.firstOrNull { DeadManProtectionManager.isCriticalBootFile(it.path) }?.path
+            val targetIsCritical = DeadManProtectionManager.isCriticalBootFile(targetDirectory)
+            if (criticalSource != null || targetIsCritical) {
+                val affectedName = criticalSource?.fileName?.toString()
+                    ?: targetDirectory.fileName?.toString()
+                    ?: targetDirectory.toString()
+                val opName = getString(if (pasteState.copy) R.string.copy else R.string.cut)
+                DeadManProtectionManager.showDfrootProtectionDialog(
+                    requireActivity(),
+                    affectedName,
+                    operationName = opName
+                ) {
+                    proceedPasteFiles(targetDirectory)
+                }
+                return
+            }
+        }
+        proceedPasteFiles(targetDirectory)
+    }
+
+    private fun proceedPasteFiles(targetDirectory: Path) {
         if (!canWriteTo(targetDirectory)) {
             showToast("Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)")
             return
@@ -2305,6 +2346,22 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun renameFile(file: FileItem, newName: String) {
+        if (DeadManProtectionManager.isDfrootProtectionActive()) {
+            if (DeadManProtectionManager.isCriticalBootFile(file.path) || DeadManProtectionManager.isCriticalBootFile(newName)) {
+                DeadManProtectionManager.showDfrootProtectionDialog(
+                    requireActivity(),
+                    file.name,
+                    operationName = getString(R.string.rename)
+                ) {
+                    proceedRenameFile(file, newName)
+                }
+                return
+            }
+        }
+        proceedRenameFile(file, newName)
+    }
+
+    private fun proceedRenameFile(file: FileItem, newName: String) {
         if (!canWriteTo(currentPath)) {
             showToast("Permiso denegado: no se pueden renombrar archivos en este directorio (solo lectura)")
             return

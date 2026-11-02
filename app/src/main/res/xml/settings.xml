@@ -79,6 +79,29 @@
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
+    <!-- DEAD MAN / HOMBRE MUERTO (ROOT EXCLUSIVE) -->
+    <PreferenceCategory
+        android:key="@string/pref_key_category_dead_man"
+        android:title="@string/settings_category_dead_man_title"
+        android:summary="@string/settings_category_dead_man_summary"
+        app:layout="@layout/preference_category_mp"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_dead_man_dfroot_protection"
+            android:title="@string/settings_dead_man_dfroot_protection_title"
+            android:summary="@string/settings_dead_man_dfroot_protection_summary"
+            android:defaultValue="@bool/pref_default_value_dead_man_dfroot_protection"
+            app:iconSpaceReserved="false" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_dead_man_root_protection"
+            android:title="@string/settings_dead_man_root_protection_title"
+            android:summary="@string/settings_dead_man_root_protection_summary"
+            android:defaultValue="@bool/pref_default_value_dead_man_root_protection"
+            app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
     <!-- 2. APPEARANCE / APARIENCIA -->
     <PreferenceCategory
         android:title="@string/settings_category_appearance_title"
