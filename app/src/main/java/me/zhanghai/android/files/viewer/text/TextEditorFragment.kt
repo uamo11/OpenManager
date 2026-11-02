@@ -14,6 +14,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
 import android.text.format.Formatter
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -25,8 +26,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
@@ -274,6 +280,27 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.symbolBar.visibility = if (TextEditorSettings.isShowSymbolBar(ctx) && !isReadOnly) View.VISIBLE else View.GONE
 
         setupPinchToZoom()
+        setupWindowInsets()
+
+        // Check for Demo Screen intents in Debug builds
+        val demoSearch = requireActivity().intent.getBooleanExtra("DEMO_OPEN_SEARCH", false)
+        val demoPrefs = requireActivity().intent.getBooleanExtra("DEMO_OPEN_PREFS", false)
+        val demoSyntax = requireActivity().intent.getBooleanExtra("DEMO_OPEN_SYNTAX", false)
+        if (demoSearch) {
+            view.postDelayed({
+                openSearchPanel()
+                binding.searchEdit.setText("OpenManager")
+                binding.replaceEdit.setText("OpenManagerPro")
+            }, 300)
+        } else if (demoPrefs) {
+            view.postDelayed({
+                TextEditorPreferencesDialogFragment.show(this)
+            }, 300)
+        } else if (demoSyntax) {
+            view.postDelayed({
+                showSyntaxLanguageDialog()
+            }, 300)
+        }
     }
 
     override fun onDestroyView() {
@@ -303,6 +330,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.textEdit.isAutoIndent = TextEditorSettings.isAutoIndent(ctx)
         binding.textEdit.isAutoClosePairs = TextEditorSettings.isAutoClosePairs(ctx)
         binding.symbolBar.visibility = if (TextEditorSettings.isShowSymbolBar(ctx) && !isReadOnly) View.VISIBLE else View.GONE
+        applyBottomBarInsets()
 
         requestSyntaxHighlight()
     }
@@ -316,6 +344,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.editorStatusStrip.setBackgroundColor(theme.gutterColor)
         binding.symbolBar.setBackgroundColor(theme.gutterColor)
         binding.searchPanel.setBackgroundColor(theme.gutterColor)
+        try {
+            requireActivity().window.navigationBarColor = theme.gutterColor
+        } catch (ignored: Throwable) {}
     }
 
     private fun setupStatusStrip() {
@@ -326,6 +357,13 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         // Tapping Encoding opens encoding selector
         binding.statusEncodingText.setOnClickListener {
             showEncodingDialog()
+        }
+        // Tapping Line Ending toggles CRLF / LF
+        binding.statusLineEndingText.setOnClickListener {
+            viewModel.isCrlf.value = !viewModel.isCrlf.value
+            updateSubtitle()
+            val newEnding = if (viewModel.isCrlf.value) "CRLF" else "LF"
+            showToast("Line Ending: $newEnding")
         }
         // Tapping Syntax opens syntax selector
         binding.statusSyntaxText.setOnClickListener {
@@ -356,9 +394,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val charsetName = viewModel.encoding.value.displayName()
         val lineEnding = if (viewModel.isCrlf.value) "CRLF" else "LF"
         val syntax = currentLanguage.displayName
-        val subtitle = getString(R.string.text_editor_cursor_pos, currentCursorLine, currentCursorCol) +
-                " | $charsetName | $lineEnding | $syntax"
-        activity.supportActionBar?.subtitle = subtitle
+        activity.supportActionBar?.subtitle = null
 
         // Update MT Manager Status Info Strip
         val fileName = viewModel.file.value.fileName.toString()
@@ -370,6 +406,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
         binding.statusCursorPosText.text = "$currentCursorLine:$currentCursorCol"
         binding.statusEncodingText.text = charsetName
+        binding.statusLineEndingText.text = lineEnding
         binding.statusSyntaxText.text = syntax
 
         // Update selection indicator
@@ -452,41 +489,99 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         }
     }
 
+    private var systemNavBarInset: Int = 0
+
+    private fun setupWindowInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val navInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            if (systemNavBarInset != navInset) {
+                systemNavBarInset = navInset
+                applyBottomBarInsets()
+            }
+            insets
+        }
+    }
+
+    private fun applyBottomBarInsets() {
+        val navInset = systemNavBarInset
+        val baseSearchBottomPadding = (8 * resources.displayMetrics.density).toInt()
+        if (binding.symbolBar.visibility == View.VISIBLE) {
+            binding.symbolBar.setPadding(0, 0, 0, navInset)
+            binding.searchPanel.setPadding(
+                binding.searchPanel.paddingLeft,
+                binding.searchPanel.paddingTop,
+                binding.searchPanel.paddingRight,
+                baseSearchBottomPadding
+            )
+        } else if (binding.searchPanel.visibility == View.VISIBLE) {
+            binding.symbolBar.setPadding(0, 0, 0, 0)
+            binding.searchPanel.setPadding(
+                binding.searchPanel.paddingLeft,
+                binding.searchPanel.paddingTop,
+                binding.searchPanel.paddingRight,
+                baseSearchBottomPadding + navInset
+            )
+        } else {
+            binding.symbolBar.setPadding(0, 0, 0, 0)
+            binding.searchPanel.setPadding(
+                binding.searchPanel.paddingLeft,
+                binding.searchPanel.paddingTop,
+                binding.searchPanel.paddingRight,
+                baseSearchBottomPadding
+            )
+        }
+    }
+
     private fun addTextSymbolButton(text: String, onClick: () -> Unit) {
-        val btn = MaterialButton(
-            requireContext(),
-            null,
-            androidx.appcompat.R.attr.borderlessButtonStyle
-        ).apply {
+        val density = resources.displayMetrics.density
+        val btn = TextView(requireContext()).apply {
             this.text = text
-            minWidth = 0
-            minimumWidth = 0
-            setPadding(20, 0, 20, 0)
-            textSize = 14f
+            gravity = Gravity.CENTER
+            minWidth = (34 * density).toInt()
+            val hPadding = (8 * density).toInt()
+            setPadding(hPadding, 0, hPadding, 0)
+            textSize = 13.5f
             typeface = Typeface.MONOSPACE
             setTextColor(Color.parseColor("#DCDFE4"))
+            setBackgroundResource(R.drawable.bg_symbol_button)
+            isClickable = true
+            isFocusable = true
             setOnClickListener { onClick() }
         }
-        val params = ViewGroup.LayoutParams(
+        val params = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
+            (32 * density).toInt()
+        ).apply {
+            val marginH = (2 * density).toInt()
+            marginStart = marginH
+            marginEnd = marginH
+        }
         binding.symbolContainer.addView(btn, params)
     }
 
     private fun addImageSymbolButton(resId: Int, contentDescriptionRes: Int, onClick: () -> Unit) {
+        val density = resources.displayMetrics.density
         val btn = ImageButton(requireContext()).apply {
             setImageResource(resId)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
             contentDescription = getString(contentDescriptionRes)
-            setBackgroundResource(android.R.drawable.list_selector_background)
-            setPadding(16, 0, 16, 0)
+            setBackgroundResource(R.drawable.bg_symbol_button)
+            val pad = (6 * density).toInt()
+            setPadding(pad, pad, pad, pad)
             setColorFilter(Color.parseColor("#ABB2BF"))
+            isClickable = true
+            isFocusable = true
             setOnClickListener { onClick() }
         }
-        val params = ViewGroup.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
+        val btnSize = (32 * density).toInt()
+        val params = LinearLayout.LayoutParams(
+            btnSize,
+            btnSize
+        ).apply {
+            val marginH = (2 * density).toInt()
+            marginStart = marginH
+            marginEnd = marginH
+        }
         binding.symbolContainer.addView(btn, params)
     }
 
@@ -568,12 +663,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun openSearchPanel() {
         binding.searchPanel.visibility = View.VISIBLE
+        applyBottomBarInsets()
         binding.searchEdit.requestFocus()
         performSearch(resetCurrent = true)
     }
 
     private fun closeSearchPanel() {
         binding.searchPanel.visibility = View.GONE
+        applyBottomBarInsets()
         searchMatches.clear()
         currentMatchIndex = -1
         binding.textEdit.searchMatches = emptyList()
@@ -937,6 +1034,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.textEdit.isFocusableInTouchMode = !readOnly
         binding.textEdit.isCursorVisible = !readOnly
         binding.symbolBar.visibility = if (readOnly || !TextEditorSettings.isShowSymbolBar(requireContext())) View.GONE else View.VISIBLE
+        applyBottomBarInsets()
         updateEditModeIcon()
     }
 

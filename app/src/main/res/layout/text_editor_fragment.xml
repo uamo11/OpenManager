@@ -88,6 +88,18 @@
                 tools:text="UTF-8" />
 
             <TextView
+                android:id="@+id/statusLineEndingText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textSize="11.5sp"
+                android:textColor="#E5C07B"
+                android:background="?selectableItemBackgroundBorderless"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                tools:text="LF" />
+
+            <TextView
                 android:id="@+id/statusSyntaxText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -426,7 +438,8 @@
             <HorizontalScrollView
                 android:id="@+id/symbolBar"
                 android:layout_width="match_parent"
-                android:layout_height="44dp"
+                android:layout_height="wrap_content"
+                android:minHeight="44dp"
                 android:background="#1E1E1E"
                 android:elevation="4dp"
                 android:scrollbars="none">
@@ -434,7 +447,7 @@
                 <LinearLayout
                     android:id="@+id/symbolContainer"
                     android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
+                    android:layout_height="44dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
                     android:paddingStart="4dp"

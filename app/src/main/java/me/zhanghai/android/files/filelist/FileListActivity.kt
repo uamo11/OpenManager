@@ -429,6 +429,48 @@ class FileListActivity : AppActivity() {
                             activeFragment.selectAllFiles()
                         }
                     }
+                    "editor_search" -> {
+                        val sampleFile = java.io.File(filesDir, "sample_test.kt")
+                        if (!sampleFile.exists()) {
+                            sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
+                        }
+                        val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
+                        val editIntent = Intent(this, me.zhanghai.android.files.viewer.text.TextEditorActivity::class.java).apply {
+                            extraPath = samplePath
+                            putExtra("DEMO_OPEN_SEARCH", true)
+                        }
+                        startActivity(editIntent)
+                    }
+                    "editor_preferences" -> {
+                        val sampleFile = java.io.File(filesDir, "sample_test.kt")
+                        if (!sampleFile.exists()) {
+                            sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
+                        }
+                        val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
+                        val editIntent = Intent(this, me.zhanghai.android.files.viewer.text.TextEditorActivity::class.java).apply {
+                            extraPath = samplePath
+                            putExtra("DEMO_OPEN_PREFS", true)
+                        }
+                        startActivity(editIntent)
+                    }
+                    "editor_syntax" -> {
+                        val sampleFile = java.io.File(filesDir, "sample_test.kt")
+                        if (!sampleFile.exists()) {
+                            sampleFile.writeText("// OpenManager Fast Code Editor\npackage demo\n\nfun main() {\n    println(\"OpenManager 100% Verified!\")\n}\n")
+                        }
+                        val samplePath = java8.nio.file.Paths.get(sampleFile.absolutePath)
+                        val editIntent = Intent(this, me.zhanghai.android.files.viewer.text.TextEditorActivity::class.java).apply {
+                            extraPath = samplePath
+                            putExtra("DEMO_OPEN_SYNTAX", true)
+                        }
+                        startActivity(editIntent)
+                    }
+                    "dfroot_protected" -> {
+                        me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment.show(this)
+                    }
+                    "dirtyflag_dialog" -> {
+                        me.zhanghai.android.files.provider.root.DeadManProtectionManager.showDirtyFlagProtectionDialog(this)
+                    }
                 }
             } catch (e: Throwable) {
                 android.util.Log.e("DemoReceiver", "Error executing demo action $action", e)

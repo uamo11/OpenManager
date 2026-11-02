@@ -143,6 +143,26 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG running_apps" \
     "18_running_apps_manager.png" "Running Apps / Process Manager"
 
+# 19. Text Editor Search & Replace Panel (MT Manager Style)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor_search" \
+    "19_text_editor_search_replace.png" "Text Editor Search & Replace Panel"
+
+# 20. Text Editor Preferences Dialog (Word wrap, line numbers, fonts, themes, tab size)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor_preferences" \
+    "20_text_editor_preferences.png" "Text Editor Preferences Dialog"
+
+# 21. Text Editor Syntax Language Dialog (C++, Java, Kotlin, Python, Smali, etc.)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor_syntax" \
+    "21_text_editor_syntax_dialog.png" "Text Editor Syntax Language Dialog"
+
+# 22. DFROOT Protected System Files Dialog (Categorized files protected against bricking)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG dfroot_protected" \
+    "22_dfroot_protected_files.png" "DFROOT Protected System Files Dialog"
+
+# 23. DirtyFlag Protection Warning Dialog (5-second countdown, Dead Man protection)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG dirtyflag_dialog" \
+    "23_dirtyflag_protection_dialog.png" "DirtyFlag Protection Warning Dialog"
+
 # Measure Memory Footprint
 echo ">>> Measuring Memory Footprint..."
 echo "--- Memory Footprint (dumpsys meminfo) ---" >> emulator-performance.txt
@@ -167,6 +187,6 @@ if [ -n "$CRASHES" ]; then
 fi
 
 echo "=========================================================="
-echo "   All 10 Section Screenshots Captured & Verified!       "
+echo "   All 23 Section Screenshots Captured & Verified!       "
 echo "=========================================================="
 ls -la screenshots/

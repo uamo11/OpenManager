@@ -17,6 +17,7 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import me.zhanghai.android.files.R
@@ -239,6 +240,10 @@ class DfrootProtectedFilesDialogFragment : AppCompatDialogFragment() {
     companion object {
         fun show(fragment: Fragment) {
             DfrootProtectedFilesDialogFragment().show(fragment)
+        }
+
+        fun show(activity: FragmentActivity) {
+            DfrootProtectedFilesDialogFragment().show(activity.supportFragmentManager, DfrootProtectedFilesDialogFragment::class.java.name)
         }
     }
 }
