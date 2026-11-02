@@ -21,6 +21,9 @@ object SuperuserDetector {
 
     private const val TAG = "SuperuserDetector"
 
+    @Volatile
+    var cachedStatus: SuperuserStatus? = null
+
     enum class SuperuserType(
         val displayName: String,
         val iconRes: Int,
@@ -192,7 +195,7 @@ object SuperuserDetector {
             else -> SuperuserType.NONE
         }
 
-        SuperuserStatus(
+        val status = SuperuserStatus(
             type = finalType,
             isRootGranted = isRootGranted,
             isRootEnabledInSettings = isRootEnabledInSettings,
@@ -202,6 +205,8 @@ object SuperuserDetector {
             managerPackage = detectedPkg,
             detectedBinaryPath = binaryPath
         )
+        cachedStatus = status
+        status
     }
 
     internal fun safeFileExists(path: String): Boolean = try {
@@ -316,20 +321,94 @@ object SuperuserDetector {
         return Triple(SuperuserType.NONE, null, null)
     }
 
-    internal fun detectDfRoot(pm: PackageManager): Boolean {
-        val knownPkgs = listOf(
-            "df.root", "com.df.root", "org.df.root",
-            "com.diabl0w.dfroot", "io.github.diabl0w.dfroot", "org.dfroot",
-            "com.dfroot", "me.dfroot", "com.df.jailbreak"
-        )
-        if (knownPkgs.any { isPkgInstalled(pm, it) }) {
+    fun detectDfRoot(pm: PackageManager? = null): Boolean {
+        // 1. Check cached status if available
+        val cached = cachedStatus
+        if (cached != null && (cached.hasDfRoot || cached.type == SuperuserType.DFROOT)) {
             return true
         }
+
+        // 2. Package Manager detection (DFRoot & DirtyFlag known packages)
+        if (pm != null) {
+            val knownPkgs = listOf(
+                "df.root", "com.df.root", "org.df.root",
+                "com.diabl0w.dfroot", "io.github.diabl0w.dfroot", "org.dfroot",
+                "com.dfroot", "me.dfroot", "com.df.jailbreak",
+                "com.dirtyflag", "org.dirtyflag", "me.dirtyflag", "com.diablo.dirtyflag"
+            )
+            if (knownPkgs.any { isPkgInstalled(pm, it) }) {
+                return true
+            }
+        }
+
+        // 3. Known binaries and script drops
         val dfRootFiles = listOf(
             "/data/local/tmp/dfroot",
-            "/data/local/tmp/dfroot.sh"
+            "/data/local/tmp/dfroot.sh",
+            "/data/local/tmp/dirtyflag",
+            "/data/local/tmp/dirty_flag"
         )
-        return dfRootFiles.any { safeFileExists(it) }
+        if (dfRootFiles.any { safeFileExists(it) }) {
+            return true
+        }
+
+        // 4. System properties set by dirtyflag or dfroot
+        val dfProp = getSystemProperty("ro.boot.dirtyflag")
+        if (dfProp.isNotEmpty() && dfProp != "0") return true
+        val dfRootProp = getSystemProperty("ro.dfroot")
+        if (dfRootProp.isNotEmpty() && dfRootProp != "0") return true
+
+        return false
+    }
+
+    fun isKernelSuDetected(pm: PackageManager? = null): Boolean {
+        // 1. Check cached status if available
+        val cached = cachedStatus
+        if (cached != null && (cached.type == SuperuserType.KERNEL_SU || cached.type == SuperuserType.KERNEL_SU_NEXT)) {
+            return true
+        }
+
+        // 2. Driver nodes & adb folders
+        val hasKsuDriver = safeFileExists("/dev/kernelsu") || safeFileExists("/dev/ksunext")
+        val hasKsuDir = safeFileExists("/data/adb/ksu") || safeFileExists("/data/adb/ksun")
+        val hasKsuBinDir = safeFileExists("/data/adb/ksu/bin")
+        val hasKsud = safeFileExists("/system/bin/ksud") || safeFileExists("/data/adb/ksu/bin/ksud") || hasKsuBinDir
+        if (hasKsuDriver || hasKsuDir || hasKsud) {
+            return true
+        }
+
+        // 3. Manager packages
+        if (pm != null) {
+            val ksuPkgs = listOf(
+                "me.weishu.kernelsu", "org.kernelsu", "com.resukisu.resukisu",
+                "org.kernelsu.next", "com.rifsxd.ksunext", "org.tiann.kernelsu.next"
+            )
+            if (ksuPkgs.any { isPkgInstalled(pm, it) }) {
+                return true
+            }
+        }
+
+        // 4. System property
+        val suVer = getSystemProperty("ro.kernel.su")
+        if (suVer.contains("KernelSU", ignoreCase = true)) return true
+
+        return false
+    }
+
+    internal fun getSystemProperty(key: String): String {
+        return try {
+            val c = Class.forName("android.os.SystemProperties")
+            val getMethod = c.getMethod("get", String::class.java)
+            (getMethod.invoke(null, key) as? String)?.trim() ?: ""
+        } catch (_: Throwable) {
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("getprop", key))
+                val line = BufferedReader(InputStreamReader(process.inputStream)).readLine()
+                line?.trim() ?: ""
+            } catch (_: Throwable) {
+                ""
+            }
+        }
     }
 
     internal fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {

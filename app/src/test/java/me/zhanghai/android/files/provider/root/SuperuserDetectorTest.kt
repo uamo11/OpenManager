@@ -305,4 +305,37 @@ class SuperuserDetectorTest {
         assertTrue(R.drawable.bg_superuser_card_green != 0)
         assertTrue(R.drawable.bg_superuser_card_gray != 0)
     }
+
+    @Test
+    fun testDetectDfRootWithCachedStatus() {
+        SuperuserDetector.cachedStatus = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.DFROOT,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = true,
+            suVersion = null,
+            managerPackage = "com.dfroot",
+            detectedBinaryPath = "/data/local/tmp/dfroot"
+        )
+        assertTrue(SuperuserDetector.detectDfRoot(null))
+        SuperuserDetector.cachedStatus = null
+        assertFalse(SuperuserDetector.detectDfRoot(null))
+    }
+
+    @Test
+    fun testIsKernelSuDetectedWithCachedStatus() {
+        SuperuserDetector.cachedStatus = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.KERNEL_SU,
+            isRootGranted = true,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = false,
+            suVersion = "11874:KERNELSU",
+            managerPackage = "me.weishu.kernelsu",
+            detectedBinaryPath = "/dev/kernelsu"
+        )
+        assertTrue(SuperuserDetector.isKernelSuDetected(null))
+        SuperuserDetector.cachedStatus = null
+    }
 }

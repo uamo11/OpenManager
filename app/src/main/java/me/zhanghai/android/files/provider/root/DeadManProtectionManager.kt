@@ -102,59 +102,24 @@ object DeadManProtectionManager {
 
     /**
      * Determines whether DFROOT PROTECTION should be automatically active:
-     * - If dfroot or dirtyflag is detected
-     * - OR if the bootloader is locked AND (kernelsu OR dfroot is detected).
+     * - If dfroot or dirtyflag is detected via SuperuserDetector
+     * - OR if the bootloader is locked AND (kernelsu OR dfroot is detected via SuperuserDetector).
      */
     fun shouldAutoActivate(context: Context): Boolean {
-        val hasDfroot = detectDfrootOrDirtyFlag(context)
+        val hasDfroot = SuperuserDetector.detectDfRoot(context.packageManager)
         val bootloaderLocked = isBootloaderLocked()
-        val hasKsu = detectKernelSu(context)
+        val hasKsu = SuperuserDetector.isKernelSuDetected(context.packageManager)
         return hasDfroot || (bootloaderLocked && (hasKsu || hasDfroot))
     }
 
-    fun detectDfrootOrDirtyFlag(context: Context): Boolean {
-        val pm = context.packageManager
-        val knownPkgs = listOf(
-            "df.root", "com.df.root", "org.df.root",
-            "com.diabl0w.dfroot", "io.github.diabl0w.dfroot", "org.dfroot",
-            "com.dfroot", "me.dfroot", "com.df.jailbreak",
-            "com.dirtyflag", "org.dirtyflag", "me.dirtyflag", "com.diablo.dirtyflag"
-        )
-        for (pkg in knownPkgs) {
-            if (isPkgInstalled(pm, pkg)) return true
-        }
+    /**
+     * Reusable delegates backed by the authoritative SuperuserDetector.
+     */
+    fun detectDfrootOrDirtyFlag(context: Context): Boolean =
+        SuperuserDetector.detectDfRoot(context.packageManager)
 
-        val knownFiles = listOf(
-            "/data/local/tmp/dfroot",
-            "/data/local/tmp/dfroot.sh",
-            "/data/local/tmp/dirtyflag",
-            "/data/local/tmp/dirty_flag"
-        )
-        for (file in knownFiles) {
-            if (safeFileExists(file)) return true
-        }
-
-        val dfProp = getSystemProperty("ro.boot.dirtyflag")
-        if (dfProp.isNotEmpty() && dfProp != "0") return true
-        val dfRootProp = getSystemProperty("ro.dfroot")
-        if (dfRootProp.isNotEmpty() && dfRootProp != "0") return true
-
-        return false
-    }
-
-    fun detectKernelSu(context: Context): Boolean {
-        val pm = context.packageManager
-        val ksuPkgs = listOf("me.weishu.kernelsu", "com.rifsxd.ksunext")
-        for (pkg in ksuPkgs) {
-            if (isPkgInstalled(pm, pkg)) return true
-        }
-        if (safeFileExists("/dev/kernelsu") || safeFileExists("/dev/ksunext")) {
-            return true
-        }
-        val suVer = getSystemProperty("ro.kernel.su")
-        if (suVer.contains("KernelSU", ignoreCase = true)) return true
-        return false
-    }
+    fun detectKernelSu(context: Context): Boolean =
+        SuperuserDetector.isKernelSuDetected(context.packageManager)
 
     fun isBootloaderLocked(): Boolean {
         val flashLocked = getSystemProperty("ro.boot.flash.locked")
@@ -171,38 +136,7 @@ object DeadManProtectionManager {
         return false
     }
 
-    private fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {
-        return try {
-            pm.getPackageInfo(packageName, 0)
-            true
-        } catch (_: Throwable) {
-            false
-        }
-    }
-
-    private fun safeFileExists(path: String): Boolean {
-        return try {
-            File(path).exists()
-        } catch (_: Throwable) {
-            false
-        }
-    }
-
-    fun getSystemProperty(key: String): String {
-        return try {
-            val c = Class.forName("android.os.SystemProperties")
-            val getMethod = c.getMethod("get", String::class.java)
-            (getMethod.invoke(null, key) as? String)?.trim() ?: ""
-        } catch (_: Throwable) {
-            try {
-                val process = Runtime.getRuntime().exec(arrayOf("getprop", key))
-                val line = BufferedReader(InputStreamReader(process.inputStream)).readLine()
-                line?.trim() ?: ""
-            } catch (_: Throwable) {
-                ""
-            }
-        }
-    }
+    fun getSystemProperty(key: String): String = SuperuserDetector.getSystemProperty(key)
 
     fun isDfrootProtectionActive(context: Context? = null): Boolean {
         if (context != null) {

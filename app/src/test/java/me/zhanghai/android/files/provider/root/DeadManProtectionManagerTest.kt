@@ -231,4 +231,20 @@ class DeadManProtectionManagerTest {
         DeadManProtectionManager.hasWaitedCountdown = false
         assertFalse(DeadManProtectionManager.hasWaitedCountdown)
     }
+
+    @Test
+    fun testDelegationToSuperuserDetector() {
+        SuperuserDetector.cachedStatus = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.DFROOT,
+            isRootGranted = false,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = true,
+            suVersion = null,
+            managerPackage = "com.dfroot",
+            detectedBinaryPath = "/data/local/tmp/dfroot"
+        )
+        assertTrue(SuperuserDetector.detectDfRoot(null))
+        SuperuserDetector.cachedStatus = null
+    }
 }

@@ -523,3 +523,21 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Rendimiento y Consumo de Recursos Verificado**:
   - Comprobado consumo de RAM de 14.9 MB Java Heap (127 MB PSS Total) y arranque en frío ultraveloz en emulador Android.
   - Verificación en Logcat con cero excepciones fatales o fugas de memoria.
+
+### Hito 49: Unificación de Detección de DFROOT, DirtyFlag y KernelSU con el Motor Central SuperuserDetector (v1.9.34)
+- **Eliminación de Detecciones Duplicadas e Integración Centralizada**:
+  - Se eliminó la detección ad-hoc separada en `DeadManProtectionManager.kt` que mantenía listas y comprobaciones paralelas.
+  - Se consolidaron todas las firmas y heurísticas de **DFRoot y DirtyFlag** dentro del motor central y autorizado [SuperuserDetector.kt](file:///c:/Users/Usuario/Documents/ANDROID/OpenManager/app/src/main/java/me/zhanghai/android/files/provider/root/SuperuserDetector.kt):
+    - Paquetes de DFRoot y DirtyFlag (`df.root`, `com.df.root`, `org.df.root`, `com.diabl0w.dfroot`, `io.github.diabl0w.dfroot`, `org.dfroot`, `com.dfroot`, `me.dfroot`, `com.df.jailbreak`, `com.dirtyflag`, `org.dirtyflag`, `me.dirtyflag`, `com.diablo.dirtyflag`).
+    - Binarios y scripts temporales en `/data/local/tmp` (`dfroot`, `dfroot.sh`, `dirtyflag`, `dirty_flag`).
+    - Propiedades del sistema (`ro.boot.dirtyflag`, `ro.dfroot`).
+  - Detección de **KernelSU y KernelSU Next** unificada en [SuperuserDetector.kt](file:///c:/Users/Usuario/Documents/ANDROID/OpenManager/app/src/main/java/me/zhanghai/android/files/provider/root/SuperuserDetector.kt):
+    - Controladores `/dev/kernelsu` y `/dev/ksunext`.
+    - Rutas en `/data/adb/ksu`, `/data/adb/ksun`, `/data/adb/ksu/bin`, `/system/bin/ksud`.
+    - Paquetes oficiales y forks (`me.weishu.kernelsu`, `org.kernelsu`, `com.resukisu.resukisu`, `org.kernelsu.next`, `com.rifsxd.ksunext`, `org.tiann.kernelsu.next`).
+    - Propiedad `ro.kernel.su`.
+- **Delegación Limpia en DeadManProtectionManager**:
+  - `DeadManProtectionManager.shouldAutoActivate(context)` delega directamente a `SuperuserDetector.detectDfRoot(...)` y `SuperuserDetector.isKernelSuDetected(...)`.
+  - Aprovechamiento del estado en caché `SuperuserDetector.cachedStatus` para verificaciones instantáneas de cero sobrecarga en operaciones de archivos y terminal.
+- **Cobertura de Pruebas Unitarias**:
+  - Nuevas pruebas en [SuperuserDetectorTest.kt](file:///c:/Users/Usuario/Documents/ANDROID/OpenManager/app/src/test/java/me/zhanghai/android/files/provider/root/SuperuserDetectorTest.kt) y [DeadManProtectionManagerTest.kt](file:///c:/Users/Usuario/Documents/ANDROID/OpenManager/app/src/test/java/me/zhanghai/android/files/provider/root/DeadManProtectionManagerTest.kt) validando la detección unificada y delegada.
