@@ -78,7 +78,7 @@ object DeadManProtectionManager {
         Pattern.compile("dd\\s+.*\\bof=/dev/block/", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bflash_image\\s+\\S*(boot|recovery)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bblockdev\\s+--setrw", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bmount\\s+.*\\bremount\\b.*\\b(system|vendor|product|/)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bmount\\s+.*\\bremount\\b", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(system|vendor|product|odm|apex|init)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bchmod\\s+.*\\s+/(system|vendor|product|init)", Pattern.CASE_INSENSITIVE),
         Pattern.compile(">\\s*/dev/block/\\S*(boot|recovery|system)", Pattern.CASE_INSENSITIVE)
