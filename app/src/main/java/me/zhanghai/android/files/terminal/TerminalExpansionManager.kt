@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.app.application
+import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -197,6 +198,77 @@ object TerminalExpansionManager {
             } catch (_: Throwable) {}
         }
 
+        // 4. Deploy non-fatal deletion tracer interceptor wrappers (rm, rmdir, om_tracer)
+        val rmFile = File(binDir, "rm")
+        val rmContent = """
+            #!/system/bin/sh
+            if [ "${'$'}OM_TRACER_DISABLED" = "1" ]; then
+                exec /system/bin/rm "${'$'}@"
+            fi
+            echo "[OM_TRACER:DELETE:rm:${'$'}*]"
+            if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
+                echo "[OM_TRACER:BLOCKED] rm ${'$'}*" >&2
+                exit 0
+            fi
+            exec /system/bin/rm "${'$'}@"
+        """.trimIndent() + "\n"
+        try {
+            if (!rmFile.exists() || rmFile.readText() != rmContent) {
+                rmFile.writeText(rmContent)
+            }
+            rmFile.setReadable(true, false)
+            rmFile.setExecutable(true, false)
+        } catch (_: Throwable) {}
+
+        val rmdirFile = File(binDir, "rmdir")
+        val rmdirContent = """
+            #!/system/bin/sh
+            if [ "${'$'}OM_TRACER_DISABLED" = "1" ]; then
+                exec /system/bin/rmdir "${'$'}@"
+            fi
+            echo "[OM_TRACER:DELETE:rmdir:${'$'}*]"
+            if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
+                echo "[OM_TRACER:BLOCKED] rmdir ${'$'}*" >&2
+                exit 0
+            fi
+            exec /system/bin/rmdir "${'$'}@"
+        """.trimIndent() + "\n"
+        try {
+            if (!rmdirFile.exists() || rmdirFile.readText() != rmdirContent) {
+                rmdirFile.writeText(rmdirContent)
+            }
+            rmdirFile.setReadable(true, false)
+            rmdirFile.setExecutable(true, false)
+        } catch (_: Throwable) {}
+
+        val tracerHelperFile = File(binDir, "om_tracer")
+        val tracerHelperContent = """
+            #!/system/bin/sh
+            ACTION="${'$'}1"
+            shift
+            case "${'$'}ACTION" in
+                delete)
+                    echo "[OM_TRACER:DELETE:${'$'}*]"
+                    ;;
+                syscall)
+                    echo "[OM_TRACER:SYSCALL:${'$'}*]"
+                    ;;
+                probe)
+                    echo "[OM_TRACER:KERNEL:${'$'}*]"
+                    ;;
+                *)
+                    echo "[OM_TRACER:${'$'}ACTION:${'$'}*]"
+                    ;;
+            esac
+        """.trimIndent() + "\n"
+        try {
+            if (!tracerHelperFile.exists() || tracerHelperFile.readText() != tracerHelperContent) {
+                tracerHelperFile.writeText(tracerHelperContent)
+            }
+            tracerHelperFile.setReadable(true, false)
+            tracerHelperFile.setExecutable(true, false)
+        } catch (_: Throwable) {}
+
         return binDir
     }
 
@@ -226,8 +298,16 @@ object TerminalExpansionManager {
         forceRoot: Boolean? = null,
         forceTermex: Boolean? = null,
         overrideCwd: String? = null,
-        initialCommand: String? = null
+        initialCommand: String? = null,
+        activeScriptPath: String? = null
     ): LaunchConfig {
+        val tracerEnabled = ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)
+        val deletionPolicy = ScriptTracerPreferences.getDeletionPolicy(context, activeScriptPath)
+        val tracerEnv = arrayOf(
+            "OM_TRACER_DISABLED=" + (if (tracerEnabled) "0" else "1"),
+            "OM_DELETION_POLICY=" + deletionPolicy.name,
+            "OM_ACTIVE_SCRIPT_PATH=" + (activeScriptPath ?: "")
+        )
         val asRoot = forceRoot ?: TerminalSettings.isRootSession(context)
         val useTermex = forceTermex ?: (isTermexInstalled(context) && !asRoot)
         val targetCwd = overrideCwd ?: TerminalSettings.getStartPath(context)
@@ -251,7 +331,7 @@ object TerminalExpansionManager {
                 "HISTFILE=$histFile",
                 "ENV=${initScript.absolutePath}",
                 "PATH=${binDir.absolutePath}:$EXTENDED_SYSTEM_PATH"
-            )
+            ) + tracerEnv
             val args = if (shellCmd != null) {
                 arrayOf("su", "-c", shellCmd)
             } else {
@@ -299,7 +379,7 @@ object TerminalExpansionManager {
                         "HISTFILE=$histFile",
                         "ENV=${initScript.absolutePath}",
                         "PS1=$prompt"
-                    )
+                    ) + tracerEnv
                     val args = if (shellCmd != null) {
                         arrayOf("bash", "--norc", "-c", shellCmd)
                     } else {
@@ -330,7 +410,7 @@ object TerminalExpansionManager {
             "HISTFILE=$histFile",
             "ENV=${initScript.absolutePath}",
             "PS1=➜ \${PWD##*/} \$ "
-        )
+        ) + tracerEnv
         val args = if (shellCmd != null) {
             arrayOf("sh", "-c", shellCmd)
         } else {

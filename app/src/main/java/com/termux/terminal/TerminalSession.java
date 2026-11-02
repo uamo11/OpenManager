@@ -347,6 +347,7 @@ public final class TerminalSession extends TerminalOutput {
             int bytesRead = mProcessToTerminalIOQueue.read(mReceiveBuffer, false);
             if (bytesRead > 0) {
                 mEmulator.append(mReceiveBuffer, bytesRead);
+                mClient.onTerminalDataReceived(TerminalSession.this, mReceiveBuffer, 0, bytesRead);
                 notifyScreenUpdate();
             }
 

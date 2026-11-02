@@ -1532,4 +1532,32 @@
     <string name="script_exec_conflict_kill_and_run">Close Previous and Run New</string>
     <string name="script_menu_keep_background">Run in background</string>
     <string name="script_menu_terminate">Terminate process (SIGKILL)</string>
+
+    <!-- Binary & Syscall Activity Tracer -->
+    <string name="tracer_title">Binary and Syscall Tracer</string>
+    <string name="tracer_subtitle">Real-time script activity and safety audit</string>
+    <string name="tracer_enabled_switch">Enable tracer for this script</string>
+    <string name="tracer_enabled_summary">Intercepts deletion attempts and monitors kernel/syscall activity</string>
+    <string name="tracer_stats_deletions">Deletions</string>
+    <string name="tracer_stats_syscalls">Syscalls</string>
+    <string name="tracer_stats_kernel">Kernel / Proc</string>
+    <string name="tracer_blocked">Blocked</string>
+    <string name="tracer_allowed">Allowed</string>
+    <string name="tracer_pending">Pending</string>
+    <string name="tracer_dialog_delete_title">⚠️ Deletion Attempt Detected</string>
+    <string name="tracer_dialog_delete_message">The running script is attempting to delete:\n\n%1$s\n\nCommand: %2$s\n\nDo you want to allow this deletion or block it? The script will continue running regardless of your decision.</string>
+    <string name="tracer_dialog_allow">Allow Deletion</string>
+    <string name="tracer_dialog_block">Block Deletion (Safe)</string>
+    <string name="tracer_clear_log">Clear Log</string>
+    <string name="tracer_no_events">No activity recorded yet for this script.</string>
+    <string name="tracer_toast_blocked">Deletion blocked: %1$s (script continues)</string>
+    <string name="tracer_toast_allowed">Deletion allowed: %1$s</string>
+    <string name="tracer_menu_item">Binary Tracer (Audit)</string>
+    <string name="tracer_disabled_permanent_toast">Tracer permanently disabled for this script</string>
+    <string name="tracer_enabled_permanent_toast">Tracer permanently enabled for this script</string>
+    <string name="tracer_policy_title">Deletion policy:</string>
+    <string name="tracer_policy_ask">Always ask (Allow / Block safely)</string>
+    <string name="tracer_policy_block">Block all deletions automatically</string>
+    <string name="tracer_policy_allow">Allow all deletions</string>
+    <string name="tracer_log_title">Real-time Audit Log:</string>
 </resources>

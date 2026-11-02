@@ -39,6 +39,7 @@ import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import me.zhanghai.android.files.terminal.TerminalActivity
+import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
 import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.util.extraPath
@@ -400,7 +401,7 @@ object ScriptRunnerHelper {
         btnAction1.text = activity.getString(R.string.script_action_preferences)
         btnAction1.setTextColor(Color.parseColor("#2196F3"))
         btnAction1.setOnClickListener {
-            showPreferencesDialog(activity)
+            showPreferencesDialog(activity, path)
         }
 
         // Button 2: HASH (Calculates MD5 / SHA-1 / SHA-256 / CRC32 inline)
@@ -474,14 +475,16 @@ object ScriptRunnerHelper {
         dialog.show()
     }
 
-    fun showPreferencesDialog(activity: Activity) {
+    fun showPreferencesDialog(activity: Activity, path: Path? = null) {
         val sp = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val defaultEnv = if (TerminalExpansionManager.isTermexInstalled(activity)) "termex" else "system"
         val savedEnv = sp.getString(KEY_EXEC_ENV, defaultEnv) ?: defaultEnv
         val isRoot = TerminalExpansionManager.isRootAvailable()
         val savedRoot = if (isRoot) sp.getBoolean(KEY_EXEC_ROOT, false) else false
 
+        val scriptPath = path?.let { if (it.isLinuxPath) it.toFile().absolutePath else it.toString() }
         val binding = ScriptPreferencesDialogBinding.inflate(LayoutInflater.from(activity))
+        binding.checkTracer.isChecked = ScriptTracerPreferences.isTracerEnabled(activity, scriptPath)
         if (savedEnv == "termex" && TerminalExpansionManager.isTermexInstalled(activity)) {
             binding.radioTermex.isChecked = true
         } else {
@@ -518,6 +521,7 @@ object ScriptRunnerHelper {
                     .putString(KEY_EXEC_ENV, chosenEnv)
                     .putBoolean(KEY_EXEC_ROOT, chosenRoot)
                     .apply()
+                ScriptTracerPreferences.setTracerEnabled(activity, scriptPath, binding.checkTracer.isChecked)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
@@ -721,7 +725,8 @@ object ScriptRunnerHelper {
             path = parentDir,
             command = execCmd,
             forceRoot = withRoot,
-            forceTermex = isBashUsable
+            forceTermex = isBashUsable,
+            activeScriptPath = scriptPath
         )
         activity.startActivity(intent)
     }

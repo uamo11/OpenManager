@@ -26,6 +26,8 @@ public interface TerminalSessionClient {
 
     void onTerminalCursorStateChange(boolean state);
 
+    default void onTerminalDataReceived(@NonNull TerminalSession session, @NonNull byte[] data, int offset, int length) {}
+
     void setTerminalShellPid(@NonNull TerminalSession session, int pid);
 
 

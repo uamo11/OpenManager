@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp">
+
+        <!-- Script Path / Target Label -->
+        <TextView
+            android:id="@+id/tvTracerScriptPath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="/path/to/script.sh"
+            android:textAppearance="?textAppearanceCaption"
+            android:textColor="?android:textColorSecondary"
+            android:singleLine="true"
+            android:ellipsize="middle" />
+
+        <!-- Switch Enable / Disable per script -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchTracerEnabled"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/tracer_enabled_switch"
+            android:textAppearance="?textAppearanceSubtitle1" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/tracer_enabled_summary"
+            android:textAppearance="?textAppearanceCaption"
+            android:textColor="?android:textColorSecondary" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="?android:attr/listDivider" />
+
+        <!-- Deletion Policy Radio Group -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tracer_policy_title"
+            android:textAppearance="?textAppearanceSubtitle2"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgDeletionPolicy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp">
+
+            <RadioButton
+                android:id="@+id/rbPolicyAsk"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/tracer_policy_ask"
+                android:textAppearance="?textAppearanceBody2" />
+
+            <RadioButton
+                android:id="@+id/rbPolicyBlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/tracer_policy_block"
+                android:textAppearance="?textAppearanceBody2" />
+
+            <RadioButton
+                android:id="@+id/rbPolicyAllow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/tracer_policy_allow"
+                android:textAppearance="?textAppearanceBody2" />
+        </RadioGroup>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:background="?android:attr/listDivider" />
+
+        <!-- Metrics Overview Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:baselineAligned="false">
+
+            <!-- Deletions metric card -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="#1AFFFFFF"
+                android:padding="8dp"
+                android:layout_marginEnd="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tracer_stats_deletions"
+                    android:textAppearance="?textAppearanceCaption"
+                    android:textColor="#FF5252"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMetricDeletions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="0 (0/0)"
+                    android:textAppearance="?textAppearanceBody2"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Syscalls metric card -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="#1AFFFFFF"
+                android:padding="8dp"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tracer_stats_syscalls"
+                    android:textAppearance="?textAppearanceCaption"
+                    android:textColor="#40C4FF"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMetricSyscalls"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="0"
+                    android:textAppearance="?textAppearanceBody2"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Kernel/Proc metric card -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="#1AFFFFFF"
+                android:padding="8dp"
+                android:layout_marginStart="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/tracer_stats_kernel"
+                    android:textAppearance="?textAppearanceCaption"
+                    android:textColor="#69F0AE"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvMetricKernel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:text="0"
+                    android:textAppearance="?textAppearanceBody2"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"
+            android:background="?android:attr/listDivider" />
+
+        <!-- Real-Time Activity Log Title -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tracer_log_title"
+            android:textAppearance="?textAppearanceSubtitle2"
+            android:textStyle="bold" />
+
+        <!-- Empty state placeholder -->
+        <TextView
+            android:id="@+id/tvEmptyLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp"
+            android:gravity="center"
+            android:text="@string/tracer_no_events"
+            android:textAppearance="?textAppearanceBody2"
+            android:textColor="?android:textColorSecondary" />
+
+        <!-- Dynamic events container -->
+        <LinearLayout
+            android:id="@+id/layoutTracerEvents"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -9,6 +9,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
+import me.zhanghai.android.files.terminal.tracer.DeletionDecision
+import me.zhanghai.android.files.terminal.tracer.TraceEventType
+
 import java.io.File
 
 class TerminalLogicTest {
@@ -201,5 +205,68 @@ class TerminalLogicTest {
         assertTrue(windowsScript.contains("\r\n"))
         assertTrue(!unixScript.contains("\r"))
         assertEquals("#!/system/bin/sh\necho \"step 1\"\necho \"step 2\"\n", unixScript)
+    }
+
+    @Test
+    fun testTracerHighFrequencySyscallAggregation() {
+        BinaryTracerEngine.clear()
+
+        // 1. Record burst of 50,000 syscalls
+        BinaryTracerEngine.recordSyscallBurst("SYS_getpid", 50000L, "Benchmark 1")
+        assertEquals(50000L, BinaryTracerEngine.totalSyscallsCount.get())
+        assertEquals(50000L, BinaryTracerEngine.getSyscallCounters()["SYS_getpid"])
+
+        // 2. Record second burst - should aggregate into existing recent event O(1)
+        BinaryTracerEngine.recordSyscallBurst("SYS_getpid", 50000L, "Benchmark 2")
+        assertEquals(100000L, BinaryTracerEngine.totalSyscallsCount.get())
+        assertEquals(100000L, BinaryTracerEngine.getSyscallCounters()["SYS_getpid"])
+
+        // Ring buffer should hold 1 consolidated event rather than 100,000 objects
+        val events = BinaryTracerEngine.getEvents()
+        assertEquals(1, events.size)
+        assertEquals(100000L, events[0].count)
+        assertEquals("SYS_getpid", events[0].target)
+        assertEquals(TraceEventType.SYSCALL_BURST, events[0].type)
+    }
+
+    @Test
+    fun testTracerDeletionInterceptionAndDecisionLifecycle() {
+        BinaryTracerEngine.clear()
+
+        // 1. Initial attempt
+        val event = BinaryTracerEngine.recordDeletionAttempt("rm -rf /data/local/tmp/test.tmp", "/data/local/tmp/test.tmp", DeletionDecision.PENDING)
+        val stats1 = BinaryTracerEngine.getStats()
+        assertEquals(1L, stats1.totalDeletions)
+        assertEquals(0L, stats1.blockedDeletions)
+        assertEquals(0L, stats1.allowedDeletions)
+
+        // 2. User blocks the deletion (non-fatal, script continues)
+        BinaryTracerEngine.recordDecision(event.id, DeletionDecision.BLOCKED)
+        val stats2 = BinaryTracerEngine.getStats()
+        assertEquals(1L, stats2.totalDeletions)
+        assertEquals(1L, stats2.blockedDeletions)
+        assertEquals(0L, stats2.allowedDeletions)
+        assertEquals(DeletionDecision.BLOCKED, event.decision)
+
+        // 3. User allows subsequent deletion
+        val event2 = BinaryTracerEngine.recordDeletionAttempt("unlink /data/local/tmp/dummy.tmp", "/data/local/tmp/dummy.tmp", DeletionDecision.ALLOWED)
+        val stats3 = BinaryTracerEngine.getStats()
+        assertEquals(2L, stats3.totalDeletions)
+        assertEquals(1L, stats3.blockedDeletions)
+        assertEquals(1L, stats3.allowedDeletions)
+    }
+
+    @Test
+    fun testTracerKernelAndProcTelemetryParsing() {
+        BinaryTracerEngine.clear()
+
+        BinaryTracerEngine.recordKernelProbe("/proc/version", "Linux version 6.6.0-android")
+        val stats = BinaryTracerEngine.getStats()
+        assertEquals(1L, stats.totalKernelReads)
+
+        val events = BinaryTracerEngine.getEvents()
+        assertEquals(1, events.size)
+        assertEquals(TraceEventType.KERNEL_PROBE, events[0].type)
+        assertEquals("/proc/version", events[0].target)
     }
 }

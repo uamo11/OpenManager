@@ -1428,4 +1428,32 @@
     <string name="script_exec_conflict_kill_and_run">Cerrar Anterior y Ejecutar Nuevo</string>
     <string name="script_menu_keep_background">Dejar en segundo plano</string>
     <string name="script_menu_terminate">Terminar proceso (SIGKILL)</string>
+
+    <!-- Binary & Syscall Activity Tracer -->
+    <string name="tracer_title">Rastreador de Binarios y Syscalls</string>
+    <string name="tracer_subtitle">Auditoría de actividad y seguridad en tiempo real</string>
+    <string name="tracer_enabled_switch">Rastrear actividad de este script</string>
+    <string name="tracer_enabled_summary">Intercepta intentos de borrado y audita llamadas al kernel/syscalls</string>
+    <string name="tracer_stats_deletions">Eliminaciones</string>
+    <string name="tracer_stats_syscalls">Syscalls</string>
+    <string name="tracer_stats_kernel">Kernel / Proc</string>
+    <string name="tracer_blocked">Bloqueado</string>
+    <string name="tracer_allowed">Permitido</string>
+    <string name="tracer_pending">Pendiente</string>
+    <string name="tracer_dialog_delete_title">⚠️ Intento de eliminación detectado</string>
+    <string name="tracer_dialog_delete_message">El script en ejecución está intentando eliminar:\n\n%1$s\n\nComando: %2$s\n\n¿Deseas permitir esta eliminación o bloquearla? El script continuará ejecutándose independientemente de tu decisión.</string>
+    <string name="tracer_dialog_allow">Permitir Eliminación</string>
+    <string name="tracer_dialog_block">Bloquear Eliminación (Seguro)</string>
+    <string name="tracer_clear_log">Limpiar Registro</string>
+    <string name="tracer_no_events">No hay actividad registrada aún para este script.</string>
+    <string name="tracer_toast_blocked">Eliminación bloqueada: %1$s (el script continúa)</string>
+    <string name="tracer_toast_allowed">Eliminación permitida: %1$s</string>
+    <string name="tracer_menu_item">Rastreador de Binarios (Auditoría)</string>
+    <string name="tracer_disabled_permanent_toast">Rastreador desactivado permanentemente para este script</string>
+    <string name="tracer_enabled_permanent_toast">Rastreador activado permanentemente para este script</string>
+    <string name="tracer_policy_title">Política de eliminación:</string>
+    <string name="tracer_policy_ask">Preguntar siempre (Permitir / Bloquear sin cerrar)</string>
+    <string name="tracer_policy_block">Bloquear todas automáticamente (Seguro)</string>
+    <string name="tracer_policy_allow">Permitir todas las eliminaciones</string>
+    <string name="tracer_log_title">Registro de auditoría en tiempo real:</string>
 </resources>

@@ -52,4 +52,29 @@
         android:text="@string/script_pref_root_privileges"
         android:textAppearance="?textAppearanceSubtitle1" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="?android:attr/listDivider" />
+
+    <CheckBox
+        android:id="@+id/checkTracer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:text="@string/tracer_enabled_switch"
+        android:textAppearance="?textAppearanceSubtitle1" />
+
+    <TextView
+        android:id="@+id/tvTracerSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="40dp"
+        android:paddingEnd="8dp"
+        android:text="@string/tracer_enabled_summary"
+        android:textAppearance="?textAppearanceCaption"
+        android:textColor="?android:textColorSecondary" />
+
 </LinearLayout>

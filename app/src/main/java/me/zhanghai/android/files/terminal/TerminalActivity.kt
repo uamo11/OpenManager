@@ -34,6 +34,8 @@ import com.termux.view.TerminalViewClient
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
+import me.zhanghai.android.files.terminal.tracer.BinaryTracerDialog
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -59,13 +61,15 @@ class TerminalActivity : AppActivity() {
         const val EXTRA_COMMAND = "me.zhanghai.android.files.terminal.extra.COMMAND"
         const val EXTRA_FORCE_ROOT = "me.zhanghai.android.files.terminal.extra.FORCE_ROOT"
         const val EXTRA_FORCE_TERMEX = "me.zhanghai.android.files.terminal.extra.FORCE_TERMEX"
+        const val EXTRA_ACTIVE_SCRIPT_PATH = "me.zhanghai.android.files.terminal.extra.ACTIVE_SCRIPT_PATH"
 
         fun createIntent(
             context: Context,
             path: String? = null,
             command: String? = null,
             forceRoot: Boolean? = null,
-            forceTermex: Boolean? = null
+            forceTermex: Boolean? = null,
+            activeScriptPath: String? = null
         ): Intent {
             return Intent(context, TerminalActivity::class.java).apply {
                 if (path != null) {
@@ -80,6 +84,9 @@ class TerminalActivity : AppActivity() {
                 }
                 if (forceTermex != null) {
                     putExtra(EXTRA_FORCE_TERMEX, forceTermex)
+                }
+                if (activeScriptPath != null) {
+                    putExtra(EXTRA_ACTIVE_SCRIPT_PATH, activeScriptPath)
                 }
             }
         }
@@ -236,6 +243,14 @@ class TerminalActivity : AppActivity() {
             override fun onTextChanged(changedSession: TerminalSession) {
                 terminalView.onScreenUpdated()
                 ScriptExecutionManager.notifyOutputUpdated()
+            }
+
+            override fun onTerminalDataReceived(session: TerminalSession, data: ByteArray, offset: Int, length: Int) {
+                val chunk = String(data, offset, length, Charsets.UTF_8)
+                val activeScript = ScriptExecutionManager.activeScriptPath
+                    ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
+                    ?: intent.getStringExtra(EXTRA_PATH)
+                BinaryTracerEngine.parseTerminalChunk(chunk, this@TerminalActivity, session, activeScript)
             }
 
             override fun onTitleChanged(changedSession: TerminalSession) {
@@ -405,12 +420,17 @@ class TerminalActivity : AppActivity() {
             ?: if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
         val forceTermex = if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null
 
+        val activeScript = intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
+            ?: intent.getStringExtra(EXTRA_PATH)
+            ?: intent.getStringExtra(EXTRA_CWD)
+
         val config = TerminalExpansionManager.prepareLaunchConfig(
             this,
             forceRoot = forceRoot,
             forceTermex = forceTermex,
             overrideCwd = overridePath,
-            initialCommand = initialCommand
+            initialCommand = initialCommand,
+            activeScriptPath = activeScript
         )
 
         val session = TerminalSession(
@@ -436,7 +456,7 @@ class TerminalActivity : AppActivity() {
             context = this,
             session = session,
             scriptName = scriptName,
-            path = overridePath,
+            path = activeScript ?: overridePath,
             command = initialCommand,
             root = config.isRoot,
             termex = config.isTermex
@@ -474,9 +494,10 @@ class TerminalActivity : AppActivity() {
                 getString(R.string.terminal_wakelock)
             }
             add(Menu.NONE, 1, 1, wakeTitle)
-            add(Menu.NONE, 10, 2, R.string.script_menu_keep_background)
-            add(Menu.NONE, 11, 3, R.string.script_menu_terminate)
-            add(Menu.NONE, 5, 4, R.string.terminal_paste)
+            add(Menu.NONE, 12, 2, R.string.tracer_menu_item)
+            add(Menu.NONE, 10, 3, R.string.script_menu_keep_background)
+            add(Menu.NONE, 11, 4, R.string.script_menu_terminate)
+            add(Menu.NONE, 5, 5, R.string.terminal_paste)
             add(Menu.NONE, 6, 5, "Copiar toda la pantalla")
             add(Menu.NONE, 7, 6, "Limpiar pantalla (clear)")
             add(Menu.NONE, 8, 7, "Cambiar a Root (su)")
@@ -541,6 +562,13 @@ class TerminalActivity : AppActivity() {
                     ScriptExecutionManager.terminateShell(this)
                     Toast.makeText(this, "Proceso terminado", Toast.LENGTH_SHORT).show()
                     finish()
+                    true
+                }
+                12 -> {
+                    val activeScript = ScriptExecutionManager.activeScriptPath
+                        ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
+                        ?: intent.getStringExtra(EXTRA_PATH)
+                    BinaryTracerDialog.show(this, activeScript)
                     true
                 }
                 else -> false

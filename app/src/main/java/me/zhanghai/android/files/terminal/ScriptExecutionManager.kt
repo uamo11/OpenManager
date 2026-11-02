@@ -13,7 +13,6 @@ import com.termux.terminal.TerminalSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import me.zhanghai.android.files.provider.root.RootCommandExecutor
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -126,7 +125,7 @@ object ScriptExecutionManager {
             if (isRoot) {
                 CoroutineScope(Dispatchers.IO).launch {
                     runCatching {
-                        RootCommandExecutor.execute("kill -9 $pid 2>/dev/null || true")
+                        com.topjohnwu.superuser.Shell.cmd("kill -9 $pid 2>/dev/null || true").exec()
                     }
                 }
             }
