@@ -56,6 +56,23 @@
                     tools:text="RAM: 2.8 GB / 6.0 GB (46%)" />
 
                 <TextView
+                    android:id="@+id/tvElevationBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="10dp"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp"
+                    android:paddingTop="2dp"
+                    android:paddingBottom="2dp"
+                    android:background="@drawable/bg_category_pill"
+                    android:textColor="#FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    tools:text="ROOT" />
+
+                <TextView
                     android:id="@+id/tvRamAvailable"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -84,6 +101,98 @@
                 android:textColor="#888888"
                 android:textSize="11sp"
                 tools:text="182 procesos en ejecución • 28 aplicaciones activas" />
+        </LinearLayout>
+
+        <!-- Permission Banner when Unprivileged (App Manager Style) -->
+        <LinearLayout
+            android:id="@+id/cardPermissionBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="12dp"
+            android:background="#241B08"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:id="@+id/ivBannerIcon"
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/shield_icon_white_24dp"
+                    app:tint="#FFA000" />
+
+                <TextView
+                    android:id="@+id/tvBannerTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="10dp"
+                    android:textColor="#FFA000"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:text="@string/running_apps_permission_banner_title" />
+
+                <ImageButton
+                    android:id="@+id/btnDismissBanner"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/close_icon_control_normal_24dp"
+                    android:contentDescription="@string/close"
+                    app:tint="#FFA000" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvBannerMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#FFE082"
+                android:textSize="11.5sp"
+                android:text="@string/running_apps_permission_banner_msg" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBannerRequestRoot"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="6dp"
+                    android:text="@string/running_apps_action_request_root"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:icon="@drawable/shield_icon_white_24dp"
+                    app:iconSize="15dp"
+                    android:backgroundTint="#C62828"
+                    android:textColor="#FFFFFF" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnBannerRequestShizuku"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="@string/running_apps_action_request_shizuku"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    app:icon="@drawable/ic_shizuku"
+                    app:iconSize="15dp"
+                    android:backgroundTint="#0277BD"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Tabs: Usuario | Sistema | Todos -->

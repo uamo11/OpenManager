@@ -1211,6 +1211,17 @@
     <string name="running_apps_sort_ram">RAM Usage (Highest first)</string>
     <string name="running_apps_sort_name">Name (A - Z)</string>
     <string name="running_apps_sort_pid">PID (Lowest first)</string>
+    <string name="running_apps_elevation_root">ROOT</string>
+    <string name="running_apps_elevation_shizuku">SHIZUKU</string>
+    <string name="running_apps_elevation_unprivileged">STANDARD (LIMITED)</string>
+    <string name="running_apps_permission_banner_title">Limited Access: Root or Shizuku Required</string>
+    <string name="running_apps_permission_banner_msg">On modern Android, system privacy restrictions prevent listing processes from other applications without elevated privileges.</string>
+    <string name="running_apps_action_request_root">Request Root</string>
+    <string name="running_apps_action_request_shizuku">Use Shizuku</string>
+    <string name="running_apps_root_granted_toast">Superuser (Root) access granted</string>
+    <string name="running_apps_root_failed_toast">Failed to obtain Superuser (Root) access</string>
+    <string name="running_apps_shizuku_granted_toast">Shizuku permission granted</string>
+    <string name="running_apps_kill_unprivileged_warning">Terminating other apps requires Root or Shizuku permissions</string>
     <string name="user_apps">User</string>
     <string name="system_apps">System</string>
     <string name="extract_apk">Extract APK</string>

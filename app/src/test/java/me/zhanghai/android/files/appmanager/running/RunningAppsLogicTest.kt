@@ -167,4 +167,102 @@ class RunningAppsLogicTest {
         assertEquals(1, permissions.size)
         assertTrue(permissions.first().isGranted)
     }
+
+    @Test
+    fun testParseDumpsysOutput() {
+        val dumpsysLines = listOf(
+            "ACTIVITY MANAGER RUNNING PROCESSES (dumpsys activity processes)",
+            "  *APP* UID 10180 ProcessRecord{a1b2c3d 14500:com.whatsapp/u0a180}",
+            "  *PERS* UID 1000 ProcessRecord{e4f5a6b 1200:system_server/1000}",
+            "  *TOP* UID 10190 ProcessRecord{c8d9e0f 16200:org.telegram.messenger/u0a190}"
+        )
+        val processMap = mutableMapOf<Int, RunningAppModel>()
+        RunningAppsLoader.parseDumpsysOutput(
+            lines = dumpsysLines,
+            installedMap = emptyMap(),
+            processMap = processMap,
+            pm = null
+        )
+
+        assertEquals(3, processMap.size)
+        assertTrue(processMap.containsKey(14500))
+        assertEquals("com.whatsapp", processMap[14500]?.processName)
+        assertEquals(10180, processMap[14500]?.uid)
+
+        assertTrue(processMap.containsKey(1200))
+        assertEquals("system_server", processMap[1200]?.processName)
+        assertEquals(1000, processMap[1200]?.uid)
+        assertTrue(processMap[1200]?.isSystem == true)
+
+        assertTrue(processMap.containsKey(16200))
+        assertEquals("org.telegram.messenger", processMap[16200]?.processName)
+    }
+
+    @Test
+    fun testParsePsOutputWithCustomHeader() {
+        val psLines = listOf(
+            "PID  PPID USER     RSS    STAT NAME",
+            "1    0    root     2144   S    init",
+            "14500 1200 u0_a180 180000 R    com.whatsapp",
+            "16200 1200 u0_a190 220000 S    org.telegram.messenger"
+        )
+        val processMap = mutableMapOf<Int, RunningAppModel>()
+        RunningAppsLoader.parsePsOutput(
+            lines = psLines,
+            installedMap = emptyMap(),
+            uidPackageMap = emptyMap(),
+            processMap = processMap,
+            pm = null
+        )
+
+        assertEquals(3, processMap.size)
+        val whatsapp = processMap[14500]
+        assertEquals("com.whatsapp", whatsapp?.processName)
+        assertEquals(14500, whatsapp?.pid)
+        assertEquals(1200, whatsapp?.ppid)
+        assertEquals("u0_a180", whatsapp?.user)
+        assertEquals(180_000L * 1024L, whatsapp?.memoryBytes)
+        assertEquals("R", whatsapp?.state)
+
+        val init = processMap[1]
+        assertEquals("init", init?.processName)
+        assertEquals("root", init?.user)
+        assertTrue(init?.isSystem == true)
+    }
+
+    @Test
+    fun testParsePsOutputEnrichment() {
+        val processMap = mutableMapOf<Int, RunningAppModel>()
+        // Simulate Tier 1 dumpsys pre-populating with 0 RSS
+        processMap[14500] = RunningAppModel(
+            pid = 14500,
+            ppid = 1200,
+            uid = 10180,
+            processName = "com.whatsapp",
+            packageName = "com.whatsapp",
+            label = "WhatsApp",
+            isApp = true,
+            isSystem = false,
+            memoryBytes = 0L,
+            state = "R"
+        )
+
+        val psLines = listOf(
+            "PID  PPID USER     RSS    STAT NAME",
+            "14500 1200 u0_a180 180000 R    com.whatsapp"
+        )
+
+        RunningAppsLoader.parsePsOutput(
+            lines = psLines,
+            installedMap = emptyMap(),
+            uidPackageMap = emptyMap(),
+            processMap = processMap,
+            pm = null
+        )
+
+        // Memory should be enriched from 0 to 180000 * 1024
+        val enriched = processMap[14500]
+        assertEquals(180_000L * 1024L, enriched?.memoryBytes)
+        assertEquals("WhatsApp", enriched?.label)
+    }
 }

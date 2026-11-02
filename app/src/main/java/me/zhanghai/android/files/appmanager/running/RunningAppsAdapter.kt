@@ -81,6 +81,7 @@ class RunningAppsAdapter(
         }
 
         // Icon loading
+        holder.ivIcon.tag = item.packageName
         if (item.packageName != null) {
             val cached = NativeAppIconLoader.getCached(item.packageName)
             if (cached != null) {
@@ -91,7 +92,7 @@ class RunningAppsAdapter(
                     val icon = NativeAppIconLoader.loadIcon(context, item.packageName)
                     if (icon != null) {
                         withContext(Dispatchers.Main) {
-                            if (holder.bindingAdapterPosition == position) {
+                            if (holder.ivIcon.tag == item.packageName) {
                                 holder.ivIcon.setImageDrawable(icon)
                             }
                         }

@@ -19,9 +19,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowInsetsController
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.ViewCompat
@@ -31,7 +28,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayout
+import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
@@ -40,6 +39,8 @@ import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
 import me.zhanghai.android.files.databinding.ActivityRunningAppsBinding
 import me.zhanghai.android.files.databinding.DialogProcessDetailsBinding
+import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
+import me.zhanghai.android.files.provider.root.ShizukuManager
 import me.zhanghai.android.files.ui.ThemedFastScroller
 
 class RunningAppsActivity : AppActivity() {
@@ -52,6 +53,15 @@ class RunningAppsActivity : AppActivity() {
     private var currentTab = 0 // 0: User apps, 1: System apps, 2: All
     private var searchQuery = ""
     private var currentSortOrder = 0 // 0: RAM descending, 1: Name A-Z, 2: PID ascending
+    private var isBannerDismissed = false
+    private var loadJob: Job? = null
+
+    private val shizukuListener = {
+        runOnUiThread {
+            updateElevationUi()
+            loadProcesses()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,12 +101,23 @@ class RunningAppsActivity : AppActivity() {
 
         setupTabs()
         setupRecyclerView()
+        setupElevationControls()
+
+        ShizukuManager.init(this)
+        ShizukuManager.addBinderListener(shizukuListener)
 
         binding.fabRefresh.setOnClickListener {
             loadProcesses()
         }
 
+        checkAndPromptElevatedPermissions()
         loadProcesses()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        loadJob?.cancel()
+        ShizukuManager.removeBinderListener(shizukuListener)
     }
 
     private fun setupTabs() {
@@ -131,15 +152,156 @@ class RunningAppsActivity : AppActivity() {
         }
     }
 
+    private fun setupElevationControls() {
+        binding.btnBannerRequestRoot.setOnClickListener {
+            requestRootPrivileges(interactive = true)
+        }
+        binding.btnBannerRequestShizuku.setOnClickListener {
+            requestShizukuPrivileges()
+        }
+        binding.btnDismissBanner.setOnClickListener {
+            isBannerDismissed = true
+            binding.cardPermissionBanner.visibility = View.GONE
+        }
+        binding.tvElevationBadge.setOnClickListener {
+            showElevationChoiceDialog()
+        }
+    }
+
+    private fun updateElevationUi() {
+        val isRoot = RunningAppsLoader.isRootGranted()
+        val isShizuku = RunningAppsLoader.isShizukuReady()
+
+        when {
+            isRoot -> {
+                binding.tvElevationBadge.text = "🛡️ " + getString(R.string.running_apps_elevation_root)
+                binding.tvElevationBadge.setTextColor(Color.parseColor("#00E676"))
+                binding.cardPermissionBanner.visibility = View.GONE
+            }
+            isShizuku -> {
+                binding.tvElevationBadge.text = "⚡ " + getString(R.string.running_apps_elevation_shizuku)
+                binding.tvElevationBadge.setTextColor(Color.parseColor("#40C4FF"))
+                binding.cardPermissionBanner.visibility = View.GONE
+            }
+            else -> {
+                binding.tvElevationBadge.text = "⚠️ " + getString(R.string.running_apps_elevation_unprivileged)
+                binding.tvElevationBadge.setTextColor(Color.parseColor("#FFB300"))
+                if (!isBannerDismissed) {
+                    binding.cardPermissionBanner.visibility = View.VISIBLE
+                } else {
+                    binding.cardPermissionBanner.visibility = View.GONE
+                }
+            }
+        }
+    }
+
+    private fun checkAndPromptElevatedPermissions() {
+        updateElevationUi()
+        if (RunningAppsLoader.hasElevatedAccess()) return
+
+        // Proactively offer or check root if available, otherwise check Shizuku
+        if (LibSuFileServiceLauncher.isSuAvailable()) {
+            requestRootPrivileges(interactive = false)
+        } else if (ShizukuManager.isAvailable() && !ShizukuManager.hasPermission()) {
+            requestShizukuPrivileges()
+        }
+    }
+
+    private fun requestRootPrivileges(interactive: Boolean) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                LibSuFileServiceLauncher.initBuilder()
+                val result = Shell.cmd("id").exec()
+                val isRoot = result.isSuccess && result.out.any { it.contains("uid=0") }
+                withContext(Dispatchers.Main) {
+                    if (isRoot) {
+                        if (interactive) {
+                            Toast.makeText(this@RunningAppsActivity, R.string.running_apps_root_granted_toast, Toast.LENGTH_SHORT).show()
+                        }
+                        updateElevationUi()
+                        loadProcesses()
+                    } else if (interactive) {
+                        Toast.makeText(this@RunningAppsActivity, R.string.running_apps_root_failed_toast, Toast.LENGTH_SHORT).show()
+                        updateElevationUi()
+                    }
+                }
+            } catch (_: Throwable) {
+                withContext(Dispatchers.Main) {
+                    if (interactive) {
+                        Toast.makeText(this@RunningAppsActivity, R.string.running_apps_root_failed_toast, Toast.LENGTH_SHORT).show()
+                    }
+                    updateElevationUi()
+                }
+            }
+        }
+    }
+
+    private fun requestShizukuPrivileges() {
+        if (!ShizukuManager.isInstalled(this)) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Shizuku no instalado")
+                .setMessage("Para usar Shizuku, debes instalar la aplicación Shizuku en tu dispositivo y activarla.")
+                .setPositiveButton("Ver Shizuku") { _, _ ->
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
+                    } catch (_: Throwable) {}
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+
+        if (!ShizukuManager.isAvailable()) {
+            Toast.makeText(this, "El servicio de Shizuku no está iniciado. Ábrelo e inícialo primero.", Toast.LENGTH_LONG).show()
+            return
+        }
+
+        ShizukuManager.requestPermission(this) { granted ->
+            if (granted) {
+                Toast.makeText(this, R.string.running_apps_shizuku_granted_toast, Toast.LENGTH_SHORT).show()
+                updateElevationUi()
+                loadProcesses()
+            } else {
+                Toast.makeText(this, "Permiso de Shizuku no concedido", Toast.LENGTH_SHORT).show()
+                updateElevationUi()
+            }
+        }
+    }
+
+    private fun showElevationChoiceDialog() {
+        val isRoot = RunningAppsLoader.isRootGranted()
+        val isShizuku = RunningAppsLoader.isShizukuReady()
+        val statusText = when {
+            isRoot -> "Acceso Superusuario (Root) concedido y activo."
+            isShizuku -> "Acceso Shizuku (ADB API) concedido y activo."
+            else -> "Modo estándar sin privilegios elevados. En Android moderno solo se listan procesos del propio proceso."
+        }
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Privilegios de Procesos")
+            .setMessage("$statusText\n\n¿Deseas solicitar permisos elevados para ver y gestionar todos los procesos?")
+            .setPositiveButton("Pedir Root") { _, _ ->
+                requestRootPrivileges(interactive = true)
+            }
+            .setNeutralButton("Pedir Shizuku") { _, _ ->
+                requestShizukuPrivileges()
+            }
+            .setNegativeButton("Cerrar", null)
+            .show()
+    }
+
     private fun loadProcesses() {
+        loadJob?.cancel()
         binding.progressBar.visibility = View.VISIBLE
         binding.tvEmptyState.visibility = View.GONE
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        loadJob = lifecycleScope.launch(Dispatchers.IO) {
             val ram = RunningAppsLoader.getRamStats(this@RunningAppsActivity)
             val list = RunningAppsLoader.loadRunningProcesses(this@RunningAppsActivity)
 
             withContext(Dispatchers.Main) {
+                updateElevationUi()
+
                 // Update RAM monitor card
                 val totalStr = Formatter.formatFileSize(this@RunningAppsActivity, ram.totalBytes)
                 val usedStr = Formatter.formatFileSize(this@RunningAppsActivity, ram.usedBytes)
@@ -321,6 +483,21 @@ class RunningAppsActivity : AppActivity() {
     }
 
     private fun killProcess(item: RunningAppModel) {
+        if (!RunningAppsLoader.hasElevatedAccess() && (item.isSystem || item.uid != android.os.Process.myUid())) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle("Se requieren permisos elevados")
+                .setMessage(R.string.running_apps_kill_unprivileged_warning)
+                .setPositiveButton(R.string.running_apps_action_request_root) { _, _ ->
+                    requestRootPrivileges(interactive = true)
+                }
+                .setNeutralButton(R.string.running_apps_action_request_shizuku) { _, _ ->
+                    requestShizukuPrivileges()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
             val success = RunningAppsLoader.killProcess(item.pid)
             withContext(Dispatchers.Main) {
@@ -336,6 +513,15 @@ class RunningAppsActivity : AppActivity() {
 
     private fun forceStopProcess(item: RunningAppModel) {
         val pkg = item.packageName ?: return
+        if (!RunningAppsLoader.hasElevatedAccess()) {
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.parse("package:$pkg")
+            }
+            startActivity(intent)
+            Toast.makeText(this@RunningAppsActivity, "Usa 'Forzar detención' en Ajustes", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
             val success = RunningAppsLoader.forceStopApp(pkg)
             withContext(Dispatchers.Main) {

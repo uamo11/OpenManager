@@ -541,3 +541,24 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Aprovechamiento del estado en caché `SuperuserDetector.cachedStatus` para verificaciones instantáneas de cero sobrecarga en operaciones de archivos y terminal.
 - **Cobertura de Pruebas Unitarias**:
   - Nuevas pruebas en [SuperuserDetectorTest.kt](file:///c:/Users/Usuario/Documents/ANDROID/OpenManager/app/src/test/java/me/zhanghai/android/files/provider/root/SuperuserDetectorTest.kt) y [DeadManProtectionManagerTest.kt](file:///c:/Users/Usuario/Documents/ANDROID/OpenManager/app/src/test/java/me/zhanghai/android/files/provider/root/DeadManProtectionManagerTest.kt) validando la detección unificada y delegada.
+
+### Hito 50: Elevación con Root o Shizuku y Mejora Integral de Estabilidad en Apps en Ejecución (v1.9.35)
+- **Solicitud Automática e Interactiva de Permisos Root y Shizuku**:
+  - En `RunningAppsActivity.kt`, si se abre el administrador de procesos sin privilegios elevados, se realiza una comprobación automática para solicitar permisos de Root o Shizuku.
+  - Insignia interactiva de elevación en la tarjeta de monitor de RAM (`tvElevationBadge`):
+    - `🛡️ ROOT`: Superusuario concedido (verde `#00E676`).
+    - `⚡ SHIZUKU`: API ADB Shizuku conectada (azul `#40C4FF`).
+    - `⚠️ ESTÁNDAR (LIMITADO)`: Modo sin privilegios (ámbar `#FFB300`), al tocar despliega un diálogo selector para solicitar Root o Shizuku de inmediato.
+  - Banner explicativo de elevación (`cardPermissionBanner`): muestra las razones técnicas de las limitaciones de Android moderno (ocultación de procesos `/proc`) y ofrece dos botones de acción con un solo toque (`Pedir Root` y `Pedir Shizuku`), además de botón para descartar el aviso.
+  - Registro dinámico de eventos de conexión/desconexión del binder de Shizuku (`ShizukuManager.addBinderListener`), actualizando la interfaz y lista de procesos reactivamente sin recargas manuales.
+- **Mejoras de Estabilidad y Parsing en RunningAppsLoader**:
+  - `parsePsOutput` adaptativo con resolución dinámica de columnas por índice de cabecera (`PID`, `PPID`, `USER`, `RSS`, `STAT`, `NAME`/`CMD`), eliminando fallos en arquitecturas o versiones de Android donde el UID numérico desplazaba las columnas de ps.
+  - Estrategia combinada de dos niveles: Tier 1 (`dumpsys activity processes`) mapea paquetes exactos y UIDs, mientras Tier 2 (`ps -A -o PID,PPID,USER,RSS,STAT,NAME`) enriquece con consumo de memoria física real (`VmRSS`), logrando carga rápida y métricas precisas.
+  - Regex universal en `dumpsys` que abarca cualquier tipo de proceso ART/AOSP (`*APP*`, `*PERS*`, `*TOP*`, `*FORE*`, etc.).
+  - Corrección de retornos en `killProcess` y `forceStopApp`: verifican ejecución y códigos de salida reales, eliminando falsos positivos.
+  - Diálogo de advertencia y elevación en `killProcess` y `forceStopProcess` si el usuario intenta terminar procesos del sistema o de otras apps en modo estándar sin privilegios.
+  - Cancelación atómica de trabajos previos (`loadJob?.cancel()`) para evitar sobrecarga y condiciones de carrera al recargar o alternar pestañas rápidamente.
+- **Estabilidad de Vistas y Reciclaje de Iconos**:
+  - En `RunningAppsAdapter.kt`, etiquetado estricto `holder.ivIcon.tag = item.packageName` previo a la carga asíncrona en hilo de fondo para eliminar parpadeos o asignaciones erróneas de iconos en RecyclerView.
+- **Suite de Pruebas Unitarias Ampliada**:
+  - Incorporadas nuevas pruebas en `RunningAppsLogicTest.kt` validando `parseDumpsysOutput`, `parsePsOutput` con cabeceras personalizadas y enriquecimiento de memoria RSS.
