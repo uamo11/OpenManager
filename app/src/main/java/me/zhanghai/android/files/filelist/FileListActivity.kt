@@ -432,6 +432,24 @@ class FileListActivity : AppActivity() {
                             )
                         )
                     }
+                    "terminal_imgui" -> {
+                        startActivity(
+                            me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                                context = this,
+                                path = "/data/local/tmp",
+                                command = "/data/local/tmp/test_script"
+                            )
+                        )
+                    }
+                    "terminal_deadman" -> {
+                        startActivity(
+                            me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                                context = this,
+                                path = "/data/local/tmp",
+                                command = "export OM_DEAD_MAN_ACTIVE=1; /data/local/tmp/test_script"
+                            )
+                        )
+                    }
                     "selection_bar" -> {
                         if (this::fragmentA.isInitialized) {
                             activeFragment.selectAllFiles()

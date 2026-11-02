@@ -36,6 +36,13 @@ adb shell pm grant com.y.om android.permission.READ_EXTERNAL_STORAGE 2>/dev/null
 adb shell pm grant com.y.om android.permission.WRITE_EXTERNAL_STORAGE 2>/dev/null || true
 adb shell appops set com.y.om MANAGE_EXTERNAL_STORAGE allow 2>/dev/null || true
 
+# Push compiled native C/C++ test_script binary to emulator
+echo ">>> Pushing test_script binary to emulator (/data/local/tmp/test_script)..."
+if [ -f "TestCompiledScript/bin/x86_64/test_script" ]; then
+    adb push TestCompiledScript/bin/x86_64/test_script /data/local/tmp/test_script
+    adb shell chmod 755 /data/local/tmp/test_script
+fi
+
 # Prepare screenshot directory
 mkdir -p screenshots
 rm -f screenshots/*.png
@@ -171,9 +178,17 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG deadman_dialog" \
     "25_deadman_protection_dialog.png" "Dead Man Protection Warning Dialog"
 
-# 26. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
+# 26. Terminal Execution of Native C / C++ & Dear ImGui Dashboard Script
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal_imgui" \
+    "26_terminal_imgui_script.png" "Terminal ImGui Script Execution"
+
+# 27. Terminal Dead Man Catastrophic Deletion Interception with ImGui Output
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal_deadman" \
+    "27_terminal_deadman_interception.png" "Terminal Dead Man Interception"
+
+# 28. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
 echo "=========================================================="
-echo ">>> 26. Testing Native C / C++ ImGui & Low-Level Syscalls..."
+echo ">>> 28. Testing Native C / C++ ImGui & Low-Level Syscalls..."
 echo "=========================================================="
 if [ -f "TestCompiledScript/run_emulator_test.sh" ]; then
     chmod +x TestCompiledScript/run_emulator_test.sh
@@ -205,6 +220,6 @@ if [ -n "$CRASHES" ]; then
 fi
 
 echo "=========================================================="
-echo "   All 25 Section Screenshots Captured & Verified!       "
+echo "   All 27 Section Screenshots Captured & Verified!       "
 echo "=========================================================="
 ls -la screenshots/

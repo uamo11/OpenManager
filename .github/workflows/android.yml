@@ -124,3 +124,45 @@ jobs:
           emulator-performance.txt
           emulator-logcat.log
         retention-days: 10
+
+  release:
+    name: Publish Official GitHub Release
+    needs: [build, emulator-test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+
+    - name: Download Release APK
+      uses: actions/download-artifact@v4
+      with:
+        name: OpenManager-release.apk
+        path: release-apk/
+
+    - name: Download Debug APK
+      uses: actions/download-artifact@v4
+      with:
+        name: OpenManager-debug.apk
+        path: debug-apk/
+
+    - name: Create GitHub Release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.ref_name }}
+      run: |
+        APK_REL="release-apk/app-release.apk"
+        APK_DBG="debug-apk/app-debug.apk"
+        
+        FINAL_REL="OpenManager-${TAG}-release.apk"
+        FINAL_DBG="OpenManager-${TAG}-debug.apk"
+        
+        cp "$APK_REL" "$FINAL_REL" || cp "$APK_DBG" "$FINAL_REL"
+        cp "$APK_DBG" "$FINAL_DBG" || true
+        
+        gh release create "$TAG" "$FINAL_REL" "$FINAL_DBG" \
+          --title "OpenManager ${TAG}: Dead Man Protection, Native C/C++ ImGui & Stable Script Tracer" \
+          --notes-file RELEASE_NOTES.md \
+          --latest
