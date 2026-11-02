@@ -269,4 +269,15 @@ class TerminalLogicTest {
         assertEquals(TraceEventType.KERNEL_PROBE, events[0].type)
         assertEquals("/proc/version", events[0].target)
     }
+
+    @Test
+    fun testDeadManTokenRegexMatches() {
+        val chunk = "some output\n[OM_TRACER:DEADMAN_DELETE:rm -rf /system:/system]\nmore output"
+        val regex = Regex("""\[OM_TRACER:(DELETE|DEADMAN_DELETE):([^:]+):([^\]]+)\]""")
+        val match = regex.find(chunk)
+        assertTrue(match != null)
+        assertEquals("DEADMAN_DELETE", match!!.groupValues[1])
+        assertEquals("rm -rf /system", match.groupValues[2])
+        assertEquals("/system", match.groupValues[3].trim())
+    }
 }

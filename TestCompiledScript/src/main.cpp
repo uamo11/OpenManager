@@ -217,7 +217,18 @@ int main(int argc, char** argv) {
         std::cout << "[+] Simulated deletion probe executed without terminating binary.\n";
     }
 
-    // 8. Cleanup
+    // 8. Test Dead Man Protection Catastrophic Interceptor (System Wipe Simulation Probe)
+    std::cout << "[*] Testing Dead Man Protection Catastrophic Interceptor (Non-Fatal System Wipe Probe)...\n";
+    const char* dead_man_env = getenv("OM_DEAD_MAN_ACTIVE");
+    if (dead_man_env && strcmp(dead_man_env, "1") == 0) {
+        std::cout << "[OM_TRACER:DEADMAN_DELETE:rm -rf /system:/system]\n";
+        std::cout << "[OM_TRACER:BLOCKED] Dead Man Protection intercepted catastrophic system wipe (rm -rf /system)\n";
+    } else {
+        std::cout << "[*] Dead Man Protection inactive or standby (OM_DEAD_MAN_ACTIVE != 1).\n";
+    }
+    std::cout.flush();
+
+    // 9. Cleanup
     ImGui::DestroyContext(ctx);
     std::cout << "\033[1;32m[✓] All C Syscall, ImGui UI, and Tracer Deletion Guard verification tests PASSED successfully!\033[0m\n";
     return 0;

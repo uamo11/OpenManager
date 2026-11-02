@@ -90,6 +90,7 @@
     <string name="pref_key_dead_man_dfroot_protected_files">key_dead_man_dfroot_protected_files</string>
     <string name="pref_key_dead_man_root_protection">key_dead_man_root_protection</string>
     <bool name="pref_default_value_dead_man_root_protection">true</bool>
+    <string name="pref_key_dead_man_root_rules">key_dead_man_root_rules</string>
 
     <!-- MT Manager Startup Preferences -->
     <string name="pref_key_request_root_permission">key_request_root_permission</string>

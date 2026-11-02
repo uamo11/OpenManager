@@ -11,6 +11,7 @@ import android.view.View
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment
+import me.zhanghai.android.files.provider.root.DeadManProtectedRulesDialogFragment
 import me.zhanghai.android.files.theme.custom.CustomThemeHelper
 import me.zhanghai.android.files.theme.custom.ThemeColor
 import me.zhanghai.android.files.theme.night.NightMode
@@ -119,6 +120,33 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             DfrootProtectedFilesDialogFragment.show(this)
             true
         }
+
+        val rootProtectionPref = findPreference<androidx.preference.SwitchPreferenceCompat>(
+            getString(R.string.pref_key_dead_man_root_protection)
+        )
+        rootProtectionPref?.setOnPreferenceChangeListener { preference, newValue ->
+            val willEnable = newValue as Boolean
+            if (!willEnable) {
+                if (DeadManProtectionManager.hasWaitedDeadManCountdown) {
+                    DeadManProtectionManager.hasWaitedDeadManCountdown = false
+                    DeadManProtectionManager.recordDeadManExplicitlyDisabled(requireContext(), true)
+                    true
+                } else {
+                    showDisableDeadManWarningDialog(preference as androidx.preference.SwitchPreferenceCompat)
+                    false
+                }
+            } else {
+                DeadManProtectionManager.recordDeadManExplicitlyDisabled(requireContext(), false)
+                true
+            }
+        }
+
+        findPreference<androidx.preference.Preference>(
+            getString(R.string.pref_key_dead_man_root_rules)
+        )?.setOnPreferenceClickListener {
+            DeadManProtectedRulesDialogFragment.show(this)
+            true
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -135,6 +163,24 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 }
             }, 300)
         }
+    }
+
+    private fun showDisableDeadManWarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setIcon(R.drawable.ic_dead_man_skull)
+            .setTitle(R.string.dead_man_root_warning_disable_title)
+            .setMessage(R.string.dead_man_root_warning_disable_message)
+            .setPositiveButton(R.string.dead_man_root_disable_confirm) { dialog, _ ->
+                dialog.dismiss()
+                DeadManProtectionManager.recordDeadManExplicitlyDisabled(requireContext(), true)
+                pref.isChecked = false
+                Settings.DEAD_MAN_ROOT_PROTECTION.putValue(false)
+            }
+            .setNegativeButton(R.string.dead_man_protection_cancel) { dialog, _ ->
+                dialog.dismiss()
+                pref.isChecked = true
+            }
+            .show()
     }
 
     private fun showDisableDfrootWarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {

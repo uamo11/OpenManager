@@ -82,6 +82,17 @@
                 android:src="@drawable/copy_icon_control_normal_24dp"
                 app:tint="#FFFFFF"
                 android:contentDescription="Copiar salida" />
+
+            <ImageButton
+                android:id="@+id/btnDeadManSkull"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="6dp"
+                android:visibility="gone"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_dead_man_skull"
+                app:tint="#E53935"
+                android:contentDescription="@string/dead_man_skull_button_desc" />
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -98,6 +109,40 @@
             android:background="#000000"
             android:focusable="true"
             android:focusableInTouchMode="true" />
+
+        <LinearLayout
+            android:id="@+id/layoutDeadManAlertBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:visibility="gone"
+            android:background="#D32F2F"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_dead_man_skull"
+                app:tint="#FFFFFF"
+                android:contentDescription="Dead Man" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Dead Man"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
     </FrameLayout>
 
     <me.zhanghai.android.files.terminal.TerminalExtraKeysView

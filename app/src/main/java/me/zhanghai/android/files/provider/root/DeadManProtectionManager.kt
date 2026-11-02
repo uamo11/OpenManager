@@ -34,9 +34,11 @@ object DeadManProtectionManager {
 
     const val EXTRA_HIGHLIGHT_PREF = "me.zhanghai.android.files.extra.HIGHLIGHT_PREF"
     const val EXTRA_FROM_DIRTYFLAG_DIALOG = "me.zhanghai.android.files.extra.FROM_DIRTYFLAG_DIALOG"
+    const val EXTRA_FROM_DEAD_MAN_DIALOG = "me.zhanghai.android.files.extra.FROM_DEAD_MAN_DIALOG"
 
     private const val PREFS_NAME = "dead_man_prefs"
     private const val KEY_EXPLICITLY_DISABLED = "dfroot_explicitly_disabled"
+    private const val KEY_DEAD_MAN_EXPLICITLY_DISABLED = "dead_man_root_explicitly_disabled"
 
     /**
      * Set to true when the user completed the 5-second countdown wait in
@@ -44,6 +46,36 @@ object DeadManProtectionManager {
      */
     @Volatile
     var hasWaitedCountdown: Boolean = false
+
+    /**
+     * Set to true when the user completed the 5-second countdown wait in
+     * the Dead Man Protection dialog. Consumed in Settings to bypass the warning dialog.
+     */
+    @Volatile
+    var hasWaitedDeadManCountdown: Boolean = false
+
+    private val CATASTROPHIC_SYSTEM_PATHS = listOf(
+        "/system",
+        "/vendor",
+        "/product",
+        "/system_ext",
+        "/odm",
+        "/apex",
+        "/boot",
+        "/recovery",
+        "/init",
+        "/data/adb",
+        "/data/system",
+        "/dev/block"
+    )
+
+    private val CATASTROPHIC_CMD_PATTERNS = listOf(
+        Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(\\s*|$|\\*)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(system|vendor|product|system_ext|odm|apex|data/adb|data/system|boot|dev|init)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(mkfs|mke2fs|newfs_msdos|wipefs|make_ext4fs)\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bdd\\s+.*\\bof=/dev/block/", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bfind\\s+/(system|vendor|product|system_ext|odm|boot|dev)?\\s+.*-delete", Pattern.CASE_INSENSITIVE)
+    )
 
     private val CRITICAL_BOOT_IMG_PATTERN = Pattern.compile(
         "^(boot|init_boot|vendor_boot|vbmeta|dtbo|recovery|abl|xbl|tz|hyp|rpm)([-_].*)?\\.img$",
@@ -98,6 +130,82 @@ object DeadManProtectionManager {
         } catch (_: Throwable) {
             false
         }
+    }
+
+    fun recordDeadManExplicitlyDisabled(context: Context, disabled: Boolean) {
+        try {
+            val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            sp.edit().putBoolean(KEY_DEAD_MAN_EXPLICITLY_DISABLED, disabled).apply()
+        } catch (_: Throwable) {}
+    }
+
+    fun isDeadManExplicitlyDisabled(context: Context): Boolean {
+        return try {
+            val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            sp.getBoolean(KEY_DEAD_MAN_EXPLICITLY_DISABLED, false)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun isDeadManProtectionActive(context: Context? = null): Boolean {
+        if (context != null && isDeadManExplicitlyDisabled(context)) {
+            return false
+        }
+        return try {
+            Settings.DEAD_MAN_ROOT_PROTECTION.valueCompat
+        } catch (_: Throwable) {
+            true
+        }
+    }
+
+    fun isCatastrophicSystemDeletion(command: String, target: String): Boolean {
+        val normTarget = target.trim().replace('\\', '/')
+        val normCmd = command.trim()
+
+        // 1. Allow safe user/temp zones
+        if (normTarget.startsWith("/data/local/tmp", ignoreCase = true) ||
+            normTarget.startsWith("/storage/emulated/", ignoreCase = true) ||
+            normTarget.startsWith("/sdcard", ignoreCase = true) ||
+            normTarget.startsWith("/data/data/", ignoreCase = true) ||
+            normTarget.startsWith("/data/user/", ignoreCase = true)
+        ) {
+            if (!normTarget.contains("/dev/block/")) {
+                return false
+            }
+        }
+
+        // If a command is explicitly given and is non-destructive (e.g. read-only commands like cat, ls, grep)
+        if (normCmd.isNotEmpty()) {
+            val isDestructiveCmd = normCmd.contains(">") ||
+                CATASTROPHIC_CMD_PATTERNS.any { it.matcher(normCmd).find() } ||
+                Pattern.compile("\\b(rm|rmdir|unlink|mkfs|mke2fs|wipefs|dd|blockdev|shred|truncate)\\b", Pattern.CASE_INSENSITIVE).matcher(normCmd).find()
+            if (!isDestructiveCmd) {
+                return false
+            }
+        }
+
+        // 2. Target checks (root partition, system directories, block devices)
+        if (normTarget == "/" || normTarget == "/*" || normTarget == "*" || normTarget == "/system" || normTarget == "/vendor") {
+            return true
+        }
+
+        for (sysPath in CATASTROPHIC_SYSTEM_PATHS) {
+            if (normTarget == sysPath || normTarget.startsWith("$sysPath/")) {
+                return true
+            }
+        }
+
+        // 3. Command checks (destructive patterns like rm -rf /, rm -rf /system, dd of=/dev/block)
+        if (normCmd.isNotEmpty()) {
+            for (pattern in CATASTROPHIC_CMD_PATTERNS) {
+                if (pattern.matcher(normCmd).find()) {
+                    return true
+                }
+            }
+        }
+
+        return false
     }
 
     /**
@@ -365,6 +473,62 @@ object DeadManProtectionManager {
                         val intent = Intent(activity, SettingsActivity::class.java).apply {
                             putExtra(EXTRA_HIGHLIGHT_PREF, activity.getString(R.string.pref_key_dead_man_dfroot_protection))
                             putExtra(EXTRA_FROM_DIRTYFLAG_DIALOG, true)
+                        }
+                        activity.startActivity(intent)
+                    }
+                }
+            }.start()
+        }
+
+        dialog.show()
+    }
+
+    fun showDeadManProtectionDialog(
+        activity: Activity,
+        target: String,
+        command: String,
+        onCancelled: (() -> Unit)? = null
+    ) {
+        var timer: CountDownTimer? = null
+
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setIcon(R.drawable.ic_dead_man_skull)
+            .setTitle(activity.getString(R.string.dead_man_protection_dialog_title))
+            .setMessage(activity.getString(R.string.dead_man_protection_dialog_message, target, command))
+            .setCancelable(false)
+            .setPositiveButton(activity.getString(R.string.dead_man_protection_cancel)) { d, _ ->
+                timer?.cancel()
+                d.dismiss()
+                onCancelled?.invoke()
+            }
+            .setNeutralButton("5", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val rightCancelBtn = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            val leftCountdownBtn = dialog.getButton(DialogInterface.BUTTON_NEUTRAL)
+
+            rightCancelBtn?.setTextColor(Color.parseColor("#9E9E9E"))
+
+            leftCountdownBtn?.isEnabled = false
+            leftCountdownBtn?.setTextColor(Color.parseColor("#E53935"))
+
+            timer = object : CountDownTimer(5000, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    val sec = (millisUntilFinished / 1000 + 1).coerceAtMost(5)
+                    leftCountdownBtn?.text = "$sec"
+                }
+
+                override fun onFinish() {
+                    leftCountdownBtn?.text = activity.getString(R.string.dead_man_protection_go_to_settings)
+                    leftCountdownBtn?.isEnabled = true
+                    leftCountdownBtn?.setTextColor(Color.parseColor("#FF5252"))
+                    leftCountdownBtn?.setOnClickListener {
+                        hasWaitedDeadManCountdown = true
+                        dialog.dismiss()
+                        val intent = Intent(activity, SettingsActivity::class.java).apply {
+                            putExtra(EXTRA_HIGHLIGHT_PREF, activity.getString(R.string.pref_key_dead_man_root_protection))
+                            putExtra(EXTRA_FROM_DEAD_MAN_DIALOG, true)
                         }
                         activity.startActivity(intent)
                     }

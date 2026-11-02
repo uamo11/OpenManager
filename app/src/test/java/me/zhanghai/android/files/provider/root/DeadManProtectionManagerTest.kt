@@ -247,4 +247,60 @@ class DeadManProtectionManagerTest {
         assertTrue(SuperuserDetector.detectDfRoot(null))
         SuperuserDetector.cachedStatus = null
     }
+
+    @Test
+    fun testCatastrophicDeletionsDetected() {
+        val catastrophicCommands = listOf(
+            Pair("rm -rf /", "/"),
+            Pair("rm -rf /*", "/*"),
+            Pair("rm -rf /system", "/system"),
+            Pair("rm -rf /vendor", "/vendor"),
+            Pair("rm -rf /apex", "/apex"),
+            Pair("rm -rf /product", "/product"),
+            Pair("rm -rf /system_ext", "/system_ext"),
+            Pair("rm -rf /dev/block/by-name/system", "/dev/block/by-name/system"),
+            Pair("mkfs.ext4 /dev/block/bootdevice/by-name/userdata", "/dev/block/bootdevice/by-name/userdata"),
+            Pair("dd if=/dev/zero of=/dev/block/by-name/boot", "/dev/block/by-name/boot"),
+            Pair("blockdev --setrw /dev/block/mmcblk0", "/dev/block/mmcblk0")
+        )
+
+        for ((cmd, target) in catastrophicCommands) {
+            assertTrue(
+                "Expected catastrophic deletion to be detected: cmd=$cmd, target=$target",
+                DeadManProtectionManager.isCatastrophicSystemDeletion(cmd, target)
+            )
+        }
+    }
+
+    @Test
+    fun testSafeDeletionsNotCatastrophic() {
+        val safeCommands = listOf(
+            Pair("rm /sdcard/Download/test.apk", "/sdcard/Download/test.apk"),
+            Pair("rm -rf /data/local/tmp/my_temp_dir", "/data/local/tmp/my_temp_dir"),
+            Pair("rm /storage/emulated/0/log.txt", "/storage/emulated/0/log.txt"),
+            Pair("rmdir /data/local/tmp/empty_folder", "/data/local/tmp/empty_folder"),
+            Pair("echo Hello > /sdcard/output.txt", "/sdcard/output.txt"),
+            Pair("cat /system/build.prop", "/system/build.prop")
+        )
+
+        for ((cmd, target) in safeCommands) {
+            assertFalse(
+                "Expected safe deletion to NOT be flagged as catastrophic: cmd=$cmd, target=$target",
+                DeadManProtectionManager.isCatastrophicSystemDeletion(cmd, target)
+            )
+        }
+    }
+
+    @Test
+    fun testDeadManCountdownWaitedState() {
+        DeadManProtectionManager.hasWaitedDeadManCountdown = false
+        assertFalse(DeadManProtectionManager.hasWaitedDeadManCountdown)
+
+        DeadManProtectionManager.hasWaitedDeadManCountdown = true
+        assertTrue(DeadManProtectionManager.hasWaitedDeadManCountdown)
+
+        // Reset
+        DeadManProtectionManager.hasWaitedDeadManCountdown = false
+        assertFalse(DeadManProtectionManager.hasWaitedDeadManCountdown)
+    }
 }

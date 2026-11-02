@@ -26,6 +26,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.app.application
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
 import java.io.File
 import java.io.FileOutputStream
@@ -202,6 +203,15 @@ object TerminalExpansionManager {
         val rmFile = File(binDir, "rm")
         val rmContent = """
             #!/system/bin/sh
+            if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
+                case "${'$'}*" in
+                    *" /"*|*" /*"*|*"-rf / "*|*"-rf /"*|*"-fr / "*|*"-fr /"*|*"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
+                        echo "[OM_TRACER:DEADMAN_DELETE:rm:${'$'}*]"
+                        echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
+                        exit 0
+                        ;;
+                esac
+            fi
             if [ "${'$'}OM_TRACER_DISABLED" = "1" ]; then
                 exec /system/bin/rm "${'$'}@"
             fi
@@ -223,6 +233,15 @@ object TerminalExpansionManager {
         val rmdirFile = File(binDir, "rmdir")
         val rmdirContent = """
             #!/system/bin/sh
+            if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
+                case "${'$'}*" in
+                    *"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
+                        echo "[OM_TRACER:DEADMAN_DELETE:rmdir:${'$'}*]"
+                        echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
+                        exit 0
+                        ;;
+                esac
+            fi
             if [ "${'$'}OM_TRACER_DISABLED" = "1" ]; then
                 exec /system/bin/rmdir "${'$'}@"
             fi
@@ -247,6 +266,9 @@ object TerminalExpansionManager {
             ACTION="${'$'}1"
             shift
             case "${'$'}ACTION" in
+                deadman_delete)
+                    echo "[OM_TRACER:DEADMAN_DELETE:${'$'}*]"
+                    ;;
                 delete)
                     echo "[OM_TRACER:DELETE:${'$'}*]"
                     ;;
@@ -303,10 +325,12 @@ object TerminalExpansionManager {
     ): LaunchConfig {
         val tracerEnabled = ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)
         val deletionPolicy = ScriptTracerPreferences.getDeletionPolicy(context, activeScriptPath)
+        val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
         val tracerEnv = arrayOf(
             "OM_TRACER_DISABLED=" + (if (tracerEnabled) "0" else "1"),
             "OM_DELETION_POLICY=" + deletionPolicy.name,
-            "OM_ACTIVE_SCRIPT_PATH=" + (activeScriptPath ?: "")
+            "OM_ACTIVE_SCRIPT_PATH=" + (activeScriptPath ?: ""),
+            "OM_DEAD_MAN_ACTIVE=" + (if (deadManActive) "1" else "0")
         )
         val asRoot = forceRoot ?: TerminalSettings.isRootSession(context)
         val useTermex = forceTermex ?: (isTermexInstalled(context) && !asRoot)

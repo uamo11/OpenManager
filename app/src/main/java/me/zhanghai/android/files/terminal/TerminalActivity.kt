@@ -48,6 +48,10 @@ class TerminalActivity : AppActivity() {
     private var btnZoomIn: TextView? = null
     private var tvZoomSize: TextView? = null
     private var btnCopyScreen: ImageButton? = null
+    private var btnDeadManSkull: ImageButton? = null
+    private var layoutDeadManAlertBadge: android.widget.LinearLayout? = null
+    private var lastDeadManTarget: String = ""
+    private var lastDeadManCmd: String = ""
 
     private var terminalSession: TerminalSession? = null
     private var wakeLock: PowerManager.WakeLock? = null
@@ -103,6 +107,19 @@ class TerminalActivity : AppActivity() {
         btnZoomIn = findViewById(R.id.btnZoomIn)
         tvZoomSize = findViewById(R.id.tvZoomSize)
         btnCopyScreen = findViewById(R.id.btnCopyScreen)
+        btnDeadManSkull = findViewById(R.id.btnDeadManSkull)
+        layoutDeadManAlertBadge = findViewById(R.id.layoutDeadManAlertBadge)
+
+        btnDeadManSkull?.setOnClickListener {
+            if (lastDeadManTarget.isNotEmpty()) {
+                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
+            }
+        }
+        layoutDeadManAlertBadge?.setOnClickListener {
+            if (lastDeadManTarget.isNotEmpty()) {
+                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
+            }
+        }
 
         setupToolbar()
         setupPinchZoomDetector()
@@ -117,6 +134,16 @@ class TerminalActivity : AppActivity() {
         val cmd = intent.getStringExtra(EXTRA_COMMAND)
         if (cmd != null && cmd != ScriptExecutionManager.activeCommand) {
             startTerminalSession()
+        }
+    }
+
+    fun showDeadManSkullAlert(target: String, cmd: String) {
+        lastDeadManTarget = target
+        lastDeadManCmd = cmd
+        runOnUiThread {
+            btnDeadManSkull?.visibility = View.VISIBLE
+            layoutDeadManAlertBadge?.visibility = View.VISIBLE
+            DeadManProtectionManager.showDeadManProtectionDialog(this, target, cmd)
         }
     }
 

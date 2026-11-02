@@ -106,6 +106,14 @@
             android:title="@string/settings_dead_man_root_protection_title"
             android:summary="@string/settings_dead_man_root_protection_summary"
             android:defaultValue="@bool/pref_default_value_dead_man_root_protection"
+            android:icon="@drawable/ic_dead_man_skull"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="@string/pref_key_dead_man_root_rules"
+            android:title="@string/settings_dead_man_root_rules_title"
+            android:summary="@string/settings_dead_man_root_rules_summary"
+            android:icon="@drawable/ic_dead_man_skull"
             app:iconSpaceReserved="false" />
     </PreferenceCategory>
 

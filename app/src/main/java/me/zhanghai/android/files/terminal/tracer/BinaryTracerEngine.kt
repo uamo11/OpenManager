@@ -13,6 +13,8 @@ import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.termux.terminal.TerminalSession
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.terminal.TerminalActivity
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicLong
@@ -165,20 +167,29 @@ object BinaryTracerEngine {
         activeScriptPath: String?
     ) {
         val context = activity?.applicationContext
-        if (context != null && !ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)) {
-            return
-        }
 
-        // 1. Detect deletion tokens: [OM_TRACER:DELETE:<cmd>:<target>]
-        if (chunk.contains("[OM_TRACER:DELETE:")) {
-            val regex = Regex("\\[OM_TRACER:DELETE:([^:]+):([^\\]]+)\\]")
+        // 1. Detect deletion tokens: [OM_TRACER:DELETE:<cmd>:<target>] or [OM_TRACER:DEADMAN_DELETE:<cmd>:<target>]
+        if (chunk.contains("[OM_TRACER:DELETE:") || chunk.contains("[OM_TRACER:DEADMAN_DELETE:")) {
+            val regex = Regex("""\[OM_TRACER:(DELETE|DEADMAN_DELETE):([^:]+):([^\]]+)\]""")
             val matches = regex.findAll(chunk)
             for (match in matches) {
-                val cmd = match.groupValues[1]
-                val target = match.groupValues[2].trim()
+                val tokenType = match.groupValues[1]
+                val cmd = match.groupValues[2]
+                val target = match.groupValues[3].trim()
 
-                handleDeletionInterception(cmd, target, activity, session, activeScriptPath)
+                val isCatastrophic = tokenType == "DEADMAN_DELETE" ||
+                    DeadManProtectionManager.isCatastrophicSystemDeletion(cmd, target)
+
+                if (context != null && DeadManProtectionManager.isDeadManProtectionActive(context) && isCatastrophic) {
+                    handleDeadManCatastrophicInterception(cmd, target, activity, session, activeScriptPath)
+                } else {
+                    handleDeletionInterception(cmd, target, activity, session, activeScriptPath)
+                }
             }
+        }
+
+        if (context != null && !ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)) {
+            return
         }
 
         // 2. Parse High-Frequency Syscall Benchmarks
@@ -206,6 +217,42 @@ object BinaryTracerEngine {
                 count = 1L
             )
             addEventToRingBuffer(event)
+        }
+    }
+
+    private fun handleDeadManCatastrophicInterception(
+        cmd: String,
+        target: String,
+        activity: Activity?,
+        session: TerminalSession?,
+        scriptPath: String?
+    ) {
+        val context = activity ?: return
+
+        // Record as BLOCKED immediately - "no te permitirá ni aceptar ni declinar"
+        val event = TraceEvent(
+            id = idGen.getAndIncrement(),
+            timestamp = System.currentTimeMillis(),
+            type = TraceEventType.DELETION_ATTEMPT,
+            target = target,
+            details = "[DEAD MAN BLOCKED] $cmd",
+            count = 1L,
+            decision = DeletionDecision.BLOCKED
+        )
+        totalDeletionsIntercepted.incrementAndGet()
+        totalDeletionsBlocked.incrementAndGet()
+        addEventToRingBuffer(event)
+
+        runOnMainThread {
+            if (activity is TerminalActivity && !activity.isFinishing && !activity.isDestroyed) {
+                activity.showDeadManSkullAlert(target, cmd)
+            } else {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.dead_man_blocked_toast),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
         }
     }
 
