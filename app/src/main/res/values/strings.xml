@@ -10,6 +10,7 @@
     <string name="app_name">OpenManager</string>
 
     <string name="close">Close</string>
+    <string name="clear">Clear</string>
     <string name="copy">Copy</string>
     <string name="cut">Cut</string>
     <string name="default_">Default</string>
