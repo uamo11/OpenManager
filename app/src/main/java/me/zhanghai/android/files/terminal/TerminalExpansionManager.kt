@@ -199,18 +199,32 @@ object TerminalExpansionManager {
             } catch (_: Throwable) {}
         }
 
-        // 4. Clean up any legacy shim scripts (rm, rmdir, om_tracer) in binDir.
+        // 4. Aggressively purge any legacy shim scripts (rm, rmdir, om_tracer) from binDir.
         // Android 10+ (targetSdk 29+) SELinux strictly blocks untrusted apps from executing
         // scripts or binaries from internal storage (app_data_file) via execve (W^X violation).
-        // Deleting these files ensures invocations fallback safely to system binaries (/system/bin/rm).
-        try {
-            val legacyRm = File(binDir, "rm")
-            if (legacyRm.exists()) legacyRm.delete()
-            val legacyRmdir = File(binDir, "rmdir")
-            if (legacyRmdir.exists()) legacyRmdir.delete()
-            val legacyTracer = File(binDir, "om_tracer")
-            if (legacyTracer.exists()) legacyTracer.delete()
-        } catch (_: Throwable) {}
+        // Deleting and renaming these files ensures invocations fallback safely to system binaries (/system/bin/rm).
+        val legacyNames = listOf("rm", "rmdir", "om_tracer")
+        for (name in legacyNames) {
+            try {
+                val legacyFile = File(binDir, name)
+                if (legacyFile.exists()) {
+                    legacyFile.setWritable(true, false)
+                    val deleted = legacyFile.delete()
+                    if (!deleted || legacyFile.exists()) {
+                        val trashFile = File(binDir, ".trash_${System.currentTimeMillis()}_$name")
+                        legacyFile.renameTo(trashFile)
+                        trashFile.delete()
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+        if (isRootAvailable()) {
+            try {
+                com.topjohnwu.superuser.Shell.cmd(
+                    "rm -f '${binDir.absolutePath}/rm' '${binDir.absolutePath}/rmdir' '${binDir.absolutePath}/om_tracer' 2>/dev/null || true"
+                ).exec()
+            } catch (_: Throwable) {}
+        }
 
         return binDir
     }
@@ -246,7 +260,11 @@ object TerminalExpansionManager {
                             return 1
                         fi
                     fi
-                    command rm "${'$'}@"
+                    if [ -x /system/bin/rm ]; then
+                        /system/bin/rm "${'$'}@"
+                    else
+                        command rm "${'$'}@"
+                    fi
                 }
 
                 rmdir() {
@@ -266,7 +284,11 @@ object TerminalExpansionManager {
                             return 1
                         fi
                     fi
-                    command rmdir "${'$'}@"
+                    if [ -x /system/bin/rmdir ]; then
+                        /system/bin/rmdir "${'$'}@"
+                    else
+                        command rmdir "${'$'}@"
+                    fi
                 }
             """.trimIndent() + "\n"
             if (!initFile.exists() || initFile.readText() != rcContent) {
@@ -316,7 +338,7 @@ object TerminalExpansionManager {
                 "TMPDIR=${context.cacheDir.absolutePath}",
                 "HISTFILE=$histFile",
                 "ENV=${initScript.absolutePath}",
-                "PATH=${binDir.absolutePath}:$EXTENDED_SYSTEM_PATH"
+                "PATH=$EXTENDED_SYSTEM_PATH:${binDir.absolutePath}"
             ) + tracerEnv
             val args = if (shellCmd != null) {
                 arrayOf("su", "-c", shellCmd)
@@ -355,7 +377,7 @@ object TerminalExpansionManager {
                     val env = arrayOf(
                         "PREFIX=${termexDir.absolutePath}",
                         "LD_LIBRARY_PATH=${libDir.absolutePath}:$nativeLibDir",
-                        "PATH=${binDir.absolutePath}:$nativeLibDir:$EXTENDED_SYSTEM_PATH",
+                        "PATH=$nativeLibDir:$EXTENDED_SYSTEM_PATH:${binDir.absolutePath}",
                         "SHELL=${bashBin.absolutePath}",
                         "TERM=xterm-256color",
                         "COLORTERM=truecolor",
@@ -387,7 +409,7 @@ object TerminalExpansionManager {
 
         // Standard Android shell fallback (mksh / sh)
         val env = arrayOf(
-            "PATH=${binDir.absolutePath}:$EXTENDED_SYSTEM_PATH",
+            "PATH=$EXTENDED_SYSTEM_PATH:${binDir.absolutePath}",
             "TERM=xterm-256color",
             "COLORTERM=truecolor",
             "LANG=en_US.UTF-8",

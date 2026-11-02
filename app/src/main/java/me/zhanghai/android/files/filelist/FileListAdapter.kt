@@ -72,7 +72,7 @@ class FileListAdapter(
                 } else {
                     sortedOthers
                 }
-                super.replace(sortedList, true)
+                super.replace(sortedList, false)
                 rebuildFilePositionMap()
             }
         }

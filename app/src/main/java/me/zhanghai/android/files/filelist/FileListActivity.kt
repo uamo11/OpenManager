@@ -1301,14 +1301,24 @@ class FileListActivity : AppActivity() {
         }
     }
 
+    private var cachedDiskStats: String = ""
+    private var lastDiskStatsTime: Long = 0L
+
     private fun getDiskStats(): String {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (cachedDiskStats.isNotEmpty() && now - lastDiskStatsTime < 4000L) {
+            return cachedDiskStats
+        }
         return try {
             val stat = StatFs(android.os.Environment.getExternalStorageDirectory().path)
             val available = Formatter.formatFileSize(this, stat.availableBytes)
             val total = Formatter.formatFileSize(this, stat.totalBytes)
-            "Disk: $available/$total"
+            val res = "Disk: $available/$total"
+            cachedDiskStats = res
+            lastDiskStatsTime = now
+            res
         } catch (e: Exception) {
-            ""
+            cachedDiskStats
         }
     }
 

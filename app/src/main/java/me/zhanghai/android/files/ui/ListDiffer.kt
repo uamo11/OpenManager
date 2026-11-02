@@ -31,11 +31,23 @@ class ListDiffer<T>(
                 return
             }
             val oldList = _list
-            if (oldList.size + newList.size > 300) {
+            if (oldList.size + newList.size > 1000) {
                 val oldSize = oldList.size
+                val newSize = newList.size
                 _list = newList
-                updateCallback.onRemoved(0, oldSize)
-                updateCallback.onInserted(0, newList.size)
+                if (oldSize == newSize) {
+                    updateCallback.onChanged(0, newSize, null)
+                } else {
+                    val common = minOf(oldSize, newSize)
+                    if (common > 0) {
+                        updateCallback.onChanged(0, common, null)
+                    }
+                    if (newSize > oldSize) {
+                        updateCallback.onInserted(oldSize, newSize - oldSize)
+                    } else if (oldSize > newSize) {
+                        updateCallback.onRemoved(newSize, oldSize - newSize)
+                    }
+                }
                 return
             }
             val result = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
