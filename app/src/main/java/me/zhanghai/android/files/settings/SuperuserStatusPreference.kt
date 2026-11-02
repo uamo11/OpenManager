@@ -50,7 +50,7 @@ class SuperuserStatusPreference : Preference {
         refresh()
     }
 
-    private val shizukuListener = {
+    private val shizukuListener: () -> Unit = {
         scope.launch {
             refresh()
         }

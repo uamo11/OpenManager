@@ -56,7 +56,7 @@ class RunningAppsActivity : AppActivity() {
     private var isBannerDismissed = false
     private var loadJob: Job? = null
 
-    private val shizukuListener = {
+    private val shizukuListener: () -> Unit = {
         runOnUiThread {
             updateElevationUi()
             loadProcesses()
