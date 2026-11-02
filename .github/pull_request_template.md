@@ -1,1 +1,20 @@
-First of all, thank you for your interest in help improving this project! However, I normally won't accept PRs for this project because I'm currently the only copyright owner for it (except for translations and maybe my company), which I think would be a nice thing to keep along. On the other hand, forcing people to give up their copyright to me is both awkward and legally-complex. So if you have any suggestions for an improvement, please feel free to comment on existing issues or open a new one!
+## Description
+<!-- Briefly describe the changes introduced by this pull request. -->
+
+## Type of Change
+- [ ] 🐛 Bug fix (non-breaking change fixing an issue)
+- [ ] ✨ New feature (non-breaking change adding functionality)
+- [ ] 🎨 Code style / Refactor (formatting, renaming, restructuring)
+- [ ] 📝 Documentation update
+- [ ] ⚡ Performance improvement
+
+## Testing
+<!-- Describe the steps taken to verify these changes. -->
+- [ ] Tested on Android device or emulator
+- [ ] Unit tests pass: `./gradlew testDebugUnitTest`
+- [ ] Project builds cleanly: `./gradlew assembleDebug`
+
+## Checklist
+- [ ] My code follows the project's code style conventions
+- [ ] I have performed a self-review of my changes
+- [ ] Documentation has been updated where relevant

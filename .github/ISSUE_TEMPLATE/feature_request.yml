@@ -1,0 +1,20 @@
+name: 💡 Sugerencia de mejora
+description: Propón una nueva función o mejora para OpenManager
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: ¿Qué problema o limitación resuelve?
+    validations:
+      required: true
+  - type: textarea
+    id: solucion
+    attributes:
+      label: Solución o comportamiento propuesto
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas o contexto adicional

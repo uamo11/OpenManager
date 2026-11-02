@@ -1,0 +1,43 @@
+name: 🐛 Reporte de fallo
+description: Informa de un error en OpenManager
+labels: [bug]
+body:
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción del fallo
+      description: Explica qué sucede y qué comportamiento esperabas.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Pasos para reproducir
+      placeholder: |
+        1. Abrir...
+        2. Seleccionar...
+        3. Ocurre el error
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versión de OpenManager
+      placeholder: ej. 1.9.31
+    validations:
+      required: true
+  - type: input
+    id: dispositivo
+    attributes:
+      label: Dispositivo y versión de Android
+      placeholder: ej. Google Pixel 7, Android 14
+  - type: dropdown
+    id: root
+    attributes:
+      label: Modo Superusuario / Root
+      options: ["Sin Root", "Magisk", "KernelSU", "APatch", "Otro"]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs o capturas de pantalla
+      description: Adjunta logs de logcat o capturas del problema si están disponibles.

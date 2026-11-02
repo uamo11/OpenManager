@@ -7,7 +7,7 @@
 
 <p align="center">
   <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="Estado del CI" /></a>
-  <a href="https://github.com/uamo11/OpenManager/releases/latest"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=release" alt="Última release" /></a>
+  <a href="https://github.com/uamo11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=release" alt="Última release" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-GPLv3-blue.svg" alt="Licencia GPLv3" /></a>
   <img src="https://img.shields.io/badge/Android-5.0%2B-brightgreen.svg?logo=android" alt="Android 5.0+" />
 </p>
@@ -19,14 +19,6 @@
 ---
 
 **OpenManager** es un gestor de archivos potente, moderno y de **código abierto** con soporte de **doble panel (estilo MT Manager)** para Android 5.0+, equipado con herramientas integradas de ingeniería inversa (editor DEX/Smali, editor HEX, descompilación con Apktool, firma de APKs), reproductor de audio flotante, cliente/servidor de red y soporte completo de **Root** y **SAF**.
-
-<p align="center">
-  <a href="https://github.com/uamo11/OpenManager/releases/latest">
-    <b>🔗 Ver última versión en GitHub Releases</b>
-  </a>
-</p>
-
----
 
 ## 📸 Capturas de Pantalla
 
@@ -91,14 +83,6 @@
   * Flujo secuencial inteligente: primero solicita el almacenamiento esencial y luego notificaciones opcionales.
   * Sin bloqueos ni diálogos molestos de "Abrir ajustes" al rechazar permisos opcionales.
   * Cierre automático de ventanas de solicitud (`auto-dismiss`) al conceder permisos.
-
----
-
-## 📦 Versiones y Descargas
-
-Las versiones publicadas, notas de cambios y archivos APK se encuentran en la sección de lanzamientos:
-
-👉 **[Ver releases en GitHub](https://github.com/uamo11/OpenManager/releases/latest)**
 
 ---
 
