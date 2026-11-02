@@ -1,34 +1,40 @@
 <p align="center">
-  <img src="art/launcher_icon.png" width="128" height="128" alt="OpenManager App Icon" />
+  <img src="art/launcher_icon.png" width="128" height="128" alt="Icono de OpenManager" />
 </p>
 
 <h1 align="center">OpenManager</h1>
-<p align="center"><b>Open Source Dual-Panel File Manager for Android</b></p>
+<p align="center"><b>Gestor de archivos de doble panel y código abierto para Android</b></p>
 
 <p align="center">
-  <a href="https://github.com/anhot11/OpenManager/actions"><img src="https://github.com/anhot11/OpenManager/workflows/OpenManager%20CI/badge.svg" alt="Android CI status" /></a>
-  <a href="https://github.com/anhot11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/anhot11/OpenManager?color=green" alt="GitHub release" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3" /></a>
-  <a href="https://android.com"><img src="https://img.shields.io/badge/Platform-Android%205.0%2B-brightgreen.svg" alt="Platform: Android" /></a>
+  <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="Estado del CI" /></a>
+  <a href="https://github.com/uamo11/OpenManager/releases/latest"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=release" alt="Última release" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-GPLv3-blue.svg" alt="Licencia GPLv3" /></a>
+  <img src="https://img.shields.io/badge/Android-5.0%2B-brightgreen.svg?logo=android" alt="Android 5.0+" />
 </p>
 
-Un potente administrador de archivos de **código abierto**, moderno y con soporte de **doble panel (estilo MT Manager)** para Android 5.0+, equipado con herramientas integradas de ingeniería inversa, edición DEX Plus, editor HEX, descompilación Apktool, reproductor de audio flotante y soporte completo de superusuario (Root) y SAF.
+<p align="center">
+  <a href="README.md">Español</a> · <a href="README_zh-CN.md">简体中文</a>
+</p>
 
 ---
 
-[<img alt="Descargar última versión de OpenManager en GitHub" src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" width="240">](https://github.com/anhot11/OpenManager/releases/latest)
-
-> 📦 **Descarga directa:** [OpenManager-latest.apk](https://github.com/anhot11/OpenManager/releases/latest/download/OpenManager-latest.apk)
-
----
-
-## 📸 Capturas de Pantalla (Preview)
+**OpenManager** es un gestor de archivos potente, moderno y de **código abierto** con soporte de **doble panel (estilo MT Manager)** para Android 5.0+, equipado con herramientas integradas de ingeniería inversa (editor DEX/Smali, editor HEX, descompilación con Apktool, firma de APKs), reproductor de audio flotante, cliente/servidor de red y soporte completo de **Root** y **SAF**.
 
 <p align="center">
-  <img src="screenshots/dual_panel_explorer.jpg" width="23%" alt="Doble Panel OpenManager" />
-  <img src="screenshots/navigation_drawer.jpg" width="23%" alt="Cajón de Navegación y Herramientas" />
-  <img src="screenshots/audio_player.jpg" width="23%" alt="Reproductor MP3 Integrado" />
-  <img src="screenshots/menu_actions.jpg" width="23%" alt="Menú de Acciones Rápidas" />
+  <a href="https://github.com/uamo11/OpenManager/releases/latest">
+    <b>🔗 Ver última versión en GitHub Releases</b>
+  </a>
+</p>
+
+---
+
+## 📸 Capturas de Pantalla
+
+<p align="center">
+  <img src="screenshots/dual_panel_explorer.jpg" width="23%" alt="Explorador de doble panel" />
+  <img src="screenshots/navigation_drawer.jpg" width="23%" alt="Menú lateral y herramientas" />
+  <img src="screenshots/audio_player.jpg" width="23%" alt="Reproductor de audio integrado" />
+  <img src="screenshots/menu_actions.jpg" width="23%" alt="Menú de acciones rápidas" />
 </p>
 
 ---
@@ -38,7 +44,7 @@ Un potente administrador de archivos de **código abierto**, moderno y con sopor
 ### 🗂️ 1. Explorador de Doble Panel (Estilo MT Manager)
 * **Doble Panel Independiente:** Visualiza y navega simultáneamente en dos directorios diferentes (Panel A y Panel B).
 * **Operaciones Rápidas:** Copiado, movimiento y sincronización instantánea de archivos entre paneles opuestos.
-* **Barra de Navegación (Breadcrumbs):** Ruta completa con acceso rápido a carpetas superiores y estadísticas de disco en tiempo real (Carpetas, Archivos, Espacio Usado y Total).
+* **Barra de Navegación (Breadcrumbs):** Ruta completa con acceso rápido a carpetas superiores y estadísticas de disco en tiempo real (carpetas, archivos, espacio usado y total).
 * **Navegación Fluida:** Intercambio rápido de paneles, fijar directorios de inicio y atajos directos a Descargas, Tarjeta SD y almacenamiento interno.
 
 ### 🛠️ 2. Suite de Edición e Ingeniería Inversa
@@ -88,13 +94,21 @@ Un potente administrador de archivos de **código abierto**, moderno y con sopor
 
 ---
 
+## 📦 Versiones y Descargas
+
+Las versiones publicadas, notas de cambios y archivos APK se encuentran en la sección de lanzamientos:
+
+👉 **[Ver releases en GitHub](https://github.com/uamo11/OpenManager/releases/latest)**
+
+---
+
 ## 🚀 Compilación desde el Código Fuente
 
 Para compilar OpenManager localmente necesitas el JDK 21 y Android SDK configurado:
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/anhot11/OpenManager.git
+git clone https://github.com/uamo11/OpenManager.git
 cd OpenManager
 
 # Compilar la APK en modo Debug
@@ -106,13 +120,23 @@ cd OpenManager
 
 ---
 
+## 🤝 Contribuir
+
+¡Las contribuciones son bienvenidas!
+
+- 🐛 ¿Encontraste un fallo? Abre un [issue](https://github.com/uamo11/OpenManager/issues/new/choose).
+- 💡 ¿Tienes una propuesta? Envía un [feature request](https://github.com/uamo11/OpenManager/issues/new/choose).
+- 🔧 Para cambios de código, envía un Pull Request siguiendo la plantilla del proyecto.
+
+---
+
 ## 📜 Licencia
 
 OpenManager se distribuye bajo los términos de la **Licencia Pública General GNU versión 3 (GPL v3)**.
 
 ```text
 OpenManager - Open Source File Manager for Android
-Copyright (C) 2018-2026 Hai Zhang, anhot11 & Colaboradores.
+Copyright (C) 2018-2026 Hai Zhang, uamo11 & Colaboradores.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

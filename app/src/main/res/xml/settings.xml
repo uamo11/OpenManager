@@ -94,6 +94,13 @@
             android:defaultValue="@bool/pref_default_value_dead_man_dfroot_protection"
             app:iconSpaceReserved="false" />
 
+        <Preference
+            android:key="@string/pref_key_dead_man_dfroot_protected_files"
+            android:title="@string/settings_dead_man_protected_files_title"
+            android:summary="@string/settings_dead_man_protected_files_summary"
+            android:icon="@drawable/ic_root_dfroot"
+            app:iconSpaceReserved="false" />
+
         <SwitchPreferenceCompat
             android:key="@string/pref_key_dead_man_root_protection"
             android:title="@string/settings_dead_man_root_protection_title"

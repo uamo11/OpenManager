@@ -1706,6 +1706,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun replaceFile(file: FileItem) {
+        if (DeadManProtectionManager.isDfrootProtectionActive(requireContext()) &&
+            DeadManProtectionManager.isProtectedFromModification(file.path)
+        ) {
+            DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
+            return
+        }
         pickFiles(fileItemSetOf(file))
     }
 
@@ -1720,16 +1726,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun confirmDeleteFiles(files: FileItemSet) {
-        if (DeadManProtectionManager.isDfrootProtectionActive()) {
-            val criticalPath = files.firstOrNull { DeadManProtectionManager.isCriticalBootFile(it.path) }?.path
-            if (criticalPath != null) {
-                DeadManProtectionManager.showDfrootProtectionDialog(
-                    requireActivity(),
-                    criticalPath.fileName?.toString() ?: criticalPath.toString(),
-                    operationName = getString(R.string.delete)
-                ) {
-                    proceedConfirmDeleteFiles(files)
-                }
+        if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {
+            val protectedFile = files.firstOrNull { DeadManProtectionManager.isProtectedFromModification(it.path) }
+            if (protectedFile != null) {
+                DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
                 return
             }
         }
@@ -1940,21 +1940,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun pasteFiles(targetDirectory: Path) {
         val pasteState = viewModel.pasteState
-        if (DeadManProtectionManager.isDfrootProtectionActive()) {
-            val criticalSource = pasteState.files.firstOrNull { DeadManProtectionManager.isCriticalBootFile(it.path) }?.path
-            val targetIsCritical = DeadManProtectionManager.isCriticalBootFile(targetDirectory)
+        if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {
+            val criticalSource = pasteState.files.firstOrNull { DeadManProtectionManager.isProtectedFromModification(it.path) }?.path
+            val targetIsCritical = DeadManProtectionManager.isProtectedFromModification(targetDirectory)
             if (criticalSource != null || targetIsCritical) {
-                val affectedName = criticalSource?.fileName?.toString()
-                    ?: targetDirectory.fileName?.toString()
-                    ?: targetDirectory.toString()
-                val opName = getString(if (pasteState.copy) R.string.copy else R.string.cut)
-                DeadManProtectionManager.showDfrootProtectionDialog(
-                    requireActivity(),
-                    affectedName,
-                    operationName = opName
-                ) {
-                    proceedPasteFiles(targetDirectory)
-                }
+                DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
                 return
             }
         }
@@ -2346,15 +2336,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun renameFile(file: FileItem, newName: String) {
-        if (DeadManProtectionManager.isDfrootProtectionActive()) {
-            if (DeadManProtectionManager.isCriticalBootFile(file.path) || DeadManProtectionManager.isCriticalBootFile(newName)) {
-                DeadManProtectionManager.showDfrootProtectionDialog(
-                    requireActivity(),
-                    file.name,
-                    operationName = getString(R.string.rename)
-                ) {
-                    proceedRenameFile(file, newName)
-                }
+        if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {
+            if (DeadManProtectionManager.isProtectedFromModification(file.path) ||
+                DeadManProtectionManager.isCriticalBootFile(newName)
+            ) {
+                DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
                 return
             }
         }

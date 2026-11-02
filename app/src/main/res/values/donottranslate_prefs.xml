@@ -87,6 +87,7 @@
     <string name="pref_key_category_dead_man">key_category_dead_man</string>
     <string name="pref_key_dead_man_dfroot_protection">key_dead_man_dfroot_protection</string>
     <bool name="pref_default_value_dead_man_dfroot_protection">true</bool>
+    <string name="pref_key_dead_man_dfroot_protected_files">key_dead_man_dfroot_protected_files</string>
     <string name="pref_key_dead_man_root_protection">key_dead_man_root_protection</string>
     <bool name="pref_default_value_dead_man_root_protection">true</bool>
 

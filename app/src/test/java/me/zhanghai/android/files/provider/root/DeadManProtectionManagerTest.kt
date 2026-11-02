@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.provider.root
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -143,13 +144,18 @@ class DeadManProtectionManagerTest {
             "dd if=/dev/zero of=/dev/block/by-name/recovery",
             "flash_image boot /sdcard/boot.img",
             "flash_image recovery /tmp/twrp.img",
-            "blockdev --setrw /dev/block/mmcblk0"
+            "blockdev --setrw /dev/block/mmcblk0",
+            "mount -o remount,rw /system",
+            "mount -o rw,remount /",
+            "rm -rf /system",
+            "rm -rf /vendor/app",
+            "chmod 777 /system/bin/sh"
         )
 
         for (script in dangerousScripts) {
             assertTrue(
                 "Expected dangerous command in script to be detected: '$script'",
-                DeadManProtectionManager.containsCriticalBootModification(script)
+                DeadManProtectionManager.containsDangerousSystemCommand(script)
             )
         }
     }
@@ -161,14 +167,68 @@ class DeadManProtectionManagerTest {
             "tar -czf /sdcard/backup.tar.gz /sdcard/Documents",
             "ls -la /storage/emulated/0",
             "cat /proc/cpuinfo",
-            "mkdir -p /sdcard/MyFolder"
+            "mkdir -p /sdcard/MyFolder",
+            "sh /data/local/tmp/test.sh",
+            "python /sdcard/script.py"
         )
 
         for (script in safeScripts) {
             assertFalse(
                 "Expected safe script to NOT trigger warning: '$script'",
-                DeadManProtectionManager.containsCriticalBootModification(script)
+                DeadManProtectionManager.containsDangerousSystemCommand(script)
             )
         }
+    }
+
+    @Test
+    fun testAllowedUserZonePaths() {
+        val allowedPaths = listOf(
+            Pair("test.sh", "/data/local/tmp/test.sh"),
+            Pair("my_tool", "/data/local/tmp/my_tool"),
+            Pair("notes.txt", "/storage/emulated/0/notes.txt"),
+            Pair("download.zip", "/sdcard/Download/download.zip"),
+            Pair("app.db", "/data/data/com.example.app/databases/app.db")
+        )
+
+        for ((name, path) in allowedPaths) {
+            assertFalse(
+                "Expected user zone file '$path' to NOT be blocked under DFROOT protection",
+                DeadManProtectionManager.isProtectedFromModification(name, path)
+            )
+        }
+    }
+
+    @Test
+    fun testProtectedSystemPaths() {
+        val protectedPaths = listOf(
+            Pair("sh", "/system/bin/sh"),
+            Pair("build.prop", "/system/build.prop"),
+            Pair("fstab.qcom", "/vendor/etc/fstab.qcom"),
+            Pair("init", "/init"),
+            Pair("default.prop", "/default.prop"),
+            Pair("libc.so", "/apex/com.android.runtime/lib64/bionic/libc.so"),
+            Pair("boot.img", "/data/local/tmp/boot.img"),
+            Pair("vbmeta.img", "/sdcard/vbmeta.img")
+        )
+
+        for ((name, path) in protectedPaths) {
+            assertTrue(
+                "Expected system path '$path' to be protected from modification",
+                DeadManProtectionManager.isProtectedFromModification(name, path)
+            )
+        }
+    }
+
+    @Test
+    fun testCountdownWaitedBypassState() {
+        DeadManProtectionManager.hasWaitedCountdown = false
+        assertFalse(DeadManProtectionManager.hasWaitedCountdown)
+
+        DeadManProtectionManager.hasWaitedCountdown = true
+        assertTrue(DeadManProtectionManager.hasWaitedCountdown)
+
+        // Reset
+        DeadManProtectionManager.hasWaitedCountdown = false
+        assertFalse(DeadManProtectionManager.hasWaitedCountdown)
     }
 }

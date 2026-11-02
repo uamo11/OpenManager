@@ -7,7 +7,10 @@ package me.zhanghai.android.files.settings
 
 import android.os.Build
 import android.os.Bundle
+import android.view.View
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment
 import me.zhanghai.android.files.theme.custom.CustomThemeHelper
 import me.zhanghai.android.files.theme.custom.ThemeColor
 import me.zhanghai.android.files.theme.night.NightMode
@@ -89,6 +92,67 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                 .show()
             true
         }
+
+        val dfrootPref = findPreference<androidx.preference.SwitchPreferenceCompat>(
+            getString(R.string.pref_key_dead_man_dfroot_protection)
+        )
+        dfrootPref?.setOnPreferenceChangeListener { preference, newValue ->
+            val willEnable = newValue as Boolean
+            if (!willEnable) {
+                if (DeadManProtectionManager.hasWaitedCountdown) {
+                    DeadManProtectionManager.hasWaitedCountdown = false
+                    DeadManProtectionManager.recordExplicitlyDisabled(requireContext(), true)
+                    true
+                } else {
+                    showDisableDfrootWarningDialog(preference as androidx.preference.SwitchPreferenceCompat)
+                    false
+                }
+            } else {
+                DeadManProtectionManager.recordExplicitlyDisabled(requireContext(), false)
+                true
+            }
+        }
+
+        findPreference<androidx.preference.Preference>(
+            getString(R.string.pref_key_dead_man_dfroot_protected_files)
+        )?.setOnPreferenceClickListener {
+            DfrootProtectedFilesDialogFragment.show(this)
+            true
+        }
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        val highlightKey = activity?.intent?.getStringExtra(DeadManProtectionManager.EXTRA_HIGHLIGHT_PREF)
+        if (!highlightKey.isNullOrEmpty()) {
+            view.postDelayed({
+                if (isAdded && !isDetached) {
+                    val pref = findPreference<androidx.preference.Preference>(highlightKey)
+                    if (pref != null) {
+                        scrollToPreference(pref)
+                    }
+                }
+            }, 300)
+        }
+    }
+
+    private fun showDisableDfrootWarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setIcon(R.drawable.ic_root_dfroot)
+            .setTitle(R.string.dead_man_dfroot_warning_disable_title)
+            .setMessage(R.string.dead_man_dfroot_warning_disable_message)
+            .setPositiveButton(R.string.dead_man_dfroot_disable_confirm) { dialog, _ ->
+                dialog.dismiss()
+                DeadManProtectionManager.recordExplicitlyDisabled(requireContext(), true)
+                pref.isChecked = false
+                Settings.DEAD_MAN_DFROOT_PROTECTION.putValue(false)
+            }
+            .setNegativeButton(R.string.dirtyflag_protection_cancel) { dialog, _ ->
+                dialog.dismiss()
+                pref.isChecked = true
+            }
+            .show()
     }
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {

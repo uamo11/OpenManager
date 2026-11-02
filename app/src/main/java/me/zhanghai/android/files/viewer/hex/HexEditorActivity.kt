@@ -614,14 +614,10 @@ class HexEditorActivity : AppActivity() {
             return
         }
 
-        if (DeadManProtectionManager.isDfrootProtectionActive() && DeadManProtectionManager.isCriticalBootFile(path)) {
-            DeadManProtectionManager.showDfrootProtectionDialog(
-                this,
-                path.fileName?.toString() ?: path.toString(),
-                operationName = getString(R.string.save)
-            ) {
-                performSaveFile(onComplete)
-            }
+        if (DeadManProtectionManager.isDfrootProtectionActive(this) &&
+            DeadManProtectionManager.isProtectedFromModification(path)
+        ) {
+            DeadManProtectionManager.showDirtyFlagProtectionDialog(this)
             return
         }
         performSaveFile(onComplete)

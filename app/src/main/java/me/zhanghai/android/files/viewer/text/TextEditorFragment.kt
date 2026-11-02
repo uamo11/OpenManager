@@ -970,14 +970,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun save() {
-        if (DeadManProtectionManager.isDfrootProtectionActive() && DeadManProtectionManager.isCriticalBootFile(argsFile)) {
-            DeadManProtectionManager.showDfrootProtectionDialog(
-                requireActivity(),
-                argsFile.fileName?.toString() ?: argsFile.toString(),
-                operationName = getString(R.string.save)
-            ) {
-                performSave()
-            }
+        if (DeadManProtectionManager.isDfrootProtectionActive(requireContext()) &&
+            DeadManProtectionManager.isProtectedFromModification(argsFile)
+        ) {
+            DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
             return
         }
         performSave()

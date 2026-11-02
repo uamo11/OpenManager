@@ -6,22 +6,44 @@
 package me.zhanghai.android.files.provider.root
 
 import android.app.Activity
-import android.widget.Toast
+import android.content.Context
+import android.content.DialogInterface
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Color
+import android.os.CountDownTimer
+import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.io.BufferedReader
 import java.io.File
+import java.io.InputStreamReader
 import java.util.Locale
 import java.util.regex.Pattern
 import java8.nio.file.Path
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.settings.SettingsActivity
 import me.zhanghai.android.files.util.valueCompat
 
 /**
  * Dead Man's Switch Protection Manager (Hombre Muerto).
- * Safeguards users under root and temporary DFRoot environments against
+ * Safeguards users under root and temporary DFRoot / DirtyFlag environments against
  * accidental bricks, bootloops, and malicious destructive operations.
  */
 object DeadManProtectionManager {
+
+    const val EXTRA_HIGHLIGHT_PREF = "me.zhanghai.android.files.extra.HIGHLIGHT_PREF"
+    const val EXTRA_FROM_DIRTYFLAG_DIALOG = "me.zhanghai.android.files.extra.FROM_DIRTYFLAG_DIALOG"
+
+    private const val PREFS_NAME = "dead_man_prefs"
+    private const val KEY_EXPLICITLY_DISABLED = "dfroot_explicitly_disabled"
+
+    /**
+     * Set to true when the user completed the 5-second countdown wait in
+     * the DirtyFlag Protection dialog. Consumed in Settings to bypass the warning dialog.
+     */
+    @Volatile
+    var hasWaitedCountdown: Boolean = false
 
     private val CRITICAL_BOOT_IMG_PATTERN = Pattern.compile(
         "^(boot|init_boot|vendor_boot|vbmeta|dtbo|recovery|abl|xbl|tz|hyp|rpm)([-_].*)?\\.img$",
@@ -51,14 +73,146 @@ object DeadManProtectionManager {
         "/default.prop"
     )
 
-    private val CRITICAL_FLASH_PATTERNS = listOf(
+    private val DANGEROUS_SYSTEM_CMD_PATTERNS = listOf(
         Pattern.compile("dd\\s+.*\\bof=\\S*(boot|init_boot|vendor_boot|vbmeta|dtbo|recovery)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("dd\\s+.*\\bof=/dev/block/", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bflash_image\\s+\\S*(boot|recovery)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bblockdev\\s+--setrw", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("\\bblockdev\\s+--setrw", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bmount\\s+.*\\bremount\\b.*\\b(system|vendor|product|/)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(system|vendor|product|odm|apex|init)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bchmod\\s+.*\\s+/(system|vendor|product|init)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile(">\\s*/dev/block/\\S*(boot|recovery|system)", Pattern.CASE_INSENSITIVE)
     )
 
-    fun isDfrootProtectionActive(): Boolean {
+    fun recordExplicitlyDisabled(context: Context, disabled: Boolean) {
+        try {
+            val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            sp.edit().putBoolean(KEY_EXPLICITLY_DISABLED, disabled).apply()
+        } catch (_: Throwable) {}
+    }
+
+    fun isExplicitlyDisabled(context: Context): Boolean {
+        return try {
+            val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            sp.getBoolean(KEY_EXPLICITLY_DISABLED, false)
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    /**
+     * Determines whether DFROOT PROTECTION should be automatically active:
+     * - If dfroot or dirtyflag is detected
+     * - OR if the bootloader is locked AND (kernelsu OR dfroot is detected).
+     */
+    fun shouldAutoActivate(context: Context): Boolean {
+        val hasDfroot = detectDfrootOrDirtyFlag(context)
+        val bootloaderLocked = isBootloaderLocked()
+        val hasKsu = detectKernelSu(context)
+        return hasDfroot || (bootloaderLocked && (hasKsu || hasDfroot))
+    }
+
+    fun detectDfrootOrDirtyFlag(context: Context): Boolean {
+        val pm = context.packageManager
+        val knownPkgs = listOf(
+            "df.root", "com.df.root", "org.df.root",
+            "com.diabl0w.dfroot", "io.github.diabl0w.dfroot", "org.dfroot",
+            "com.dfroot", "me.dfroot", "com.df.jailbreak",
+            "com.dirtyflag", "org.dirtyflag", "me.dirtyflag", "com.diablo.dirtyflag"
+        )
+        for (pkg in knownPkgs) {
+            if (isPkgInstalled(pm, pkg)) return true
+        }
+
+        val knownFiles = listOf(
+            "/data/local/tmp/dfroot",
+            "/data/local/tmp/dfroot.sh",
+            "/data/local/tmp/dirtyflag",
+            "/data/local/tmp/dirty_flag"
+        )
+        for (file in knownFiles) {
+            if (safeFileExists(file)) return true
+        }
+
+        val dfProp = getSystemProperty("ro.boot.dirtyflag")
+        if (dfProp.isNotEmpty() && dfProp != "0") return true
+        val dfRootProp = getSystemProperty("ro.dfroot")
+        if (dfRootProp.isNotEmpty() && dfRootProp != "0") return true
+
+        return false
+    }
+
+    fun detectKernelSu(context: Context): Boolean {
+        val pm = context.packageManager
+        val ksuPkgs = listOf("me.weishu.kernelsu", "com.rifsxd.ksunext")
+        for (pkg in ksuPkgs) {
+            if (isPkgInstalled(pm, pkg)) return true
+        }
+        if (safeFileExists("/dev/kernelsu") || safeFileExists("/dev/ksunext")) {
+            return true
+        }
+        val suVer = getSystemProperty("ro.kernel.su")
+        if (suVer.contains("KernelSU", ignoreCase = true)) return true
+        return false
+    }
+
+    fun isBootloaderLocked(): Boolean {
+        val flashLocked = getSystemProperty("ro.boot.flash.locked")
+        if (flashLocked == "1") return true
+
+        val vbState = getSystemProperty("ro.boot.verifiedbootstate").lowercase(Locale.ROOT)
+        if (vbState == "green" || vbState == "yellow") return true
+        if (vbState == "orange" || vbState == "red") return false
+
+        val devState = getSystemProperty("ro.boot.vbmeta.device_state").lowercase(Locale.ROOT)
+        if (devState == "locked") return true
+        if (devState == "unlocked") return false
+
+        return false
+    }
+
+    private fun isPkgInstalled(pm: PackageManager, packageName: String): Boolean {
+        return try {
+            pm.getPackageInfo(packageName, 0)
+            true
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun safeFileExists(path: String): Boolean {
+        return try {
+            File(path).exists()
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    fun getSystemProperty(key: String): String {
+        return try {
+            val c = Class.forName("android.os.SystemProperties")
+            val getMethod = c.getMethod("get", String::class.java)
+            (getMethod.invoke(null, key) as? String)?.trim() ?: ""
+        } catch (_: Throwable) {
+            try {
+                val process = Runtime.getRuntime().exec(arrayOf("getprop", key))
+                val line = BufferedReader(InputStreamReader(process.inputStream)).readLine()
+                line?.trim() ?: ""
+            } catch (_: Throwable) {
+                ""
+            }
+        }
+    }
+
+    fun isDfrootProtectionActive(context: Context? = null): Boolean {
+        if (context != null) {
+            if (isExplicitlyDisabled(context)) {
+                return false
+            }
+            if (shouldAutoActivate(context)) {
+                return true
+            }
+        }
         return try {
             Settings.DEAD_MAN_DFROOT_PROTECTION.valueCompat
         } catch (_: Throwable) {
@@ -129,12 +283,95 @@ object DeadManProtectionManager {
     }
 
     /**
-     * Checks whether a script or command contains destructive commands that flash
-     * or overwrite boot/kernel partitions.
+     * Verifies whether a given path is prohibited from being edited, replaced,
+     * renamed, or having its permissions changed under DFROOT Protection.
+     *
+     * Permitted:
+     * - Files created or executed in user-allowed zones like /data/local/tmp/ (e.g. test.sh),
+     *   /sdcard/ (storage), or app private cache/data.
+     *
+     * Prohibited:
+     * - System partitions (/system, /vendor, /product, /odm, /apex, /etc),
+     * - Startup init files (/init, /default.prop, fstab),
+     * - Block devices (/dev/block/),
+     * - Any critical boot images (boot.img, vbmeta.img, etc.).
      */
+    fun isProtectedFromModification(name: String, fullPath: String = ""): Boolean {
+        val normPath = fullPath.trim().replace('\\', '/')
+        val normName = File(name).name.trim().lowercase(Locale.ROOT)
+
+        // 1. Critical boot images are ALWAYS protected anywhere
+        if (CRITICAL_BOOT_IMG_PATTERN.matcher(normName).matches()) {
+            return true
+        }
+
+        // 2. Allow user-created and temporary files (e.g. /data/local/tmp/test.sh, /sdcard/...)
+        if (normPath.startsWith("/data/local/tmp", ignoreCase = true) ||
+            normPath.startsWith("/storage/emulated/", ignoreCase = true) ||
+            normPath.startsWith("/sdcard", ignoreCase = true) ||
+            normPath.startsWith("/data/data/", ignoreCase = true) ||
+            normPath.startsWith("/data/user/", ignoreCase = true)
+        ) {
+            // Check if it's a critical boot file inside tmp
+            return isCriticalBootFile(normName, normPath)
+        }
+
+        // 3. System partitions and startup files are protected
+        val isSystemPartition = normPath.startsWith("/system") ||
+            normPath.startsWith("/vendor") ||
+            normPath.startsWith("/product") ||
+            normPath.startsWith("/system_ext") ||
+            normPath.startsWith("/odm") ||
+            normPath.startsWith("/apex") ||
+            normPath.startsWith("/etc") ||
+            normPath.startsWith("/sbin") ||
+            normPath.startsWith("/bin")
+
+        if (isSystemPartition) {
+            return true
+        }
+
+        // 4. Critical system startup files
+        for (startup in CRITICAL_SYSTEM_STARTUP_FILES) {
+            if (normPath == startup || normPath.endsWith(startup)) {
+                return true
+            }
+        }
+        if (normPath.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
+            normPath.matches(Regex(".*/fstab\\..*"))
+        ) {
+            return true
+        }
+
+        // 5. Block devices (/dev/block/...)
+        if (normPath.contains("/dev/block/")) {
+            return true
+        }
+
+        return false
+    }
+
+    fun isProtectedFromModification(path: Path): Boolean {
+        val name = path.fileName?.toString() ?: ""
+        val fullPath = try {
+            path.toFile().absolutePath
+        } catch (_: Throwable) {
+            path.toString()
+        }
+        return isProtectedFromModification(name, fullPath)
+    }
+
+    /**
+     * Checks whether a script or command contains destructive commands that flash
+     * or overwrite boot/kernel partitions or modify system partitions.
+     */
+    fun containsDangerousSystemCommand(cmd: String?): Boolean {
+        if (cmd.isNullOrBlank()) return false
+        return DANGEROUS_SYSTEM_CMD_PATTERNS.any { it.matcher(cmd).find() }
+    }
+
     fun containsCriticalBootModification(content: String): Boolean {
-        if (content.isBlank()) return false
-        return CRITICAL_FLASH_PATTERNS.any { it.matcher(content).find() }
+        return containsDangerousSystemCommand(content)
     }
 
     fun findFirstCriticalBootFile(paths: Iterable<Path>): Path? {
@@ -142,9 +379,70 @@ object DeadManProtectionManager {
     }
 
     /**
-     * Intercepts a dangerous file operation with a Dead Man DFRoot Protection Alert Dialog.
-     * If user chooses to block (recommended), the operation is halted.
-     * If user explicitly overrides, [onProceedAnyway] is executed.
+     * Intercepts a prohibited action with the DirtyFlag Protection Dialog:
+     * - Icon: DFROOT icon (ic_root_dfroot)
+     * - Title: "DirtyFlag Protection"
+     * - Message: "Estás intentando algo peligroso para DirtyFlag / DFRoot. ¿Quieres deshabilitar esta protección?"
+     * - Right Button: "Cancelar"
+     * - Left Button: 5-second countdown ("5" -> "4" -> "3" -> "2" -> "1" -> "Proceder")
+     * - On "Proceder": navigates to Settings and highlights DFROOT PROTECTION switch.
+     */
+    fun showDirtyFlagProtectionDialog(
+        activity: Activity,
+        onCancelled: (() -> Unit)? = null
+    ) {
+        var timer: CountDownTimer? = null
+
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setIcon(R.drawable.ic_root_dfroot)
+            .setTitle(activity.getString(R.string.dirtyflag_protection_dialog_title))
+            .setMessage(activity.getString(R.string.dirtyflag_protection_dialog_message))
+            .setCancelable(false)
+            .setPositiveButton(activity.getString(R.string.dirtyflag_protection_cancel)) { d, _ ->
+                timer?.cancel()
+                d.dismiss()
+                onCancelled?.invoke()
+            }
+            .setNeutralButton("5", null)
+            .create()
+
+        dialog.setOnShowListener {
+            val rightCancelBtn = dialog.getButton(DialogInterface.BUTTON_POSITIVE)
+            val leftCountdownBtn = dialog.getButton(DialogInterface.BUTTON_NEUTRAL)
+
+            rightCancelBtn?.setTextColor(Color.parseColor("#9E9E9E"))
+
+            leftCountdownBtn?.isEnabled = false
+            leftCountdownBtn?.setTextColor(Color.parseColor("#E53935"))
+
+            timer = object : CountDownTimer(5000, 1000) {
+                override fun onTick(millisUntilFinished: Long) {
+                    val sec = (millisUntilFinished / 1000 + 1).coerceAtMost(5)
+                    leftCountdownBtn?.text = "$sec"
+                }
+
+                override fun onFinish() {
+                    leftCountdownBtn?.text = activity.getString(R.string.dirtyflag_protection_proceed)
+                    leftCountdownBtn?.isEnabled = true
+                    leftCountdownBtn?.setTextColor(ContextCompat.getColor(activity, R.color.color_accent))
+                    leftCountdownBtn?.setOnClickListener {
+                        hasWaitedCountdown = true
+                        dialog.dismiss()
+                        val intent = Intent(activity, SettingsActivity::class.java).apply {
+                            putExtra(EXTRA_HIGHLIGHT_PREF, activity.getString(R.string.pref_key_dead_man_dfroot_protection))
+                            putExtra(EXTRA_FROM_DIRTYFLAG_DIALOG, true)
+                        }
+                        activity.startActivity(intent)
+                    }
+                }
+            }.start()
+        }
+
+        dialog.show()
+    }
+
+    /**
+     * Legacy compatibility wrapper.
      */
     fun showDfrootProtectionDialog(
         activity: Activity,
@@ -152,27 +450,6 @@ object DeadManProtectionManager {
         operationName: String,
         onProceedAnyway: () -> Unit
     ) {
-        val cleanName = File(targetName).name
-        val title = activity.getString(R.string.dead_man_dfroot_dialog_title)
-        val message = activity.getString(R.string.dead_man_dfroot_dialog_message, cleanName, operationName)
-
-        MaterialAlertDialogBuilder(activity)
-            .setIcon(R.drawable.ic_shield_alert)
-            .setTitle(title)
-            .setMessage(message)
-            .setCancelable(false)
-            .setPositiveButton(activity.getString(R.string.dead_man_dialog_block_recommended)) { dialog, _ ->
-                dialog.dismiss()
-                Toast.makeText(
-                    activity,
-                    activity.getString(R.string.dead_man_dfroot_blocked_toast),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            .setNegativeButton(activity.getString(R.string.dead_man_dialog_proceed_anyway)) { dialog, _ ->
-                dialog.dismiss()
-                onProceedAnyway()
-            }
-            .show()
+        showDirtyFlagProtectionDialog(activity, onCancelled = null)
     }
 }

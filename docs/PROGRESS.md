@@ -420,6 +420,35 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Verificación de no interferencia con archivos regulares y scripts seguros.
   - Validación de rutas de particiones de bloque y scripts con llamadas a `dd` o `flash_image`.
 
+46. **Lista Categorizada de Archivos DFROOT, Auto-Activación Inteligente, Bloqueo de Modificación de Sistema con Excepciones de Usuario y Diálogo DirtyFlag con Cuenta Regresiva de 5s (`DeadManProtectionManager.kt`, `DfrootProtectedFilesDialogFragment.kt`, `dialog_dfroot_protected_files.xml`, `SettingsPreferenceFragment.kt`, `FileListFragment.kt`, `MtPermissionsHelper.kt`, `ScriptRunnerHelper.kt`, `TerminalActivity.kt`, `TextEditorFragment.kt`, `HexEditorActivity.kt`, `DeadManProtectionManagerTest.kt`) (v1.9.31)**: ✅
+- **Lista Ordenada y Categorizada de Archivos Protegidos (`DfrootProtectedFilesDialogFragment.kt`, `dialog_dfroot_protected_files.xml`)**:
+  - Implementado visor interactivo clasificado con tarjetas Material, insignias temáticas por nivel de criticidad y orden alfabético estricto en cada grupo:
+    1. *Imágenes de Partición de Arranque (Crítico)*: `boot.img`, `dtbo.img`, `init_boot.img`, `recovery.img`, `vendor_boot.img`.
+    2. *Firmware y Seguridad AVB (Seguridad)*: `abl.img / xbl.img`, `tz.img / hyp.img`, `vbmeta.img`, `vbmeta_system.img`, `vbmeta_vendor.img`.
+    3. *Archivos de Inicio del Sistema (Inicio)*: `/default.prop`, `/init`, `/system/bin/init`, `/system/etc/fstab.*`, `/vendor/etc/fstab.*`.
+    4. *Nodos de Dispositivos de Bloque (Raw)*: `/dev/block/by-name/boot*`, `dtbo*`, `init_boot*`, `recovery*`, `vbmeta*`, `vendor_boot*`.
+    5. *Particiones del Sistema (Solo Lectura)*: `/apex`, `/odm`, `/product`, `/system`, `/system_ext`, `/vendor`.
+    6. *Zona Permitida para el Usuario (Sin Restricciones)*: `/data/local/tmp/` (scripts como `test.sh`, ejecutables de prueba), `/storage/emulated/0/` (`/sdcard/`) y `/data/data/`.
+  - Accesible directamente desde la categoría "Hombre muerto" mediante el ítem dedicado "Archivos protegidos por DFROOT".
+- **Activación Automática Inteligente**:
+  - Se activa automáticamente si se detecta `dfroot` o `dirtyflag` (por paquete, archivos `/data/local/tmp/dfroot*` o propiedades del sistema).
+  - O si el bootloader se encuentra bloqueado (`ro.boot.flash.locked == "1"`, `ro.boot.verifiedbootstate` en green/yellow o `ro.boot.vbmeta.device_state == "locked"`) y se detecta `kernelsu` o `dfroot`.
+- **Restricción Estricta de Modificación de Sistema (UI y Terminal)**:
+  - Cuando la protección está activa, se bloquea terminantemente: editar, reemplazar, renombrar o cambiar permisos (`chmod`) sobre archivos y particiones del sistema o archivos que no hayan sido creados por el usuario.
+  - Plena libertad operativa para archivos creados o ejecutados por el usuario en rutas temporales como `/data/local/tmp/test.sh`, almacenamiento `/sdcard/` o directorios privados.
+  - Integrado de forma transversal en el explorador de archivos (`FileListFragment`), diálogo de permisos MT (`MtPermissionsHelper`), editor de texto (`TextEditorFragment`), editor hexadecimal (`HexEditorActivity`), lanzador de scripts (`ScriptRunnerHelper`) y terminal interactiva (`TerminalActivity`).
+- **Diálogo Oficial DirtyFlag Protection con Cuenta Regresiva de 5 Segundos**:
+  - Ante cualquier acción prohibida, despliega diálogo con el icono de DFRoot (`ic_root_dfroot`) y título `"DirtyFlag Protection"`.
+  - Mensaje: *"Estás intentando algo peligroso para DirtyFlag / DFRoot. ¿Quieres deshabilitar esta protección?"*.
+  - Botón derecho: `"Cancelar"` (cierra y anula la operación de riesgo).
+  - Botón izquierdo: temporizador regresivo de 5 segundos (`5` -> `4` -> `3` -> `2` -> `1`), que al concluir se habilita con el texto `"Proceder"`.
+  - Al pulsar `"Proceder"`, abre Ajustes automáticamente y realiza scroll con enfoque directo a la opción `DFROOT PROTECTION` para que el usuario pueda desactivarla.
+- **Gestión Inteligente de Avisos en Ajustes (Sin Repetición de Espera)**:
+  - Si el usuario completó la espera previa de 5 segundos en el diálogo de DirtyFlag Protection y pulsa el conmutador en Ajustes, la protección se desactiva de inmediato sin repetir advertencias ni esperas.
+  - Si el usuario accede manualmente a Ajustes e intenta desactivar la opción sin haber pasado por el diálogo, se despliega un diálogo final de advertencia preventiva (`showDisableDfrootWarningDialog`) exigiendo confirmación consciente.
+- **Suite de Pruebas Unitarias Ampliada (`DeadManProtectionManagerTest.kt`)**:
+  - Nuevas pruebas validando rutas de la zona permitida del usuario (`/data/local/tmp/test.sh`, `/sdcard/`), rutas protegidas del sistema (`/system/bin/sh`, `/init`, etc.), detección de comandos destructivos de terminal (`mount -o remount,rw`, `rm -rf /system`) y el estado de bypass por espera completada.
+
 
 
 

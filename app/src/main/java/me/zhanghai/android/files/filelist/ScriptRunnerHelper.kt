@@ -534,7 +534,7 @@ object ScriptRunnerHelper {
     }
 
     private fun executeScriptOrBinary(activity: Activity, path: Path) {
-        if (DeadManProtectionManager.isDfrootProtectionActive()) {
+        if (DeadManProtectionManager.isDfrootProtectionActive(activity)) {
             val isCriticalScript = runCatching {
                 if (!isElfBinary(path)) {
                     val snippet = path.newInputStream().use { stream ->
@@ -542,18 +542,12 @@ object ScriptRunnerHelper {
                         val read = stream.read(buf)
                         if (read > 0) String(buf, 0, read, StandardCharsets.UTF_8) else ""
                     }
-                    DeadManProtectionManager.containsCriticalBootModification(snippet)
+                    DeadManProtectionManager.containsDangerousSystemCommand(snippet)
                 } else false
             }.getOrDefault(false)
 
-            if (DeadManProtectionManager.isCriticalBootFile(path) || isCriticalScript) {
-                DeadManProtectionManager.showDfrootProtectionDialog(
-                    activity,
-                    path.fileName?.toString() ?: path.toString(),
-                    operationName = activity.getString(R.string.script_action_execute)
-                ) {
-                    performExecuteScriptOrBinary(activity, path)
-                }
+            if (DeadManProtectionManager.isProtectedFromModification(path) || isCriticalScript) {
+                DeadManProtectionManager.showDirtyFlagProtectionDialog(activity)
                 return
             }
         }

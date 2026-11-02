@@ -33,6 +33,7 @@ import com.termux.view.TerminalView
 import com.termux.view.TerminalViewClient
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -221,6 +222,17 @@ class TerminalActivity : AppActivity() {
 
     private fun startTerminalSession(forceRootOverride: Boolean? = null) {
         terminalSession?.finishIfRunning()
+
+        val initialCommand = intent.getStringExtra(EXTRA_COMMAND)
+        if (!initialCommand.isNullOrEmpty() &&
+            DeadManProtectionManager.isDfrootProtectionActive(this) &&
+            DeadManProtectionManager.containsDangerousSystemCommand(initialCommand)
+        ) {
+            DeadManProtectionManager.showDirtyFlagProtectionDialog(this) {
+                finish()
+            }
+            return
+        }
 
         val overridePath = intent.getStringExtra(EXTRA_PATH)
             ?: intent.getStringExtra(EXTRA_CWD)

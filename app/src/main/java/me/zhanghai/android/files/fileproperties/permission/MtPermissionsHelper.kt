@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.fileproperties.permission
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.system.Os
@@ -27,6 +28,7 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.SetModeDialogBinding
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.filejob.FileJobService
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
 import me.zhanghai.android.files.provider.common.toModeString
@@ -267,6 +269,18 @@ object MtPermissionsHelper {
         fileItem: FileItem? = null,
         onApplied: ((PermissionInfo) -> Unit)? = null
     ) {
+        if (DeadManProtectionManager.isDfrootProtectionActive(context) &&
+            DeadManProtectionManager.isProtectedFromModification(path)
+        ) {
+            val act = context as? Activity
+            if (act != null) {
+                DeadManProtectionManager.showDirtyFlagProtectionDialog(act)
+            } else {
+                Toast.makeText(context, R.string.dead_man_dfroot_blocked_toast, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
         val initialInfo = getPermissions(context, path, fileItem)
         val binding = SetModeDialogBinding.inflate(LayoutInflater.from(context))
 
@@ -433,6 +447,18 @@ object MtPermissionsHelper {
         uppercaseX: Boolean = true,
         onApplied: ((PermissionInfo) -> Unit)? = null
     ) {
+        if (DeadManProtectionManager.isDfrootProtectionActive(context) &&
+            DeadManProtectionManager.isProtectedFromModification(path)
+        ) {
+            val act = context as? Activity
+            if (act != null) {
+                DeadManProtectionManager.showDirtyFlagProtectionDialog(act)
+            } else {
+                Toast.makeText(context, R.string.dead_man_dfroot_blocked_toast, Toast.LENGTH_LONG).show()
+            }
+            return
+        }
+
         val newModeInt = modeToInt(newMode)
         val octalStr = formatOctal(newModeInt)
 
