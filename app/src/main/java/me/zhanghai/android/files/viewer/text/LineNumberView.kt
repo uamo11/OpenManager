@@ -7,7 +7,6 @@ package me.zhanghai.android.files.viewer.text
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.util.AttributeSet
@@ -18,7 +17,8 @@ import kotlin.math.max
 
 /**
  * High-performance line number gutter pinned to the left of the code editor.
- * Stays aligned with CodeEditText layout and never scrolls away during horizontal scroll.
+ * Stays aligned with CodeEditText layout, indicates soft wrap lines (↳),
+ * and supports custom editor themes.
  */
 class LineNumberView @JvmOverloads constructor(
     context: Context,
@@ -40,6 +40,12 @@ class LineNumberView @JvmOverloads constructor(
         typeface = Typeface.create(Typeface.MONOSPACE, Typeface.BOLD)
     }
 
+    private val wrapArrowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = COLOR_LINE_NUMBER
+        textAlign = Paint.Align.RIGHT
+        typeface = Typeface.MONOSPACE
+    }
+
     private val backgroundPaint = Paint().apply {
         color = COLOR_GUTTER_BG
         style = Paint.Style.FILL
@@ -55,6 +61,12 @@ class LineNumberView @JvmOverloads constructor(
     private var currentCursorLine = 0
     private var digitCount = 3
 
+    var showWrapArrows: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     init {
         updateTextSize(13f)
         updateWidth()
@@ -66,9 +78,19 @@ class LineNumberView @JvmOverloads constructor(
         post { syncLineCount() }
     }
 
+    fun setEditorTheme(theme: EditorTheme) {
+        backgroundPaint.color = theme.gutterColor
+        dividerPaint.color = theme.gutterDividerColor
+        textPaint.color = theme.gutterTextColor
+        currentLinePaint.color = theme.gutterCurrentLineColor
+        wrapArrowPaint.color = theme.gutterTextColor
+        invalidate()
+    }
+
     fun updateTextSize(spOrPx: Float) {
         textPaint.textSize = spOrPx
         currentLinePaint.textSize = spOrPx
+        wrapArrowPaint.textSize = spOrPx
         updateWidth()
         invalidate()
     }
@@ -166,6 +188,9 @@ class LineNumberView @JvmOverloads constructor(
 
                 canvas.drawText(logicalLine.toString(), textX, baseline.toFloat(), paint)
                 logicalLine++
+            } else if (showWrapArrows) {
+                val baseline = layout.getLineBaseline(i) + paddingTop
+                canvas.drawText("↳", textX, baseline.toFloat(), wrapArrowPaint)
             }
         }
     }

@@ -28,157 +28,76 @@
             android:layout_height="?actionBarSize"
             app:popupTheme="?actionBarPopupTheme" />
 
-        <!-- Search & Replace Panel -->
+        <!-- MT Manager Style Status Info Strip directly below toolbar -->
         <LinearLayout
-            android:id="@+id/searchPanel"
+            android:id="@+id/editorStatusStrip"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
+            android:layout_height="28dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingBottom="8dp"
-            android:visibility="gone"
-            tools:visibility="visible">
+            android:background="#181A1F">
 
-            <!-- Search row -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/statusFileNameText"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:layout_weight="1"
+                android:singleLine="true"
+                android:ellipsize="middle"
+                android:textSize="11.5sp"
+                android:textColor="#ABB2BF"
+                android:textStyle="bold"
+                tools:text="*test.cpp" />
 
-                <EditText
-                    android:id="@+id/searchEdit"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_weight="1"
-                    android:hint="@string/text_editor_search_hint"
-                    android:textSize="14sp"
-                    android:singleLine="true"
-                    android:imeOptions="actionNext"
-                    android:inputType="textNoSuggestions"
-                    android:background="@drawable/search_input_background"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp" />
-
-                <TextView
-                    android:id="@+id/searchCountText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_marginEnd="6dp"
-                    android:textSize="12sp"
-                    android:textColor="?android:textColorSecondary"
-                    android:text="@string/text_editor_no_matches" />
-
-                <ImageButton
-                    android:id="@+id/searchPrevBtn"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_arrow_upward_24dp"
-                    android:contentDescription="@string/text_editor_search_previous"
-                    app:tint="?colorControlNormal" />
-
-                <ImageButton
-                    android:id="@+id/searchNextBtn"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_arrow_downward_24dp"
-                    android:contentDescription="@string/text_editor_search_next"
-                    app:tint="?colorControlNormal" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/searchCaseBtn"
-                    style="?borderlessButtonStyle"
-                    android:layout_width="32dp"
-                    android:layout_height="36dp"
-                    android:minWidth="0dp"
-                    android:padding="0dp"
-                    android:text="Aa"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:textColor="?android:textColorSecondary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/searchRegexBtn"
-                    style="?borderlessButtonStyle"
-                    android:layout_width="32dp"
-                    android:layout_height="36dp"
-                    android:minWidth="0dp"
-                    android:padding="0dp"
-                    android:text=".*"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:textColor="?android:textColorSecondary" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/searchWordBtn"
-                    style="?borderlessButtonStyle"
-                    android:layout_width="32dp"
-                    android:layout_height="36dp"
-                    android:minWidth="0dp"
-                    android:padding="0dp"
-                    android:text="\\b"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:textColor="?android:textColorSecondary" />
-
-                <ImageButton
-                    android:id="@+id/searchCloseBtn"
-                    android:layout_width="36dp"
-                    android:layout_height="36dp"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/close_icon_control_normal_24dp"
-                    android:contentDescription="@string/close"
-                    app:tint="?colorControlNormal" />
-            </LinearLayout>
-
-            <!-- Replace row -->
-            <LinearLayout
-                android:layout_width="match_parent"
+            <TextView
+                android:id="@+id/statusCursorPosText"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:layout_marginTop="6dp">
+                android:textSize="11.5sp"
+                android:textColor="#61AFEF"
+                android:fontFamily="monospace"
+                android:background="?selectableItemBackgroundBorderless"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                tools:text="122:46" />
 
-                <EditText
-                    android:id="@+id/replaceEdit"
-                    android:layout_width="0dp"
-                    android:layout_height="38dp"
-                    android:layout_weight="1"
-                    android:hint="@string/text_editor_replace_hint"
-                    android:textSize="14sp"
-                    android:singleLine="true"
-                    android:imeOptions="actionDone"
-                    android:inputType="textNoSuggestions"
-                    android:background="@drawable/search_input_background"
-                    android:paddingStart="10dp"
-                    android:paddingEnd="10dp" />
+            <TextView
+                android:id="@+id/statusSelectionText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textSize="11sp"
+                android:textColor="#E5C07B"
+                android:fontFamily="monospace"
+                android:visibility="gone"
+                tools:text="[Sel: 12]"
+                tools:visibility="visible" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/replaceBtn"
-                    style="?borderlessButtonStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/text_editor_replace"
-                    android:textSize="12sp" />
+            <TextView
+                android:id="@+id/statusEncodingText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textSize="11.5sp"
+                android:textColor="#98C379"
+                android:background="?selectableItemBackgroundBorderless"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                tools:text="UTF-8" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/replaceAllBtn"
-                    style="?borderlessButtonStyle"
-                    android:layout_width="wrap_content"
-                    android:layout_height="36dp"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/text_editor_replace_all"
-                    android:textSize="12sp" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/statusSyntaxText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textSize="11.5sp"
+                android:textColor="#C678DD"
+                android:background="?selectableItemBackgroundBorderless"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                tools:text="C++" />
         </LinearLayout>
     </me.zhanghai.android.files.ui.CoordinatorAppBarLayout>
 
@@ -191,6 +110,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
+            <!-- Main Editor Workspace -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -263,7 +183,7 @@
                     </me.zhanghai.android.fastscroll.FastScrollNestedScrollView>
                 </LinearLayout>
 
-                <!-- MT Manager Floating Zoom HUD -->
+                <!-- Floating Zoom HUD -->
                 <TextView
                     android:id="@+id/zoomIndicator"
                     android:layout_width="wrap_content"
@@ -284,12 +204,230 @@
                     tools:text="14.0 sp (100%)" />
             </FrameLayout>
 
-            <!-- Bottom Symbol Bar -->
+            <!-- Search & Replace Panel (MT Manager Style at Bottom above Keyboard) -->
+            <LinearLayout
+                android:id="@+id/searchPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#21252B"
+                android:elevation="6dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <!-- Top Info and Options Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="6dp">
+
+                    <TextView
+                        android:id="@+id/searchCountText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#E5C07B"
+                        tools:text="Resultados: 0" />
+
+                    <!-- Cc: Match Case -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/searchCaseBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="38dp"
+                        android:layout_height="32dp"
+                        android:minWidth="0dp"
+                        android:padding="0dp"
+                        android:text="Cc"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="#DCDFE4" />
+
+                    <!-- W: Whole Word -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/searchWordBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="38dp"
+                        android:layout_height="32dp"
+                        android:minWidth="0dp"
+                        android:padding="0dp"
+                        android:text="W"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="#DCDFE4" />
+
+                    <!-- .*: Regex -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/searchRegexBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="38dp"
+                        android:layout_height="32dp"
+                        android:minWidth="0dp"
+                        android:padding="0dp"
+                        android:text=".*"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:textColor="#DCDFE4" />
+                </LinearLayout>
+
+                <!-- Search Input Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="54dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/text_editor_search"
+                        android:textSize="13sp"
+                        android:textColor="#ABB2BF" />
+
+                    <EditText
+                        android:id="@+id/searchEdit"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:hint="@string/text_editor_search_hint"
+                        android:textSize="13sp"
+                        android:singleLine="true"
+                        android:imeOptions="actionNext"
+                        android:inputType="textNoSuggestions"
+                        android:background="@drawable/search_input_background"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textColor="#DCDFE4"
+                        android:textColorHint="#5C6370" />
+
+                    <ImageButton
+                        android:id="@+id/searchClearBtn"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:src="@drawable/close_icon_control_normal_24dp"
+                        android:contentDescription="@string/clear"
+                        app:tint="#ABB2BF" />
+                </LinearLayout>
+
+                <!-- Replace Input Row -->
+                <LinearLayout
+                    android:id="@+id/replaceRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:layout_width="54dp"
+                        android:layout_height="wrap_content"
+                        android:text="@string/text_editor_replace_label"
+                        android:textSize="13sp"
+                        android:textColor="#ABB2BF" />
+
+                    <EditText
+                        android:id="@+id/replaceEdit"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:hint="@string/text_editor_replace_hint"
+                        android:textSize="13sp"
+                        android:singleLine="true"
+                        android:imeOptions="actionDone"
+                        android:inputType="textNoSuggestions"
+                        android:background="@drawable/search_input_background"
+                        android:paddingStart="10dp"
+                        android:paddingEnd="10dp"
+                        android:textColor="#DCDFE4"
+                        android:textColorHint="#5C6370" />
+
+                    <ImageButton
+                        android:id="@+id/replaceClearBtn"
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:src="@drawable/close_icon_control_normal_24dp"
+                        android:contentDescription="@string/clear"
+                        app:tint="#ABB2BF" />
+                </LinearLayout>
+
+                <!-- Bottom Actions Row -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="8dp">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/searchPrevBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/text_editor_search_previous_caps"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#61AFEF" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/searchNextBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/text_editor_search_next_caps"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#61AFEF" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/replaceBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/text_editor_replace_caps"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#61AFEF" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/replaceAllBtn"
+                        style="?borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="36dp"
+                        android:layout_weight="1"
+                        android:text="@string/text_editor_replace_all_caps"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#61AFEF" />
+
+                    <ImageButton
+                        android:id="@+id/searchCloseBtn"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:src="@drawable/close_icon_control_normal_24dp"
+                        android:contentDescription="@string/close"
+                        app:tint="#61AFEF" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Bottom Symbol & Navigation Bar -->
             <HorizontalScrollView
                 android:id="@+id/symbolBar"
                 android:layout_width="match_parent"
                 android:layout_height="44dp"
-                android:background="?colorAppBarSurface"
+                android:background="#1E1E1E"
                 android:elevation="4dp"
                 android:scrollbars="none">
 

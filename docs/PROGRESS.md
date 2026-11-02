@@ -449,7 +449,53 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Suite de Pruebas Unitarias Ampliada (`DeadManProtectionManagerTest.kt`)**:
   - Nuevas pruebas validando rutas de la zona permitida del usuario (`/data/local/tmp/test.sh`, `/sdcard/`), rutas protegidas del sistema (`/system/bin/sh`, `/init`, etc.), detección de comandos destructivos de terminal (`mount -o remount,rw`, `rm -rf /system`) y el estado de bypass por espera completada.
 
-
-
-
-
+### Milestone 47: Editor de Texto de Nueva Generación Superior a MT-Manager (v1.9.32)
+- **Inspección Exhaustiva de Capturas de MT-Manager (`Screenshot.7z`)**:
+  - Análisis detallado de cada captura: estructura visual, barra superior de acciones rápidas, tira informativa de estado, panel inferior de búsqueda y reemplazo, canal izquierdo de números de línea con flechas de ajuste suave (`⤹` / `↳`), barra inferior de símbolos y teclas de navegación, selector de sintaxis con más de 39 lenguajes, selector de temas de color y pantalla completa de preferencias del editor (`Preferencias`).
+- **Tira de Estado e Información Rápida MT-Manager (`editorStatusStrip`)**:
+  - Franja informativa elegante situada inmediatamente debajo de la barra de herramientas.
+  - Muestra a la izquierda: nombre de archivo con indicador de cambios pendientes `*` en ámbar (`*test.cpp`) y tamaño de archivo formateado.
+  - Muestra a la derecha: coordenadas exactas del cursor `Línea:Columna` (ej. `122:46`), longitud de selección en tiempo real `[Sel: X]` cuando existe texto marcado, codificación activa (`UTF-8`) y lenguaje de sintaxis detectado.
+  - Interactividad total: al pulsar sobre las coordenadas del cursor se abre el diálogo de "Ir a línea"; al pulsar sobre la codificación se despliega el selector de juego de caracteres; y al pulsar sobre la sintaxis se abre el selector de lenguaje.
+- **Barra de Acciones Superior y Alternador Rápido de Edición / Solo Lectura**:
+  - Icono directo de alternancia en la barra de herramientas: muestra un lápiz de edición (`edit_icon`) cuando el archivo está en modo solo lectura, y un candado de protección (`lock_icon_white_24dp`) cuando está en modo edición. Permite explorar y desplazarse por archivos extensos sin que el teclado táctil se abra accidentalmente.
+  - Botón de guardado con icono de disco que se activa dinámicamente solo cuando existen modificaciones pendientes.
+  - Botones de Deshacer y Rehacer con sincronización inmediata de la pila de edición.
+  - Botón de búsqueda directa para desplegar el panel ergonómico inferior.
+- **Barra Inferior de Símbolos y Micronavegación Táctil**:
+  - Teclas de flecha cardinales (`◀`, `▶`, `▲`, `▼`) para mover el cursor con precisión milimétrica carácter a carácter o línea a línea en pantallas táctiles sin frustración.
+  - Botones de indentación de bloque (`⇥`) y desindentación (`⇤`).
+  - Salto de línea inteligente (`↵`) con sangría automática adaptativa.
+  - Inserción y auto-envoltorio de pares: `{`, `}`, `(`, `)`, `[`, `]`, `<`, `>`, `"`, `'`. Al seleccionar texto y pulsar un delimitador, envuelve automáticamente la selección; al no haber selección, inserta el par y posiciona el cursor en su interior.
+  - Colección completa de operadores y caracteres de programación: `=`, `:`, `;`, `/`, `\`, `+`, `-`, `*`, `%`, `!`, `?`, `&`, `|`, `@`, `#`, `$`, `~`, `^`, `,`, `.`, `_`.
+  - Acciones rápidas de portapapeles: botón de pegado directo (`📋`) y botón de selección total (`✂`).
+- **Panel Ergonómico de Búsqueda y Reemplazo estilo MT-Manager**:
+  - Ubicado en la base del editor, justo encima del teclado táctil para máxima comodidad ergonómica.
+  - Encabezado con contador de coincidencias en tiempo real (`Resultados: X`) y botones de filtro con diseño tipo pastilla (`Cc` para mayúsculas/minúsculas, `W` para palabra completa, `.*` para expresiones regulares) con resaltado azul al activarse.
+  - Entradas dedicadas de "Buscar" y "Reemp" con botones individuales de limpieza rápida (`✕`).
+  - Fila inferior de acciones: `ANTERIOR`, `SIGUIENTE`, `REEMP` (reemplazo individual), `TODO` (reemplazo global instantáneo) y botón de cierre `✕`.
+  - Aviso toast preventivo *"No se ha encontrado el texto."* en caso de no hallar coincidencias, idéntico a MT-Manager.
+  - Resaltado de coincidencias en lienzo gráfico con cero asignaciones de spans y borde dorado en la coincidencia actual.
+- **Historial de Navegación de Cursor (`Posición anterior` / `Siguiente posición`)**:
+  - Implementación de pila de historial de cursor con capacidad de hasta 50 saltos.
+  - Registra automáticamente las posiciones del cursor tras búsquedas, saltos de línea o desplazamientos significativos.
+  - Permite retroceder y avanzar entre puntos de edición previos desde el menú de opciones o atajos, facilitando la navegación en archivos de miles de líneas.
+- **Indicador de Flechas de Ajuste Suave (↳)**:
+  - En el canal lateral de números de línea (`LineNumberView`), las líneas lógicas que se dividen por ajuste de línea muestran una sutil flecha de continuación `↳`, distinguiendo visualmente las nuevas líneas de las líneas envueltas.
+- **Temas de Color Profesionales (`EditorTheme`)**:
+  - Soporte para 5 temas de color: One Dark Pro (MT Dark), Dracula, Monokai, GitHub Dark y Light / Solar.
+  - Actualización instantánea en vivo del fondo del editor, canal de números, cursor, resaltado de línea actual y sintaxis sin recrear la actividad.
+- **Ampliación a 39 Lenguajes de Sintaxis**:
+  - Añadido soporte para PowerShell (`.ps1`, `.psm1`, `.psd1`), Diff / Patch (`.diff`, `.patch`), CSV / TSV (`.csv`, `.tsv`), Assembly (`.asm`, `.s`), Visual Basic (`.vb`, `.vbs`, `.bas`), Zig (`.zig`), Nix (`.nix`), LaTeX (`.tex`, `.ltx`), Lisp (`.lisp`, `.cl`, `.el`), Smali, Batch, CMake, Markdown, SQL, Rust, Go, Python, Java, Kotlin, C/C++, C#, TypeScript, JavaScript, HTML, XML, JSON, YAML, TOML, etc.
+- **Diálogo Completo de Preferencias del Editor (`TextEditorPreferencesDialogFragment`)**:
+  - Réplica y superación de la pantalla de preferencias de MT-Manager:
+    - *Apariencia*: selector de tema de color, selector de tamaño de fuente (10sp - 24sp), mostrar números de línea, mostrar flechas de ajuste suave (↳), resaltar línea actual.
+    - *Resaltar*: conmutador general de resaltado de sintaxis.
+    - *Funciones*: barra de símbolos y funciones, sangría automática al pulsar Enter, cerrar llaves y comillas automáticamente, pellizcar para ampliar, ajuste de línea por defecto, modo solo lectura por defecto.
+    - *Archivo y Seguridad*: confirmar al salir si existen cambios sin guardar.
+- **Pruebas Unitarias Exhaustivas (`TextEditorZoomAndLanguageTest.kt`)**:
+  - Pruebas para detección de los 39 lenguajes y sus extensiones (incluyendo PowerShell, Diff, Assembly, Zig, etc.).
+  - Validación de todos los temas de `EditorTheme` y tokenización dependiente de tema.
+  - Validación de la lógica de pila de historial de navegación de cursor (Back/Forward).
+  - Validación de la lógica de auto-envoltorio de llaves/comillas y pares.
+  - Tokenización de scripts de PowerShell y directivas de Smali.

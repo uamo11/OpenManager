@@ -37,49 +37,80 @@
         android:icon="@drawable/search_icon_control_normal_24dp"
         android:orderInCategory="40"
         android:title="@string/text_editor_search"
-        app:showAsAction="always"
-        tools:ignore="AlwaysShowAction" />
-
-    <item
-        android:id="@+id/action_syntax"
-        android:icon="@drawable/ic_code_24dp"
-        android:orderInCategory="50"
-        android:title="@string/text_editor_syntax"
         app:showAsAction="ifRoom" />
 
     <item
+        android:id="@+id/action_toggle_edit"
+        android:icon="@drawable/edit_icon"
+        android:orderInCategory="45"
+        android:title="@string/text_editor_read_only"
+        app:showAsAction="always"
+        tools:ignore="AlwaysShowAction" />
+
+    <!-- Overflow Menu Items (MT Manager Matching) -->
+    <item
+        android:id="@+id/action_nav_back"
+        android:orderInCategory="50"
+        android:title="@string/text_editor_nav_back"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_nav_forward"
+        android:orderInCategory="51"
+        android:title="@string/text_editor_nav_forward"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_syntax"
+        android:orderInCategory="60"
+        android:title="@string/text_editor_syntax"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_goto_line"
-        android:orderInCategory="100"
+        android:orderInCategory="70"
         android:title="@string/text_editor_goto_line"
         app:showAsAction="never" />
 
     <item
-        android:id="@+id/action_line_numbers"
-        android:orderInCategory="101"
-        android:checkable="true"
-        android:checked="true"
-        android:title="@string/text_editor_line_numbers"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/action_word_wrap"
-        android:orderInCategory="102"
+        android:orderInCategory="80"
         android:checkable="true"
         android:checked="true"
         android:title="@string/text_editor_word_wrap"
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_line_numbers"
+        android:orderInCategory="81"
+        android:checkable="true"
+        android:checked="true"
+        android:title="@string/text_editor_line_numbers"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_read_only"
-        android:orderInCategory="103"
+        android:orderInCategory="82"
         android:checkable="true"
         android:checked="false"
         android:title="@string/text_editor_read_only"
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_theme"
+        android:orderInCategory="90"
+        android:title="@string/text_editor_theme"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_file_stats"
+        android:orderInCategory="95"
+        android:title="@string/text_editor_file_stats"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_line_endings"
-        android:orderInCategory="104"
+        android:orderInCategory="100"
         android:title="@string/text_editor_line_endings"
         app:showAsAction="never">
         <menu>
@@ -93,40 +124,22 @@
     </item>
 
     <item
-        android:id="@+id/action_font_size"
-        android:orderInCategory="103"
-        android:title="@string/text_editor_font_size"
-        app:showAsAction="never">
-        <menu>
-            <item
-                android:id="@+id/action_font_size_increase"
-                android:title="@string/text_editor_font_size_increase" />
-            <item
-                android:id="@+id/action_font_size_decrease"
-                android:title="@string/text_editor_font_size_decrease" />
-            <item
-                android:id="@+id/action_font_size_reset"
-                android:title="@string/text_editor_font_size_reset" />
-        </menu>
-    </item>
-
-    <item
-        android:id="@+id/action_file_stats"
-        android:orderInCategory="104"
-        android:title="@string/text_editor_file_stats"
-        app:showAsAction="never" />
-
-    <item
-        android:id="@+id/action_reload"
-        android:orderInCategory="105"
-        android:title="@string/reload"
-        app:showAsAction="never" />
-
-    <item
         android:id="@+id/action_encoding"
-        android:orderInCategory="106"
+        android:orderInCategory="105"
         android:title="@string/text_editor_encoding"
         app:showAsAction="never">
         <menu />
     </item>
+
+    <item
+        android:id="@+id/action_preferences"
+        android:orderInCategory="110"
+        android:title="@string/text_editor_preferences"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_reload"
+        android:orderInCategory="120"
+        android:title="@string/reload"
+        app:showAsAction="never" />
 </menu>

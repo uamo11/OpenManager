@@ -300,7 +300,7 @@ enum class SyntaxLanguage(
     ),
     GRADLE(
         "Gradle / Groovy",
-        listOf("gradle", "groovy"),
+        listOf("gradle", "groovy", "gvy", "gy", "gsh"),
         keywords = setOf(
             "plugins", "android", "defaultConfig", "buildTypes", "dependencies", "implementation",
             "api", "compileOnly", "runtimeOnly", "testImplementation", "androidTestImplementation",
@@ -396,6 +396,87 @@ enum class SyntaxLanguage(
             "function", "endfunction", "macro", "endmacro", "message", "option", "install"
         ),
         commentLine = "#"
+    ),
+    POWERSHELL(
+        "PowerShell",
+        listOf("ps1", "psm1", "psd1"),
+        keywords = setOf(
+            "function", "param", "if", "else", "elseif", "switch", "while", "do", "until",
+            "for", "foreach", "in", "break", "continue", "return", "filter", "trap", "throw",
+            "try", "catch", "finally", "exit", "process", "begin", "end", "dynamicparam"
+        ),
+        types = setOf("string", "int", "long", "bool", "array", "hashtable", "psobject", "xml", "void"),
+        commentLine = "#",
+        commentBlockStart = "<#",
+        commentBlockEnd = "#>"
+    ),
+    DIFF(
+        "Diff / Patch",
+        listOf("diff", "patch"),
+        keywords = setOf("diff", "index", "similarity", "rename", "deleted", "new", "file", "mode"),
+        commentLine = "#"
+    ),
+    CSV(
+        "CSV / TSV",
+        listOf("csv", "tsv")
+    ),
+    ASM(
+        "Assembly",
+        listOf("asm", "s"),
+        keywords = setOf(
+            "mov", "push", "pop", "add", "sub", "mul", "div", "inc", "dec", "jmp", "je", "jne",
+            "jz", "jnz", "cmp", "call", "ret", "nop", "lea", "xor", "and", "or", "test",
+            "section", "global", "extern", "equ", "db", "dw", "dd", "dq", "resb", "resw"
+        ),
+        commentLine = ";"
+    ),
+    VISUAL_BASIC(
+        "Visual Basic",
+        listOf("vb", "vbs", "bas"),
+        keywords = setOf(
+            "as", "dim", "sub", "function", "end", "if", "then", "else", "elseif", "for",
+            "to", "step", "next", "while", "wend", "do", "loop", "select", "case", "exit",
+            "return", "try", "catch", "finally", "new", "class", "module", "public", "private",
+            "protected", "friend", "shared", "const", "byval", "byref", "boolean", "integer",
+            "string", "long", "double", "true", "false", "nothing"
+        ),
+        commentLine = "'"
+    ),
+    ZIG(
+        "Zig",
+        listOf("zig"),
+        keywords = setOf(
+            "const", "var", "fn", "pub", "return", "if", "else", "while", "for", "switch",
+            "try", "catch", "unreachable", "struct", "enum", "union", "error", "defer",
+            "errdefer", "test", "import", "comptime", "inline", "extern", "export"
+        ),
+        types = setOf("i8", "i16", "i32", "i64", "u8", "u16", "u32", "u64", "f32", "f64", "bool", "void"),
+        commentLine = "//"
+    ),
+    NIX(
+        "Nix",
+        listOf("nix"),
+        keywords = setOf("rec", "with", "let", "in", "inherit", "import", "true", "false", "null", "if", "then", "else", "assert"),
+        commentLine = "#"
+    ),
+    LATEX(
+        "LaTeX",
+        listOf("tex", "ltx", "sty", "cls"),
+        keywords = setOf(
+            "documentclass", "usepackage", "begin", "end", "section", "subsection",
+            "subsubsection", "paragraph", "label", "ref", "cite", "title", "author", "date",
+            "maketitle", "tableofcontents", "include", "input", "newcommand"
+        ),
+        commentLine = "%"
+    ),
+    LISP(
+        "Lisp",
+        listOf("lisp", "cl", "el"),
+        keywords = setOf(
+            "defun", "defvar", "defparameter", "let", "let*", "if", "when", "unless",
+            "cond", "case", "loop", "dotimes", "dolist", "lambda", "setq", "format", "print", "nil", "t"
+        ),
+        commentLine = ";"
     );
 
     companion object {

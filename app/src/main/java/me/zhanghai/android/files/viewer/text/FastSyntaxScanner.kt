@@ -41,16 +41,18 @@ object FastSyntaxScanner {
     class SyntaxColorSpan(val colorVal: Int) : ForegroundColorSpan(colorVal)
     class SyntaxItalicSpan : StyleSpan(Typeface.ITALIC)
 
+    var currentTheme: EditorTheme = EditorTheme.ONE_DARK
+
     /**
      * Builds a pre-highlighted SpannableStringBuilder completely off the main thread.
      */
-    fun highlightToSpannable(text: CharSequence, language: SyntaxLanguage): SpannableStringBuilder {
+    fun highlightToSpannable(text: CharSequence, language: SyntaxLanguage, theme: EditorTheme = currentTheme): SpannableStringBuilder {
         val builder = SpannableStringBuilder(text)
         if (language == SyntaxLanguage.PLAIN_TEXT || text.length > 500_000) {
             return builder
         }
 
-        val tokens = scan(text, language)
+        val tokens = scan(text, language, theme)
         for (i in tokens.indices) {
             val token = tokens[i]
             builder.setSpan(
@@ -74,12 +76,12 @@ object FastSyntaxScanner {
     /**
      * In-place span application for live editing on main thread.
      */
-    fun applyHighlightTo(editable: Editable?, language: SyntaxLanguage) {
+    fun applyHighlightTo(editable: Editable?, language: SyntaxLanguage, theme: EditorTheme = currentTheme) {
         if (editable == null || language == SyntaxLanguage.PLAIN_TEXT || editable.length > 300_000) {
             clearSpans(editable)
             return
         }
-        val tokens = scan(editable, language)
+        val tokens = scan(editable, language, theme)
         applyTokens(editable, tokens)
     }
 
@@ -133,7 +135,7 @@ object FastSyntaxScanner {
     /**
      * Linear O(N) tokenizer across any supported language.
      */
-    fun scan(text: CharSequence, language: SyntaxLanguage): List<SyntaxToken> {
+    fun scan(text: CharSequence, language: SyntaxLanguage, theme: EditorTheme = currentTheme): List<SyntaxToken> {
         if (language == SyntaxLanguage.PLAIN_TEXT || text.length > 500_000) {
             return emptyList()
         }
@@ -148,6 +150,16 @@ object FastSyntaxScanner {
         val isXml = language.isXmlHtml
         val isSql = language == SyntaxLanguage.SQL
         val isSmali = language == SyntaxLanguage.SMALI
+
+        val colorKeyword = theme.keywordColor
+        val colorType = theme.typeColor
+        val colorString = theme.stringColor
+        val colorNumber = theme.numberColor
+        val colorComment = theme.commentColor
+        val colorAnnotation = theme.annotationColor
+        val colorTag = theme.tagColor
+        val colorAttribute = theme.attributeColor
+        val colorOperator = theme.operatorColor
 
         while (i < len) {
             val c = text[i]
@@ -164,7 +176,7 @@ object FastSyntaxScanner {
                 while (i < len && text[i] != '\n') {
                     i++
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_COMMENT, isItalic = true))
+                tokens.add(SyntaxToken(start, i, colorComment, isItalic = true))
                 continue
             }
 
@@ -178,7 +190,7 @@ object FastSyntaxScanner {
                 if (i < len) {
                     i += commentBlockEnd.length
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_COMMENT, isItalic = true))
+                tokens.add(SyntaxToken(start, i, colorComment, isItalic = true))
                 continue
             }
 
@@ -191,7 +203,7 @@ object FastSyntaxScanner {
                 while (i < len && (text[i].isLetterOrDigit() || text[i] == '_' || text[i] == '-' || text[i] == ':')) {
                     i++
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_TAG))
+                tokens.add(SyntaxToken(start, i, colorTag))
 
                 // Scan attributes inside tag
                 while (i < len && text[i] != '>') {
@@ -201,7 +213,7 @@ object FastSyntaxScanner {
                         while (i < len && (text[i].isLetterOrDigit() || text[i] == '_' || text[i] == '-' || text[i] == ':')) {
                             i++
                         }
-                        tokens.add(SyntaxToken(attrStart, i, COLOR_ATTRIBUTE))
+                        tokens.add(SyntaxToken(attrStart, i, colorAttribute))
                     } else if (ch == '"' || ch == '\'') {
                         val quote = ch
                         val strStart = i
@@ -211,16 +223,16 @@ object FastSyntaxScanner {
                             i++
                         }
                         if (i < len && text[i] == quote) i++
-                        tokens.add(SyntaxToken(strStart, i, COLOR_STRING))
+                        tokens.add(SyntaxToken(strStart, i, colorString))
                     } else if (ch == '=') {
-                        tokens.add(SyntaxToken(i, i + 1, COLOR_OPERATOR))
+                        tokens.add(SyntaxToken(i, i + 1, colorOperator))
                         i++
                     } else {
                         i++
                     }
                 }
                 if (i < len && text[i] == '>') {
-                    tokens.add(SyntaxToken(i, i + 1, COLOR_TAG))
+                    tokens.add(SyntaxToken(i, i + 1, colorTag))
                     i++
                 }
                 continue
@@ -254,7 +266,7 @@ object FastSyntaxScanner {
                         }
                     }
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_STRING))
+                tokens.add(SyntaxToken(start, i, colorString))
                 continue
             }
 
@@ -292,7 +304,7 @@ object FastSyntaxScanner {
                             text[i] == 'l' || text[i] == 'L' || text[i] == 'u' || text[i] == 'U')) {
                     i++
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_NUMBER))
+                tokens.add(SyntaxToken(start, i, colorNumber))
                 continue
             }
 
@@ -303,7 +315,7 @@ object FastSyntaxScanner {
                 while (i < len && (text[i].isLetterOrDigit() || text[i] == '_' || text[i] == '.')) {
                     i++
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_ANNOTATION))
+                tokens.add(SyntaxToken(start, i, colorAnnotation))
                 continue
             }
             if ((language == SyntaxLanguage.C_CPP) && c == '#') {
@@ -312,7 +324,7 @@ object FastSyntaxScanner {
                 while (i < len && text[i].isLetter()) {
                     i++
                 }
-                tokens.add(SyntaxToken(start, i, COLOR_ANNOTATION))
+                tokens.add(SyntaxToken(start, i, colorAnnotation))
                 continue
             }
 
@@ -333,11 +345,11 @@ object FastSyntaxScanner {
                     val checkWord = if (isSql) word.uppercase() else word
 
                     if (checkWord in language.keywords) {
-                        tokens.add(SyntaxToken(start, i, COLOR_KEYWORD))
+                        tokens.add(SyntaxToken(start, i, colorKeyword))
                     } else if (checkWord in language.types) {
-                        tokens.add(SyntaxToken(start, i, COLOR_TYPE))
+                        tokens.add(SyntaxToken(start, i, colorType))
                     } else if (isSmali && isSmaliRegister(word)) {
-                        tokens.add(SyntaxToken(start, i, COLOR_TYPE))
+                        tokens.add(SyntaxToken(start, i, colorType))
                     }
                 }
                 continue
@@ -345,7 +357,7 @@ object FastSyntaxScanner {
 
             // 9. Operators & Delimiters
             if (c in "+-*/%=<>!&|^~?:;,") {
-                tokens.add(SyntaxToken(i, i + 1, COLOR_OPERATOR))
+                tokens.add(SyntaxToken(i, i + 1, colorOperator))
                 i++
                 continue
             }

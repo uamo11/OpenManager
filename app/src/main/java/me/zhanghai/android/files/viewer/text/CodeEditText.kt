@@ -23,13 +23,18 @@ import kotlin.math.min
 /**
  * Modern, high-performance code editor with current-line highlight,
  * bracket matching, zero-overhead onDraw search highlighting,
- * smart auto-indentation, and pair symbol completion.
+ * smart auto-indentation, pair symbol completion, theme support,
+ * and micro-navigation arrow controls.
  */
 class CodeEditText @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = androidx.appcompat.R.attr.editTextStyle
 ) : AppCompatEditText(context, attrs, defStyleAttr) {
+
+    enum class CursorDirection {
+        LEFT, RIGHT, UP, DOWN
+    }
 
     val textSizePx: Float get() = textSize
 
@@ -65,6 +70,16 @@ class CodeEditText @JvmOverloads constructor(
         style = Paint.Style.STROKE
         strokeWidth = dpToPx(1.5f)
     }
+
+    // Settings
+    var isHighlightCurrentLine: Boolean = true
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    var isAutoIndent: Boolean = true
+    var isAutoClosePairs: Boolean = true
 
     // Bracket matching state
     private var matchingBracketPair: Pair<Int, Int>? = null
@@ -109,6 +124,13 @@ class CodeEditText @JvmOverloads constructor(
         super.onTextChanged(text, start, lengthBefore, lengthAfter)
         isLogicalLineCountDirty = true
         onLineCountChanged?.invoke()
+    }
+
+    fun setEditorTheme(theme: EditorTheme) {
+        setTextColor(theme.textColor)
+        currentLinePaint.color = theme.currentLineColor
+        bracketMatchPaint.color = theme.currentLineColor
+        invalidate()
     }
 
     private fun getTotalLogicalLines(): Int {
@@ -214,7 +236,7 @@ class CodeEditText @JvmOverloads constructor(
             val totalPadLeft = totalPaddingLeft
 
             // 1. Draw Current Line Highlight
-            if (isFocused && selectionStart >= 0) {
+            if (isHighlightCurrentLine && isFocused && selectionStart >= 0) {
                 val cursorLine = layout.getLineForOffset(selectionStart.coerceIn(0, text?.length ?: 0))
                 val lineTop = layout.getLineTop(cursorLine) + totalPadTop
                 val lineBottom = layout.getLineBottom(cursorLine) + totalPadTop
@@ -315,10 +337,47 @@ class CodeEditText @JvmOverloads constructor(
     }
 
     /**
+     * Move cursor in one of the 4 cardinal directions (micro-navigation).
+     */
+    fun moveCursor(direction: CursorDirection) {
+        val selStart = selectionStart
+        val layout = layout ?: return
+        val textStr = text ?: return
+        val len = textStr.length
+        if (len == 0) return
+
+        when (direction) {
+            CursorDirection.LEFT -> {
+                if (selStart > 0) setSelection(selStart - 1)
+            }
+            CursorDirection.RIGHT -> {
+                if (selStart < len) setSelection(selStart + 1)
+            }
+            CursorDirection.UP -> {
+                val line = layout.getLineForOffset(selStart.coerceIn(0, len))
+                if (line > 0) {
+                    val x = layout.getPrimaryHorizontal(selStart.coerceIn(0, len))
+                    val target = layout.getOffsetForHorizontal(line - 1, x)
+                    setSelection(target.coerceIn(0, len))
+                }
+            }
+            CursorDirection.DOWN -> {
+                val line = layout.getLineForOffset(selStart.coerceIn(0, len))
+                if (line < layout.lineCount - 1) {
+                    val x = layout.getPrimaryHorizontal(selStart.coerceIn(0, len))
+                    val target = layout.getOffsetForHorizontal(line + 1, x)
+                    setSelection(target.coerceIn(0, len))
+                }
+            }
+        }
+    }
+
+    /**
      * Auto-indentation: copies leading whitespace of previous line and adds
      * 4 spaces if the line ended with '{', '(', '[', or ':'.
      */
     fun handleSmartEnter(): Boolean {
+        if (!isAutoIndent) return false
         val editable = text ?: return false
         val selStart = selectionStart
         val selEnd = selectionEnd
@@ -399,13 +458,13 @@ class CodeEditText @JvmOverloads constructor(
         )
 
         val close = pairs[sym]
-        if (min != max && close != null) {
+        if (isAutoClosePairs && min != max && close != null) {
             // Wrap selected text
             val selected = editable.subSequence(min, max).toString()
             val wrapped = "$sym$selected$close"
             editable.replace(min, max, wrapped)
             setSelection(min + wrapped.length)
-        } else if (close != null) {
+        } else if (isAutoClosePairs && close != null) {
             // Insert pair and place cursor inside
             editable.replace(min, max, "$sym$close")
             setSelection(min + sym.length)
