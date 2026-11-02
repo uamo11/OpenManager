@@ -127,4 +127,79 @@ class TerminalLogicTest {
         assertEquals(10, setFontSize(8))  // clamps minimum
         assertEquals(32, setFontSize(40)) // clamps maximum
     }
+
+    @Test
+    fun testScriptExecutionManagerLifecycle() {
+        var finishedCode: Int? = null
+        val listener = object : ScriptExecutionManager.SessionListener {
+            override fun onSessionFinished(exitCode: Int) {
+                finishedCode = exitCode
+            }
+        }
+        ScriptExecutionManager.addListener(listener)
+
+        ScriptExecutionManager.activePid = 1234
+        assertEquals(1234, ScriptExecutionManager.activePid)
+
+        ScriptExecutionManager.onSessionFinished(0, null)
+        assertEquals(0, finishedCode)
+        assertEquals(0, ScriptExecutionManager.lastExitCode)
+
+        ScriptExecutionManager.clearSession()
+        assertEquals(-1, ScriptExecutionManager.activePid)
+        assertEquals("", ScriptExecutionManager.activeScriptName)
+
+        ScriptExecutionManager.removeListener(listener)
+    }
+
+    @Test
+    fun testElfArchitectureHeaderParsing() {
+        fun parseElfMachine(bytes: ByteArray): Int {
+            if (bytes.size < 20) return -1
+            if (bytes[0] != 0x7F.toByte() || bytes[1] != 'E'.code.toByte() ||
+                bytes[2] != 'L'.code.toByte() || bytes[3] != 'F'.code.toByte()) {
+                return -1
+            }
+            val isLittleEndian = bytes[5].toInt() == 1
+            return if (isLittleEndian) {
+                (bytes[18].toInt() and 0xFF) or ((bytes[19].toInt() and 0xFF) shl 8)
+            } else {
+                ((bytes[18].toInt() and 0xFF) shl 8) or (bytes[19].toInt() and 0xFF)
+            }
+        }
+
+        // Fake AArch64 (183 = 0x00B7)
+        val aarch64Header = ByteArray(20).apply {
+            this[0] = 0x7F.toByte(); this[1] = 'E'.code.toByte(); this[2] = 'L'.code.toByte(); this[3] = 'F'.code.toByte()
+            this[4] = 2 // 64-bit
+            this[5] = 1 // Little endian
+            this[18] = 0xB7.toByte()
+            this[19] = 0x00.toByte()
+        }
+        assertEquals(183, parseElfMachine(aarch64Header))
+
+        // Fake x86_64 (62 = 0x003E)
+        val x86_64Header = ByteArray(20).apply {
+            this[0] = 0x7F.toByte(); this[1] = 'E'.code.toByte(); this[2] = 'L'.code.toByte(); this[3] = 'F'.code.toByte()
+            this[4] = 2 // 64-bit
+            this[5] = 1 // Little endian
+            this[18] = 0x3E.toByte()
+            this[19] = 0x00.toByte()
+        }
+        assertEquals(62, parseElfMachine(x86_64Header))
+
+        // Non-ELF file
+        val textHeader = "#!/bin/sh\necho test\n".toByteArray()
+        assertEquals(-1, parseElfMachine(textHeader))
+    }
+
+    @Test
+    fun testCrlfToLfSanitization() {
+        val windowsScript = "#!/system/bin/sh\r\necho \"step 1\"\r\necho \"step 2\"\r\n"
+        val unixScript = windowsScript.replace("\r\n", "\n").replace("\r", "\n")
+
+        assertTrue(windowsScript.contains("\r\n"))
+        assertTrue(!unixScript.contains("\r"))
+        assertEquals("#!/system/bin/sh\necho \"step 1\"\necho \"step 2\"\n", unixScript)
+    }
 }

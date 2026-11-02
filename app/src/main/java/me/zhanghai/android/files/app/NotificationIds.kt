@@ -8,4 +8,5 @@ package me.zhanghai.android.files.app
 object NotificationIds {
     const val FTP_SERVER = 1
     const val APKTOOL = 2
+    const val SCRIPT_EXECUTION = 3
 }

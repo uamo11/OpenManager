@@ -10,6 +10,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.graphics.Color
 import android.text.TextUtils
 import android.view.Gravity
@@ -36,6 +37,7 @@ import me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
 import me.zhanghai.android.files.util.escapeShellArg
@@ -533,7 +535,72 @@ object ScriptRunnerHelper {
         }
     }
 
+    fun checkElfCompatibility(path: Path): Pair<Boolean, String> {
+        return try {
+            path.newInputStream().use { stream ->
+                val header = ByteArray(20)
+                val read = stream.read(header)
+                if (read < 20) return@use true to "ELF"
+                if (header[0] != 0x7F.toByte() || header[1] != 'E'.code.toByte() ||
+                    header[2] != 'L'.code.toByte() || header[3] != 'F'.code.toByte()) {
+                    return@use true to "Script"
+                }
+                val isLittleEndian = header[5].toInt() == 1
+                val machine = if (isLittleEndian) {
+                    (header[18].toInt() and 0xFF) or ((header[19].toInt() and 0xFF) shl 8)
+                } else {
+                    ((header[18].toInt() and 0xFF) shl 8) or (header[19].toInt() and 0xFF)
+                }
+                val (archName, compatible) = when (machine) {
+                    3 -> "x86 (32-bit)" to Build.SUPPORTED_ABIS.any { it.startsWith("x86") }
+                    40 -> "ARM (armeabi-v7a 32-bit)" to Build.SUPPORTED_ABIS.any { it.contains("arm") }
+                    62 -> "x86_64 (64-bit)" to Build.SUPPORTED_ABIS.contains("x86_64")
+                    183 -> "AArch64 (arm64-v8a 64-bit)" to Build.SUPPORTED_ABIS.contains("arm64-v8a")
+                    243 -> "RISC-V (64-bit)" to Build.SUPPORTED_ABIS.any { it.contains("riscv") }
+                    else -> "Máquina ELF #$machine" to true
+                }
+                compatible to archName
+            }
+        } catch (_: Throwable) {
+            true to "ELF"
+        }
+    }
+
+    private fun checkCrlfAndConvert(activity: Activity, path: Path) {
+        try {
+            var hasCrlf = false
+            path.newInputStream().use { stream ->
+                val buf = ByteArray(32768)
+                val read = stream.read(buf)
+                for (i in 1 until read) {
+                    if (buf[i] == '\n'.code.toByte() && buf[i - 1] == '\r'.code.toByte()) {
+                        hasCrlf = true
+                        break
+                    }
+                }
+            }
+            if (hasCrlf) {
+                val raw = Files.readAllBytes(path)
+                val converted = String(raw, StandardCharsets.UTF_8)
+                    .replace("\r\n", "\n")
+                    .replace("\r", "\n")
+                    .toByteArray(StandardCharsets.UTF_8)
+                Files.write(path, converted)
+                Toast.makeText(activity, "Formato CRLF convertido automáticamente a Unix (LF)", Toast.LENGTH_SHORT).show()
+            }
+        } catch (_: Throwable) {}
+    }
+
     private fun executeScriptOrBinary(activity: Activity, path: Path) {
+        val fileSize = runCatching {
+            if (path.isLinuxPath) path.toFile().length() else Files.size(path)
+        }.getOrDefault(0L)
+
+        if (fileSize == 0L) {
+            Toast.makeText(activity, R.string.script_exec_empty_file_error, Toast.LENGTH_LONG).show()
+            return
+        }
+
         if (DeadManProtectionManager.isDfrootProtectionActive(activity)) {
             val isCriticalScript = runCatching {
                 if (!isElfBinary(path)) {
@@ -551,6 +618,55 @@ object ScriptRunnerHelper {
                 return
             }
         }
+
+        if (isElfBinary(path)) {
+            val (compatible, elfArch) = checkElfCompatibility(path)
+            if (!compatible) {
+                MaterialAlertDialogBuilder(activity)
+                    .setTitle(R.string.script_exec_incompatible_abi_title)
+                    .setMessage(activity.getString(
+                        R.string.script_exec_incompatible_abi_message,
+                        elfArch,
+                        Build.SUPPORTED_ABIS.joinToString(", ")
+                    ))
+                    .setPositiveButton(R.string.script_exec_incompatible_abi_proceed) { _, _ ->
+                        checkConflictAndExecute(activity, path)
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+                return
+            }
+        } else {
+            checkCrlfAndConvert(activity, path)
+        }
+
+        checkConflictAndExecute(activity, path)
+    }
+
+    private fun checkConflictAndExecute(activity: Activity, path: Path) {
+        if (ScriptExecutionManager.isRunning()) {
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(R.string.script_exec_conflict_title)
+                .setMessage(activity.getString(
+                    R.string.script_exec_conflict_message,
+                    ScriptExecutionManager.activeScriptName,
+                    ScriptExecutionManager.activePid
+                ))
+                .setPositiveButton(R.string.script_exec_conflict_view_existing) { _, _ ->
+                    val intent = Intent(activity, TerminalActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    }
+                    activity.startActivity(intent)
+                }
+                .setNegativeButton(R.string.script_exec_conflict_kill_and_run) { _, _ ->
+                    ScriptExecutionManager.terminateShell(activity)
+                    performExecuteScriptOrBinary(activity, path)
+                }
+                .setNeutralButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+
         performExecuteScriptOrBinary(activity, path)
     }
 

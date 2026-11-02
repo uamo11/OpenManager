@@ -1506,4 +1506,30 @@
     <string name="apktool_error_title">Apktool error</string>
     <string name="settings_show_hidden_files_title">Show hidden files and directories</string>
     <string name="settings_show_hidden_files_summary">Show files and folders whose names start with a dot (.)</string>
+
+    <!-- Script & Shell Background Execution -->
+    <string name="notification_channel_script_execution_name">Script and Shell Execution</string>
+    <string name="notification_channel_script_execution_description">Display and control background script and shell execution sessions</string>
+    <string name="script_exec_notification_running">Running script: %1$s</string>
+    <string name="script_exec_notification_shell">Background shell</string>
+    <string name="script_exec_notification_kill_action">Close Shell</string>
+    <string name="script_exec_notification_keep_background">Keep in Background</string>
+    <string name="script_exec_notification_open_terminal">Open Terminal</string>
+    <string name="script_exec_notification_view_output">View Output</string>
+    <string name="script_exec_notification_dismiss">Dismiss</string>
+    <string name="script_exec_killed_toast">Shell terminated (PID %1$d)</string>
+    <string name="script_exec_kept_toast">Script running in background (WakeLock active)</string>
+    <string name="script_exec_running_background_toast">Script continues running in background. You can close or control it from notifications.</string>
+    <string name="script_exec_completed_success">Script finished successfully (code 0)</string>
+    <string name="script_exec_completed_error">Script finished with code %1$d</string>
+    <string name="script_exec_empty_file_error">Cannot execute empty script (0 bytes).</string>
+    <string name="script_exec_incompatible_abi_title">Incompatible Binary Architecture</string>
+    <string name="script_exec_incompatible_abi_message">The binary is compiled for %1$s, but this device only supports %2$s. Executing it will fail with \"Exec format error\".</string>
+    <string name="script_exec_incompatible_abi_proceed">Attempt Anyway</string>
+    <string name="script_exec_conflict_title">Script Already Running</string>
+    <string name="script_exec_conflict_message">There is already a script or shell running in background: \"%1$s\" (PID: %2$d).\n\nWhat would you like to do?</string>
+    <string name="script_exec_conflict_view_existing">View Current Terminal</string>
+    <string name="script_exec_conflict_kill_and_run">Close Previous and Run New</string>
+    <string name="script_menu_keep_background">Run in background</string>
+    <string name="script_menu_terminate">Terminate process (SIGKILL)</string>
 </resources>

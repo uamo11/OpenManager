@@ -14,6 +14,7 @@ import me.zhanghai.android.files.coil.initializeCoil
 import me.zhanghai.android.files.filejob.fileJobNotificationTemplate
 import me.zhanghai.android.files.ftpserver.ftpServerServiceNotificationTemplate
 import me.zhanghai.android.files.filelist.apktoolNotificationTemplate
+import me.zhanghai.android.files.terminal.scriptExecutionNotificationTemplate
 import me.zhanghai.android.files.hiddenapi.HiddenApi
 import me.zhanghai.android.files.provider.FileSystemProviders
 import me.zhanghai.android.files.settings.Settings
@@ -107,7 +108,8 @@ private fun createNotificationChannels() {
                 backgroundActivityStartNotificationTemplate.channelTemplate,
                 fileJobNotificationTemplate.channelTemplate,
                 ftpServerServiceNotificationTemplate.channelTemplate,
-                apktoolNotificationTemplate.channelTemplate
+                apktoolNotificationTemplate.channelTemplate,
+                scriptExecutionNotificationTemplate.channelTemplate
             ).map { it.create(application) }
         )
     }

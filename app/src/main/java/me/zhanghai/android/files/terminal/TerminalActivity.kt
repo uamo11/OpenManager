@@ -104,6 +104,15 @@ class TerminalActivity : AppActivity() {
         startTerminalSession()
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val cmd = intent.getStringExtra(EXTRA_COMMAND)
+        if (cmd != null && cmd != ScriptExecutionManager.activeCommand) {
+            startTerminalSession()
+        }
+    }
+
     private fun setupToolbar() {
         toolbar.setNavigationOnClickListener {
             finish()
@@ -221,38 +230,12 @@ class TerminalActivity : AppActivity() {
     }
 
     private fun startTerminalSession(forceRootOverride: Boolean? = null) {
-        terminalSession?.finishIfRunning()
-
         val initialCommand = intent.getStringExtra(EXTRA_COMMAND)
-        if (!initialCommand.isNullOrEmpty() &&
-            DeadManProtectionManager.isDfrootProtectionActive(this) &&
-            DeadManProtectionManager.containsDangerousSystemCommand(initialCommand)
-        ) {
-            DeadManProtectionManager.showDirtyFlagProtectionDialog(this) {
-                finish()
-            }
-            return
-        }
-
-        val overridePath = intent.getStringExtra(EXTRA_PATH)
-            ?: intent.getStringExtra(EXTRA_CWD)
-            ?: intent.data?.path
-
-        val forceRoot = forceRootOverride
-            ?: if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
-        val forceTermex = if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null
-
-        val config = TerminalExpansionManager.prepareLaunchConfig(
-            this,
-            forceRoot = forceRoot,
-            forceTermex = forceTermex,
-            overrideCwd = overridePath,
-            initialCommand = initialCommand
-        )
 
         val sessionClient = object : TerminalSessionClient {
             override fun onTextChanged(changedSession: TerminalSession) {
                 terminalView.onScreenUpdated()
+                ScriptExecutionManager.notifyOutputUpdated()
             }
 
             override fun onTitleChanged(changedSession: TerminalSession) {
@@ -260,6 +243,7 @@ class TerminalActivity : AppActivity() {
                     val title = changedSession.title
                     if (!title.isNullOrEmpty()) {
                         toolbar.subtitle = title
+                        ScriptExecutionManager.notifyTitleChanged(title)
                     }
                 }
             }
@@ -268,6 +252,7 @@ class TerminalActivity : AppActivity() {
                 runOnUiThread {
                     toolbar.subtitle = "[Terminado (código ${finishedSession.exitStatus})]"
                 }
+                ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, this@TerminalActivity)
             }
 
             override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
@@ -290,6 +275,8 @@ class TerminalActivity : AppActivity() {
 
             override fun setTerminalShellPid(session: TerminalSession, pid: Int) {
                 currentPid = pid
+                ScriptExecutionManager.activePid = pid
+                ScriptExecutionService.updateNotification(this@TerminalActivity)
             }
 
             override fun getTerminalCursorStyle(): Int {
@@ -304,16 +291,6 @@ class TerminalActivity : AppActivity() {
             override fun logStackTraceWithMessage(tag: String?, message: String?, e: Exception?) {}
             override fun logStackTrace(tag: String?, e: Exception?) {}
         }
-
-        val session = TerminalSession(
-            config.executable,
-            config.cwd,
-            config.args,
-            config.env,
-            5000,
-            sessionClient
-        )
-        terminalSession = session
 
         val viewClient = object : TerminalViewClient {
             override fun onScale(scale: Float): Float {
@@ -392,19 +369,85 @@ class TerminalActivity : AppActivity() {
             override fun logStackTrace(tag: String?, e: Exception?) {}
         }
 
+        // 1. Check if we can seamlessly reattach to existing running session
+        if (initialCommand == null && ScriptExecutionManager.hasActiveSession()) {
+            val existingSession = ScriptExecutionManager.activeSession!!
+            existingSession.updateTerminalSessionClient(sessionClient)
+            terminalSession = existingSession
+            currentPid = ScriptExecutionManager.activePid
+
+            terminalView.setTerminalViewClient(viewClient)
+            terminalView.attachSession(existingSession)
+
+            val mode = if (ScriptExecutionManager.isRoot) "Root (#)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else "Sistema (sh)"
+            toolbar.title = ScriptExecutionManager.activeScriptName
+            toolbar.subtitle = if (existingSession.isRunning) "$mode • En ejecución..." else "[Terminado (código ${existingSession.exitStatus})]"
+            return
+        }
+
+        terminalSession?.finishIfRunning()
+
+        if (!initialCommand.isNullOrEmpty() &&
+            DeadManProtectionManager.isDfrootProtectionActive(this) &&
+            DeadManProtectionManager.containsDangerousSystemCommand(initialCommand)
+        ) {
+            DeadManProtectionManager.showDirtyFlagProtectionDialog(this) {
+                finish()
+            }
+            return
+        }
+
+        val overridePath = intent.getStringExtra(EXTRA_PATH)
+            ?: intent.getStringExtra(EXTRA_CWD)
+            ?: intent.data?.path
+
+        val forceRoot = forceRootOverride
+            ?: if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
+        val forceTermex = if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null
+
+        val config = TerminalExpansionManager.prepareLaunchConfig(
+            this,
+            forceRoot = forceRoot,
+            forceTermex = forceTermex,
+            overrideCwd = overridePath,
+            initialCommand = initialCommand
+        )
+
+        val session = TerminalSession(
+            config.executable,
+            config.cwd,
+            config.args,
+            config.env,
+            5000,
+            sessionClient
+        )
+        terminalSession = session
+
+        val scriptName = if (initialCommand != null) {
+            val lastPathPart = initialCommand.split(" ", ";").lastOrNull { it.contains("/") } ?: initialCommand
+            val fileName = File(lastPathPart.trim().trim('"', '\'', ')', '(')).name
+            if (fileName.isNotEmpty()) fileName else initialCommand
+        } else {
+            val dirName = File(config.cwd).name.ifEmpty { "/" }
+            "Terminal ($dirName)"
+        }
+
+        ScriptExecutionManager.startExecution(
+            context = this,
+            session = session,
+            scriptName = scriptName,
+            path = overridePath,
+            command = initialCommand,
+            root = config.isRoot,
+            termex = config.isTermex
+        )
+
         terminalView.setTerminalViewClient(viewClient)
         terminalView.attachSession(session)
 
         val mode = if (config.isRoot) "Root (#)" else if (config.isTermex) "Termex (bash)" else "Sistema (sh)"
-        if (initialCommand != null) {
-            val lastPathPart = initialCommand.split(" ", ";").lastOrNull { it.contains("/") } ?: initialCommand
-            val fileName = File(lastPathPart.trim().trim('"', '\'', ')', '(')).name
-            toolbar.title = if (fileName.isNotEmpty()) fileName else initialCommand
-            toolbar.subtitle = "$mode • Ejecutando..."
-        } else {
-            val dirName = File(config.cwd).name.ifEmpty { "/" }
-            toolbar.subtitle = "$mode • $dirName"
-        }
+        toolbar.title = scriptName
+        toolbar.subtitle = "$mode • Ejecutando..."
     }
 
     private fun copyTerminalTranscript() {
@@ -431,14 +474,16 @@ class TerminalActivity : AppActivity() {
                 getString(R.string.terminal_wakelock)
             }
             add(Menu.NONE, 1, 1, wakeTitle)
-            add(Menu.NONE, 5, 2, R.string.terminal_paste)
-            add(Menu.NONE, 6, 3, "Copiar toda la pantalla")
-            add(Menu.NONE, 7, 4, "Limpiar pantalla (clear)")
-            add(Menu.NONE, 8, 5, "Cambiar a Root (su)")
-            add(Menu.NONE, 9, 6, "Nueva sesión limpia")
-            add(Menu.NONE, 3, 7, R.string.terminal_reset)
-            add(Menu.NONE, 4, 8, R.string.terminal_preferences)
-            add(Menu.NONE, 2, 9, R.string.terminal_close)
+            add(Menu.NONE, 10, 2, R.string.script_menu_keep_background)
+            add(Menu.NONE, 11, 3, R.string.script_menu_terminate)
+            add(Menu.NONE, 5, 4, R.string.terminal_paste)
+            add(Menu.NONE, 6, 5, "Copiar toda la pantalla")
+            add(Menu.NONE, 7, 6, "Limpiar pantalla (clear)")
+            add(Menu.NONE, 8, 7, "Cambiar a Root (su)")
+            add(Menu.NONE, 9, 8, "Nueva sesión limpia")
+            add(Menu.NONE, 3, 9, R.string.terminal_reset)
+            add(Menu.NONE, 4, 10, R.string.terminal_preferences)
+            add(Menu.NONE, 2, 11, R.string.terminal_close)
         }
 
         popup.setOnMenuItemClickListener { item ->
@@ -484,6 +529,18 @@ class TerminalActivity : AppActivity() {
                 9 -> {
                     startTerminalSession()
                     Toast.makeText(this, "Nueva sesión iniciada", Toast.LENGTH_SHORT).show()
+                    true
+                }
+                10 -> {
+                    ScriptExecutionManager.keepInBackground(this)
+                    Toast.makeText(this, R.string.script_exec_kept_toast, Toast.LENGTH_SHORT).show()
+                    moveTaskToBack(true)
+                    true
+                }
+                11 -> {
+                    ScriptExecutionManager.terminateShell(this)
+                    Toast.makeText(this, "Proceso terminado", Toast.LENGTH_SHORT).show()
+                    finish()
                     true
                 }
                 else -> false
@@ -539,6 +596,11 @@ class TerminalActivity : AppActivity() {
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
-        terminalSession?.finishIfRunning()
+        if (terminalSession?.isRunning == true) {
+            Toast.makeText(this, R.string.script_exec_running_background_toast, Toast.LENGTH_SHORT).show()
+        } else {
+            ScriptExecutionManager.clearSession()
+            ScriptExecutionService.stop(this)
+        }
     }
 }

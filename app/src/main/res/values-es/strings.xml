@@ -1402,4 +1402,30 @@
     <string name="apktool_error_title">Error de Apktool</string>
     <string name="settings_show_hidden_files_title">Mostrar archivos y directorios ocultos</string>
     <string name="settings_show_hidden_files_summary">Mostrar carpetas y archivos cuyos nombres comienzan con un punto (.)</string>
+
+    <!-- Script & Shell Background Execution -->
+    <string name="notification_channel_script_execution_name">Ejecución de Scripts y Shell</string>
+    <string name="notification_channel_script_execution_description">Muestra y controla sesiones de scripts y shell en segundo plano</string>
+    <string name="script_exec_notification_running">Ejecutando script: %1$s</string>
+    <string name="script_exec_notification_shell">Shell en segundo plano</string>
+    <string name="script_exec_notification_kill_action">Cerrar Shell</string>
+    <string name="script_exec_notification_keep_background">Dejar en 2ndo plano</string>
+    <string name="script_exec_notification_open_terminal">Abrir Terminal</string>
+    <string name="script_exec_notification_view_output">Ver Salida</string>
+    <string name="script_exec_notification_dismiss">Descartar</string>
+    <string name="script_exec_killed_toast">Shell terminada (PID %1$d)</string>
+    <string name="script_exec_kept_toast">Script activo en segundo plano (WakeLock activado)</string>
+    <string name="script_exec_running_background_toast">El script continúa en segundo plano. Puedes cerrarlo o mantenerlo desde notificaciones.</string>
+    <string name="script_exec_completed_success">Script finalizado exitosamente (código 0)</string>
+    <string name="script_exec_completed_error">Script finalizado con código %1$d</string>
+    <string name="script_exec_empty_file_error">No se puede ejecutar un script o binario vacío (0 bytes).</string>
+    <string name="script_exec_incompatible_abi_title">Arquitectura de binario incompatible</string>
+    <string name="script_exec_incompatible_abi_message">El binario está compilado para %1$s, pero este dispositivo únicamente admite %2$s. Ejecutarlo fallará con \"Exec format error\".</string>
+    <string name="script_exec_incompatible_abi_proceed">Intentar de todos modos</string>
+    <string name="script_exec_conflict_title">Script ya en ejecución</string>
+    <string name="script_exec_conflict_message">Ya hay un script o sesión de shell activa en segundo plano: \"%1$s\" (PID: %2$d).\n\n¿Qué deseas hacer?</string>
+    <string name="script_exec_conflict_view_existing">Ver Terminal Actual</string>
+    <string name="script_exec_conflict_kill_and_run">Cerrar Anterior y Ejecutar Nuevo</string>
+    <string name="script_menu_keep_background">Dejar en segundo plano</string>
+    <string name="script_menu_terminate">Terminar proceso (SIGKILL)</string>
 </resources>
