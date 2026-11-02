@@ -163,9 +163,17 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG dirtyflag_dialog" \
     "23_dirtyflag_protection_dialog.png" "DirtyFlag Protection Warning Dialog"
 
-# 24. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
+# 24. Dead Man Protected Rules Dialog (Categorized system partition wipe guards)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG deadman_rules" \
+    "24_deadman_protected_rules.png" "Dead Man Protected Rules Dialog"
+
+# 25. Dead Man Protection Warning Dialog (5-second countdown & skull alert)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG deadman_dialog" \
+    "25_deadman_protection_dialog.png" "Dead Man Protection Warning Dialog"
+
+# 26. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
 echo "=========================================================="
-echo ">>> 24. Testing Native C / C++ ImGui & Low-Level Syscalls..."
+echo ">>> 26. Testing Native C / C++ ImGui & Low-Level Syscalls..."
 echo "=========================================================="
 if [ -f "TestCompiledScript/run_emulator_test.sh" ]; then
     chmod +x TestCompiledScript/run_emulator_test.sh
@@ -197,6 +205,6 @@ if [ -n "$CRASHES" ]; then
 fi
 
 echo "=========================================================="
-echo "   All 23 Section Screenshots Captured & Verified!       "
+echo "   All 25 Section Screenshots Captured & Verified!       "
 echo "=========================================================="
 ls -la screenshots/

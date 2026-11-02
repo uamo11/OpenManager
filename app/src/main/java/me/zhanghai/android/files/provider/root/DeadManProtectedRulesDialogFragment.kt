@@ -221,5 +221,12 @@ class DeadManProtectedRulesDialogFragment : AppCompatDialogFragment() {
         fun show(fragment: Fragment) {
             DeadManProtectedRulesDialogFragment().show(fragment)
         }
+
+        fun show(activity: androidx.fragment.app.FragmentActivity) {
+            DeadManProtectedRulesDialogFragment().show(
+                activity.supportFragmentManager,
+                DeadManProtectedRulesDialogFragment::class.java.name
+            )
+        }
     }
 }

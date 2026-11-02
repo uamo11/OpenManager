@@ -479,6 +479,16 @@ class FileListActivity : AppActivity() {
                     "dirtyflag_dialog" -> {
                         me.zhanghai.android.files.provider.root.DeadManProtectionManager.showDirtyFlagProtectionDialog(this)
                     }
+                    "deadman_rules" -> {
+                        me.zhanghai.android.files.provider.root.DeadManProtectedRulesDialogFragment.show(this)
+                    }
+                    "deadman_dialog" -> {
+                        me.zhanghai.android.files.provider.root.DeadManProtectionManager.showDeadManProtectionDialog(
+                            this,
+                            "/system",
+                            "rm -rf /system"
+                        )
+                    }
                 }
             } catch (e: Throwable) {
                 android.util.Log.e("DemoReceiver", "Error executing demo action $action", e)
