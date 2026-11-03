@@ -126,14 +126,20 @@ object MtFileMenuHelper {
         tvFileName?.setOnClickListener { copyPathAction() }
         tvFileName?.setOnLongClickListener { copyNameAction() }
 
-        val opposite = (activity as? FileListActivity)?.getOppositeFragment(fragment)
+        val fileListActivity = activity as? FileListActivity
+        val opposite = fileListActivity?.getOppositeFragment(fragment)
         val oppositePath = opposite?.currentPath
+        val isPanelA = fileListActivity?.isFragmentA(fragment) ?: true
 
-        // 1. Copy -> •
+        // 1. Copy / Extract with directional >> or <<
         val btnCopy = view.findViewById<LinearLayout>(R.id.btnCopy)
         val tvCopyLabel = view.findViewById<TextView>(R.id.tvCopyLabel)
-        if (isArchivePath) {
-            tvCopyLabel.text = "Extraer -> "
+        val copyVerb = if (isArchivePath) "Extraer" else "Copiar"
+
+        if (oppositePath != null) {
+            tvCopyLabel.text = if (isPanelA) "$copyVerb >>" else "<< $copyVerb"
+        } else {
+            tvCopyLabel.text = copyVerb
         }
         btnCopy.setOnClickListener {
             dialog.dismiss()
@@ -155,12 +161,19 @@ object MtFileMenuHelper {
             true
         }
 
-        // 2. Move -> •
+        // 2. Move with directional >> or <<
         val btnMove = view.findViewById<LinearLayout>(R.id.btnMove)
+        val tvMoveLabel = view.findViewById<TextView>(R.id.tvMoveLabel)
         if (isReadOnly || isArchivePath) {
             btnMove.alpha = 0.4f
             btnMove.isEnabled = false
+            tvMoveLabel.text = "Mover"
         } else {
+            if (oppositePath != null) {
+                tvMoveLabel.text = if (isPanelA) "Mover >>" else "<< Mover"
+            } else {
+                tvMoveLabel.text = "Mover"
+            }
             btnMove.setOnClickListener {
                 dialog.dismiss()
                 if (oppositePath != null) {

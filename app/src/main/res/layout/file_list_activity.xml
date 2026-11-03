@@ -192,7 +192,7 @@
                     app:tint="@android:color/white" />
             </LinearLayout>
 
-            <!-- Selection Mode: 5 Icon Buttons: [1. Seleccionar Todo] [2. Desmarcar (X en cuadro)] [3. Invertir Selección] [4. Copiar al panel opuesto] [5. Más acciones / Borrar] -->
+            <!-- Selection Mode: [Todo] [Copiar >>] [Mover >>] [Borrar] [Más...] (MT Manager style) -->
             <LinearLayout
                 android:id="@+id/bottomBarSelection"
                 android:layout_width="match_parent"
@@ -201,55 +201,95 @@
                 android:gravity="center_vertical"
                 android:visibility="gone">
 
-                <ImageButton
+                <TextView
                     android:id="@+id/btnSelectAll"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/select_all_icon_white_24dp"
-                    android:contentDescription="Seleccionar todo"
-                    app:tint="@android:color/white" />
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Todo"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
 
-                <ImageButton
-                    android:id="@+id/btnClearSelection"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_mt_deselect_all_24dp"
-                    android:contentDescription="Desmarcar selección"
-                    app:tint="@android:color/white" />
-
-                <ImageButton
-                    android:id="@+id/btnInvertSelection"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/ic_mt_invert_selection_24dp"
-                    android:contentDescription="Invertir selección"
-                    app:tint="@android:color/white" />
-
-                <ImageButton
+                <TextView
                     android:id="@+id/btnCopyOpposite"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/copy_icon_control_normal_24dp"
-                    android:contentDescription="Copiar al panel opuesto"
-                    app:tint="#42A5F5" />
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Copiar >>"
+                    android:textColor="#42A5F5"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
 
-                <ImageButton
+                <TextView
+                    android:id="@+id/btnMoveOpposite"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Mover >>"
+                    android:textColor="#42A5F5"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnDeleteSelection"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Borrar"
+                    android:textColor="#EF5350"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
                     android:id="@+id/btnMoreSelection"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/more_vertical_icon_white_24dp"
-                    android:contentDescription="Más acciones de selección"
-                    app:tint="@android:color/white" />
+                    android:gravity="center"
+                    android:background="?selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:paddingLeft="2dp"
+                    android:paddingRight="2dp"
+                    android:text="Más..."
+                    android:textColor="#FFFFFF"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 

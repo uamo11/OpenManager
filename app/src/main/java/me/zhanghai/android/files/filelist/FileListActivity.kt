@@ -59,6 +59,7 @@ import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.running.RunningAppsActivity
 import me.zhanghai.android.files.file.MimeType
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.ftpserver.FtpServerService
@@ -109,11 +110,11 @@ class FileListActivity : AppActivity() {
     private lateinit var btnBottomSwap: ImageButton
     private lateinit var btnBottomUp: ImageButton
 
-    private lateinit var btnSelectAll: ImageButton
-    private lateinit var btnClearSelection: ImageButton
-    private lateinit var btnInvertSelection: ImageButton
-    private lateinit var btnCopyOpposite: ImageButton
-    private lateinit var btnMoreSelection: ImageButton
+    private lateinit var btnSelectAll: TextView
+    private lateinit var btnCopyOpposite: TextView
+    private lateinit var btnMoveOpposite: TextView
+    private lateinit var btnDeleteSelection: TextView
+    private lateinit var btnMoreSelection: TextView
 
     private lateinit var progressRootStorage: ProgressBar
     private lateinit var tvRootStorageStats: TextView
@@ -134,6 +135,9 @@ class FileListActivity : AppActivity() {
 
     fun getOppositeFragment(fragment: FileListFragment): FileListFragment =
         if (fragment == fragmentA) fragmentB else fragmentA
+
+    fun isFragmentA(fragment: FileListFragment): Boolean =
+        (::fragmentA.isInitialized && fragment === fragmentA)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -207,9 +211,9 @@ class FileListActivity : AppActivity() {
         btnBottomUp = findViewById(R.id.btnBottomUp)
 
         btnSelectAll = findViewById(R.id.btnSelectAll)
-        btnClearSelection = findViewById(R.id.btnClearSelection)
-        btnInvertSelection = findViewById(R.id.btnInvertSelection)
         btnCopyOpposite = findViewById(R.id.btnCopyOpposite)
+        btnMoveOpposite = findViewById(R.id.btnMoveOpposite)
+        btnDeleteSelection = findViewById(R.id.btnDeleteSelection)
         btnMoreSelection = findViewById(R.id.btnMoreSelection)
 
         if (savedInstanceState == null) {
@@ -1167,7 +1171,7 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        // Selection Mode: 5 Icon Buttons: [1. Seleccionar Todo] [2. Desmarcar (X en cuadro)] [3. Invertir Selección] [4. Copiar/Mover al panel opuesto] [5. Más acciones]
+        // Selection Mode: 5 Text Columns (MT Manager Style)
         btnSelectAll.setOnClickListener {
             val totalSelectable = activeFragment.selectableItemCount
             val currentSelected = activeFragment.selectedFiles.size
@@ -1177,13 +1181,9 @@ class FileListActivity : AppActivity() {
                 activeFragment.selectAllFiles()
             }
         }
-
-        btnClearSelection.setOnClickListener {
-            activeFragment.clearSelectedFiles()
-        }
-
-        btnInvertSelection.setOnClickListener {
+        btnSelectAll.setOnLongClickListener {
             activeFragment.invertSelection()
+            true
         }
 
         btnCopyOpposite.setOnClickListener {
@@ -1198,17 +1198,26 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        btnCopyOpposite.setOnLongClickListener {
+        btnMoveOpposite.setOnClickListener {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
                 if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
                     Toast.makeText(this, "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
-                    return@setOnLongClickListener true
+                    return@setOnClickListener
                 }
                 activeFragment.moveFilesTo(selected, opposite.currentPath)
             }
-            true
+        }
+
+        btnDeleteSelection.setOnClickListener {
+            if (activeFragment.selectedFiles.isNotEmpty()) {
+                if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
+                    Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                } else {
+                    activeFragment.deleteSelectedFiles()
+                }
+            }
         }
 
         btnMoreSelection.setOnClickListener { view ->
@@ -1219,9 +1228,32 @@ class FileListActivity : AppActivity() {
     private fun updateSelectionButtons(count: Int) {
         val totalSelectable = activeFragment.selectableItemCount
         val allSelected = count > 0 && count >= totalSelectable && totalSelectable > 0
-        btnSelectAll.imageTintList = android.content.res.ColorStateList.valueOf(
-            if (allSelected) android.graphics.Color.parseColor("#42A5F5") else android.graphics.Color.WHITE
-        )
+        btnSelectAll.text = if (allSelected) {
+            "Desmarcar"
+        } else if (count > 0) {
+            "Todo ($count)"
+        } else {
+            "Todo"
+        }
+        btnSelectAll.setTextColor(if (allSelected) android.graphics.Color.parseColor("#42A5F5") else android.graphics.Color.WHITE)
+
+        val isPanelA = (activePanelIndex == 0)
+        val isArchive = activeFragment.currentPath.isArchivePath
+        val copyVerb = if (isArchive) "Extraer" else "Copiar"
+
+        if (isPanelA) {
+            btnCopyOpposite.text = "$copyVerb >>"
+            btnMoveOpposite.text = "Mover >>"
+        } else {
+            btnCopyOpposite.text = "<< $copyVerb"
+            btnMoveOpposite.text = "<< Mover"
+        }
+
+        val isReadOnly = !activeFragment.canWriteTo(activeFragment.currentPath)
+        val moveDisabled = isArchive || isReadOnly
+        btnMoveOpposite.alpha = if (moveDisabled) 0.4f else 1.0f
+        btnMoveOpposite.isEnabled = !moveDisabled
+
         val disk = getDiskStats()
         tvStatsSubtitle.text = if (disk.isNotEmpty()) {
             "Seleccionados: $count / $totalSelectable  $disk"
@@ -1763,7 +1795,7 @@ class FileListActivity : AppActivity() {
     private fun showMoreSelectionMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         val isPanelA = (activePanelIndex == 0)
-        val moveLabel = if (isPanelA) "Mover al panel derecho ➔" else "⬅ Mover al panel izquierdo"
+        val moveLabel = if (isPanelA) "Mover >>" else "<< Mover"
         popup.menu.apply {
             add(0, 10, 0, moveLabel)
             add(0, 11, 0, getString(R.string.delete))

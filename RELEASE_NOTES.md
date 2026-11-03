@@ -1,33 +1,35 @@
-# OpenManager v1.9.40: Terminal Deletion Fix & High-Performance Explorer
+# OpenManager v1.9.41: Dynamic Directional Action Indicators (>> / <<) & MT-Style Selection Bar
 
-### ⚡ Corrección Definitiva: Borrado de Scripts en Terminal (`rm: Permission denied`)
-- **Resolución de Conflicto en `$PATH`**:
-  - Se corrigió el orden de búsqueda en el `$PATH` del terminal (`$EXTENDED_SYSTEM_PATH` ahora precede a `${binDir}`).
-  - Esto garantiza que comandos fundamentales como `rm`, `rmdir`, `ls`, `mkdir`, `cp` se resuelvan siempre al binario nativo del sistema en `/system/bin/`, eliminando por completo el fallo `Permission denied` causado por restricciones SELinux W^X en Android 10+ (`app_data_file`).
-- **Purgado Profundo de Shims Residuales**:
-  - Detección y eliminación garantizada de scripts shim antiguos (`rm`, `rmdir`, `om_tracer`) en `context.filesDir/bin`.
-  - Renombrado atómico y limpieza forzada por Root (si está disponible) para asegurar que ningún archivo huérfano intercepte las llamadas.
-- **Funciones Interceptoras Robustas en `om_shell_rc.sh`**:
-  - Los interceptores shell de `rm()` y `rmdir()` ahora invocan directamente `/system/bin/rm` y `/system/bin/rmdir` en lugar de delegar en búsqueda ambigua de `$PATH`.
-
----
-
-### 🚀 Optimización Extrema de Rendimiento y Estabilidad del Explorador
-- **Caché de Syscall `StatFs` en Hilo Principal**:
-  - `FileListActivity.kt` ahora almacena en caché las estadísticas de almacenamiento libre/total con un TTL de 4 segundos.
-  - Se eliminan las llamadas bloqueantes a `StatFs` en el hilo UI durante eventos de selección rápida por deslizamiento (*swipe selection*) y navegación de pestañas duales, asegurando 120 FPS sin caídas de frames.
-- **Eliminación de Parpadeos y Reconstrucción de Vistas en `ListDiffer`**:
-  - Se incrementó el umbral de cálculo de diferencias a 1.000 elementos.
-  - Se reemplazó el vaciado forzado (`onRemoved` + `onInserted`) por actualizaciones inteligentes en el lugar (`onChanged`) y deltas diferenciales, evitando que el RecyclerView destruya y recree los ViewHolders en carpetas con muchos archivos (Descargas, DCIM, Sistema).
-- **Ordenación Fluida de Archivos**:
-  - Se eliminó el reseteo innecesario con lista vacía (`replace(..., clear=true)`) al alternar criterios de ordenación en `FileListAdapter.kt`.
+### 🎯 Flechas Dinámicas de Destino (`>>` y `<<`) en Mover y Copiar
+- **Orientación según el Panel Activo**:
+  - Al seleccionar uno o varios archivos, los botones de **Copiar** y **Mover** adaptan automáticamente la posición de sus indicadores de dirección según el panel donde te encuentres:
+    - **Panel Izquierdo (A)**: Las flechas apuntan hacia el panel derecho de destino:
+      `Copiar >>` (o `Extraer >>` en archivos comprimidos)
+      `Mover >>`
+    - **Panel Derecho (B)**: Las flechas apuntan hacia el panel izquierdo de destino:
+      `<< Copiar` (o `<< Extraer` en archivos comprimidos)
+      `<< Mover`
+  - Se eliminó la orientación fija exclusivamente a la derecha (`➔` o `->`), reflejando con exactitud la dirección real de la transferencia entre paneles duales idéntico a MT Manager.
 
 ---
 
-### 🛡️ Seguridad Previa (v1.9.39)
-- Mitigaciones contra desbordamiento de búfer en encabezados TAR PAX (CVE-2026-15028) y doble liberación en RAR5 (CVE-2026-14164) en `libarchive`.
+### 📱 Barra Inferior de Selección MT Manager (5 Columnas)
+- **Rediseño Completo de `bottomBarSelection`**:
+  - **Columna 1: `Todo` / `Desmarcar`**: Muestra `Todo ($count)` al seleccionar archivos, o `Desmarcar` cuando todos los elementos del directorio están marcados. Pulsación corta para alternar selección completa; pulsación larga para invertir selección.
+  - **Columna 2: `Copiar >>` / `<< Copiar`**: Copia o extrae al panel opuesto según la dirección activa.
+  - **Columna 3: `Mover >>` / `<< Mover`**: Mueve los archivos al panel opuesto. Se desactiva y atenúa de forma reactiva si el origen es de solo lectura o un archivo ZIP/APK comprimido.
+  - **Columna 4: `Borrar`**: Acceso directo para eliminar los archivos seleccionados con diálogo de confirmación.
+  - **Columna 5: `Más...`**: Menú contextual con acciones avanzadas (`Invertir selección`, `Desmarcar todo`, `Renombrar`, `Propiedades`, `Intercambiar nombres`, `Comprimir a ZIP`, `Compartir`, `Exportar lista...`).
 
 ---
 
-### 🧪 Suite de Pruebas
-- 161 pruebas unitarias aprobadas (100% éxito) en la suite de pruebas automatizadas.
+### 📋 Menú Contextual de Archivo MT (`dialog_mt_file_menu.xml`)
+- Actualizadas las etiquetas de acción de la primera fila en el menú emergente:
+  - Muestra `Copiar >>` / `Mover >>` cuando se abre desde el panel izquierdo.
+  - Muestra `<< Copiar` / `<< Mover` cuando se abre desde el panel derecho.
+  - Elimina el punto redundante (`•`) para garantizar legibilidad limpia y sin truncamiento en cualquier resolución.
+
+---
+
+### 🧪 Pruebas Automatizadas
+- Nueva suite unitaria `DirectionalActionLogicTest.kt` validando la lógica direccional de etiquetas y alternancia de selección completa.
