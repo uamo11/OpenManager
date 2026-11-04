@@ -89,7 +89,7 @@ object ScriptRunnerHelper {
             if (Regex("""\b(rm|rmdir|unlink|truncate|shred|wipe)\b""").containsMatchIn(line)) {
                 deletions.add("Línea $lineNum: $line")
             }
-            if (Regex("""\b(dd\s+if=|mkfs|fdisk|sfdisk|blkdiscard)\b""").containsMatchIn(line)) {
+            if (Regex("""\bdd\s+if=|\b(mkfs|fdisk|sfdisk|blkdiscard)\b""").containsMatchIn(line)) {
                 deletions.add("Línea $lineNum (formateo/bloque): $line")
             }
 
