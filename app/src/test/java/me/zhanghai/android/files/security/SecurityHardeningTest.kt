@@ -204,4 +204,56 @@ class SecurityHardeningTest {
         assertFalse("Manifest must not declare global usesCleartextTraffic=true",
             manifestContent.contains("android:usesCleartextTraffic=\"true\""))
     }
+
+    @Test
+    fun testHiddenApiExemptionsAreNarrowedAndHardened() {
+        val jniFile = File("src/main/jni/hiddenapi.c")
+        assertTrue("hiddenapi.c must exist in JNI sources", jniFile.exists())
+        val cSource = jniFile.readText()
+
+        // Verify that global wildcard exemptions ("" or "L") are eliminated
+        assertFalse(
+            "hiddenapi.c must not use empty string \"\" as global wildcard exemption",
+            cSource.contains("NewStringUTF(env, \"\")")
+        )
+        assertFalse(
+            "hiddenapi.c must not use single \"L\" as global wildcard exemption",
+            cSource.contains("NewStringUTF(env, \"L\")")
+        )
+
+        // Verify targeted allowlist is defined
+        assertTrue(
+            "hiddenapi.c must define EXEMPTION_PREFIXES allowlist array",
+            cSource.contains("EXEMPTION_PREFIXES")
+        )
+
+        // Verify required system classes for OpenManager operations are properly exempted
+        val requiredClasses = listOf(
+            "Landroid/app/ActivityManager;",
+            "Landroid/app/ActivityThread;",
+            "Landroid/content/Context;",
+            "Landroid/content/pm/ApplicationInfo;",
+            "Landroid/os/Parcel;",
+            "Landroid/os/SELinux;",
+            "Landroid/os/storage/StorageManager;",
+            "Landroid/os/storage/StorageVolume;",
+            "Landroid/provider/MediaStore;",
+            "Landroid/service/quicksettings/TileService;",
+            "Landroid/system/ErrnoException;",
+            "Landroid/view/ViewGroup;",
+            "Landroid/widget/TextView;",
+            "Ljava/nio/NioUtils;",
+            "Lsun/nio/ch/FileChannelImpl;"
+        )
+
+        for (sig in requiredClasses) {
+            assertTrue("hiddenapi.c must exempt required class signature: $sig", cSource.contains(sig))
+        }
+
+        // Verify exception safety check is present
+        assertTrue(
+            "hiddenapi.c must clear exceptions if runtime throws during exemption setup",
+            cSource.contains("ExceptionCheck") && cSource.contains("ExceptionClear")
+        )
+    }
 }
