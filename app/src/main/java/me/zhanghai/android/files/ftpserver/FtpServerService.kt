@@ -92,18 +92,25 @@ class FtpServerService : Service() {
         if (server != null) {
             return
         }
-        val username: String?
+        val isAnonymous = Settings.FTP_SERVER_ANONYMOUS_LOGIN.valueCompat
+        val username: String
         val password: String?
-        if (Settings.FTP_SERVER_ANONYMOUS_LOGIN.valueCompat) {
+        if (isAnonymous) {
             username = USERNAME_ANONYMOUS
             password = null
         } else {
-            username = Settings.FTP_SERVER_USERNAME.valueCompat
-            password = Settings.FTP_SERVER_PASSWORD.valueCompat
+            val configuredUsername = Settings.FTP_SERVER_USERNAME.valueCompat.trim()
+            username = if (configuredUsername.isNotEmpty()) configuredUsername else "admin"
+            var configuredPassword = Settings.FTP_SERVER_PASSWORD.valueCompat
+            if (configuredPassword.isEmpty()) {
+                configuredPassword = generateRandomPassword()
+                Settings.FTP_SERVER_PASSWORD.putValue(configuredPassword)
+            }
+            password = configuredPassword
         }
         val port = Settings.FTP_SERVER_PORT.valueCompat
         val homeDirectory = Settings.FTP_SERVER_HOME_DIRECTORY.valueCompat
-        val writable = Settings.FTP_SERVER_WRITABLE.valueCompat
+        val writable = Settings.FTP_SERVER_WRITABLE.valueCompat && !isAnonymous
         val server = FtpServer(username, password, port, homeDirectory, writable)
         this.server = server
         try {
@@ -127,6 +134,17 @@ class FtpServerService : Service() {
 
     companion object {
         const val USERNAME_ANONYMOUS = "anonymous"
+
+        private val PASSWORD_CHARS = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".toCharArray()
+
+        fun generateRandomPassword(length: Int = 8): String {
+            val random = java.security.SecureRandom()
+            val chars = CharArray(length)
+            for (i in 0 until length) {
+                chars[i] = PASSWORD_CHARS[random.nextInt(PASSWORD_CHARS.size)]
+            }
+            return String(chars)
+        }
 
         private val _stateLiveData = MutableLiveData(State.STOPPED)
         val stateLiveData: LiveData<State>

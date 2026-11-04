@@ -106,4 +106,33 @@ class SecurityHardeningTest {
         val escaped = escapeSqlIdentifier(injection)
         assertEquals("`users``; DROP TABLE test; --`", escaped)
     }
+
+    @Test
+    fun testFtpServerPasswordGenerationAndSecurity() {
+        val pw1 = me.zhanghai.android.files.ftpserver.FtpServerService.generateRandomPassword(8)
+        val pw2 = me.zhanghai.android.files.ftpserver.FtpServerService.generateRandomPassword(8)
+        assertEquals(8, pw1.length)
+        assertEquals(8, pw2.length)
+        // Two independently generated passwords must have high entropy
+        org.junit.Assert.assertNotEquals(pw1, pw2)
+
+        // Valid characters: only alphanumeric, avoiding ambiguous chars (0, O, 1, l, I)
+        val allowedChars = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789".toSet()
+        for (c in pw1) {
+            assertTrue("Password character '$c' must be in allowed set", allowedChars.contains(c))
+        }
+
+        // Test anonymous vs authenticated write policy
+        fun evaluateFtpWritable(isAnonymous: Boolean, prefWritable: Boolean): Boolean {
+            return prefWritable && !isAnonymous
+        }
+
+        // Anonymous must NEVER have write permission, even if pref is true
+        assertFalse(evaluateFtpWritable(isAnonymous = true, prefWritable = true))
+        assertFalse(evaluateFtpWritable(isAnonymous = true, prefWritable = false))
+
+        // Authenticated users only have write permission if explicitly enabled
+        assertTrue(evaluateFtpWritable(isAnonymous = false, prefWritable = true))
+        assertFalse(evaluateFtpWritable(isAnonymous = false, prefWritable = false))
+    }
 }

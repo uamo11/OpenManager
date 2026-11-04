@@ -59,6 +59,7 @@
         <SwitchPreferenceCompat
             android:key="@string/pref_key_ftp_server_writable"
             android:title="@string/ftp_server_writable_title"
-            android:defaultValue="@bool/pref_default_value_ftp_server_writable" />
+            android:defaultValue="@bool/pref_default_value_ftp_server_writable"
+            android:dependency="@string/pref_key_ftp_server_anonymous_login" />
     </PreferenceCategory>
 </PreferenceScreen>

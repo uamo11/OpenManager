@@ -34,13 +34,14 @@ class FtpServer(
                 val user = BaseUser().apply {
                     name = username
                     password = this@FtpServer.password
-                    authorities = if (writable) listOf(WritePermission()) else emptyList()
+                    val isAnonymous = username == FtpServerService.USERNAME_ANONYMOUS
+                    authorities = if (writable && !isAnonymous) listOf(WritePermission()) else emptyList()
                     homeDirectory = this@FtpServer.homeDirectory.toUri().toString()
                 }
                 userManager.save(user)
                 fileSystem = ProviderFileSystemFactory()
                 connectionConfig = ConnectionConfigFactory()
-                    .apply { isAnonymousLoginEnabled = true }
+                    .apply { isAnonymousLoginEnabled = (username == FtpServerService.USERNAME_ANONYMOUS) }
                     .createConnectionConfig()
             }
             .createServer()
