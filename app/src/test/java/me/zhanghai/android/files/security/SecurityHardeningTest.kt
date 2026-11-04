@@ -138,23 +138,37 @@ class SecurityHardeningTest {
 
     @Test
     fun testMinaObjectSerializationDecoderNeutralizedForCve2024_52046() {
-        val decoder = org.apache.mina.filter.codec.serialization.ObjectSerializationDecoder()
-        assertEquals(1048576, decoder.maxObjectSize)
-
-        // Verify ObjectSerializationInputStream throws SecurityException on readObject
-        val dummyBytes = byteArrayOf(0xac.toByte(), 0xed.toByte(), 0x00, 0x05) // Java serialization magic
-        val ois = org.apache.mina.filter.codec.serialization.ObjectSerializationInputStream(
-            java.io.ByteArrayInputStream(dummyBytes)
-        )
-        try {
-            ois.readObject()
-            org.junit.Assert.fail("ObjectSerializationInputStream.readObject() must throw SecurityException")
-        } catch (e: SecurityException) {
-            assertTrue("Exception message must reference CVE-2024-52046: ${e.message}",
-                e.message?.contains("CVE-2024-52046") == true)
-        } finally {
-            ois.close()
+        // CVE-2024-52046: Ensure unsafe Java ObjectSerialization classes have been permanently
+        // eliminated from the MINA runtime and classpath.
+        val decoderAbsent = try {
+            Class.forName("org.apache.mina.filter.codec.serialization.ObjectSerializationDecoder")
+            false
+        } catch (e: ClassNotFoundException) {
+            true
+        } catch (e: NoClassDefFoundError) {
+            true
         }
+        assertTrue(
+            "ObjectSerializationDecoder must be permanently stripped from classpath",
+            decoderAbsent
+        )
+
+        val streamAbsent = try {
+            Class.forName("org.apache.mina.filter.codec.serialization.ObjectSerializationInputStream")
+            false
+        } catch (e: ClassNotFoundException) {
+            true
+        } catch (e: NoClassDefFoundError) {
+            true
+        }
+        assertTrue(
+            "ObjectSerializationInputStream must be permanently stripped from classpath",
+            streamAbsent
+        )
+
+        // Verify standard safe MINA networking classes remain functional
+        val sessionClass = Class.forName("org.apache.mina.core.session.IoSession")
+        assertTrue("IoSession must remain available for FTP operation", sessionClass.isInterface)
     }
 
     @Test

@@ -200,14 +200,13 @@ dependencies {
     implementation 'me.zhanghai.android.libselinux:library:2.1.1'
     implementation 'me.zhanghai.android.retrofile:library:1.2.0'
     implementation 'me.zhanghai.android.systemuihelper:library:1.0.0'
-    implementation 'org.apache.ftpserver:ftpserver-core:1.2.1'
-    // This is a dependency of org.apache.ftpserver:ftpserver-core but org.apache.mina:mina-core
-    // 2.1.4+ became incompatible before API 24 due to dependency on StandardSocketOptions
-    // (DIRMINA-1123) and NetworkChannel.supportedOptions() (DIRMINA-1130).
-    implementation ('org.apache.mina:mina-core') {
-        version {
-            strictly '2.1.3'
-        }
+    // CVE-2024-52046: ftpserver-core depends on mina-core. MINA 2.1.4+ is incompatible before
+    // API 24 (DIRMINA-1123, DIRMINA-1130), while standard 2.1.3 contains CVE-2024-52046 in
+    // ObjectSerializationDecoder. We exclude the transitive mina-core dependency and provide
+    // app/libs/mina-core-2.1.3-sanitized.jar where org.apache.mina.filter.codec.serialization.*
+    // has been permanently stripped, eliminating the RCE gadget while preserving API < 24 compatibility.
+    implementation ('org.apache.ftpserver:ftpserver-core:1.2.1') {
+        exclude group: 'org.apache.mina', module: 'mina-core'
     }
     // Also a dependency of jCIFS-NG.
     implementation 'org.slf4j:slf4j-android:1.7.36'
