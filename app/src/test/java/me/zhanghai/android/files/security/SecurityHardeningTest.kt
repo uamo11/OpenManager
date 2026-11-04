@@ -256,4 +256,28 @@ class SecurityHardeningTest {
             cSource.contains("ExceptionCheck") && cSource.contains("ExceptionClear")
         )
     }
+
+    @Test
+    fun testArchiveSecuritySanitizerConnectedToAllReadCallbacks() {
+        val readArchiveFile = File("src/main/java/me/zhanghai/android/files/provider/archive/archiver/ReadArchive.kt")
+        assertTrue("ReadArchive.kt must exist", readArchiveFile.exists())
+        val code = readArchiveFile.readText()
+
+        assertTrue(
+            "ReadArchive must instantiate StreamSanitizer",
+            code.contains("ArchiveSecuritySanitizer.StreamSanitizer()")
+        )
+        assertTrue(
+            "ReadArchive InputStream callback must call streamSanitizer.sanitizeChunk",
+            code.contains("streamSanitizer.sanitizeChunk")
+        )
+        assertTrue(
+            "ReadArchive SeekableByteChannel callback must call streamSanitizer.sanitizeDirectChunk",
+            code.contains("streamSanitizer.sanitizeDirectChunk")
+        )
+        assertTrue(
+            "ReadArchive seek callback must reset streamSanitizer state",
+            code.contains("streamSanitizer.reset()")
+        )
+    }
 }

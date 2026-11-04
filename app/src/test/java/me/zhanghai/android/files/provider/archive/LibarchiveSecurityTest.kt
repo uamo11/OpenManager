@@ -109,4 +109,59 @@ class LibarchiveSecurityTest {
         assertFalse("Valid pair is not malformed", ArchiveSecuritySanitizer.isMalformedSunHolesdata("0,1024"))
         assertFalse("Multiple valid pairs are not malformed", ArchiveSecuritySanitizer.isMalformedSunHolesdata("0,1024,2048,1024"))
     }
+
+    @Test
+    fun testCve2026_15028_streamSanitizer_handles_chunk_boundary_splits() {
+        // Test all possible split positions across chunk boundary from k = 1 to 12
+        for (k in 1..12) {
+            val sanitizer = ArchiveSecuritySanitizer.StreamSanitizer()
+            val chunk1Prefix = "30 path=test.txt\n45 "
+            val chunk2Suffix = "=0,1024,\n20 comment=malicious\n"
+
+            val split1 = ArchiveSecuritySanitizer.SUN_HOLESDATA_BYTES.copyOfRange(0, k)
+            val split2 = ArchiveSecuritySanitizer.SUN_HOLESDATA_BYTES.copyOfRange(k, ArchiveSecuritySanitizer.SUN_HOLESDATA_BYTES.size)
+
+            val chunk1 = (chunk1Prefix.toByteArray(StandardCharsets.US_ASCII) + split1)
+            val chunk2 = (split2 + chunk2Suffix.toByteArray(StandardCharsets.US_ASCII))
+
+            val count1 = sanitizer.sanitizeChunk(chunk1, 0, chunk1.size)
+            val count2 = sanitizer.sanitizeChunk(chunk2, 0, chunk2.size)
+
+            val reassembled = String(chunk1 + chunk2, StandardCharsets.US_ASCII)
+            assertFalse(
+                "Reassembled stream for split k=$k must NEVER contain SUN.holesdata",
+                reassembled.contains("SUN.holesdata")
+            )
+            assertTrue(
+                "Total sanitized count for split k=$k must be at least 1",
+                (count1 + count2) >= 1
+            )
+        }
+    }
+
+    @Test
+    fun testCve2026_15028_streamSanitizer_direct_chunk_boundary_split() {
+        val sanitizer = ArchiveSecuritySanitizer.StreamSanitizer()
+        val split1 = ArchiveSecuritySanitizer.SUN_HOLESDATA_BYTES.copyOfRange(0, 5) // "SUN.h"
+        val split2 = ArchiveSecuritySanitizer.SUN_HOLESDATA_BYTES.copyOfRange(5, 13) // "olesdata"
+
+        val buf1 = ByteBuffer.allocateDirect(split1.size)
+        buf1.put(split1)
+        buf1.flip()
+        sanitizer.sanitizeDirectChunk(buf1)
+
+        val buf2 = ByteBuffer.allocateDirect(split2.size + 10)
+        buf2.put(split2)
+        buf2.put("=0,1024,\n".toByteArray(StandardCharsets.US_ASCII))
+        buf2.flip()
+        sanitizer.sanitizeDirectChunk(buf2)
+
+        val out1 = ByteArray(buf1.remaining()).also { buf1.get(it) }
+        val out2 = ByteArray(buf2.remaining()).also { buf2.get(it) }
+        val reassembled = String(out1 + out2, StandardCharsets.US_ASCII)
+        assertFalse(
+            "Direct buffer reassembled stream must not contain SUN.holesdata",
+            reassembled.contains("SUN.holesdata")
+        )
+    }
 }

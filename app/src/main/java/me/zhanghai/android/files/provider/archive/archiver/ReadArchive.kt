@@ -28,6 +28,7 @@ import me.zhanghai.android.libarchive.ArchiveException
 
 class ReadArchive : Closeable {
     private val archive = Archive.readNew()
+    private val streamSanitizer = ArchiveSecuritySanitizer.StreamSanitizer()
 
     @Throws(ArchiveException::class)
     constructor(inputStream: InputStream, passwords: List<String>) {
@@ -46,7 +47,7 @@ class ReadArchive : Closeable {
                     throw e.toArchiveException("InputStream.read")
                 }
                 if (bytesRead != -1) {
-                    ArchiveSecuritySanitizer.sanitizeBuffer(buffer.array(), 0, bytesRead)
+                    streamSanitizer.sanitizeChunk(buffer.array(), 0, bytesRead)
                     buffer.limit(bytesRead)
                     buffer
                 } else {
@@ -90,7 +91,7 @@ class ReadArchive : Closeable {
                 }
                 if (bytesRead != -1) {
                     buffer.flip()
-                    ArchiveSecuritySanitizer.sanitizeDirectBuffer(buffer)
+                    streamSanitizer.sanitizeDirectChunk(buffer)
                     buffer
                 } else {
                     null
@@ -105,6 +106,7 @@ class ReadArchive : Closeable {
                 request
             }
             Archive.readSetSeekCallback<Any?>(archive) { _, _, offset, whence ->
+                streamSanitizer.reset()
                 val newPosition: Long
                 try {
                     newPosition = when (whence) {

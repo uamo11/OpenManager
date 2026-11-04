@@ -137,4 +137,138 @@ object ArchiveSecuritySanitizer {
         }
         return false
     }
+
+    /**
+     * Stateful streaming sanitizer that neutralizes "SUN.holesdata" across chunk boundaries.
+     * Prevents split-chunk evasion where "SUN.holesdata" straddles consecutive read callbacks.
+     */
+    class StreamSanitizer {
+        private val window = ByteArray(SUN_HOLESDATA_BYTES.size - 1)
+        private var windowLen = 0
+
+        fun reset() {
+            windowLen = 0
+        }
+
+        fun sanitizeChunk(buffer: ByteArray, offset: Int, length: Int): Int {
+            if (!ArchiveSecurityPreferences.isTarPaxSanitizationEnabled() || length <= 0) {
+                return 0
+            }
+            var count = 0
+
+            // 1. Check boundary straddle between previous chunk's trailing window and current chunk's start
+            if (windowLen > 0) {
+                val maxK = minOf(windowLen, SUN_HOLESDATA_BYTES.size - 1)
+                for (k in maxK downTo 1) {
+                    val remainingNeed = SUN_HOLESDATA_BYTES.size - k
+                    if (length >= remainingNeed) {
+                        var match = true
+                        for (idx in 0 until k) {
+                            if (window[windowLen - k + idx] != SUN_HOLESDATA_BYTES[idx]) {
+                                match = false
+                                break
+                            }
+                        }
+                        if (match) {
+                            for (idx in 0 until remainingNeed) {
+                                if (buffer[offset + idx] != SUN_HOLESDATA_BYTES[k + idx]) {
+                                    match = false
+                                    break
+                                }
+                            }
+                            if (match) {
+                                // Boundary match confirmed!
+                                for (idx in 0 until remainingNeed) {
+                                    val origPos = k + idx
+                                    if (origPos == 4) {
+                                        buffer[offset + idx] = 'x'.code.toByte()
+                                    } else if (k > 4 && idx == 0) {
+                                        buffer[offset + idx] = 'x'.code.toByte()
+                                    } else {
+                                        buffer[offset + idx] = NEUTRAL_HOLESDATA_BYTES[origPos]
+                                    }
+                                }
+                                count++
+                                ArchiveSecurityPreferences.recordCve2026_15028Blocked(1)
+                                logWarning("[CVE-2026-15028] Neutralized cross-boundary SUN.holesdata (split at $k/$remainingNeed bytes)")
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Sanitize internal occurrences within this chunk
+            count += sanitizeBuffer(buffer, offset, length)
+
+            // 3. Update window with trailing bytes
+            val saveLen = minOf(length, window.size)
+            System.arraycopy(buffer, offset + length - saveLen, window, 0, saveLen)
+            windowLen = saveLen
+
+            return count
+        }
+
+        fun sanitizeDirectChunk(buffer: ByteBuffer): Int {
+            if (!ArchiveSecurityPreferences.isTarPaxSanitizationEnabled() || !buffer.hasRemaining()) {
+                return 0
+            }
+            var count = 0
+            val pos = buffer.position()
+            val len = buffer.remaining()
+
+            // 1. Check boundary straddle
+            if (windowLen > 0) {
+                val maxK = minOf(windowLen, SUN_HOLESDATA_BYTES.size - 1)
+                for (k in maxK downTo 1) {
+                    val remainingNeed = SUN_HOLESDATA_BYTES.size - k
+                    if (len >= remainingNeed) {
+                        var match = true
+                        for (idx in 0 until k) {
+                            if (window[windowLen - k + idx] != SUN_HOLESDATA_BYTES[idx]) {
+                                match = false
+                                break
+                            }
+                        }
+                        if (match) {
+                            for (idx in 0 until remainingNeed) {
+                                if (buffer.get(pos + idx) != SUN_HOLESDATA_BYTES[k + idx]) {
+                                    match = false
+                                    break
+                                }
+                            }
+                            if (match) {
+                                for (idx in 0 until remainingNeed) {
+                                    val origPos = k + idx
+                                    if (origPos == 4) {
+                                        buffer.put(pos + idx, 'x'.code.toByte())
+                                    } else if (k > 4 && idx == 0) {
+                                        buffer.put(pos + idx, 'x'.code.toByte())
+                                    } else {
+                                        buffer.put(pos + idx, NEUTRAL_HOLESDATA_BYTES[origPos])
+                                    }
+                                }
+                                count++
+                                ArchiveSecurityPreferences.recordCve2026_15028Blocked(1)
+                                logWarning("[CVE-2026-15028] Neutralized cross-boundary SUN.holesdata in direct buffer (split at $k/$remainingNeed bytes)")
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Sanitize direct buffer internally
+            count += sanitizeDirectBuffer(buffer)
+
+            // 3. Save trailing bytes
+            val saveLen = minOf(len, window.size)
+            for (idx in 0 until saveLen) {
+                window[idx] = buffer.get(pos + len - saveLen + idx)
+            }
+            windowLen = saveLen
+
+            return count
+        }
+    }
 }
