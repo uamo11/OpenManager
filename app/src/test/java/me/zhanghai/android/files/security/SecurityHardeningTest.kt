@@ -135,4 +135,25 @@ class SecurityHardeningTest {
         assertTrue(evaluateFtpWritable(isAnonymous = false, prefWritable = true))
         assertFalse(evaluateFtpWritable(isAnonymous = false, prefWritable = false))
     }
+
+    @Test
+    fun testMinaObjectSerializationDecoderNeutralizedForCve2024_52046() {
+        val decoder = org.apache.mina.filter.codec.serialization.ObjectSerializationDecoder()
+        assertEquals(1048576, decoder.maxObjectSize)
+
+        // Verify ObjectSerializationInputStream throws SecurityException on readObject
+        val dummyBytes = byteArrayOf(0xac.toByte(), 0xed.toByte(), 0x00, 0x05) // Java serialization magic
+        val ois = org.apache.mina.filter.codec.serialization.ObjectSerializationInputStream(
+            java.io.ByteArrayInputStream(dummyBytes)
+        )
+        try {
+            ois.readObject()
+            org.junit.Assert.fail("ObjectSerializationInputStream.readObject() must throw SecurityException")
+        } catch (e: SecurityException) {
+            assertTrue("Exception message must reference CVE-2024-52046: ${e.message}",
+                e.message?.contains("CVE-2024-52046") == true)
+        } finally {
+            ois.close()
+        }
+    }
 }

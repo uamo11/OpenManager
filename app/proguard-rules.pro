@@ -55,3 +55,9 @@
 
 # SMBJ-RPC
 -dontwarn java.rmi.UnmarshalException
+
+# CVE-2024-52046: Prohibit and eliminate unsafe Java ObjectSerialization classes in MINA
+-dontwarn org.apache.mina.filter.codec.serialization.**
+-assumenosideeffects class org.apache.mina.filter.codec.serialization.** {
+    *;
+}
