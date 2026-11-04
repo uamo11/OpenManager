@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+
+<network-security-config
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="InsecureBaseConfiguration">
+
+    <!-- Base Configuration:
+         - Disallow cleartext HTTP traffic globally by default to prevent MitM on untrusted public networks.
+         - Trust only verified system CA certificates in production builds (protects against rogue user CA injection). -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Permit cleartext traffic strictly for local loopback and internal private intranet domains
+         commonly used for local LAN storage services (WebDAV, SMB, FTP). -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">local</domain>
+        <domain includeSubdomains="true">lan</domain>
+        <domain includeSubdomains="true">home</domain>
+        <domain includeSubdomains="true">internal</domain>
+        <domain includeSubdomains="true">intranet</domain>
+        <domain includeSubdomains="true">router</domain>
+    </domain-config>
+
+    <!-- Debug Overrides:
+         Allow user-installed certificates strictly in debug builds for development, testing, and proxy inspection. -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+</network-security-config>

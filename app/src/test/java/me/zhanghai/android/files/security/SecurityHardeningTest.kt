@@ -156,4 +156,38 @@ class SecurityHardeningTest {
             ois.close()
         }
     }
+
+    @Test
+    fun testNetworkSecurityConfigHardening() {
+        val xmlFile = File("src/main/res/xml/network_security_config.xml")
+        assertTrue("network_security_config.xml must exist at corrected path", xmlFile.exists())
+        val xmlContent = xmlFile.readText()
+
+        // Verify base-config disallows global cleartext
+        assertTrue("base-config must disallow cleartext traffic by default",
+            xmlContent.contains("<base-config cleartextTrafficPermitted=\"false\">"))
+
+        // Verify base-config only trusts system certificates (not user certificates in production)
+        val baseConfigSection = xmlContent.substringAfter("<base-config").substringBefore("</base-config>")
+        assertTrue("base-config must trust system certificates",
+            baseConfigSection.contains("<certificates src=\"system\""))
+        assertFalse("base-config must NOT trust user certificates in production",
+            baseConfigSection.contains("<certificates src=\"user\""))
+
+        // Verify debug-overrides encapsulates user certificates
+        assertTrue("debug-overrides must exist for development proxying",
+            xmlContent.contains("<debug-overrides>"))
+        val debugSection = xmlContent.substringAfter("<debug-overrides>").substringBefore("</debug-overrides>")
+        assertTrue("debug-overrides should contain user certificates",
+            debugSection.contains("<certificates src=\"user\""))
+
+        // Verify AndroidManifest.xml uses the corrected network security config and has no global cleartext attribute
+        val manifestFile = File("src/main/AndroidManifest.xml")
+        assertTrue("AndroidManifest.xml must exist", manifestFile.exists())
+        val manifestContent = manifestFile.readText()
+        assertTrue("Manifest must link network_security_config without typo",
+            manifestContent.contains("android:networkSecurityConfig=\"@xml/network_security_config\""))
+        assertFalse("Manifest must not declare global usesCleartextTraffic=true",
+            manifestContent.contains("android:usesCleartextTraffic=\"true\""))
+    }
 }
