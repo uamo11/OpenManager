@@ -1487,6 +1487,14 @@
     <string name="script_audit_btn_clear">Limpiar</string>
     <string name="script_audit_status_running">En ejecución</string>
     <string name="script_audit_status_finished">Terminado</string>
+    <string name="script_audit_static_card_title">Auditoría Estática de Código Fuente</string>
+    <string name="script_audit_static_clean_desc">Script verificado estáticamente: Sin llamadas de borrado ni accesos críticos de sistema detectados.</string>
+    <string name="script_audit_static_findings_desc">Se detectaron %1$d operaciones de seguridad: %2$d borrados, %3$d root, %4$d red, %5$d sistema.</string>
+    <string name="script_audit_btn_view_flagged_lines">Examinar Código y Líneas Advertidas</string>
+    <string name="script_audit_static_category_deletions">Borrado de Archivos y Directorios</string>
+    <string name="script_audit_static_category_root">Comandos de Superusuario / Root</string>
+    <string name="script_audit_static_category_network">Conexiones de Red Externas</string>
+    <string name="script_audit_static_category_system">Particiones Críticas de Sistema</string>
     <!-- Libarchive Security (CVE-2026-15028, CVE-2026-14164) -->
     <string name="settings_category_archive_security_title">Seguridad de Archivos y Protección CVE</string>
     <string name="settings_category_archive_security_summary">Protección activa ante vulnerabilidades de libarchive (CVE-2026-15028 y CVE-2026-14164)</string>

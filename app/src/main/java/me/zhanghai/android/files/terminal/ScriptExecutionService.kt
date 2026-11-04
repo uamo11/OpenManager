@@ -112,8 +112,14 @@ class ScriptExecutionService : Service() {
                 }
             }
             ACTION_FINISHED -> {
-                val exitCode = intent.getIntExtra(EXTRA_EXIT_CODE, ScriptExecutionManager.lastExitCode ?: 0)
-                handleFinished(exitCode)
+                if (ScriptExecutionManager.isTerminatedByUser) {
+                    NotificationManagerCompat.from(this).cancel(NotificationIds.SCRIPT_EXECUTION)
+                    stopForeground(true)
+                    stopSelf()
+                } else {
+                    val exitCode = intent.getIntExtra(EXTRA_EXIT_CODE, ScriptExecutionManager.lastExitCode ?: 0)
+                    handleFinished(exitCode)
+                }
             }
             ACTION_DISMISS -> {
                 NotificationManagerCompat.from(this).cancel(NotificationIds.SCRIPT_EXECUTION)
@@ -153,7 +159,7 @@ class ScriptExecutionService : Service() {
     }
 
     private fun handleFinished(exitCode: Int) {
-        if (!ScriptExecutionManager.isRunning() && ScriptExecutionManager.activePid <= 0 && exitCode == -9) {
+        if (ScriptExecutionManager.isTerminatedByUser || (!ScriptExecutionManager.isRunning() && ScriptExecutionManager.activePid <= 0 && exitCode == -9)) {
             NotificationManagerCompat.from(this).cancel(NotificationIds.SCRIPT_EXECUTION)
             stopForeground(true)
             stopSelf()

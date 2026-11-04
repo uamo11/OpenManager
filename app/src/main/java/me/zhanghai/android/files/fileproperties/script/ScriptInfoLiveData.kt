@@ -224,6 +224,19 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
                 "Shell nativo de Android (/system/bin/sh)"
         }
 
+        val auditReport = try {
+            path.newInputStream().use { stream ->
+                val buf = ByteArray(1024 * 1024) // 1MB max for static audit
+                val read = stream.read(buf)
+                if (read > 0) {
+                    val content = String(buf, 0, read, StandardCharsets.UTF_8)
+                    me.zhanghai.android.files.filelist.ScriptRunnerHelper.auditScriptText(content)
+                } else null
+            }
+        } catch (_: Throwable) {
+            null
+        }
+
         return ScriptInfo(
             scriptType = scriptType,
             shebang = shebang,
@@ -236,7 +249,8 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
             charset = "UTF-8",
             posixPermissions = permissionsFormatted,
             isExecutable = isExecutable,
-            recommendedEnvironment = recommendedEnvironment
+            recommendedEnvironment = recommendedEnvironment,
+            auditReport = auditReport
         )
     }
 }

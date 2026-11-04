@@ -1591,6 +1591,14 @@
     <string name="script_audit_btn_clear">Clear</string>
     <string name="script_audit_status_running">Running</string>
     <string name="script_audit_status_finished">Finished</string>
+    <string name="script_audit_static_card_title">Static Source Code Audit</string>
+    <string name="script_audit_static_clean_desc">Script statically verified: No deletion calls or critical system accesses detected.</string>
+    <string name="script_audit_static_findings_desc">Detected %1$d security operations: %2$d deletions, %3$d root, %4$d network, %5$d system.</string>
+    <string name="script_audit_btn_view_flagged_lines">Inspect Code &amp; Flagged Lines</string>
+    <string name="script_audit_static_category_deletions">File &amp; Directory Deletions</string>
+    <string name="script_audit_static_category_root">Superuser / Root Commands</string>
+    <string name="script_audit_static_category_network">External Network Connections</string>
+    <string name="script_audit_static_category_system">Critical System Partitions</string>
     <!-- Libarchive Security (CVE-2026-15028, CVE-2026-14164) -->
     <string name="settings_category_archive_security_title">Archive Security &amp; CVE Guard</string>
     <string name="settings_category_archive_security_summary">Protection against libarchive vulnerabilities (CVE-2026-15028 and CVE-2026-14164)</string>

@@ -28,6 +28,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.DialogScriptAuditBinding
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.filelist.ScriptRunnerHelper
 import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import java.io.File
 import java.text.SimpleDateFormat
@@ -63,6 +64,92 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
             binding.tvAuditStatusBadge.text = getString(R.string.script_audit_status_finished).uppercase(Locale.ROOT)
             binding.tvAuditStatusBadge.setTextColor(Color.parseColor("#B0BEC5"))
             binding.tvAuditStatusBadge.setBackgroundColor(Color.parseColor("#37474F"))
+        }
+
+        // Static Code Audit (when path points to a readable script file)
+        var staticAuditFindings = 0
+        var staticAuditSummary = ""
+        val staticAuditReport: ScriptRunnerHelper.ScriptAuditReport? = if (path.isNotEmpty()) {
+            val scriptFile = File(path)
+            if (scriptFile.isFile && scriptFile.canRead()) {
+                val scriptContent = runCatching { scriptFile.readText() }.getOrDefault("")
+                if (scriptContent.isNotEmpty()) {
+                    val report = ScriptRunnerHelper.auditScriptText(scriptContent)
+                    staticAuditFindings = report.totalFindings
+                    binding.cardStaticAudit.visibility = View.VISIBLE
+                    if (report.totalFindings > 0) {
+                        binding.tvStaticAuditBadge.text = "${report.totalFindings} RIESGOS"
+                        binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#EF5350"))
+                        binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#371B1B"))
+                        staticAuditSummary = "Total: ${report.totalFindings} riesgos (${report.deletions.size} borrados, ${report.rootCalls.size} root, ${report.networkCalls.size} red, ${report.systemPaths.size} sistema)"
+                        binding.tvStaticAuditDesc.text = getString(
+                            R.string.script_audit_static_findings_desc,
+                            report.totalFindings,
+                            report.deletions.size,
+                            report.rootCalls.size,
+                            report.networkCalls.size,
+                            report.systemPaths.size
+                        )
+
+                        binding.layoutStaticAuditCategories.removeAllViews()
+                        val addCat = { labelRes: Int, items: List<String>, colorHex: String, icon: String ->
+                            if (items.isNotEmpty()) {
+                                val tvCat = TextView(context).apply {
+                                    text = "$icon ${getString(labelRes)} (${items.size}):"
+                                    textSize = 11f
+                                    setTypeface(null, Typeface.BOLD)
+                                    setTextColor(Color.parseColor(colorHex))
+                                    setPadding(0, 4, 0, 1)
+                                }
+                                binding.layoutStaticAuditCategories.addView(tvCat)
+                                for (item in items.take(4)) {
+                                    val tvItem = TextView(context).apply {
+                                        text = "   $item"
+                                        textSize = 10f
+                                        setTypeface(Typeface.MONOSPACE)
+                                        setTextColor(Color.parseColor("#CFD8DC"))
+                                    }
+                                    binding.layoutStaticAuditCategories.addView(tvItem)
+                                }
+                                if (items.size > 4) {
+                                    val tvMore = TextView(context).apply {
+                                        text = "   ... y ${items.size - 4} más (ver en código)"
+                                        textSize = 10f
+                                        setTextColor(Color.parseColor("#90A4AE"))
+                                    }
+                                    binding.layoutStaticAuditCategories.addView(tvMore)
+                                }
+                            }
+                        }
+
+                        addCat(R.string.script_audit_static_category_deletions, report.deletions, "#EF5350", "🗑️")
+                        addCat(R.string.script_audit_static_category_root, report.rootCalls, "#FFD54F", "⚡")
+                        addCat(R.string.script_audit_static_category_network, report.networkCalls, "#80D8FF", "🌐")
+                        addCat(R.string.script_audit_static_category_system, report.systemPaths, "#B388FF", "📁")
+                    } else {
+                        binding.tvStaticAuditBadge.text = "LIMPIO"
+                        binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#81C784"))
+                        binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
+                        binding.tvStaticAuditDesc.text = getString(R.string.script_audit_static_clean_desc)
+                        binding.layoutStaticAuditCategories.removeAllViews()
+                        staticAuditSummary = "Limpio (Sin operaciones de riesgo)"
+                    }
+
+                    binding.btnViewAuditCode.setOnClickListener {
+                        ScriptRunnerHelper.showFullCodeDialog(requireActivity(), scriptFile.name, scriptContent, report)
+                    }
+                    report
+                } else {
+                    binding.cardStaticAudit.visibility = View.GONE
+                    null
+                }
+            } else {
+                binding.cardStaticAudit.visibility = View.GONE
+                null
+            }
+        } else {
+            binding.cardStaticAudit.visibility = View.GONE
+            null
         }
 
         // 2. Telemetry Switch (On/Off)
@@ -236,6 +323,26 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
             sb.appendLine("Path: $path")
             sb.appendLine("Date: ${dateFormat.format(Date())}")
             sb.appendLine("Status: ${if (isRunning) "Running" else "Finished"}")
+            if (staticAuditReport != null) {
+                sb.appendLine("--- Static Code Analysis ---")
+                sb.appendLine("Summary: $staticAuditSummary")
+                if (staticAuditReport.deletions.isNotEmpty()) {
+                    sb.appendLine("Deletions:")
+                    staticAuditReport.deletions.forEach { sb.appendLine("  $it") }
+                }
+                if (staticAuditReport.rootCalls.isNotEmpty()) {
+                    sb.appendLine("Root / Superuser:")
+                    staticAuditReport.rootCalls.forEach { sb.appendLine("  $it") }
+                }
+                if (staticAuditReport.networkCalls.isNotEmpty()) {
+                    sb.appendLine("Network:")
+                    staticAuditReport.networkCalls.forEach { sb.appendLine("  $it") }
+                }
+                if (staticAuditReport.systemPaths.isNotEmpty()) {
+                    sb.appendLine("System Paths:")
+                    staticAuditReport.systemPaths.forEach { sb.appendLine("  $it") }
+                }
+            }
             sb.appendLine("--- Statistics ---")
             sb.appendLine("Deletions: ${stats.totalDeletions} (Blocked: ${stats.blockedDeletions}, Allowed: ${stats.allowedDeletions})")
             sb.appendLine("Syscalls: ${stats.totalSyscalls}")

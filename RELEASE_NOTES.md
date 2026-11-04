@@ -1,3 +1,37 @@
+# OpenManager v1.9.43: Sistema Avanzado de Auditoría de Scripts Shell (.sh) y Supresión de Bucle de Notificaciones
+
+### 🛡️ Sistema Integral de Auditoría de Scripts (.sh) Antes y Durante la Ejecución
+- **Alerta Preventiva Previa a la Ejecución (`showPreExecutionAuditWarningDialog`)**:
+  - Al pulsar el botón "EJECUTAR" en cualquier script shell o binario, el motor audita de forma estática su contenido. Si detecta operaciones potencialmente peligrosas (borrado de datos, comandos root, conexiones de red o accesos a particiones de sistema), presenta una alerta clara indicando la cantidad exacta de riesgos por categoría y permitiendo auditar las líneas directamente o continuar con la ejecución bajo conocimiento del usuario.
+- **Visor Interactivo de Código con Resaltado de Líneas Advertidas (`showFullCodeDialog`)**:
+  - Visor monospaciado con numeración de líneas (`01`, `02`, ...), resaltando en fondo ámbar/rojizo con el marcador `⚠️` cada línea con operaciones críticas detectadas.
+  - Título con conteo de líneas advertidas y botón directo para copiar el código completo al portapapeles.
+- **Auditoría Integrada en la Pestaña Script de Propiedades**:
+  - La pestaña "Script" de las Propiedades del Archivo ahora incorpora una fila interactiva de **Auditoría de Seguridad**:
+    - `🛡️ Script verificado (Limpio)` o `⚠️ X riesgos detectados`.
+    - Al tocar, abre inmediatamente el desglose completo por categorías y el visor de código con líneas resaltadas.
+- **Tarjeta de Auditoría Estática en el Diálogo de Auditoría de Terminal (`ScriptAuditDialogFragment`)**:
+  - Al abrir el diálogo de auditoría desde la terminal (icono de escudo en la barra de herramientas o menú):
+    - Muestra la nueva tarjeta **Auditoría Estática de Código Fuente** con el estado (`LIMPIO` o `X RIESGOS`), desglose de borrados, llamadas a superusuario, conexiones de red y accesos a particiones de sistema.
+    - Botón para examinar el código y líneas advertidas directamente en cualquier momento durante o después de la ejecución.
+    - La exportación de registro (`Copiar Registro`) ahora incluye tanto los hallazgos estáticos del código fuente como la telemetría en tiempo real.
+
+---
+
+### 🔇 Supresión Definitiva del Bucle de Notificaciones al Cerrar Scripts
+- **Control de Terminación por el Usuario (`isTerminatedByUser`)**:
+  - Se identificó y resolvió la condición de carrera donde, al pulsar "Terminar" desde la notificación en segundo plano, el cierre forzado del proceso (`SIGKILL`) emitía concurrentemente un evento `TerminalSession.onSessionFinished` a través del hilo PTY, lo que provocaba que el servicio recreara inmediatamente una nueva notificación de "Script Terminado", entrando en un bucle infinito de notificaciones.
+  - Con el flag atómico `isTerminatedByUser`, cualquier callback posterior al cierre voluntario por parte del usuario es silenciado de inmediato, cancelando la notificación y deteniendo el servicio en primer plano sin duplicados.
+
+---
+
+### 🌐 Interceptación Heredable en Subshells y Prevención de Errores en Storage
+- **Exportación de Funciones de Shell a Subshells Bash y POSIX**:
+  - Se exportaron las funciones interceptoras (`export -f rm rmdir unlink 2>/dev/null || true`) en `om_shell_rc.sh`.
+  - Se agregaron las variables de entorno `BASH_ENV` y `ENV` apuntando al script de inicialización del shell, permitiendo que cualquier script secundario o invocación `bash script.sh` herede las políticas sin intentar ejecutar shims en `filesDir/bin` que violen SELinux en Android 10+.
+
+---
+
 # OpenManager v1.9.42: Auditoría Integral y Blindaje de Selección, Copia, Mover y Ejecución de Scripts
 
 ### 🛡️ Blindaje Completo de Ejecución de Scripts y Prevención Definitiva de `rm: Permission denied`

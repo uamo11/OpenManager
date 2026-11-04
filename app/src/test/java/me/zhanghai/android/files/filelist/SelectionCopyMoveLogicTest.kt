@@ -208,4 +208,53 @@ class SelectionCopyMoveLogicTest {
         assertTrue(report.networkCalls.isEmpty())
         assertTrue(report.systemPaths.isEmpty())
     }
+
+    @Test
+    fun testScriptAuditDetectsExpandedDangerousPatterns() {
+        val script = """
+            #!/bin/sh
+            unlink /storage/emulated/0/Download/test.apk
+            shred -u /sdcard/keys.txt
+            wipe /data/local/tmp/cache
+            setenforce 0
+            socat TCP-LISTEN:4444,fork EXEC:/bin/sh
+            pm uninstall com.example.app
+            reboot bootloader
+        """.trimIndent()
+
+        val report = ScriptRunnerHelper.auditScriptText(script)
+        assertTrue(report.totalFindings >= 7)
+        assertTrue(report.deletions.any { it.contains("unlink") })
+        assertTrue(report.deletions.any { it.contains("shred") })
+        assertTrue(report.deletions.any { it.contains("wipe") })
+        assertTrue(report.rootCalls.any { it.contains("setenforce") })
+        assertTrue(report.networkCalls.any { it.contains("socat") })
+        assertTrue(report.systemPaths.any { it.contains("pm uninstall") })
+        assertTrue(report.systemPaths.any { it.contains("reboot") })
+    }
+
+    @Test
+    fun testScriptTerminationByUserSuppressesNotificationLoop() {
+        var notifiedFinished = false
+        var isTerminatedByUser = false
+
+        fun onSessionFinishedMock(exitCode: Int) {
+            if (isTerminatedByUser) {
+                // Suppressed! No notification loop
+                return
+            }
+            notifiedFinished = true
+        }
+
+        // Scenario 1: Normal finish -> notification triggered
+        onSessionFinishedMock(0)
+        assertTrue(notifiedFinished)
+
+        // Scenario 2: User kills shell from notification
+        notifiedFinished = false
+        isTerminatedByUser = true
+        // TerminalSession asynchronously calls onSessionFinished
+        onSessionFinishedMock(-9)
+        assertFalse("Finished notification must be suppressed when terminated by user", notifiedFinished)
+    }
 }

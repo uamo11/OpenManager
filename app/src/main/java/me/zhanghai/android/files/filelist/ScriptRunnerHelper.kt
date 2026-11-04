@@ -5,6 +5,12 @@
 
 package me.zhanghai.android.files.filelist
 
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.BackgroundColorSpan
+import android.text.style.ForegroundColorSpan
+
+
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -79,22 +85,23 @@ object ScriptRunnerHelper {
             val lineNum = idx + 1
             if (line.startsWith("#")) return@forEachIndexed
 
-            if (Regex("""\b(rm|rmdir|unlink|truncate)\b""").containsMatchIn(line)) {
+            if (Regex("""\b(rm|rmdir|unlink|truncate|shred|wipe)\b""").containsMatchIn(line)) {
                 deletions.add("Línea $lineNum: $line")
             }
-            if (Regex("""\b(dd\s+if|mkfs|fdisk|sfdisk)\b""").containsMatchIn(line)) {
+            if (Regex("""\b(dd\s+if=|mkfs|fdisk|sfdisk|blkdiscard)\b""").containsMatchIn(line)) {
                 deletions.add("Línea $lineNum (formateo/bloque): $line")
             }
 
-            if (Regex("""\b(su|sudo|magisk|ksud)\b""").containsMatchIn(line)) {
+            if (Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root)\b""").containsMatchIn(line)) {
                 rootCalls.add("Línea $lineNum: $line")
             }
 
-            if (Regex("""\b(curl|wget|nc|netcat|ncat|ssh|telnet|ping)\b""").containsMatchIn(line)) {
+            if (Regex("""\b(curl|wget|nc|netcat|ncat|socat|ssh|scp|rsync|ping|traceroute|nmap)\b""").containsMatchIn(line) ||
+                line.contains("/dev/tcp") || line.contains("/dev/udp")) {
                 networkCalls.add("Línea $lineNum: $line")
             }
 
-            if (Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user)""").containsMatchIn(line)) {
+            if (Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+uninstall|\breboot|\bshutdown)""").containsMatchIn(line)) {
                 systemPaths.add("Línea $lineNum: $line")
             }
         }
@@ -102,11 +109,12 @@ object ScriptRunnerHelper {
         return ScriptAuditReport(deletions, rootCalls, networkCalls, systemPaths)
     }
 
-    private fun showScriptAuditDetailsDialog(
+    fun showScriptAuditDetailsDialog(
         activity: Activity,
         path: Path,
         report: ScriptAuditReport,
-        scriptContent: String
+        scriptContent: String,
+        onExecuteDirect: (() -> Unit)? = null
     ) {
         val density = activity.resources.displayMetrics.density
         val scroll = android.widget.ScrollView(activity)
@@ -165,51 +173,167 @@ object ScriptRunnerHelper {
         addSection("📁 Rutas Críticas de Sistema (${report.systemPaths.size})", report.systemPaths, "#B388FF")
 
         val btnViewCode = Button(activity).apply {
-            text = "Ver Código Completo con Líneas"
+            text = "Ver Código Completo con Líneas Advertidas"
             setTextColor(Color.parseColor("#64B5F6"))
             setBackgroundColor(Color.TRANSPARENT)
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            lp.topMargin = (16 * density).toInt()
+            lp.topMargin = (14 * density).toInt()
             layoutParams = lp
             setOnClickListener {
-                showFullCodeDialog(activity, path, scriptContent)
+                showFullCodeDialog(activity, path, scriptContent, report)
             }
         }
         container.addView(btnViewCode)
 
+        val btnTracerPolicy = Button(activity).apply {
+            text = "Políticas de Rastreo y Telemetría"
+            setTextColor(Color.parseColor("#FFB74D"))
+            setBackgroundColor(Color.TRANSPARENT)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.topMargin = (4 * density).toInt()
+            layoutParams = lp
+            setOnClickListener {
+                val scriptPathStr = if (path.isLinuxPath) path.toFile().absolutePath else path.toString()
+                me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(activity, scriptPathStr)
+            }
+        }
+        container.addView(btnTracerPolicy)
+
+        val builder = MaterialAlertDialogBuilder(activity)
+            .setTitle("Auditoría de Seguridad")
+            .setView(scroll)
+            .setPositiveButton(android.R.string.ok, null)
+
+        if (onExecuteDirect != null) {
+            builder.setNeutralButton("Ejecutar Script") { _, _ ->
+                onExecuteDirect()
+            }
+        }
+
+        builder.show()
+    }
+
+    fun showFullCodeDialog(
+        activity: Activity,
+        title: String,
+        content: String,
+        report: ScriptAuditReport? = null
+    ) {
+        val density = activity.resources.displayMetrics.density
+        val scroll = android.widget.ScrollView(activity)
+        val container = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (14 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+        }
+
+        val flaggedLines = mutableSetOf<Int>()
+        report?.let { r ->
+            val allFindings = r.deletions + r.rootCalls + r.networkCalls + r.systemPaths
+            for (f in allFindings) {
+                val match = Regex("""Línea\s+(\d+)""").find(f)
+                match?.groupValues?.get(1)?.toIntOrNull()?.let { flaggedLines.add(it) }
+            }
+        }
+
+        val lines = content.lines()
+        val ssb = SpannableStringBuilder()
+        lines.forEachIndexed { idx, line ->
+            val lineNum = idx + 1
+            val isFlagged = lineNum in flaggedLines
+            val prefix = if (isFlagged) String.format("%3d ⚠️ | ", lineNum) else String.format("%3d    | ", lineNum)
+            val fullLine = prefix + line + "\n"
+            val start = ssb.length
+            ssb.append(fullLine)
+            val end = ssb.length
+
+            if (isFlagged) {
+                ssb.setSpan(ForegroundColorSpan(Color.parseColor("#FFD54F")), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ssb.setSpan(BackgroundColorSpan(Color.parseColor("#3E2723")), start, end - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            } else {
+                ssb.setSpan(ForegroundColorSpan(Color.parseColor("#90A4AE")), start, start + prefix.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ssb.setSpan(ForegroundColorSpan(Color.parseColor("#E0E0E0")), start + prefix.length, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+
+        val tvCode = TextView(activity).apply {
+            textSize = 12f
+            setTypeface(android.graphics.Typeface.MONOSPACE)
+            text = ssb
+        }
+        container.addView(tvCode)
+
+        val btnCopy = Button(activity).apply {
+            text = "Copiar Código al Portapapeles"
+            setTextColor(Color.parseColor("#64B5F6"))
+            setBackgroundColor(Color.TRANSPARENT)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.topMargin = (12 * density).toInt()
+            layoutParams = lp
+            setOnClickListener {
+                val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                cm?.setPrimaryClip(ClipData.newPlainText("Script Content", content))
+                Toast.makeText(activity, "Código copiado al portapapeles", Toast.LENGTH_SHORT).show()
+            }
+        }
+        container.addView(btnCopy)
         scroll.addView(container)
 
+        val displayTitle = title + if (flaggedLines.isNotEmpty()) " (${flaggedLines.size} líneas advertidas)" else ""
         MaterialAlertDialogBuilder(activity)
-            .setTitle("Auditoría de Seguridad")
+            .setTitle(displayTitle)
             .setView(scroll)
             .setPositiveButton(android.R.string.ok, null)
             .show()
     }
 
-    private fun showFullCodeDialog(activity: Activity, path: Path, content: String) {
-        val density = activity.resources.displayMetrics.density
-        val scroll = android.widget.ScrollView(activity)
-        val tvCode = TextView(activity).apply {
-            textSize = 12f
-            setTypeface(android.graphics.Typeface.MONOSPACE)
-            setTextColor(Color.parseColor("#E0E0E0"))
-            val pad = (14 * density).toInt()
-            setPadding(pad, pad, pad, pad)
-            val lines = content.lines()
-            val numbered = lines.mapIndexed { idx, l ->
-                String.format("%3d | %s", idx + 1, l)
-            }.joinToString("\n")
-            text = numbered
-        }
-        scroll.addView(tvCode)
+    fun showFullCodeDialog(
+        activity: Activity,
+        path: Path,
+        content: String,
+        report: ScriptAuditReport? = null
+    ) {
+        showFullCodeDialog(activity, path.fileName?.toString() ?: "Script", content, report)
+    }
+
+    fun showPreExecutionAuditWarningDialog(
+        activity: Activity,
+        path: Path,
+        report: ScriptAuditReport,
+        scriptContent: String,
+        onProceed: () -> Unit
+    ) {
+        val summaryItems = mutableListOf<String>()
+        if (report.deletions.isNotEmpty()) summaryItems.add("🗑️ Borrado de archivos / directorios (${report.deletions.size})")
+        if (report.rootCalls.isNotEmpty()) summaryItems.add("⚡ Comandos de Superusuario (${report.rootCalls.size})")
+        if (report.networkCalls.isNotEmpty()) summaryItems.add("🌐 Conexiones de red externas (${report.networkCalls.size})")
+        if (report.systemPaths.isNotEmpty()) summaryItems.add("📁 Accesos a particiones de sistema (${report.systemPaths.size})")
+
+        val message = "Se han detectado ${report.totalFindings} operaciones de riesgo en este script antes de su ejecución:
+
+" +
+            summaryItems.joinToString("\n") +
+            "\n\n¿Deseas auditar las líneas de código o continuar con la ejecución?"
 
         MaterialAlertDialogBuilder(activity)
-            .setTitle(path.fileName?.toString() ?: "Script")
-            .setView(scroll)
-            .setPositiveButton(android.R.string.ok, null)
+            .setTitle("⚠️ Auditoría de Seguridad Previa")
+            .setMessage(message)
+            .setPositiveButton("Ejecutar") { _, _ ->
+                onProceed()
+            }
+            .setNegativeButton("Auditar Líneas") { _, _ ->
+                showScriptAuditDetailsDialog(activity, path, report, scriptContent, onExecuteDirect = onProceed)
+            }
+            .setNeutralButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -517,6 +641,9 @@ object ScriptRunnerHelper {
                 val auditReport = auditScriptText(fullScriptContent)
 
                 withContext(Dispatchers.Main) {
+                    currentAuditReport = auditReport
+                    currentScriptText = fullScriptContent
+
                     if (!shebang.isNullOrBlank()) {
                         tvInterpreter.text = shebang
                         tvSubtitle.text = "Script (${shebang!!.removePrefix("#!").trim()})"
@@ -531,7 +658,10 @@ object ScriptRunnerHelper {
                         tvAudit.setTextColor(Color.parseColor("#FFB74D"))
                     }
                     val auditClick = View.OnClickListener {
-                        showScriptAuditDetailsDialog(activity, path, auditReport, fullScriptContent)
+                        showScriptAuditDetailsDialog(activity, path, auditReport, fullScriptContent, onExecuteDirect = {
+                            dialog.dismiss()
+                            executeScriptOrBinary(activity, path)
+                        })
                     }
                     rowAudit.setOnClickListener(auditClick)
                     tvAudit.setOnClickListener(auditClick)
@@ -643,13 +773,29 @@ object ScriptRunnerHelper {
             editScriptOrBinary(activity, path)
         }
 
+        var currentAuditReport: ScriptAuditReport? = null
+        var currentScriptText = ""
+
         // Button 4: EJECUTAR
         btnAction4.visibility = View.VISIBLE
         btnAction4.text = activity.getString(R.string.script_action_execute)
         btnAction4.setTextColor(Color.parseColor("#4CAF50"))
         btnAction4.setOnClickListener {
-            dialog.dismiss()
-            executeScriptOrBinary(activity, path)
+            val report = currentAuditReport
+            if (report != null && report.totalFindings > 0) {
+                showPreExecutionAuditWarningDialog(
+                    activity = activity,
+                    path = path,
+                    report = report,
+                    scriptContent = currentScriptText
+                ) {
+                    dialog.dismiss()
+                    executeScriptOrBinary(activity, path)
+                }
+            } else {
+                dialog.dismiss()
+                executeScriptOrBinary(activity, path)
+            }
         }
 
         dialog.show()

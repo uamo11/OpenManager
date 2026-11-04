@@ -75,6 +75,87 @@
                 android:background="#1B5E20" />
         </LinearLayout>
 
+        <!-- Static Script Audit Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardStaticAudit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:cardCornerRadius="10dp"
+            app:cardElevation="1dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#333333"
+            app:cardBackgroundColor="#212121">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvStaticAuditTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/script_audit_static_card_title"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tvStaticAuditBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="LIMPIO"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="#81C784"
+                        android:paddingHorizontal="6dp"
+                        android:paddingVertical="2dp"
+                        android:background="#1B5E20" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvStaticAuditDesc"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/script_audit_static_clean_desc"
+                    android:textSize="11sp"
+                    android:textColor="#B0BEC5"
+                    android:layout_marginTop="4dp" />
+
+                <!-- Categories Container -->
+                <LinearLayout
+                    android:id="@+id/layoutStaticAuditCategories"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp" />
+
+                <!-- Button to view highlighted code -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnViewAuditCode"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/script_audit_btn_view_flagged_lines"
+                    android:textColor="#64B5F6"
+                    app:strokeColor="#42A5F5"
+                    app:icon="@drawable/shield_icon_white_24dp"
+                    app:iconTint="#64B5F6"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Configuration Card (Switch & Deletion Policy) -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

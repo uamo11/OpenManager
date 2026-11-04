@@ -53,6 +53,10 @@ object ScriptExecutionManager {
     var lastExitCode: Int? = null
         private set
 
+    @Volatile
+    var isTerminatedByUser: Boolean = false
+        private set
+
     private var wakeLock: PowerManager.WakeLock? = null
 
     interface SessionListener {
@@ -101,6 +105,7 @@ object ScriptExecutionManager {
         startTimeMillis = System.currentTimeMillis()
         isBackgroundKept = false
         lastExitCode = null
+        isTerminatedByUser = false
 
         ScriptExecutionService.start(context.applicationContext, activeScriptName, activePid)
     }
@@ -114,6 +119,7 @@ object ScriptExecutionManager {
     private val isTerminating = java.util.concurrent.atomic.AtomicBoolean(false)
 
     fun terminateShell(context: Context): Boolean {
+        isTerminatedByUser = true
         if (!isTerminating.compareAndSet(false, true)) {
             return false
         }
@@ -151,7 +157,7 @@ object ScriptExecutionManager {
     }
 
     fun onSessionFinished(exitCode: Int, context: Context?) {
-        if (isTerminating.get()) {
+        if (isTerminating.get() || isTerminatedByUser) {
             return
         }
         lastExitCode = exitCode

@@ -103,6 +103,37 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
             // Recommended environment
             addItemView(R.string.file_properties_script_environment, scriptInfo.recommendedEnvironment)
 
+            // Security Audit (Interactive)
+            val auditReport = scriptInfo.auditReport
+            if (auditReport != null) {
+                val auditSummary = if (auditReport.totalFindings > 0) {
+                    "⚠️ ${auditReport.totalFindings} riesgos detectados  🔍"
+                } else {
+                    "🛡️ Script verificado (Limpio)  🔍"
+                }
+                addItemView(R.string.script_audit_title, auditSummary) {
+                    activity?.let { act ->
+                        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
+                            val content = runCatching {
+                                val bytes = java8.nio.file.Files.readAllBytes(args.path)
+                                String(bytes, StandardCharsets.UTF_8)
+                            }.getOrDefault("")
+                            withContext(Dispatchers.Main) {
+                                ScriptRunnerHelper.showScriptAuditDetailsDialog(
+                                    act,
+                                    args.path,
+                                    auditReport,
+                                    content,
+                                    onExecuteDirect = {
+                                        ScriptRunnerHelper.showScriptActionDialog(act, args.path)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Quick Actions: Execute & Edit
             addItemView(
                 R.string.file_properties_script_action_execute_title,

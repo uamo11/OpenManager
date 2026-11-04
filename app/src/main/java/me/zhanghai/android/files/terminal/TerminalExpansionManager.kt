@@ -291,6 +291,32 @@ object TerminalExpansionManager {
                         command rmdir "${'$'}@"
                     fi
                 }
+
+                unlink() {
+                    if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
+                        case "${'$'}*" in
+                            *" /"*|*" /*"*|*"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
+                                echo "[OM_TRACER:DEADMAN_DELETE:unlink:${'$'}*]"
+                                echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
+                                return 1
+                                ;;
+                        esac
+                    fi
+                    if [ "${'$'}OM_TRACER_DISABLED" != "1" ]; then
+                        echo "[OM_TRACER:DELETE:unlink:${'$'}*]"
+                        if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
+                            echo "[OM_TRACER:BLOCKED] unlink ${'$'}*" >&2
+                            return 1
+                        fi
+                    fi
+                    if [ -x /system/bin/unlink ]; then
+                        /system/bin/unlink "${'$'}@"
+                    else
+                        command unlink "${'$'}@"
+                    fi
+                }
+
+                export -f rm rmdir unlink 2>/dev/null || true
             """.trimIndent() + "\n"
             if (!initFile.exists() || initFile.readText() != rcContent) {
                 initFile.writeText(rcContent)
@@ -315,7 +341,9 @@ object TerminalExpansionManager {
             "OM_TRACER_DISABLED=" + (if (tracerEnabled) "0" else "1"),
             "OM_DELETION_POLICY=" + deletionPolicy.name,
             "OM_ACTIVE_SCRIPT_PATH=" + (activeScriptPath ?: ""),
-            "OM_DEAD_MAN_ACTIVE=" + (if (deadManActive) "1" else "0")
+            "OM_DEAD_MAN_ACTIVE=" + (if (deadManActive) "1" else "0"),
+            "BASH_ENV=" + initScript.absolutePath,
+            "ENV=" + initScript.absolutePath
         )
         val asRoot = forceRoot ?: TerminalSettings.isRootSession(context)
         val useTermex = forceTermex ?: (isTermexInstalled(context) && !asRoot)
