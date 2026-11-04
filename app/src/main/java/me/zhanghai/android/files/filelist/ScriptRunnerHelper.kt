@@ -664,7 +664,7 @@ object ScriptRunnerHelper {
                     }
                     val auditClick = View.OnClickListener {
                         showScriptAuditDetailsDialog(activity, path, auditReport, fullScriptContent, onExecuteDirect = {
-                            dialog.dismiss()
+                            dialog?.dismiss()
                             executeScriptOrBinary(activity, path)
                         })
                     }
@@ -775,7 +775,7 @@ object ScriptRunnerHelper {
         btnAction3.text = activity.getString(R.string.script_action_edit)
         btnAction3.setTextColor(Color.parseColor("#FFFFFF"))
         btnAction3.setOnClickListener {
-            dialog.dismiss()
+            dialog?.dismiss()
             editScriptOrBinary(activity, path)
         }
 
@@ -792,16 +792,16 @@ object ScriptRunnerHelper {
                     report = report,
                     scriptContent = currentScriptText
                 ) {
-                    dialog.dismiss()
+                    dialog?.dismiss()
                     executeScriptOrBinary(activity, path)
                 }
             } else {
-                dialog.dismiss()
+                dialog?.dismiss()
                 executeScriptOrBinary(activity, path)
             }
         }
 
-        dialog.show()
+        dialog?.show()
     }
 
     fun showPreferencesDialog(activity: Activity, path: Path? = null) {
