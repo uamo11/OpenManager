@@ -334,6 +334,7 @@ object TerminalExpansionManager {
         initialCommand: String? = null,
         activeScriptPath: String? = null
     ): LaunchConfig {
+        val initScript = ensureShellInitScript(context)
         val tracerEnabled = ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)
         val deletionPolicy = ScriptTracerPreferences.getDeletionPolicy(context, activeScriptPath)
         val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
@@ -351,7 +352,6 @@ object TerminalExpansionManager {
         val validCwd = if (File(targetCwd).isDirectory) targetCwd else "/storage/emulated/0"
         val escapedCwd = validCwd.replace("'", "'\\''")
         val histFile = File(context.filesDir, ".om_shell_history").absolutePath
-        val initScript = ensureShellInitScript(context)
         val binDir = ensureBinTools(context)
 
         val shellCmd = if (initialCommand != null) {

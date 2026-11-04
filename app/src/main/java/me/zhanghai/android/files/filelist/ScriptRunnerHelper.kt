@@ -201,7 +201,9 @@ object ScriptRunnerHelper {
             layoutParams = lp
             setOnClickListener {
                 val scriptPathStr = if (path.isLinuxPath) path.toFile().absolutePath else path.toString()
-                me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(activity, scriptPathStr)
+                (activity as? androidx.fragment.app.FragmentActivity)?.let {
+                    me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(it, scriptPathStr)
+                }
             }
         }
         container.addView(btnTracerPolicy)
@@ -319,9 +321,7 @@ object ScriptRunnerHelper {
         if (report.networkCalls.isNotEmpty()) summaryItems.add("🌐 Conexiones de red externas (${report.networkCalls.size})")
         if (report.systemPaths.isNotEmpty()) summaryItems.add("📁 Accesos a particiones de sistema (${report.systemPaths.size})")
 
-        val message = "Se han detectado ${report.totalFindings} operaciones de riesgo en este script antes de su ejecución:
-
-" +
+        val message = "Se han detectado ${report.totalFindings} operaciones de riesgo en este script antes de su ejecución:\n\n" +
             summaryItems.joinToString("\n") +
             "\n\n¿Deseas auditar las líneas de código o continuar con la ejecución?"
 
@@ -450,6 +450,10 @@ object ScriptRunnerHelper {
         path: Path,
         fileItem: FileItem?
     ) {
+        var currentAuditReport: ScriptAuditReport? = null
+        var currentScriptText = ""
+        var dialog: androidx.appcompat.app.AlertDialog? = null
+
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_mt_file_properties, null)
 
         val ivIcon = view.findViewById<ImageView>(R.id.ivPropIcon)
@@ -702,9 +706,10 @@ object ScriptRunnerHelper {
             }
         }
 
-        val dialog = MaterialAlertDialogBuilder(activity)
+        val createdDialog = MaterialAlertDialogBuilder(activity)
             .setView(view)
             .create()
+        dialog = createdDialog
         dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
 
         // Button 1: PREFERENCIAS
@@ -773,9 +778,6 @@ object ScriptRunnerHelper {
             dialog.dismiss()
             editScriptOrBinary(activity, path)
         }
-
-        var currentAuditReport: ScriptAuditReport? = null
-        var currentScriptText = ""
 
         // Button 4: EJECUTAR
         btnAction4.visibility = View.VISIBLE
