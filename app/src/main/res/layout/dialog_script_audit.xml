@@ -449,6 +449,103 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
+        <!-- Live Syscall Transparency & Detection Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardLiveSyscalls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="8dp"
+            app:cardBackgroundColor="#212121"
+            app:strokeWidth="1dp"
+            app:strokeColor="#383838">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="⚡ Lectura y Detección de Syscalls en Vivo"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        android:textColor="#90CAF9" />
+
+                    <TextView
+                        android:id="@+id/tvLiveSyscallStatusBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="EN ESPERA"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:textColor="#B0BEC5"
+                        android:background="#37474F"
+                        android:paddingStart="6dp"
+                        android:paddingEnd="6dp"
+                        android:paddingTop="2dp"
+                        android:paddingBottom="2dp" />
+                </LinearLayout>
+
+                <!-- Active Syscall Row -->
+                <TextView
+                    android:id="@+id/tvActiveSyscallText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Syscall actual: Sin proceso activo"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:textColor="#CFD8DC" />
+
+                <!-- I/O Syscall Metrics -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/tvIoReadCalls"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Lecturas (syscr): 0"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:textColor="#81C784" />
+
+                    <TextView
+                        android:id="@+id/tvIoWriteCalls"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Escrituras (syscw): 0"
+                        android:textSize="10sp"
+                        android:fontFamily="monospace"
+                        android:textColor="#FFB74D" />
+                </LinearLayout>
+
+                <!-- Detected Syscalls List / Category Breakdown -->
+                <LinearLayout
+                    android:id="@+id/layoutSyscallBreakdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="6dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- Events Section Header & Controls -->
         <LinearLayout
             android:layout_width="match_parent"

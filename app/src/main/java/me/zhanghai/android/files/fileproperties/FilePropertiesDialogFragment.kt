@@ -333,7 +333,24 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         if (isScript) {
             val isElf = ScriptRunnerHelper.isElfBinary(path)
             val (_, tvInterp) = addRow("Intérprete", if (isElf) "ELF Nativo" else "/system/bin/sh")
-            if (!isElf) {
+            if (isElf) {
+                val (_, tvArch) = addRow("Arquitectura", "Analizando ELF...")
+                val (_, tvAudit) = addRow("Auditoría", "Analizando seguridad ELF...")
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(path)
+                    withContext(Dispatchers.Main) {
+                        tvInterp.text = elfReport.interpreter ?: if (elfReport.isDynamic) "ELF Dinámico" else "ELF Estático"
+                        tvArch.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
+                        if (elfReport.totalFindings > 0) {
+                            tvAudit.text = "⚠️ ${elfReport.totalFindings} riesgos detectados"
+                            tvAudit.setTextColor(Color.parseColor("#FFB74D"))
+                        } else {
+                            tvAudit.text = "🛡️ Binario Seguro (0 riesgos)"
+                            tvAudit.setTextColor(Color.parseColor("#81C784"))
+                        }
+                    }
+                }
+            } else {
                 val (rowLe, tvLe) = addRow("Formato línea", "Analizando...")
                 val (_, tvStats) = addRow("Líneas", "Analizando...")
                 lifecycleScope.launch(Dispatchers.IO) {

@@ -602,10 +602,53 @@ object ScriptRunnerHelper {
         val (_, tvInterpreter) = addRow("Intérprete", if (isElf) "ELF Nativo" else "/system/bin/sh")
         val (rowLineEnding, tvLineEnding) = addRow("Formato línea", if (isElf) "Binario" else "Analizando...")
         val (rowLines, tvLines) = addRow("Contenido", if (isElf) "Ejecutable compilado" else "Analizando...")
-        val (rowAudit, tvAudit) = addRow("Auditoría", if (isElf) "Binario ELF Compilado" else "Analizando seguridad...", valueColor = Color.parseColor("#90CAF9"), boldValue = true)
+        val (rowAudit, tvAudit) = addRow("Auditoría", if (isElf) "Analizando seguridad ELF..." else "Analizando seguridad...", valueColor = Color.parseColor("#90CAF9"), boldValue = true)
         if (isElf) {
             rowLineEnding.visibility = View.GONE
-            rowLines.visibility = View.GONE
+            CoroutineScope(Dispatchers.IO).launch {
+                val elfReport = ElfInspector.inspect(path)
+                val scriptReport = elfReport.toScriptAuditReport()
+                val summaryText = buildString {
+                    appendLine("/* REPORTE DE AUDITORÍA DE BINARIO ELF COMPILADO EN C/C++ */")
+                    appendLine("Arquitectura: ${elfReport.machineArch}")
+                    appendLine("Bitness: ${if (elfReport.is64Bit) "64-bit" else "32-bit"}")
+                    appendLine("Endianness: ${if (elfReport.isLittleEndian) "Little-Endian (LSB)" else "Big-Endian (MSB)"}")
+                    appendLine("PIE (Position Independent): ${if (elfReport.isPie) "Sí (Compatible Android 5.0+)" else "No (Fijo - Posible fallo en Android)"}")
+                    appendLine("Linker / Intérprete: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dinámico" else "Estático"}")
+                    appendLine("Compatibilidad ABI: ${if (elfReport.isAbiCompatible) "Compatible con este dispositivo" else "Incompatible"}")
+                    appendLine()
+                    appendLine("/* SYSCALLS Y SÍMBOLOS DETECTADOS (${elfReport.totalFindings}) */")
+                    for (f in elfReport.findings) {
+                        appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Riesgo: ${f.risk.levelName})")
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    currentAuditReport = scriptReport
+                    currentScriptText = summaryText
+
+                    tvInterpreter.text = elfReport.interpreter ?: if (elfReport.isDynamic) "ELF Dinámico" else "ELF Estático"
+                    tvSubtitle.text = "Binario ELF (${elfReport.machineArch})"
+                    tvLines.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
+                    rowLines.visibility = View.VISIBLE
+
+                    if (elfReport.totalFindings == 0) {
+                        tvAudit.text = "🛡️ Binario Seguro (0 riesgos)  ℹ"
+                        tvAudit.setTextColor(Color.parseColor("#81C784"))
+                    } else {
+                        tvAudit.text = "⚠️ ${elfReport.totalFindings} riesgos detectados  ℹ"
+                        tvAudit.setTextColor(Color.parseColor("#FFB74D"))
+                    }
+
+                    val auditClick = View.OnClickListener {
+                        showScriptAuditDetailsDialog(activity, path, scriptReport, summaryText, onExecuteDirect = {
+                            dialog?.dismiss()
+                            executeScriptOrBinary(activity, path)
+                        })
+                    }
+                    rowAudit.setOnClickListener(auditClick)
+                    tvAudit.setOnClickListener(auditClick)
+                }
+            }
         }
 
         // Asynchronously inspect shebang, line count, and line endings for text scripts
@@ -870,30 +913,8 @@ object ScriptRunnerHelper {
 
     fun checkElfCompatibility(path: Path): Pair<Boolean, String> {
         return try {
-            path.newInputStream().use { stream ->
-                val header = ByteArray(20)
-                val read = stream.read(header)
-                if (read < 20) return@use true to "ELF"
-                if (header[0] != 0x7F.toByte() || header[1] != 'E'.code.toByte() ||
-                    header[2] != 'L'.code.toByte() || header[3] != 'F'.code.toByte()) {
-                    return@use true to "Script"
-                }
-                val isLittleEndian = header[5].toInt() == 1
-                val machine = if (isLittleEndian) {
-                    (header[18].toInt() and 0xFF) or ((header[19].toInt() and 0xFF) shl 8)
-                } else {
-                    ((header[18].toInt() and 0xFF) shl 8) or (header[19].toInt() and 0xFF)
-                }
-                val (archName, compatible) = when (machine) {
-                    3 -> "x86 (32-bit)" to Build.SUPPORTED_ABIS.any { it.startsWith("x86") }
-                    40 -> "ARM (armeabi-v7a 32-bit)" to Build.SUPPORTED_ABIS.any { it.contains("arm") }
-                    62 -> "x86_64 (64-bit)" to Build.SUPPORTED_ABIS.contains("x86_64")
-                    183 -> "AArch64 (arm64-v8a 64-bit)" to Build.SUPPORTED_ABIS.contains("arm64-v8a")
-                    243 -> "RISC-V (64-bit)" to Build.SUPPORTED_ABIS.any { it.contains("riscv") }
-                    else -> "Máquina ELF #$machine" to true
-                }
-                compatible to archName
-            }
+            val report = ElfInspector.inspect(path)
+            report.isAbiCompatible to report.machineArch
         } catch (_: Throwable) {
             true to "ELF"
         }
@@ -1023,16 +1044,39 @@ object ScriptRunnerHelper {
         }
 
         if (isElf) {
+            val binName = File(scriptPath).name
             execCmd = if (withRoot) {
-                "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null; ${scriptPath.escapeShellArg()}"
+                if (scriptPath.startsWith("/storage/") || scriptPath.startsWith("/sdcard/")) {
+                    val tmpPath = "/data/local/tmp/$binName"
+                    "cp -f ${scriptPath.escapeShellArg()} ${tmpPath.escapeShellArg()} 2>/dev/null && chmod 755 ${tmpPath.escapeShellArg()} 2>/dev/null; ${tmpPath.escapeShellArg()}"
+                } else {
+                    "chmod 755 ${scriptPath.escapeShellArg()} 2>/dev/null; ${scriptPath.escapeShellArg()}"
+                }
+            } else if (isBashUsable) {
+                val termexDir = File(activity.filesDir, "termex")
+                val termexTmp = File(termexDir, "tmp").apply { mkdirs() }
+                val target = File(termexTmp, binName)
+                try {
+                    File(scriptPath).copyTo(target, overwrite = true)
+                    target.setExecutable(true, false)
+                    target.absolutePath.escapeShellArg()
+                } catch (e: Exception) {
+                    scriptPath.escapeShellArg()
+                }
             } else {
                 if (scriptPath.startsWith("/storage/") || scriptPath.startsWith("/sdcard/")) {
                     val execDir = File(activity.cacheDir, "bin_exec").apply { mkdirs() }
-                    val target = File(execDir, File(scriptPath).name)
+                    val target = File(execDir, binName)
                     try {
                         File(scriptPath).copyTo(target, overwrite = true)
                         target.setExecutable(true, false)
-                        target.absolutePath.escapeShellArg()
+                        if (File("/system/bin/linker64").exists()) {
+                            "/system/bin/linker64 ${target.absolutePath.escapeShellArg()}"
+                        } else if (File("/system/bin/linker").exists()) {
+                            "/system/bin/linker ${target.absolutePath.escapeShellArg()}"
+                        } else {
+                            target.absolutePath.escapeShellArg()
+                        }
                     } catch (e: Exception) {
                         scriptPath.escapeShellArg()
                     }

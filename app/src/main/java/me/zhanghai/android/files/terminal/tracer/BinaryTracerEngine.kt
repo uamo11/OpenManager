@@ -40,12 +40,36 @@ object BinaryTracerEngine {
     val totalSyscallsCount = AtomicLong(0L)
     val totalKernelProbes = AtomicLong(0L)
 
+    val procIoReadSyscalls = AtomicLong(0L)
+    val procIoWriteSyscalls = AtomicLong(0L)
+    val procIoBytesRead = AtomicLong(0L)
+    val procIoBytesWritten = AtomicLong(0L)
+
+    @Volatile
+    var currentActiveSyscall: ActiveSyscallInfo? = null
+        private set
+
+    data class ActiveSyscallInfo(
+        val pid: Int,
+        val number: Int,
+        val name: String,
+        val category: SyscallCategory,
+        val risk: SyscallRisk,
+        val timestamp: Long,
+        val args: String
+    )
+
     data class TracerStats(
         val totalDeletions: Long,
         val blockedDeletions: Long,
         val allowedDeletions: Long,
         val totalSyscalls: Long,
-        val totalKernelReads: Long
+        val totalKernelReads: Long,
+        val ioReadSyscalls: Long = 0L,
+        val ioWriteSyscalls: Long = 0L,
+        val ioBytesRead: Long = 0L,
+        val ioBytesWritten: Long = 0L,
+        val activeSyscall: ActiveSyscallInfo? = null
     )
 
     fun getStats(): TracerStats {
@@ -54,7 +78,12 @@ object BinaryTracerEngine {
             blockedDeletions = totalDeletionsBlocked.get(),
             allowedDeletions = totalDeletionsAllowed.get(),
             totalSyscalls = totalSyscallsCount.get(),
-            totalKernelReads = totalKernelProbes.get()
+            totalKernelReads = totalKernelProbes.get(),
+            ioReadSyscalls = procIoReadSyscalls.get(),
+            ioWriteSyscalls = procIoWriteSyscalls.get(),
+            ioBytesRead = procIoBytesRead.get(),
+            ioBytesWritten = procIoBytesWritten.get(),
+            activeSyscall = currentActiveSyscall
         )
     }
 
@@ -74,6 +103,47 @@ object BinaryTracerEngine {
         totalDeletionsAllowed.set(0L)
         totalSyscallsCount.set(0L)
         totalKernelProbes.set(0L)
+        procIoReadSyscalls.set(0L)
+        procIoWriteSyscalls.set(0L)
+        procIoBytesRead.set(0L)
+        procIoBytesWritten.set(0L)
+        currentActiveSyscall = null
+    }
+
+    fun recordProcSyscall(pid: Int, syscallNr: Int, rawArgs: String) {
+        val info = SyscallResolver.resolve(syscallNr)
+        val active = ActiveSyscallInfo(
+            pid = pid,
+            number = syscallNr,
+            name = info.name,
+            category = info.category,
+            risk = info.risk,
+            timestamp = System.currentTimeMillis(),
+            args = rawArgs
+        )
+        currentActiveSyscall = active
+        recordSyscallBurst(info.name, 1L, "[PID $pid] ${info.category.displayName} (${info.risk.levelName}) $rawArgs")
+
+        if (info.risk == SyscallRisk.CRITICAL || info.risk == SyscallRisk.HIGH || info.category == SyscallCategory.DELETION_FS) {
+            val event = TraceEvent(
+                id = idGen.getAndIncrement(),
+                timestamp = System.currentTimeMillis(),
+                type = if (info.category == SyscallCategory.DELETION_FS) TraceEventType.DELETION_ATTEMPT else TraceEventType.SECURITY_AUDIT,
+                target = "${info.name} [Syscall #$syscallNr]",
+                details = "[PID $pid] Riesgo ${info.risk.levelName}: ${info.description} | Args: $rawArgs",
+                count = 1L,
+                decision = if (info.category == SyscallCategory.DELETION_FS) DeletionDecision.ALLOWED else null
+            )
+            addEventToRingBuffer(event)
+        }
+    }
+
+    fun updateProcIo(readCalls: Long, writeCalls: Long, readBytes: Long, writeBytes: Long) {
+        procIoReadSyscalls.set(readCalls)
+        procIoWriteSyscalls.set(writeCalls)
+        procIoBytesRead.set(readBytes)
+        procIoBytesWritten.set(writeBytes)
+        totalKernelProbes.incrementAndGet()
     }
 
     fun recordDeletionAttempt(

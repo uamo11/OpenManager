@@ -12,6 +12,10 @@ import org.junit.Test
 import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
 import me.zhanghai.android.files.terminal.tracer.DeletionDecision
 import me.zhanghai.android.files.terminal.tracer.TraceEventType
+import me.zhanghai.android.files.terminal.tracer.SyscallCategory
+import me.zhanghai.android.files.terminal.tracer.SyscallResolver
+import me.zhanghai.android.files.terminal.tracer.SyscallRisk
+import me.zhanghai.android.files.filelist.ElfInspector
 
 import java.io.File
 
@@ -279,5 +283,162 @@ class TerminalLogicTest {
         assertEquals("DEADMAN_DELETE", match!!.groupValues[1])
         assertEquals("rm -rf /system", match.groupValues[2])
         assertEquals("/system", match.groupValues[3].trim())
+    }
+
+    @Test
+    fun testSyscallResolverArm64AndX86_64() {
+        // ARM64 test cases
+        val unlinkatArm64 = SyscallResolver.resolve(35, "arm64-v8a")
+        assertEquals("sys_unlinkat", unlinkatArm64.name)
+        assertEquals(SyscallCategory.DELETION_FS, unlinkatArm64.category)
+        assertEquals(SyscallRisk.CRITICAL, unlinkatArm64.risk)
+
+        val execveArm64 = SyscallResolver.resolve(221, "arm64-v8a")
+        assertEquals("sys_execve", execveArm64.name)
+        assertEquals(SyscallCategory.PROCESS_EXEC, execveArm64.category)
+        assertEquals(SyscallRisk.HIGH, execveArm64.risk)
+
+        val ptraceArm64 = SyscallResolver.resolve(117, "arm64-v8a")
+        assertEquals("sys_ptrace", ptraceArm64.name)
+        assertEquals(SyscallCategory.DEBUG_PTRACE, ptraceArm64.category)
+        assertEquals(SyscallRisk.CRITICAL, ptraceArm64.risk)
+
+        val socketArm64 = SyscallResolver.resolve(198, "arm64-v8a")
+        assertEquals("sys_socket", socketArm64.name)
+        assertEquals(SyscallCategory.NETWORK, socketArm64.category)
+        assertEquals(SyscallRisk.MEDIUM, socketArm64.risk)
+
+        val readArm64 = SyscallResolver.resolve(63, "arm64-v8a")
+        assertEquals("sys_read", readArm64.name)
+        assertEquals(SyscallCategory.FILE_IO, readArm64.category)
+        assertEquals(SyscallRisk.LOW, readArm64.risk)
+
+        // x86_64 test cases
+        val unlinkatX86_64 = SyscallResolver.resolve(263, "x86_64")
+        assertEquals("sys_unlinkat", unlinkatX86_64.name)
+        assertEquals(SyscallCategory.DELETION_FS, unlinkatX86_64.category)
+        assertEquals(SyscallRisk.CRITICAL, unlinkatX86_64.risk)
+
+        val execveX86_64 = SyscallResolver.resolve(59, "x86_64")
+        assertEquals("sys_execve", execveX86_64.name)
+        assertEquals(SyscallCategory.PROCESS_EXEC, execveX86_64.category)
+
+        // ARM32 test cases
+        val unlinkArm32 = SyscallResolver.resolve(10, "armeabi-v7a")
+        assertEquals("sys_unlink", unlinkArm32.name)
+        assertEquals(SyscallCategory.DELETION_FS, unlinkArm32.category)
+    }
+
+    @Test
+    fun testSyscallResolverByNameLookup() {
+        val unlinkInfo = SyscallResolver.resolveByName("unlink")
+        assertEquals(SyscallCategory.DELETION_FS, unlinkInfo.category)
+        assertEquals(SyscallRisk.CRITICAL, unlinkInfo.risk)
+
+        val mountInfo = SyscallResolver.resolveByName("mount")
+        assertEquals(SyscallCategory.SYSTEM_ADMIN, mountInfo.category)
+        assertEquals(SyscallRisk.CRITICAL, mountInfo.risk)
+
+        val killInfo = SyscallResolver.resolveByName("sys_kill")
+        assertEquals(SyscallCategory.SIGNALING, killInfo.category)
+        assertEquals(SyscallRisk.HIGH, killInfo.risk)
+
+        val connectInfo = SyscallResolver.resolveByName("__NR_connect")
+        assertEquals(SyscallCategory.NETWORK, connectInfo.category)
+        assertEquals(SyscallRisk.MEDIUM, connectInfo.risk)
+    }
+
+    @Test
+    fun testElfInspectorHeaderValidationAndArchitecture() {
+        // Invalid non-ELF bytes
+        val nonElf = byteArrayOf(0x00, 0x01, 0x02, 0x03)
+        assertTrue(!ElfInspector.isElf(nonElf))
+
+        // Valid ARM64 Little-Endian PIE header
+        val header = ByteArray(64)
+        header[0] = 0x7F
+        header[1] = 'E'.code.toByte()
+        header[2] = 'L'.code.toByte()
+        header[3] = 'F'.code.toByte()
+        header[4] = 2 // 64-bit
+        header[5] = 1 // Little Endian
+        header[6] = 1 // Version
+        // e_type at offset 16: ET_DYN = 3 (PIE)
+        header[16] = 3
+        header[17] = 0
+        // e_machine at offset 18: EM_AARCH64 = 183 (0x00B7)
+        header[18] = 0xB7.toByte()
+        header[19] = 0x00
+
+        assertTrue(ElfInspector.isElf(header))
+        val report = ElfInspector.inspect(header)
+        assertEquals(true, report.is64Bit)
+        assertEquals(true, report.isLittleEndian)
+        assertEquals(true, report.isPie)
+        assertTrue(report.machineArch.contains("AArch64"))
+    }
+
+    @Test
+    fun testElfInspectorSymbolAndSyscallDetection() {
+        // Construct ELF header + embedded sensitive strings
+        val header = ByteArray(256)
+        header[0] = 0x7F
+        header[1] = 'E'.code.toByte()
+        header[2] = 'L'.code.toByte()
+        header[3] = 'F'.code.toByte()
+        header[4] = 2 // 64-bit
+        header[5] = 1 // Little Endian
+        header[16] = 3 // ET_DYN
+        header[18] = 0xB7.toByte() // AArch64
+
+        // Embed symbols into the data section: unlink, system, ptrace, socket, reboot
+        val symbols = "unlink\u0000system\u0000ptrace\u0000socket\u0000reboot\u0000/system/bin/su\u0000"
+        val symBytes = symbols.toByteArray(Charsets.ISO_8859_1)
+        System.arraycopy(symBytes, 0, header, 64, symBytes.size)
+
+        val report = ElfInspector.inspect(header)
+        assertTrue(report.totalFindings > 0)
+        assertTrue(report.deletions.any { it.contains("unlink") })
+        assertTrue(report.executionCalls.any { it.contains("system") })
+        assertTrue(report.ptraceCalls.any { it.contains("ptrace") })
+        assertTrue(report.networkCalls.any { it.contains("socket") })
+        assertTrue(report.systemCalls.any { it.contains("reboot") })
+        assertTrue(report.rootCalls.any { it.contains("su") })
+
+        val scriptAuditReport = report.toScriptAuditReport()
+        assertEquals(report.totalFindings, scriptAuditReport.totalFindings)
+    }
+
+    @Test
+    fun testBinaryTracerProcSyscallLiveTracking() {
+        BinaryTracerEngine.clear()
+
+        // 1. Record live proc syscall for unlinkat
+        BinaryTracerEngine.recordProcSyscall(1234, 35, "0xffffff9c 0x7ffffff 0x0")
+        val stats1 = BinaryTracerEngine.getStats()
+        assertEquals(1L, stats1.totalSyscalls)
+        assertTrue(stats1.activeSyscall != null)
+        assertEquals("sys_unlinkat", stats1.activeSyscall!!.name)
+        assertEquals(SyscallCategory.DELETION_FS, stats1.activeSyscall!!.category)
+        assertEquals(SyscallRisk.CRITICAL, stats1.activeSyscall!!.risk)
+
+        // 2. Update I/O stats
+        BinaryTracerEngine.updateProcIo(1500L, 200L, 1024000L, 512000L)
+        val stats2 = BinaryTracerEngine.getStats()
+        assertEquals(1500L, stats2.ioReadSyscalls)
+        assertEquals(200L, stats2.ioWriteSyscalls)
+        assertEquals(1024000L, stats2.ioBytesRead)
+        assertEquals(512000L, stats2.ioBytesWritten)
+
+        // 3. Events ring buffer should contain the recorded high-risk syscall event
+        val events = BinaryTracerEngine.getEvents()
+        assertTrue(events.any { it.target.contains("sys_unlinkat") })
+
+        // 4. Verify clearing
+        BinaryTracerEngine.clear()
+        val statsCleared = BinaryTracerEngine.getStats()
+        assertEquals(0L, statsCleared.totalSyscalls)
+        assertEquals(0L, statsCleared.ioReadSyscalls)
+        assertEquals(null, statsCleared.activeSyscall)
     }
 }

@@ -40,6 +40,34 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
     }
 
     private fun parseScript(path: Path): ScriptInfo {
+        val isElf = me.zhanghai.android.files.filelist.ScriptRunnerHelper.isElfBinary(path)
+        if (isElf) {
+            val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(path)
+            val scriptType = "Binario ELF Compilado (${elfReport.machineArch})"
+            val interpreter = elfReport.interpreter ?: if (elfReport.isDynamic) "ELF Dinámico" else "ELF Estático"
+            val lineEndingDesc = if (elfReport.isPie) "Formato Nativo PIE (Compatible Android 5.0+)" else "Formato Fijo Non-PIE ⚠️"
+            val recommendedEnvironment = when {
+                !elfReport.isAbiCompatible -> "Incompatible con ABI del dispositivo"
+                elfReport.rootCalls.isNotEmpty() -> "Entorno Root (Superusuario)"
+                else -> "Nativo / Termex"
+            }
+            return ScriptInfo(
+                scriptType = scriptType,
+                shebang = null,
+                interpreter = interpreter,
+                lineEnding = ScriptInfo.LineEnding.EMPTY,
+                lineEndingDescription = lineEndingDesc,
+                lineCount = elfReport.findings.size,
+                wordCount = elfReport.totalFindings,
+                charCount = runCatching { java8.nio.file.Files.size(path) }.getOrDefault(0L),
+                charset = "ELF Binario (${if (elfReport.is64Bit) "64-bit" else "32-bit"})",
+                posixPermissions = "Binario Nativo Ejecutable",
+                isExecutable = true,
+                recommendedEnvironment = recommendedEnvironment,
+                auditReport = elfReport.toScriptAuditReport()
+            )
+        }
+
         var shebang: String? = null
         var lineCount = 0
         var wordCount = 0

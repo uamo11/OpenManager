@@ -72,9 +72,31 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
         val staticAuditReport: ScriptRunnerHelper.ScriptAuditReport? = if (path.isNotEmpty()) {
             val scriptFile = File(path)
             if (scriptFile.isFile && scriptFile.canRead()) {
-                val scriptContent = runCatching { scriptFile.readText() }.getOrDefault("")
-                if (scriptContent.isNotEmpty()) {
-                    val report = ScriptRunnerHelper.auditScriptText(scriptContent)
+                val isElf = ScriptRunnerHelper.isElfBinary(java8.nio.file.Paths.get(path))
+                val report: ScriptRunnerHelper.ScriptAuditReport
+                val scriptContent: String
+                if (isElf) {
+                    val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(java8.nio.file.Paths.get(path))
+                    report = elfReport.toScriptAuditReport()
+                    scriptContent = buildString {
+                        appendLine("/* REPORTE DE AUDITORÍA DE BINARIO ELF COMPILADO EN C/C++ */")
+                        appendLine("Arquitectura: ${elfReport.machineArch}")
+                        appendLine("Bitness: ${if (elfReport.is64Bit) "64-bit" else "32-bit"}")
+                        appendLine("PIE (Position Independent Executable): ${if (elfReport.isPie) "Sí (Requerido Android 5.0+)" else "No (Fijo - Posible fallo)"}")
+                        appendLine("Linker / Intérprete: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dinámico" else "Estático"}")
+                        appendLine("Compatibilidad ABI Dispositivo: ${if (elfReport.isAbiCompatible) "Compatible" else "Incompatible"}")
+                        appendLine()
+                        appendLine("/* SYSCALLS Y SÍMBOLOS DETECTADOS (${elfReport.totalFindings}) */")
+                        for (f in elfReport.findings) {
+                            appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Riesgo: ${f.risk.levelName})")
+                        }
+                    }
+                } else {
+                    scriptContent = runCatching { scriptFile.readText() }.getOrDefault("")
+                    report = ScriptRunnerHelper.auditScriptText(scriptContent)
+                }
+
+                if (scriptContent.isNotEmpty() || isElf) {
                     staticAuditFindings = report.totalFindings
                     binding.cardStaticAudit.visibility = View.VISIBLE
                     if (report.totalFindings > 0) {
@@ -130,7 +152,7 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                         binding.tvStaticAuditBadge.text = "LIMPIO"
                         binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#81C784"))
                         binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
-                        binding.tvStaticAuditDesc.text = getString(R.string.script_audit_static_clean_desc)
+                        binding.tvStaticAuditDesc.text = if (isElf) "Binario ELF verificado sin llamadas sensibles detectadas" else getString(R.string.script_audit_static_clean_desc)
                         binding.layoutStaticAuditCategories.removeAllViews()
                         staticAuditSummary = "Limpio (Sin operaciones de riesgo)"
                     }
@@ -193,6 +215,54 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
             val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
             binding.tvStatDeadManVal.text = if (deadManActive) "ACTIVO" else "DESACT."
             binding.tvStatDeadManVal.setTextColor(if (deadManActive) Color.parseColor("#81C784") else Color.parseColor("#E57373"))
+
+            // Update Live Syscall Transparency Card
+            val isProcRunning = ScriptExecutionManager.isRunning()
+            if (isProcRunning) {
+                binding.tvLiveSyscallStatusBadge.text = "MONITOREANDO"
+                binding.tvLiveSyscallStatusBadge.setTextColor(Color.parseColor("#4CAF50"))
+                binding.tvLiveSyscallStatusBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
+            } else {
+                binding.tvLiveSyscallStatusBadge.text = if (stats.totalSyscalls > 0) "FINALIZADO" else "EN ESPERA"
+                binding.tvLiveSyscallStatusBadge.setTextColor(Color.parseColor("#B0BEC5"))
+                binding.tvLiveSyscallStatusBadge.setBackgroundColor(Color.parseColor("#37474F"))
+            }
+
+            val active = stats.activeSyscall
+            if (active != null) {
+                binding.tvActiveSyscallText.text = "Syscall actual: ${active.name} (#${active.number}) · PID: ${active.pid} [${active.category.displayName}]"
+                binding.tvActiveSyscallText.setTextColor(Color.parseColor(active.risk.colorHex))
+            } else {
+                binding.tvActiveSyscallText.text = if (isProcRunning) "Syscall actual: Espacio de usuario / Reposo" else "Syscall actual: Sin proceso activo"
+                binding.tvActiveSyscallText.setTextColor(Color.parseColor("#CFD8DC"))
+            }
+
+            binding.tvIoReadCalls.text = "Lecturas (syscr): ${stats.ioReadSyscalls}"
+            binding.tvIoWriteCalls.text = "Escrituras (syscw): ${stats.ioWriteSyscalls}"
+
+            val counters = BinaryTracerEngine.getSyscallCounters()
+            binding.layoutSyscallBreakdown.removeAllViews()
+            if (counters.isNotEmpty()) {
+                val sortedSyscalls = counters.toList().sortedByDescending { it.second }.take(6)
+                for ((sysName, count) in sortedSyscalls) {
+                    val info = SyscallResolver.resolveByName(sysName)
+                    val tvRow = TextView(context).apply {
+                        text = "  ${info.category.icon} ${info.name}: $count llamadas (${info.risk.levelName})"
+                        textSize = 10f
+                        setTypeface(Typeface.MONOSPACE)
+                        setTextColor(Color.parseColor(info.risk.colorHex))
+                        setPadding(0, 2, 0, 2)
+                    }
+                    binding.layoutSyscallBreakdown.addView(tvRow)
+                }
+            } else {
+                val tvNone = TextView(context).apply {
+                    text = "  (Sin syscalls registradas aún)"
+                    textSize = 10f
+                    setTextColor(Color.parseColor("#78909C"))
+                }
+                binding.layoutSyscallBreakdown.addView(tvNone)
+            }
 
             // Populate Event Ledger
             val events = BinaryTracerEngine.getEvents()
@@ -347,7 +417,21 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
             sb.appendLine("Deletions: ${stats.totalDeletions} (Blocked: ${stats.blockedDeletions}, Allowed: ${stats.allowedDeletions})")
             sb.appendLine("Syscalls: ${stats.totalSyscalls}")
             sb.appendLine("Kernel Reads: ${stats.totalKernelReads}")
+            sb.appendLine("IO Read Syscalls (syscr): ${stats.ioReadSyscalls}")
+            sb.appendLine("IO Write Syscalls (syscw): ${stats.ioWriteSyscalls}")
             sb.appendLine("Dead Man Protection: ${if (DeadManProtectionManager.isDeadManProtectionActive(context)) "ACTIVE" else "DISABLED"}")
+            val activeSys = stats.activeSyscall
+            if (activeSys != null) {
+                sb.appendLine("Active Syscall: ${activeSys.name} (#${activeSys.number}) - PID ${activeSys.pid} [${activeSys.category.displayName}]")
+            }
+            val liveCounters = BinaryTracerEngine.getSyscallCounters()
+            if (liveCounters.isNotEmpty()) {
+                sb.appendLine("--- Syscall Transparency Table ---")
+                for ((k, v) in liveCounters) {
+                    val res = SyscallResolver.resolveByName(k)
+                    sb.appendLine("  ${res.name}: $v calls [${res.category.displayName} - ${res.risk.levelName}]")
+                }
+            }
             sb.appendLine("--- Event Ledger (${events.size} events) ---")
             for (e in events) {
                 sb.appendLine("[${dateFormat.format(Date(e.timestamp))}] [${e.type.name}] ${e.target} - ${e.details} -> Decision: ${e.decision ?: "N/A"}")

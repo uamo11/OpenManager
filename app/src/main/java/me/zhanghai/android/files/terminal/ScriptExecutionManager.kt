@@ -35,6 +35,13 @@ object ScriptExecutionManager {
             field = value
             if (value > 0) {
                 notifyPidAssigned(value)
+                runCatching {
+                    me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.startMonitoring(value)
+                }
+            } else {
+                runCatching {
+                    me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring()
+                }
             }
         }
 
@@ -134,6 +141,7 @@ object ScriptExecutionManager {
             if (session != null && session.isRunning) {
                 runCatching { session.finishIfRunning() }
             }
+            runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring() }
 
             if (pid > 0) {
                 runCatching { Os.kill(pid, OsConstants.SIGKILL) }
@@ -157,6 +165,7 @@ object ScriptExecutionManager {
     }
 
     fun onSessionFinished(exitCode: Int, context: Context?) {
+        runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring() }
         if (isTerminating.get() || isTerminatedByUser) {
             return
         }

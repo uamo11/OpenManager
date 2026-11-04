@@ -1,3 +1,42 @@
+# OpenManager v1.9.44: Ejecución Avanzada de Binarios C/C++ (ELF) y Telemetría de Syscalls en Vivo
+
+### ⚙️ Ejecución Hardened de Scripts y Binarios Compilados en C/C++ (ELF)
+- **Superación de Restricciones SELinux y `noexec` en Android Storage**:
+  - `/storage/emulated/0` está montado con la bandera `noexec`, lo que bloquea la ejecución de binarios ELF (`execve: Permission denied`) incluso bajo superusuario.
+  - **Modo Root**: El binario se copia automáticamente a `/data/local/tmp/<bin>`, se le asignan permisos `chmod 755` y se ejecuta directamente desde una partición sin restricciones de ejecución.
+  - **Modo Termex**: El binario se despliega en el directorio ejecutable de Termex (`$PREFIX/tmp` o `$PREFIX/bin`) con permisos `chmod 755`, ejecutándose nativamente con soporte de bibliotecas compartidas de Termex.
+  - **Modo Sin Root / Cargador Dinámico**: Detección y ejecución mediante el enlazador dinámico de Android (`/system/bin/linker64` o `/system/bin/linker`), permitiendo cargar binarios dinámicos nativamente.
+- **Detección de Binarios PIE vs Non-PIE**:
+  - Verificación del tipo ELF (`ET_DYN` vs `ET_EXEC`). Se advierte al usuario si un binario antiguo no es Position-Independent Executable (PIE), el cual es requerido por Android 5.0+.
+
+---
+
+### ⚡ Lectura en Vivo y Telemetría de Syscalls de Linux/Android
+- **Monitor de Sondeo en Tiempo Real (`SyscallReaderMonitor`)**:
+  - Monitoreo en segundo plano de `/proc/<pid>/syscall` y `/proc/<pid>/io` durante la ejecución activa de cualquier proceso.
+  - Rastreo automático de hilos y subprocesos hijos descubiertos en `/proc/<pid>/task`.
+- **Traductor de Llamadas al Sistema Multi-Arquitectura (`SyscallResolver`)**:
+  - Traducción instantánea de números de syscall según la arquitectura del dispositivo (ARM64, ARM32, x86_64, x86).
+  - Categorización precisa: `DELETION_FS`, `PROCESS_EXEC`, `SIGNALING`, `PRIVILEGE`, `DEBUG_PTRACE`, `NETWORK`, `SYSTEM_ADMIN`, `MEMORY`, `FILE_IO`.
+  - Métrica de llamadas I/O en tiempo real: `syscr` (lecturas del sistema) y `syscw` (escrituras del sistema), junto con bytes leídos y escritos.
+
+---
+
+### 🛡️ Transparencia Total y Detección de Syscalls de Riesgo
+- **Inspector Estático de Binarios ELF (`ElfInspector`)**:
+  - Análisis estático previo a la ejecución: lee encabezados ELF, arquitectura de máquina, bitness (32/64 bit), endianness, intérprete dinámico y símbolos de bibliotecas compartidas.
+  - Detección de funciones y syscalls sensibles (`unlink`, `unlinkat`, `rmdir`, `system`, `popen`, `execve`, `ptrace`, `kill`, `socket`, `connect`, `mount`, `reboot`, `setuid`, `mprotect`).
+  - Alerta preventiva en el diálogo de ejecución: si el binario C contiene llamadas de riesgo, se muestra el diálogo `showPreExecutionAuditWarningDialog` detallando cada riesgo antes de ejecutar.
+- **Nueva Tarjeta en el Diálogo de Auditoría: "Lectura y Detección de Syscalls en Vivo"**:
+  - Indicador de estado del monitor en tiempo real (`MONITOREANDO`, `FINALIZADO`, `EN ESPERA`).
+  - Syscall activa actual con nombre, número, PID, categoría y argumentos de registros.
+  - Tabla de desglose de las syscalls más frecuentes con insignias de riesgo (`CRÍTICO`, `ALTO`, `MEDIO`, `NORMAL`).
+  - Métricas de lecturas (`syscr`) y escrituras (`syscw`).
+- **Integración en Pestaña Script y Detalles de Propiedades**:
+  - Reconocimiento automático de ejecutables nativos ELF compilados en C/C++, mostrando su arquitectura, tipo de enlazado y reporte de seguridad.
+
+---
+
 # OpenManager v1.9.43: Sistema Avanzado de Auditoría de Scripts Shell (.sh) y Supresión de Bucle de Notificaciones
 
 ### 🛡️ Sistema Integral de Auditoría de Scripts (.sh) Antes y Durante la Ejecución
