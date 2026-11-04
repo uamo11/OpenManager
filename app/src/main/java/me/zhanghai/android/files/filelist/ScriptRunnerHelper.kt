@@ -56,6 +56,163 @@ import java.util.Locale
 import java.util.zip.CRC32
 
 object ScriptRunnerHelper {
+
+    data class ScriptAuditReport(
+        val deletions: List<String>,
+        val rootCalls: List<String>,
+        val networkCalls: List<String>,
+        val systemPaths: List<String>
+    ) {
+        val totalFindings: Int
+            get() = deletions.size + rootCalls.size + networkCalls.size + systemPaths.size
+    }
+
+    fun auditScriptText(content: String): ScriptAuditReport {
+        val lines = content.lines()
+        val deletions = mutableListOf<String>()
+        val rootCalls = mutableListOf<String>()
+        val networkCalls = mutableListOf<String>()
+        val systemPaths = mutableListOf<String>()
+
+        lines.forEachIndexed { idx, rawLine ->
+            val line = rawLine.trim()
+            val lineNum = idx + 1
+            if (line.startsWith("#")) return@forEachIndexed
+
+            if (Regex("""\b(rm|rmdir|unlink|truncate)\b""").containsMatchIn(line)) {
+                deletions.add("Línea $lineNum: $line")
+            }
+            if (Regex("""\b(dd\s+if|mkfs|fdisk|sfdisk)\b""").containsMatchIn(line)) {
+                deletions.add("Línea $lineNum (formateo/bloque): $line")
+            }
+
+            if (Regex("""\b(su|sudo|magisk|ksud)\b""").containsMatchIn(line)) {
+                rootCalls.add("Línea $lineNum: $line")
+            }
+
+            if (Regex("""\b(curl|wget|nc|netcat|ncat|ssh|telnet|ping)\b""").containsMatchIn(line)) {
+                networkCalls.add("Línea $lineNum: $line")
+            }
+
+            if (Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user)""").containsMatchIn(line)) {
+                systemPaths.add("Línea $lineNum: $line")
+            }
+        }
+
+        return ScriptAuditReport(deletions, rootCalls, networkCalls, systemPaths)
+    }
+
+    private fun showScriptAuditDetailsDialog(
+        activity: Activity,
+        path: Path,
+        report: ScriptAuditReport,
+        scriptContent: String
+    ) {
+        val density = activity.resources.displayMetrics.density
+        val scroll = android.widget.ScrollView(activity)
+        val container = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (18 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+        }
+
+        val tvSummary = TextView(activity).apply {
+            textSize = 15f
+            setTextColor(Color.WHITE)
+            text = if (report.totalFindings == 0) {
+                "✅ Este script no contiene llamadas de red, eliminaciones forzadas ni accesos a particiones de sistema."
+            } else {
+                "⚠️ Se han detectado ${report.totalFindings} operaciones que requieren atención antes de ejecutar:"
+            }
+        }
+        container.addView(tvSummary)
+
+        fun addSection(title: String, items: List<String>, colorHex: String) {
+            if (items.isEmpty()) return
+            val tvSectionTitle = TextView(activity).apply {
+                textSize = 14f
+                setTypeface(null, android.graphics.Typeface.BOLD)
+                setTextColor(Color.parseColor(colorHex))
+                val topMargin = (14 * density).toInt()
+                setPadding(0, topMargin, 0, (4 * density).toInt())
+                text = title
+            }
+            container.addView(tvSectionTitle)
+
+            for (item in items) {
+                val tvItem = TextView(activity).apply {
+                    textSize = 12f
+                    setTypeface(android.graphics.Typeface.MONOSPACE)
+                    setTextColor(Color.parseColor("#CCCCCC"))
+                    setBackgroundColor(Color.parseColor("#222222"))
+                    val p = (6 * density).toInt()
+                    setPadding(p, p, p, p)
+                    val lp = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                    lp.topMargin = (2 * density).toInt()
+                    layoutParams = lp
+                    text = item
+                }
+                container.addView(tvItem)
+            }
+        }
+
+        addSection("🗑️ Eliminaciones / Modificaciones (${report.deletions.size})", report.deletions, "#FF8A80")
+        addSection("⚡ Acceso de Superusuario / Root (${report.rootCalls.size})", report.rootCalls, "#FFD54F")
+        addSection("🌐 Conexiones de Red / Descargas (${report.networkCalls.size})", report.networkCalls, "#80D8FF")
+        addSection("📁 Rutas Críticas de Sistema (${report.systemPaths.size})", report.systemPaths, "#B388FF")
+
+        val btnViewCode = Button(activity).apply {
+            text = "Ver Código Completo con Líneas"
+            setTextColor(Color.parseColor("#64B5F6"))
+            setBackgroundColor(Color.TRANSPARENT)
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            lp.topMargin = (16 * density).toInt()
+            layoutParams = lp
+            setOnClickListener {
+                showFullCodeDialog(activity, path, scriptContent)
+            }
+        }
+        container.addView(btnViewCode)
+
+        scroll.addView(container)
+
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("Auditoría de Seguridad")
+            .setView(scroll)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun showFullCodeDialog(activity: Activity, path: Path, content: String) {
+        val density = activity.resources.displayMetrics.density
+        val scroll = android.widget.ScrollView(activity)
+        val tvCode = TextView(activity).apply {
+            textSize = 12f
+            setTypeface(android.graphics.Typeface.MONOSPACE)
+            setTextColor(Color.parseColor("#E0E0E0"))
+            val pad = (14 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+            val lines = content.lines()
+            val numbered = lines.mapIndexed { idx, l ->
+                String.format("%3d | %s", idx + 1, l)
+            }.joinToString("\n")
+            text = numbered
+        }
+        scroll.addView(tvCode)
+
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(path.fileName?.toString() ?: "Script")
+            .setView(scroll)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
     private const val PREFS_NAME = "script_exec_prefs"
     private const val KEY_EXEC_ENV = "exec_env"
     private const val KEY_EXEC_ROOT = "exec_root"
@@ -316,6 +473,7 @@ object ScriptRunnerHelper {
         val (_, tvInterpreter) = addRow("Intérprete", if (isElf) "ELF Nativo" else "/system/bin/sh")
         val (rowLineEnding, tvLineEnding) = addRow("Formato línea", if (isElf) "Binario" else "Analizando...")
         val (rowLines, tvLines) = addRow("Contenido", if (isElf) "Ejecutable compilado" else "Analizando...")
+        val (rowAudit, tvAudit) = addRow("Auditoría", if (isElf) "Binario ELF Compilado" else "Analizando seguridad...", valueColor = Color.parseColor("#90CAF9"), boldValue = true)
         if (isElf) {
             rowLineEnding.visibility = View.GONE
             rowLines.visibility = View.GONE
@@ -350,12 +508,34 @@ object ScriptRunnerHelper {
                     }
                 } catch (_: Throwable) {}
 
+                var fullScriptContent = ""
+                try {
+                    path.newInputStream().use { stream ->
+                        fullScriptContent = String(stream.readBytes(), StandardCharsets.UTF_8)
+                    }
+                } catch (_: Throwable) {}
+                val auditReport = auditScriptText(fullScriptContent)
+
                 withContext(Dispatchers.Main) {
                     if (!shebang.isNullOrBlank()) {
                         tvInterpreter.text = shebang
                         tvSubtitle.text = "Script (${shebang!!.removePrefix("#!").trim()})"
                     }
                     tvLines.text = "$lineCount líneas · UTF-8"
+
+                    if (auditReport.totalFindings == 0) {
+                        tvAudit.text = "🛡️ Script Seguro (0 avisos)  ℹ"
+                        tvAudit.setTextColor(Color.parseColor("#81C784"))
+                    } else {
+                        tvAudit.text = "⚠️ ${auditReport.totalFindings} avisos detectados  ℹ"
+                        tvAudit.setTextColor(Color.parseColor("#FFB74D"))
+                    }
+                    val auditClick = View.OnClickListener {
+                        showScriptAuditDetailsDialog(activity, path, auditReport, fullScriptContent)
+                    }
+                    rowAudit.setOnClickListener(auditClick)
+                    tvAudit.setOnClickListener(auditClick)
+
                     if (hasCrlf) {
                         tvLineEnding.text = "CRLF (Windows) · Tocar para convertir a LF"
                         tvLineEnding.setTextColor(Color.parseColor("#FFB74D"))

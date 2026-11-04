@@ -53,7 +53,9 @@ class ConfirmDeleteFilesDialogFragment : AppCompatDialogFragment() {
 
     companion object {
         fun show(files: FileItemSet, fragment: Fragment) {
-            ConfirmDeleteFilesDialogFragment().putArgs(Args(files)).show(fragment)
+            val validFiles = files.filterNotTo(fileItemSetOf()) { it.isParentDirectoryItem }
+            if (validFiles.isEmpty()) return
+            ConfirmDeleteFilesDialogFragment().putArgs(Args(validFiles)).show(fragment)
         }
     }
 

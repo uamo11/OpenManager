@@ -371,23 +371,26 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
 
         val currentSelected = viewModel.selectedFiles
-        val hasExistingSelection = currentSelected.isNotEmpty()
-        val anchor = lastSelectionAnchorPosition
+        val isAlreadySelected = file in currentSelected
 
-        if (hasExistingSelection && anchor >= 0 && anchor != position) {
-            // Range Selection: "si selecciona así un archivo abajo y otro arriba puede seleccionar todos los del interior de ese arriba y abajo"
-            val rangeFiles = adapter.getSelectableFilesInRange(anchor, position)
-            if (rangeFiles.isNotEmpty()) {
-                viewModel.selectFiles(rangeFiles, true)
+        if (isAlreadySelected) {
+            // Swiping an already selected file always toggles/deselects it
+            viewModel.selectFile(file, false)
+            if (lastSelectionAnchorPosition == position) {
+                val remaining = viewModel.selectedFiles
+                lastSelectionAnchorPosition = remaining.firstOrNull()?.let { adapter.getPositionForFile(it) } ?: -1
             }
-            lastSelectionAnchorPosition = position
         } else {
-            // Single item selection / toggle
-            val isAlreadySelected = file in currentSelected
-            if (isAlreadySelected && currentSelected.size == 1) {
-                viewModel.selectFile(file, false)
-                lastSelectionAnchorPosition = -1
+            val anchor = lastSelectionAnchorPosition
+            if (currentSelected.isNotEmpty() && anchor >= 0 && anchor != position) {
+                // Range Selection between anchor and position
+                val rangeFiles = adapter.getSelectableFilesInRange(anchor, position)
+                if (rangeFiles.isNotEmpty()) {
+                    viewModel.selectFiles(rangeFiles, true)
+                }
+                lastSelectionAnchorPosition = position
             } else {
+                // Single item selection
                 viewModel.selectFile(file, true)
                 lastSelectionAnchorPosition = position
             }
@@ -949,6 +952,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun onCurrentPathChanged(path: Path) {
+        clearSelectedFiles()
         updateOverlayToolbar()
         updateBottomToolbar()
         onPathOrStatsChanged?.invoke(path, currentStatsSubtitle)
@@ -1952,29 +1956,58 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun proceedPasteFiles(targetDirectory: Path) {
-        if (!canWriteTo(targetDirectory)) {
-            showToast("Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)")
+        val pasteState = viewModel.pasteState
+        val validFiles = pasteState.files.filterNot { it.isParentDirectoryItem }
+        if (validFiles.isEmpty()) {
+            viewModel.clearPasteState()
             return
         }
-        val pasteState = viewModel.pasteState
-        if (viewModel.pasteState.copy) {
+
+        if (!canWriteTo(targetDirectory)) {
+            val msg = if (targetDirectory.isArchivePath) {
+                "No se puede pegar dentro de un archivo comprimido"
+            } else {
+                "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)"
+            }
+            showToast(msg)
+            return
+        }
+
+        if (pasteState.copy) {
+            for (item in validFiles) {
+                if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
+                    showToast("No se puede copiar la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                    return
+                }
+            }
             FileJobService.copy(
-                makePathListForJob(pasteState.files), targetDirectory, requireContext()
+                makePathListForJob(fileItemSetOf(validFiles)), targetDirectory, requireContext()
             )
         } else {
-            if (!canWriteTo(pasteState.files.firstOrNull()?.path?.parent ?: targetDirectory)) {
+            val sourceParent = validFiles.firstOrNull()?.path?.parent
+            if (sourceParent == targetDirectory) {
+                showToast("El origen y el destino son el mismo directorio")
+                return
+            }
+            if (!canWriteTo(sourceParent ?: targetDirectory)) {
                 showToast("Permiso denegado: origen de solo lectura (se requiere Root o Shizuku)")
                 return
             }
+            for (item in validFiles) {
+                if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
+                    showToast("No se puede mover la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                    return
+                }
+            }
             FileJobService.move(
-                makePathListForJob(pasteState.files), targetDirectory, requireContext()
+                makePathListForJob(fileItemSetOf(validFiles)), targetDirectory, requireContext()
             )
         }
         viewModel.clearPasteState()
     }
 
     private fun makePathListForJob(files: FileItemSet): List<Path> =
-        files.map { it.path }.sortedBy { it.toUri() }
+        files.filterNot { it.isParentDirectoryItem }.map { it.path }.sortedBy { it.toUri() }
 
     private fun onFileNameEllipsizeChanged(fileNameEllipsize: TextUtils.TruncateAt) {
         adapter.nameEllipsize = fileNameEllipsize
@@ -1989,8 +2022,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val pos = adapter.getPositionForFile(file)
         if (selected) {
             lastSelectionAnchorPosition = pos
-        } else if (viewModel.selectedFiles.size <= 1) {
-            lastSelectionAnchorPosition = -1
+        } else {
+            if (lastSelectionAnchorPosition == pos) {
+                val remaining = viewModel.selectedFiles.filter { it.path != file.path }
+                lastSelectionAnchorPosition = remaining.firstOrNull()?.let { adapter.getPositionForFile(it) } ?: -1
+            }
         }
         viewModel.selectFile(file, selected)
     }
@@ -2471,6 +2507,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun canWriteTo(path: Path): Boolean {
+        if (path.isArchivePath || path.fileSystem.isReadOnly) {
+            return false
+        }
         if (LibSuFileServiceLauncher.isSuAvailable() || ShizukuManager.ready()) {
             return true
         }
@@ -2520,29 +2559,68 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun copyFilesTo(files: FileItemSet, targetDirectory: Path) {
+        val validFiles = files.filterNot { it.isParentDirectoryItem }
+        if (validFiles.isEmpty()) return
+
         if (!canWriteTo(targetDirectory)) {
-            showToast("Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)")
+            val msg = if (targetDirectory.isArchivePath) {
+                "No se puede copiar dentro de un archivo comprimido"
+            } else {
+                "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)"
+            }
+            showToast(msg)
             return
         }
-        FileJobService.copy(makePathListForJob(files), targetDirectory, requireContext())
+
+        for (item in validFiles) {
+            if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
+                showToast("No se puede copiar la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                return
+            }
+        }
+
+        FileJobService.copy(makePathListForJob(fileItemSetOf(validFiles)), targetDirectory, requireContext())
         viewModel.selectFiles(files, false)
     }
 
     fun moveFilesTo(files: FileItemSet, targetDirectory: Path) {
-        if (!canWriteTo(currentPath) || !canWriteTo(targetDirectory)) {
-            showToast("Permiso denegado: no se pueden mover archivos en directorios de solo lectura (se requiere Root o Shizuku)")
+        val validFiles = files.filterNot { it.isParentDirectoryItem }
+        if (validFiles.isEmpty()) return
+
+        if (currentPath == targetDirectory) {
+            showToast("El origen y el destino son el mismo directorio")
             return
         }
-        FileJobService.move(makePathListForJob(files), targetDirectory, requireContext())
+
+        if (!canWriteTo(currentPath) || !canWriteTo(targetDirectory)) {
+            val msg = if (targetDirectory.isArchivePath) {
+                "No se pueden mover archivos dentro de un archivo comprimido"
+            } else {
+                "Permiso denegado: no se pueden mover archivos en directorios de solo lectura (se requiere Root o Shizuku)"
+            }
+            showToast(msg)
+            return
+        }
+
+        for (item in validFiles) {
+            if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
+                showToast("No se puede mover la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                return
+            }
+        }
+
+        FileJobService.move(makePathListForJob(fileItemSetOf(validFiles)), targetDirectory, requireContext())
         viewModel.selectFiles(files, false)
     }
 
     fun deleteSelectedFiles() {
+        val validFiles = viewModel.selectedFiles.filterNot { it.isParentDirectoryItem }
+        if (validFiles.isEmpty()) return
         if (!canWriteTo(currentPath)) {
             showToast("Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)")
             return
         }
-        confirmDeleteFiles(viewModel.selectedFiles)
+        confirmDeleteFiles(fileItemSetOf(validFiles))
     }
 
     fun searchFiles(query: String) {

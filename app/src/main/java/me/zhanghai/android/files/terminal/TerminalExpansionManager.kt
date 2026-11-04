@@ -45,7 +45,7 @@ object TerminalExpansionManager {
         "https://github.com/xxnonxxp11/OpenManager/releases/download/v1.9.27/termex_v3008_arm64.apk"
 
     private const val EXTENDED_SYSTEM_PATH =
-        "/data/adb/ksu/bin:/data/adb/ap/bin:/data/adb/magisk:/system/bin:/system/xbin:/sbin:/vendor/bin:/product/bin:/apex/com.android.runtime/bin:/apex/com.android.art/bin"
+        "/system/bin:/system/xbin:/vendor/bin:/product/bin:/apex/com.android.runtime/bin:/apex/com.android.art/bin:/sbin:/data/adb/ksu/bin:/data/adb/ap/bin:/data/adb/magisk"
 
     data class LaunchConfig(
         val executable: String,
@@ -199,24 +199,25 @@ object TerminalExpansionManager {
             } catch (_: Throwable) {}
         }
 
-        // 4. Aggressively purge any legacy shim scripts (rm, rmdir, om_tracer) from binDir.
+        // 4. Aggressively purge any legacy files or scripts (rm, rmdir, om_tracer, etc.) from binDir.
         // Android 10+ (targetSdk 29+) SELinux strictly blocks untrusted apps from executing
         // scripts or binaries from internal storage (app_data_file) via execve (W^X violation).
-        // Deleting and renaming these files ensures invocations fallback safely to system binaries (/system/bin/rm).
-        val legacyNames = listOf("rm", "rmdir", "om_tracer")
-        for (name in legacyNames) {
-            try {
-                val legacyFile = File(binDir, name)
-                if (legacyFile.exists()) {
-                    legacyFile.setWritable(true, false)
-                    val deleted = legacyFile.delete()
-                    if (!deleted || legacyFile.exists()) {
-                        val trashFile = File(binDir, ".trash_${System.currentTimeMillis()}_$name")
-                        legacyFile.renameTo(trashFile)
+        // Only apktool and .apk_path are allowed in binDir. Any other file is deleted immediately.
+        binDir.listFiles()?.forEach { file ->
+            if (file.name != "apktool" && file.name != ".apk_path") {
+                try {
+                    file.setWritable(true, false)
+                    val deleted = file.delete()
+                    if (!deleted || file.exists()) {
+                        try {
+                            file.writeBytes(ByteArray(0))
+                        } catch (_: Throwable) {}
+                        val trashFile = File(binDir, ".trash_${System.currentTimeMillis()}_${file.name}")
+                        file.renameTo(trashFile)
                         trashFile.delete()
                     }
-                }
-            } catch (_: Throwable) {}
+                } catch (_: Throwable) {}
+            }
         }
         if (isRootAvailable()) {
             try {

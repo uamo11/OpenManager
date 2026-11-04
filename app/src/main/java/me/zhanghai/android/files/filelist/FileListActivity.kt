@@ -1191,7 +1191,12 @@ class FileListActivity : AppActivity() {
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
                 if (!activeFragment.canWriteTo(opposite.currentPath)) {
-                    Toast.makeText(this, "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                    val msg = if (opposite.currentPath.isArchivePath) {
+                        "No se puede copiar dentro de un archivo comprimido"
+                    } else {
+                        "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)"
+                    }
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 activeFragment.copyFilesTo(selected, opposite.currentPath)
@@ -1202,8 +1207,17 @@ class FileListActivity : AppActivity() {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
+                if (activeFragment.currentPath == opposite.currentPath) {
+                    Toast.makeText(this, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
-                    Toast.makeText(this, "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                    val msg = if (opposite.currentPath.isArchivePath) {
+                        "No se pueden mover archivos dentro de un archivo comprimido"
+                    } else {
+                        "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)"
+                    }
+                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 activeFragment.moveFilesTo(selected, opposite.currentPath)
@@ -1250,7 +1264,10 @@ class FileListActivity : AppActivity() {
         }
 
         val isReadOnly = !activeFragment.canWriteTo(activeFragment.currentPath)
-        val moveDisabled = isArchive || isReadOnly
+        val opposite = getOppositeFragment(activeFragment)
+        val oppositeIsArchive = opposite.currentPath.isArchivePath
+        val isSameDir = activeFragment.currentPath == opposite.currentPath
+        val moveDisabled = isArchive || isReadOnly || oppositeIsArchive || isSameDir
         btnMoveOpposite.alpha = if (moveDisabled) 0.4f else 1.0f
         btnMoveOpposite.isEnabled = !moveDisabled
 
@@ -1818,8 +1835,15 @@ class FileListActivity : AppActivity() {
                     val selected = activeFragment.selectedFiles
                     if (selected.isNotEmpty()) {
                         val opposite = getOppositeFragment(activeFragment)
-                        if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
-                            Toast.makeText(this, "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                        if (activeFragment.currentPath == opposite.currentPath) {
+                            Toast.makeText(this, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                        } else if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
+                            val msg = if (opposite.currentPath.isArchivePath) {
+                                "No se pueden mover archivos dentro de un archivo comprimido"
+                            } else {
+                                "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)"
+                            }
+                            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
                         } else {
                             activeFragment.moveFilesTo(selected, opposite.currentPath)
                         }

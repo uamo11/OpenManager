@@ -164,7 +164,9 @@ object MtFileMenuHelper {
         // 2. Move with directional >> or <<
         val btnMove = view.findViewById<LinearLayout>(R.id.btnMove)
         val tvMoveLabel = view.findViewById<TextView>(R.id.tvMoveLabel)
-        if (isReadOnly || isArchivePath) {
+        val isOppositeSame = (oppositePath != null && fragment.currentPath == oppositePath)
+        val isOppositeArchive = (oppositePath?.isArchivePath == true)
+        if (isReadOnly || isArchivePath || isOppositeArchive || isOppositeSame) {
             btnMove.alpha = 0.4f
             btnMove.isEnabled = false
             tvMoveLabel.text = "Mover"
@@ -177,6 +179,10 @@ object MtFileMenuHelper {
             btnMove.setOnClickListener {
                 dialog.dismiss()
                 if (oppositePath != null) {
+                    if (fragment.currentPath == oppositePath) {
+                        Toast.makeText(context, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                        return@setOnClickListener
+                    }
                     fragment.moveFilesTo(targetFiles, oppositePath)
                 } else {
                     fragment.cutFiles(targetFiles)

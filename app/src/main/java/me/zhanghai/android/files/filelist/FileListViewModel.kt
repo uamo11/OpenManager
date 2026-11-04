@@ -30,11 +30,20 @@ class FileListViewModel : ViewModel() {
     val pendingState: Parcelable?
         get() = trailLiveData.valueCompat.pendingState
 
-    fun navigateTo(lastState: Parcelable, path: Path) = trailLiveData.navigateTo(lastState, path)
+    fun navigateTo(lastState: Parcelable, path: Path) {
+        clearSelectedFiles()
+        trailLiveData.navigateTo(lastState, path)
+    }
 
-    fun resetTo(path: Path) = trailLiveData.resetTo(path)
+    fun resetTo(path: Path) {
+        clearSelectedFiles()
+        trailLiveData.resetTo(path)
+    }
 
-    fun navigateUp(): Boolean = trailLiveData.navigateUp()
+    fun navigateUp(): Boolean {
+        clearSelectedFiles()
+        return trailLiveData.navigateUp()
+    }
 
     val currentPathLiveData = trailLiveData.map { it.currentPath }
     val currentPath: Path

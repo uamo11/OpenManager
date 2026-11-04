@@ -741,9 +741,15 @@ class CopyFileJob(private val sources: List<Path>, private val targetDirectory: 
                 R.plurals.file_job_copy_scan_notification_title_format
             }
         )
+        val validSources = sources.filter { source ->
+            !targetDirectory.startsWith(source)
+        }
+        if (validSources.isEmpty()) {
+            return
+        }
         val transferInfo = TransferInfo(scanInfo, targetDirectory)
         val actionAllInfo = ActionAllInfo()
-        for (source in sources) {
+        for (source in validSources) {
             val target = if (source.parent == targetDirectory) {
                 getTargetPathForDuplicate(source)
             } else {
@@ -1068,8 +1074,14 @@ private fun FileJob.postDeleteNotification(transferInfo: TransferInfo, currentPa
 class MoveFileJob(private val sources: List<Path>, private val targetDirectory: Path) : FileJob() {
     @Throws(IOException::class)
     override fun run() {
+        val validSources = sources.filter { source ->
+            source.parent != targetDirectory && !targetDirectory.startsWith(source)
+        }
+        if (validSources.isEmpty()) {
+            return
+        }
         val sourcesToMove = mutableListOf<Path>()
-        for (source in sources) {
+        for (source in validSources) {
             val target = targetDirectory.resolveForeign(source.fileName)
             try {
                 moveAtomically(source, target)
