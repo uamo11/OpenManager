@@ -163,6 +163,6 @@ jobs:
         cp "$APK_DBG" "$FINAL_DBG" || true
         
         gh release create "$TAG" "$FINAL_REL" "$FINAL_DBG" \
-          --title "OpenManager ${TAG}: Dead Man Protection, Native C/C++ ImGui & Stable Script Tracer" \
+          --title "OpenManager ${TAG}: Blindaje Integral de Seguridad, Remediación CVE y Protección de Kernel" \
           --notes-file RELEASE_NOTES.md \
           --latest
