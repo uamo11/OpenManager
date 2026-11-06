@@ -23,33 +23,51 @@
 
 ## 📖 Descripción General
 
-**OpenManager** es un avanzado administrador de archivos para Android con **interfaz de doble panel simultáneo** (estilo MT Manager) y una **suite completa de ingeniería inversa** integrada directamente en tu dispositivo móvil. 
+**OpenManager** es un avanzado administrador de archivos para Android con **interfaz de doble panel simultáneo** (paridad completa estilo MT Manager) y una **suite integral de ingeniería inversa y modding** integrada en tu propio dispositivo móvil.
 
-Permite gestionar el almacenamiento interno, tarjetas SD, particiones protegidas del sistema y servidores remotos, mientras ofrece potentes herramientas para **descompilar, editar, ensamblar, firmar y optimizar aplicaciones Android (APK/DEX/ARSC/AXML)** sin necesidad de utilizar una computadora.
+Permite administrar con fluidez el almacenamiento interno, tarjetas MicroSD, particiones protegidas del sistema y servidores remotos, al mismo tiempo que incorpora potentes utilidades para **descompilar a Java (JADX), editar código Smali/DEX, inspeccionar binarios con editor HEX y Data Inspector, editar recursos ARSC/AXML, fusionar paquetes divididos (AntiSplit), firmar APKs (V1–V3) y ejecutar scripts en su terminal con Root o Shizuku**, todo sin recurrir a una computadora.
 
-Cuenta con integración nativa para **Root** (Magisk, KernelSU, KernelSU Next, APatch) y **Shizuku** (acceso administrativo vía ADB en Android 11 a 15), acompañado por el sistema de seguridad exclusivo **DFROOT / Hombre Muerto**, diseñado para prevenir brickeos accidentales del sistema operativo.
+Cuenta con integración nativa para **Root** (Magisk, KernelSU, KernelSU Next, APatch) y **Shizuku** (acceso sin root vía ADB a `Android/data` y `Android/obb`), junto con el blindaje exclusivo **DFROOT / Hombre Muerto**, desarrollado para prevenir brickeos accidentales del sistema.
 
 ---
 
-## 📸 Capturas de Pantalla
+## 📸 Capturas de Pantalla (Preview)
 
 <table align="center" width="100%">
   <tr>
     <td align="center" width="25%">
-      <img src="screenshots/dual_panel_explorer.jpg" alt="Doble Panel OpenManager" /><br>
-      <b>Explorador Doble Panel</b>
+      <img src="screenshots/01_dual_panel_audio.jpg" alt="Doble Panel con Audio Flotante" /><br>
+      <sub><b>Doble Panel & Audio MP3</b></sub>
     </td>
     <td align="center" width="25%">
-      <img src="screenshots/navigation_drawer.jpg" alt="Menú Lateral y Herramientas" /><br>
-      <b>Cajón de Navegación</b>
+      <img src="screenshots/02_dual_panel_menu.jpg" alt="Menú de Acciones y Paneles" /><br>
+      <sub><b>Gestión y Menú MT</b></sub>
     </td>
     <td align="center" width="25%">
-      <img src="screenshots/audio_player.jpg" alt="Reproductor de Audio Integrado" /><br>
-      <b>Reproductor Multimedia</b>
+      <img src="screenshots/03_code_editor.jpg" alt="Editor de Código C++" /><br>
+      <sub><b>Editor de Código $O(N)$</b></sub>
     </td>
     <td align="center" width="25%">
-      <img src="screenshots/menu_actions.jpg" alt="Menú de Acciones Rápidas" /><br>
-      <b>Menú de Acciones MT</b>
+      <img src="screenshots/04_syntax_selector.jpg" alt="Selector de Sintaxis" /><br>
+      <sub><b>Selector de 39 Sintaxis</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="screenshots/05_app_manager_apk_tools.jpg" alt="Gestor de Apps y Herramientas APK" /><br>
+      <sub><b>Suite APK, JADX y Modding</b></sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="screenshots/06_running_apps_ram.jpg" alt="Monitor de RAM y Procesos" /><br>
+      <sub><b>Monitor RAM & Procesos Root</b></sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="screenshots/07_terminal_root.jpg" alt="Terminal Root y Syscalls" /><br>
+      <sub><b>Terminal Root (#) & Scripts</b></sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="screenshots/08_terminal_script.jpg" alt="Ejecución de Scripts de Shell" /><br>
+      <sub><b>Ejecución Interactiva Shell</b></sub>
     </td>
   </tr>
 </table>
@@ -59,10 +77,10 @@ Cuenta con integración nativa para **Root** (Magisk, KernelSU, KernelSU Next, A
 ## ✨ Características Principales
 
 ### 🗂️ 1. Explorador de Doble Panel (Estilo MT Manager)
-* **Paneles A y B Independientes:** Visualiza dos rutas distintas en paralelo con sincronización instantánea.
-* **Operaciones Rápidas entre Paneles:** Copia, mueve y sincroniza archivos y directorios entre paneles opuestos con un solo toque.
-* **Barra de Navegación Breadcrumbs:** Historial interactivo con acceso a niveles superiores y estadísticas del disco en vivo (carpetas, archivos, espacio usado y disponible).
-* **Navegación Eficiente:** Accesos directos a almacenamiento interno, Tarjeta SD, `/data/data`, carpetas del sistema y marcadores personalizables.
+* **Paneles A y B Independientes:** Visualiza y navega dos directorios diferentes en paralelo con sincronización instantánea y vista dividida.
+* **Operaciones Directas entre Paneles:** Copiado, traslado y sincronización rápida de archivos entre paneles opuestos.
+* **Barra de Navegación Breadcrumbs:** Historial con salto a niveles superiores y estadísticas del disco en vivo (carpetas, archivos, espacio usado y total).
+* **Menú Rápido de Gestión:** Filtrar, ordenar, buscar, seleccionar todo, fijar carpetas como inicio, marcadores e intercambio fluido de paneles.
 
 ### 🛠️ 2. Suite de Ingeniería Inversa y Modificación
 * **Editor DEX & DEX Plus:**
@@ -81,13 +99,14 @@ Cuenta con integración nativa para **Root** (Magisk, KernelSU, KernelSU Next, A
   * Decodificación y reconstrucción de `AndroidManifest.xml` binario con actualización del pool de cadenas.
 
 ### 📦 3. Herramientas de APK, Firma y AntiSplit
-* **Descompilación y Reconstrucción con Apktool:** Desempaqueta y reconstruye recursos y manifiestos en el propio teléfono.
+* **Menú de Acciones Rápidas APK (App Manager):**
+  * Acciones directas sobre cualquier app: **Extraer APK**, **Localizar en el explorador**, **Localizar Datos (`/data/data`)**, **Ver componentes (Actividades, Servicios, Permisos)**, **Ver `AndroidManifest.xml`**, **Edición Rápida (Quick Edit)**, **Descompilar a Java (JADX)** y **Compartir APK**.
 * **Motor AntiSplit (Unificador de Split APKs):**
-  * Fusiona paquetes divididos (`.apks`, `.xapk` o carpetas de splits) en un único archivo APK universal y autofirmado.
-* **Firma Digital Avanzada:** Soporte para esquemas **V1 (Jar Signature)**, **V2 (Full APK Signature)** y **V3 (APK Signature Scheme v3)**.
+  * Detecta y fusiona paquetes divididos (`APKS`, `.xapk` o splits múltiples) en un único archivo APK universal y autofirmado.
+* **Firma Digital Avanzada:** Soporte para esquemas **V1 (Jar Signature)**, **V2 (Full APK Signature)** y **V3 (APK Signature Scheme v3)** con verificación de firmas y certificados.
 * **Generador de Keystores (.jks):**
-  * Crea almacenes de claves personalizados (RSA 2048 / 4096 bits) directamente en la app con BouncyCastle, sin requerir `keytool` de PC.
-* **Inspección de Firmas:** Diálogo detallado con algoritmo, huella digital SHA-1/SHA-256 y certificados del emisor.
+  * Crea almacenes de claves personalizados (RSA 2048 / 4096 bits) directamente en la app con BouncyCastle, sin depender de PC ni `keytool`.
+* **Descompilación y Reconstrucción con Apktool:** Desempaqueta y reconstruye recursos y manifiestos en el propio teléfono.
 * **Optimización Zipalign:** Alineación de binarios a 4 bytes para compatibilidad y ejecución óptima en Android.
 * **Visor y Extractor de Iconos:** Previsualización en alta definición y exportación a PNG en `/sdcard/Download/`.
 
@@ -95,29 +114,33 @@ Cuenta con integración nativa para **Root** (Magisk, KernelSU, KernelSU Next, A
 * **Compatibilidad Root Completa:** Integración con **Magisk**, **KernelSU**, **KernelSU Next** y **APatch** mediante libsu.
 * **Soporte Nativo de Shizuku:**
   * Comunicación directa por binder para acceso administrativo sin Root a carpetas restringidas (`/Android/data` y `/Android/obb`) en Android 11 a 15.
-  * Detección de servidor Shizuku (ADB API vs Root API) e instalación privilegiada de APKs.
+  * Detección de servidor Shizuku (ADB API vs Root API) e instalación privilegiada de APKs y Split APKs.
 * **Sistema de Seguridad DFROOT "Hombre Muerto" (Dead Man):**
-  * Blindaje preventivo contra brickeos en dispositivos con **DFRoot / DirtyFlag**.
+  * Blindaje preventivo contra brickeos en dispositivos con **DFRoot / DirtyFlag** y bootloaders bloqueados.
   * Bloqueo proactivo de comandos peligrosos (`mount remount`, escrituras raw en bloques `/dev/block/`, borrado de `/system`, `/vendor`, etc.).
   * **Diálogo "DirtyFlag Protection":** Cuenta regresiva forzosa de 5 segundos con aviso explícito de riesgo antes de permitir cambios en particiones críticas.
   * Visor categorizado de archivos protegidos (imágenes de arranque, firmware AVB, archivos de inicio y nodos raw).
 
 ### 💻 5. Editor de Código y Texto de Alto Rendimiento
-* **Tokenizador $O(N)$ en Segundo Plano:** Resaltado de sintaxis fluido para **39 lenguajes** de programación.
+* **Tokenizador $O(N)$ en Segundo Plano:** Resaltado de sintaxis fluido para **39 lenguajes** (C/C++, Shell/Bash, SQL, XML, HTML, JSON, YAML, TOML, Markdown, Rust, Go, Python, etc.).
+* **Barra de Atajos de Teclado:** Flechas direccionales de precisión, sangría y des-indentación rápida, tecla TAB, Deshacer/Rehacer y búsqueda.
 * **Edición Avanzada:** Búsqueda y reemplazo con expresiones regulares (regex), distinción de mayúsculas y conteo interactivo de coincidencias.
-* **Tira de Estado Interactiva:** Alternador rápido de fin de línea **LF ⇄ CRLF**, selector de codificaciones (UTF-8, GBK, UTF-16, ISO-8859-1) y salto a línea.
-* **Ayudas al Escribir:** Auto-indentación, emparejamiento de llaves/corchetes y números de línea laterales sincronizados.
+* **Tira de Estado Interactiva:** Alternador rápido de fin de línea **LF ⇄ CRLF**, selector de codificaciones (UTF-8, GBK, UTF-16, ISO-8859-1), selector de sintaxis y salto a línea.
 
 ### ⚡ 6. Gestor de Procesos y Apps en Ejecución
-* **Monitor de Memoria en Tiempo Real:** Supervisión de consumo de RAM (PSS, VmRSS, Java Heap) por aplicación y proceso.
+* **Monitor de Memoria en Vivo:** Supervisión de consumo de RAM (PSS, VmRSS, Java Heap) en tiempo real con tarjeta gráfica de estado (`3.03 GB / 3.79 GB (80%)`).
 * **Control de Procesos:** Cierre forzado y detención de aplicaciones del sistema o de usuario con insignias de elevación (`🛡️ ROOT` / `⚡ SHIZUKU`).
+* **Filtros por Categoría:** Pestañas dedicadas para procesos de **Usuario**, procesos del **Sistema** y **Todos**.
 * **Extracción de APKs Ultra-rápida:** Transferencia con canales de entrada/salida directos zero-copy (`FileChannel.transferTo`).
 
 ### 🌐 7. Red, Terminal y Multimedia
+* **Terminal Integrada con Soporte Root (#):**
+  * Shell interactiva con teclado terminal ampliado (Esc, Tab, Ctrl, Alt, flechas, PgUp, PgDn, Home, End).
+  * Ejecución de scripts shell (`.sh`) con captura de salida interactiva, indicador de retorno (`EXIT 0`) y zoom de fuente en vivo.
+  * Compatibilidad con comandos de depuración, syscalls, binarios en `/data/local/tmp` e integración con **Termux**.
+* **Reproductor de Audio Flotante:** Reproduce pistas MP3/audio en una ventana modal sin pausar la exploración, con control de velocidad (1.0x a 2.0x), salto de ±10 segundos, barra de progreso y bucle.
 * **Servidor FTP Integrado:** Comparte archivos de forma inalámbrica en red local con cualquier PC o navegador sin cables.
 * **Cliente de Red Multi-protocolo:** Conéctate a servidores **FTP, SFTP, SMB (Windows Share) y WebDAV**.
-* **Terminal Integrada:** Acceso rápido a una shell local, sesión con Root, Shizuku o integración directa con **Termux**.
-* **Reproductor de Audio Flotante:** Reproduce pistas MP3/audio en una ventana modal sin pausar la exploración, con control de velocidad (1.0x a 2.0x), salto de ±10 segundos y bucle.
 
 ---
 

@@ -36,20 +36,38 @@
 <table align="center" width="100%">
   <tr>
     <td align="center" width="25%">
-      <img src="screenshots/dual_panel_explorer.jpg" alt="双面板文件管理器" /><br>
-      <b>双面板浏览</b>
+      <img src="screenshots/01_dual_panel_audio.jpg" alt="双面板与悬浮音乐播放器" /><br>
+      <sub><b>双面板与悬浮音频</b></sub>
     </td>
     <td align="center" width="25%">
-      <img src="screenshots/navigation_drawer.jpg" alt="侧边抽屉与工具" /><br>
-      <b>侧边导航栏</b>
+      <img src="screenshots/02_dual_panel_menu.jpg" alt="面板管理菜单" /><br>
+      <sub><b>面板管理与快捷菜单</b></sub>
     </td>
     <td align="center" width="25%">
-      <img src="screenshots/audio_player.jpg" alt="内置音频播放器" /><br>
-      <b>悬浮音乐播放器</b>
+      <img src="screenshots/03_code_editor.jpg" alt="C++ 代码编辑器" /><br>
+      <sub><b>高敏代码编辑器 $O(N)$</b></sub>
     </td>
     <td align="center" width="25%">
-      <img src="screenshots/menu_actions.jpg" alt="快捷操作菜单" /><br>
-      <b>快捷操作菜单</b>
+      <img src="screenshots/04_syntax_selector.jpg" alt="语法高亮选择器" /><br>
+      <sub><b>39 种编程语言选择器</b></sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="25%">
+      <img src="screenshots/05_app_manager_apk_tools.jpg" alt="应用管理器与 APK 逆向操作" /><br>
+      <sub><b>APK 工具、JADX 与反编译</b></sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="screenshots/06_running_apps_ram.jpg" alt="内存与进程监控" /><br>
+      <sub><b>实时 RAM 与 Root 进程</b></sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="screenshots/07_terminal_root.jpg" alt="Root 终端与系统调用" /><br>
+      <sub><b>Root (#) 终端与脚本</b></sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="screenshots/08_terminal_script.jpg" alt="Shell 脚本交互运行" /><br>
+      <sub><b>Shell 脚本交互运行</b></sub>
     </td>
   </tr>
 </table>
@@ -80,13 +98,14 @@
   * 解码与重打包二进制 `AndroidManifest.xml`，自动维护字符串池。
 
 ### 📦 3. APK 综合工具箱、签名与 AntiSplit
-* **Apktool 移动端引擎：** 手机端直接解包与重建 APK 资源与清单。
+* **应用管理快速操作：**
+  * 提取 APK/APKS、在面板中定位、直达数据目录 (`/data/data`)、查看四大组件与权限、查看 decodes `AndroidManifest.xml`、快速编辑（Quick Edit）、Java 源码查看（JADX）与一键分享。
 * **AntiSplit 拆分包合并引擎：**
-  * 将 Split APKs（`.apks`、`.xapk` 或分离安装包）一键融合成单个独立运行、自动签名的通用 APK。
-* **全方案数字签名：** 支持 **V1 (Jar 签名)**、**V2 (APK Signature Scheme v2)** 与 **V3 (APK Signature Scheme v3)**。
+  * 将 Split APKs（`APKS`、`.xapk` 或分离安装包）一键融合成单个独立运行、自动签名的通用 APK。
+* **全方案数字签名：** 支持 **V1 (Jar 签名)**、**V2 (APK Signature Scheme v2)** 与 **V3 (APK Signature Scheme v3)**，带证书详细信息查看。
 * **移动端 Keystore 密钥生成器：**
   * 基于 BouncyCastle，无需 PC `keytool`，即可在手机上生成 RSA 2048/4096 位的签名证书（.jks、.bks、.pk8 + .pem）。
-* **证书与签名信息查看器：** 快速查看签名算法、证书指纹（SHA-1、SHA-256）与所有者详情。
+* **Apktool 移动端引擎：** 手机端直接解包与重建 APK 资源与清单。
 * **Zipalign 字节对齐优化：** 确保 APK 满足 4 字节对齐标准。
 * **应用图标提取与高清查看：** 支持将高清图标导出为 PNG 保存至本地存储。
 
@@ -103,20 +122,24 @@
 
 ### 💻 5. 高性能代码与文本编辑器
 * **后台 $O(N)$ 语法分析引擎：** 支持 **39 种编程语言**的高亮显示与平滑滚动。
+* **键盘操作栏：** 精准方向键、快速缩进/反缩进、TAB 键、撤销/重做与实时搜索。
 * **强大编辑能力：** 支持正则表达式（Regex）查找与替换、区分大小写以及实时匹配统计。
 * **交互式底部状态栏：** 一键切换换行符（**LF ⇄ CRLF**）、字符编码选择（UTF-8、GBK 等）与快速跳转行号。
-* **智能辅助：** 自动缩进、符号括号成对补全与同步行号显示。
 
 ### ⚡ 6. 进程管理与运行中应用监控
-* **物理内存实时监控：** 实时获取各进程物理内存占用（PSS、VmRSS、Java Heap）。
+* **物理内存实时监控：** 实时获取各进程物理内存占用（PSS、VmRSS、Java Heap），配有直观的 RAM 进度条。
 * **进程精细控制：** 支持普通/系统进程强行停止，带有权限提升徽章（`🛡️ ROOT` / `⚡ SHIZUKU`）。
+* **分类视图：** 快速切换用户进程、系统服务或全部进程。
 * **零拷贝 APK 提取：** 使用 `FileChannel.transferTo` 高速管道，极速备份安装包。
 
 ### 🌐 7. 网络传输、终端与多媒体
+* **内置终端仿真器：**
+  * 全功能交互式 Shell，配备完整虚拟按键栏（Esc、Tab、Ctrl、Alt、方向键、PgUp、PgDn、Home、End）。
+  * 支持交互运行 `.sh` 脚本，显示返回码状态（`EXIT 0`）与即时字体缩放。
+  * 完美支持 `/data/local/tmp` 脚本、底层 Syscall 调试与 **Termux** 调用。
+* **悬浮音乐播放器：** 独立模态窗口播放音频文件，支持变速（1.0x 至 2.0x）、±10 秒快进/快退与循环模式。
 * **内置 FTP 服务器：** 手机即刻变身局域网无线服务器，电脑浏览器或资源管理器随时无线互传。
 * **多协议网络客户端：** 连接并管理 **FTP、SFTP、SMB (Windows 共享) 与 WebDAV** 远程文件。
-* **内置终端仿真器：** 在任意目录下一键开启本地 Shell、Root 会话、Shizuku Shell 或调用 **Termux**。
-* **悬浮音乐播放器：** 独立模态窗口播放音频文件，支持变速（1.0x 至 2.0x）、±10 秒快进/快退与循环模式。
 
 ---
 
