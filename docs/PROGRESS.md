@@ -619,3 +619,31 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Monitoreo en tiempo real de `/proc/<pid>/cwd` en `SyscallReaderMonitor.kt` para detectar ejecuciones con directorio de trabajo en particiones protegidas.
 - **Suite de Pruebas Unitarias Automatizadas**:
   - Nuevos tests de seguridad en `DeadManProtectionManagerTest.kt` y `SecurityHardeningTest.kt` verificando la totalidad de los vectores de mitigación de la auditoría.
+
+### Hito 53: Rediseño Integral de la Interfaz de Terminal - Experiencia Developer-Grade y Teclado Táctil
+- **Eliminación del Aspecto Improvisado/AI de la Barra Superior**:
+  - Reestructuración de `activity_terminal.xml`: eliminación de los botones de texto sin estilo (`A-`, `14sp`, `A+`) amontonados en la barra de herramientas.
+  - La barra principal (`MaterialToolbar`) ahora se concentra en la identidad de la sesión (título monoespaciado, proceso y PID) con acciones limpias a la derecha: Escudo de auditoría de scripts, Copiar salida de terminal, y Menú de desbordamiento.
+- **Franja HUD y Breadcrumb de Sesión en Tiempo Real**:
+  - Nueva subcabecera para desarrolladores (`layoutTerminalHud`, 38dp, fondo `#161B22` con borde sutil `#21262D`).
+  - **Insignia de Modo de Sesión (`layoutSessionBadge`)**: Píldora redondeada con indicador LED (`●`) en verde esmeralda (`#3FB950`) en ejecución y rojo (`#F85149`) al terminar, con etiquetas monoespaciadas claras: `ROOT (#)`, `TERMEX (bash)`, `SHELL (sh)`, `EXIT [code]`.
+  - **Ruta de Trabajo / Breadcrumb (`tvTerminalBreadcrumb`)**: Indicador de directorio activo con icono de carpeta y truncado inteligente de rutas (`~`, `[app]`, `/system/bin`).
+  - **Cápsula de Zoom Segmentada (`layoutZoomPill`)**: Control integrado y ergonómico `[ - ]  14sp  [ + ]` con fondo `#161B22` y bordes redondeados (14dp), manteniendo el 100% de compatibilidad con atajos y teclas de volumen.
+- **Rediseño Táctil del Teclado de Teclas Extras (`TerminalExtraKeysView.kt`)**:
+  - **Fila 0 (Chips de sintaxis shell y señales)**: Píldoras con resaltado semántico de sintaxis:
+    - `Ctrl+C` en insignia carmesí (`#3D1B1E` / texto `#FF7B72`) para identificación inmediata de SIGINT.
+    - `Ctrl+D` en púrpura (`#2A1B38` / `#D2A8FF`), `Ctrl+Z` en ámbar (`#332212` / `#FFA657`), y `Clear` en cian (`#122738` / `#79C0FF`).
+    - Comillas (`"`, `'`), variables (`$`, `~`), tuberías (`|`, `>`, `&`) y banderas (`/`, `-`, `*`) con colores syntax-highlighting.
+  - **Filas 1 y 2 (Keycaps de desarrollador)**:
+    - Teclas de navegación direccional (`▲`, `◀`, `▼`, `▶`) con elevación táctil en gris pizarra (`#282E38`), borde `#3E4756` y auto-repetición fluida con retroalimentación háptica.
+    - Teclas modificadoras `Ctrl` y `Alt`: En estado inactivo muestran texto cian `#58A6FF`; al activarse/enclavarse se iluminan en azul eléctrico vibrante (`#1F6FEB` / borde `#58A6FF` / texto blanco), proporcionando claridad visual inequívoca del estado latched.
+    - Tecla de borrado `⌫` con acento ámbar y auto-repetición.
+- **Insignia Flotante de Dead Man Protection (`layoutDeadManAlertBadge`)**:
+  - Transformada en cápsula flotante con elevación (4dp), degradado carmesí (`#4A161A` ➔ `#2C0C0E`), borde `#F85149` (1.5dp), icono de calavera luminosa y texto de intercepción monoespaciado.
+- **Encuadre de Pantalla del Monitor de Terminal y Paleta Obsidian Dark**:
+  - Fondo del contenedor de terminal en Obsidian oscuro (`#0D1117`), barras del sistema integradas (`#161B22` y `#0F1217`), y margen sutil para encuadrar la pantalla como un auténtico monitor de consola sin tocar los bordes del dispositivo.
+- **Diálogo de Preferencias con Diseño Material 3 (`terminal_preferences_dialog.xml`)**:
+  - Reorganización en tarjetas temáticas (`bg_terminal_pref_card`): Entorno & Ruta, Pantalla & Tipografía, Sistema & Binarios.
+  - Iconos vectoriales por categoría, divisores suaves y microtipografía monoespaciada para valores configurados.
+- **Suite de Pruebas Unitarias Ampliada (`TerminalLogicTest.kt`)**:
+  - Incorporadas pruebas para el mapeo de combinaciones `Ctrl` / `Alt` y el formateo de rutas de breadcrumb en el HUD.

@@ -10,165 +10,259 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#000000"
+    android:background="#0D1117"
     android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#1E1E1E">
+        android:background="#161B22"
+        app:elevation="0dp">
 
-        <LinearLayout
+        <!-- 1. Sleek MaterialToolbar with Back, Monospace Title/Subtitle, and Action Icons -->
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:layout_height="?attr/actionBarSize"
+            app:navigationIcon="@drawable/arrow_back_icon_white_24dp"
+            app:title="@string/terminal_title"
+            app:titleTextColor="#F0F6FC"
+            app:subtitleTextColor="#8B949E">
 
-            <com.google.android.material.appbar.MaterialToolbar
-                android:id="@+id/toolbar"
-                android:layout_width="0dp"
-                android:layout_height="?attr/actionBarSize"
-                android:layout_weight="1"
-                app:navigationIcon="@drawable/arrow_back_icon_white_24dp"
-                app:title="@string/terminal_title"
-                app:titleTextColor="#FFFFFF"
-                app:subtitleTextColor="#B0BEC5" />
-
-            <TextView
-                android:id="@+id/btnZoomOut"
-                android:layout_width="36dp"
-                android:layout_height="32dp"
-                android:layout_marginEnd="4dp"
-                android:gravity="center"
-                android:text="A-"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Reducir fuente" />
-
-            <TextView
-                android:id="@+id/tvZoomSize"
+            <!-- Action Buttons Container in Toolbar -->
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="32dp"
-                android:paddingHorizontal="4dp"
-                android:gravity="center"
-                android:text="14sp"
-                android:textColor="#64B5F6"
-                android:textSize="12sp"
-                android:fontFamily="monospace" />
+                android:layout_height="match_parent"
+                android:layout_gravity="end|center_vertical"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingEnd="4dp">
 
-            <TextView
-                android:id="@+id/btnZoomIn"
-                android:layout_width="36dp"
-                android:layout_height="32dp"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="6dp"
-                android:gravity="center"
-                android:text="A+"
-                android:textColor="#FFFFFF"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Aumentar fuente" />
+                <ImageButton
+                    android:id="@+id/btnScriptAudit"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/shield_icon_white_24dp"
+                    app:tint="#58A6FF"
+                    android:contentDescription="@string/script_audit_title" />
 
-            <ImageButton
-                android:id="@+id/btnCopyScreen"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="6dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/copy_icon_control_normal_24dp"
-                app:tint="#FFFFFF"
-                android:contentDescription="Copiar salida" />
+                <ImageButton
+                    android:id="@+id/btnCopyScreen"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="2dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/copy_icon_control_normal_24dp"
+                    app:tint="#C9D1D9"
+                    android:contentDescription="Copiar salida" />
 
-            <ImageButton
-                android:id="@+id/btnScriptAudit"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="6dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/shield_icon_white_24dp"
-                app:tint="#64B5F6"
-                android:contentDescription="@string/script_audit_title" />
+                <ImageButton
+                    android:id="@+id/btnDeadManSkull"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="2dp"
+                    android:visibility="gone"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_dead_man_skull"
+                    app:tint="#F85149"
+                    android:contentDescription="@string/dead_man_skull_button_desc" />
 
-            <ImageButton
-                android:id="@+id/btnDeadManSkull"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="6dp"
-                android:visibility="gone"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_dead_man_skull"
-                app:tint="#E53935"
-                android:contentDescription="@string/dead_man_skull_button_desc" />
+                <ImageButton
+                    android:id="@+id/btnOverflowMenu"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/more_vertical_icon_white_24dp"
+                    app:tint="#C9D1D9"
+                    android:contentDescription="Más opciones" />
+            </LinearLayout>
+        </com.google.android.material.appbar.MaterialToolbar>
 
-            <ImageButton
-                android:id="@+id/btnOverflowMenu"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginEnd="4dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/more_vertical_icon_white_24dp"
-                app:tint="#FFFFFF"
-                android:contentDescription="Más opciones" />
+        <!-- 2. Developer Subheader / Session HUD Strip -->
+        <LinearLayout
+            android:id="@+id/layoutTerminalHud"
+            android:layout_width="match_parent"
+            android:layout_height="38dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@drawable/bg_terminal_hud_bar"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <!-- Mode Badge (Root / Termex / System / Finished) -->
+            <LinearLayout
+                android:id="@+id/layoutSessionBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="24dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_terminal_hud_pill"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
+
+                <TextView
+                    android:id="@+id/tvSessionDot"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="●"
+                    android:textColor="#3FB950"
+                    android:textSize="9sp" />
+
+                <TextView
+                    android:id="@+id/tvSessionLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:text="SHELL"
+                    android:textColor="#E6EDF3"
+                    android:textSize="10.5sp"
+                    android:textStyle="bold"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
+
+            <!-- Current CWD / Breadcrumb Monospace -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="10dp"
+                android:paddingEnd="8dp">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/directory_icon_white_24dp"
+                    app:tint="#8B949E" />
+
+                <TextView
+                    android:id="@+id/tvTerminalBreadcrumb"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:singleLine="true"
+                    android:ellipsize="middle"
+                    android:text="~"
+                    android:textColor="#8B949E"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace" />
+            </LinearLayout>
+
+            <!-- Sleek Zoom Control Pill -->
+            <LinearLayout
+                android:id="@+id/layoutZoomPill"
+                android:layout_width="wrap_content"
+                android:layout_height="26dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@drawable/bg_terminal_zoom_capsule">
+
+                <TextView
+                    android:id="@+id/btnZoomOut"
+                    android:layout_width="26dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="−"
+                    android:textColor="#C9D1D9"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Reducir fuente" />
+
+                <TextView
+                    android:id="@+id/tvZoomSize"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:paddingHorizontal="4dp"
+                    android:gravity="center"
+                    android:text="14sp"
+                    android:textColor="#58A6FF"
+                    android:textSize="11sp"
+                    android:fontFamily="monospace"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Restablecer fuente" />
+
+                <TextView
+                    android:id="@+id/btnZoomIn"
+                    android:layout_width="26dp"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="+"
+                    android:textColor="#C9D1D9"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="Aumentar fuente" />
+            </LinearLayout>
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
 
+    <!-- 3. Terminal Canvas Monitor Frame -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:background="#000000">
+        android:background="#0D1117">
 
         <com.termux.view.TerminalView
             android:id="@+id/terminalView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
             android:background="#000000"
             android:focusable="true"
             android:focusableInTouchMode="true" />
 
+        <!-- Floating Dead Man Alert Capsule -->
         <LinearLayout
             android:id="@+id/layoutDeadManAlertBadge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="top|end"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
             android:visibility="gone"
-            android:background="#D32F2F"
-            android:paddingStart="10dp"
-            android:paddingEnd="10dp"
-            android:paddingTop="6dp"
-            android:paddingBottom="6dp"
+            android:background="@drawable/bg_terminal_dead_man_badge"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="7dp"
+            android:paddingBottom="7dp"
             android:gravity="center_vertical"
             android:clickable="true"
-            android:focusable="true">
+            android:focusable="true"
+            android:elevation="4dp">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:src="@drawable/ic_dead_man_skull"
-                app:tint="#FFFFFF"
+                app:tint="#FF7B72"
                 android:contentDescription="Dead Man" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="Dead Man"
-                android:textColor="#FFFFFF"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                android:layout_marginStart="7dp"
+                android:text="DEAD MAN: BLOQUEADO"
+                android:textColor="#FFDCD7"
+                android:textSize="11.5sp"
+                android:textStyle="bold"
+                android:fontFamily="monospace" />
         </LinearLayout>
     </FrameLayout>
 
+    <!-- 4. Tactical Extra Keys View -->
     <me.zhanghai.android.files.terminal.TerminalExtraKeysView
         android:id="@+id/extraKeysView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#141414" />
+        android:background="#0F1217" />
 
 </LinearLayout>

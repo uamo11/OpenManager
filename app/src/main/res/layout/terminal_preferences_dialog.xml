@@ -4,175 +4,364 @@
   ~ All Rights Reserved.
   -->
 
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:paddingTop="8dp"
-    android:paddingBottom="8dp">
+    android:overScrollMode="never">
 
-    <!-- 1. Ruta de inicio -->
     <LinearLayout
-        android:id="@+id/layoutStartPath"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="?attr/selectableItemBackground"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
         android:paddingTop="12dp"
-        android:paddingBottom="12dp">
+        android:paddingBottom="16dp">
 
+        <!-- ========================================================= -->
+        <!-- SECTION 1: ENTORNO & DIRECTORIO                           -->
+        <!-- ========================================================= -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/terminal_pref_start_path"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:layout_marginStart="4dp"
+            android:layout_marginBottom="6dp"
+            android:text="ENTORNO &amp; RUTA"
+            android:textColor="#58A6FF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_terminal_pref_card"
+            android:padding="4dp">
+
+            <!-- 1. Ruta de inicio -->
+            <LinearLayout
+                android:id="@+id/layoutStartPath"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/directory_icon_white_24dp"
+                    app:tint="#58A6FF" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/terminal_pref_start_path"
+                        android:textSize="14.5sp"
+                        android:textStyle="bold"
+                        android:textColor="#F0F6FC" />
+
+                    <TextView
+                        android:id="@+id/textStartPathValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="/storage/emulated/0"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:textColor="#8B949E" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/edit_icon"
+                    app:tint="#8B949E" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ========================================================= -->
+        <!-- SECTION 2: TIPOGRAFÍA & APARIENCIA                        -->
+        <!-- ========================================================= -->
         <TextView
-            android:id="@+id/textStartPathValue"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="/storage/emulated/0"
-            android:textSize="13sp"
-            android:textColor="?android:attr/textColorSecondary" />
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="6dp"
+            android:text="PANTALLA &amp; TIPOGRAFÍA"
+            android:textColor="#58A6FF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_terminal_pref_card"
+            android:padding="4dp">
+
+            <!-- 2. Fuente -->
+            <LinearLayout
+                android:id="@+id/layoutFont"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/file_font_icon"
+                    app:tint="#79C0FF" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/terminal_pref_font"
+                        android:textSize="14.5sp"
+                        android:textColor="#F0F6FC" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/terminal_pref_font_default"
+                        android:textSize="12sp"
+                        android:textColor="#8B949E" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="46dp"
+                android:background="#262D37" />
+
+            <!-- 3. Tamaño de fuente -->
+            <LinearLayout
+                android:id="@+id/layoutFontSize"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/file_text_icon"
+                    app:tint="#79C0FF" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/terminal_pref_font_size"
+                        android:textSize="14.5sp"
+                        android:textColor="#F0F6FC" />
+
+                    <TextView
+                        android:id="@+id/textFontSizeValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="14sp"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:textColor="#58A6FF" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="46dp"
+                android:background="#262D37" />
+
+            <!-- 4. Mantener tema negro -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/terminal_icon_white_24dp"
+                    app:tint="#7EE787" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/terminal_pref_black_theme"
+                    android:textSize="14.5sp"
+                    android:textColor="#F0F6FC" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchBlackTheme"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="true" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ========================================================= -->
+        <!-- SECTION 3: PRIVILEGIOS & EXPANSIÓN                        -->
+        <!-- ========================================================= -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="6dp"
+            android:text="SISTEMA &amp; BINARIOS"
+            android:textColor="#58A6FF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_terminal_pref_card"
+            android:padding="4dp">
+
+            <!-- 5. Crear sesión de terminal como root -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/shield_icon_white_24dp"
+                    app:tint="#FFA657" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/terminal_pref_root_session"
+                    android:textSize="14.5sp"
+                    android:textColor="#F0F6FC" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchRootSession"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:checked="false" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="46dp"
+                android:background="#262D37" />
+
+            <!-- 6. Paquete de expansión de terminal -->
+            <LinearLayout
+                android:id="@+id/layoutExpansion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="?attr/selectableItemBackground"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/file_archive_icon"
+                    app:tint="#D2A8FF" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/terminal_pref_expansion"
+                        android:textSize="14.5sp"
+                        android:textColor="#F0F6FC" />
+
+                    <TextView
+                        android:id="@+id/textExpansionValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/terminal_pref_expansion_installed"
+                        android:textSize="12sp"
+                        android:fontFamily="monospace"
+                        android:textColor="#3FB950" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/arrow_end_icon_white_24dp"
+                    app:tint="#8B949E" />
+            </LinearLayout>
+        </LinearLayout>
+
     </LinearLayout>
-
-    <!-- 2. Fuente -->
-    <LinearLayout
-        android:id="@+id/layoutFont"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="?attr/selectableItemBackground"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/terminal_pref_font"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/terminal_pref_font_default"
-            android:textSize="13sp"
-            android:textColor="?android:attr/textColorSecondary" />
-    </LinearLayout>
-
-    <!-- 3. Tamaño de fuente -->
-    <LinearLayout
-        android:id="@+id/layoutFontSize"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="?attr/selectableItemBackground"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/terminal_pref_font_size"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary" />
-
-        <TextView
-            android:id="@+id/textFontSizeValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="12sp"
-            android:textSize="13sp"
-            android:textColor="?android:attr/textColorSecondary" />
-    </LinearLayout>
-
-    <!-- 4. Mantener tema negro -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/terminal_pref_black_theme"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary" />
-
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchBlackTheme"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true" />
-    </LinearLayout>
-
-    <!-- 5. Crear sesión de terminal como root -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/terminal_pref_root_session"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary" />
-
-        <androidx.appcompat.widget.SwitchCompat
-            android:id="@+id/switchRootSession"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="false" />
-    </LinearLayout>
-
-    <!-- 6. Paquete de expansión de terminal -->
-    <LinearLayout
-        android:id="@+id/layoutExpansion"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:background="?attr/selectableItemBackground"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:paddingTop="12dp"
-        android:paddingBottom="12dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/terminal_pref_expansion"
-            android:textSize="16sp"
-            android:textColor="?android:attr/textColorPrimary" />
-
-        <TextView
-            android:id="@+id/textExpansionValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/terminal_pref_expansion_installed"
-            android:textSize="13sp"
-            android:textColor="#4CAF50" />
-    </LinearLayout>
-
-</LinearLayout>
+</ScrollView>

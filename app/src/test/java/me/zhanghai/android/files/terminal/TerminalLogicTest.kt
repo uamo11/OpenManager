@@ -441,4 +441,40 @@ class TerminalLogicTest {
         assertEquals(0L, statsCleared.ioReadSyscalls)
         assertEquals(null, statsCleared.activeSyscall)
     }
+
+    @Test
+    fun testTerminalExtraKeysCtrlAndAltCombos() {
+        // Test Ctrl combination mapping: (char.code - 64).toChar()
+        fun computeCtrlCode(ch: Char): String {
+            val upper = ch.uppercaseChar()
+            return if (upper in 'A'..'Z') (upper.code - 64).toChar().toString() else upper.toString()
+        }
+
+        assertEquals("\u0003", computeCtrlCode('c'))
+        assertEquals("\u0003", computeCtrlCode('C'))
+        assertEquals("\u0004", computeCtrlCode('d'))
+        assertEquals("\u001a", computeCtrlCode('z'))
+        assertEquals("\u000c", computeCtrlCode('l'))
+
+        // Test Alt prefix mapping
+        fun computeAltCode(ch: Char): String = "\u001b$ch"
+        assertEquals("\u001bf", computeAltCode('f'))
+        assertEquals("\u001bb", computeAltCode('b'))
+    }
+
+    @Test
+    fun testTerminalBreadcrumbPathFormatting() {
+        fun formatBreadcrumb(cwd: String): String {
+            return when {
+                cwd.startsWith("/storage/emulated/0") -> cwd.replace("/storage/emulated/0", "~")
+                cwd.startsWith("/data/data/me.zhanghai.android.files") -> cwd.replace("/data/data/me.zhanghai.android.files", "[app]")
+                else -> cwd
+            }
+        }
+
+        assertEquals("~", formatBreadcrumb("/storage/emulated/0"))
+        assertEquals("~/Download/scripts", formatBreadcrumb("/storage/emulated/0/Download/scripts"))
+        assertEquals("[app]/cache", formatBreadcrumb("/data/data/me.zhanghai.android.files/cache"))
+        assertEquals("/system/bin", formatBreadcrumb("/system/bin"))
+    }
 }

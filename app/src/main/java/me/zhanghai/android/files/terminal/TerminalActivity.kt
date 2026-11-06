@@ -52,6 +52,10 @@ class TerminalActivity : AppActivity() {
     private var btnDeadManSkull: ImageButton? = null
     private var btnOverflowMenu: ImageButton? = null
     private var layoutDeadManAlertBadge: android.widget.LinearLayout? = null
+    private var tvSessionDot: TextView? = null
+    private var tvSessionLabel: TextView? = null
+    private var tvTerminalBreadcrumb: TextView? = null
+    private var layoutSessionBadge: View? = null
     private var lastDeadManTarget: String = ""
     private var lastDeadManCmd: String = ""
 
@@ -113,6 +117,15 @@ class TerminalActivity : AppActivity() {
         btnDeadManSkull = findViewById(R.id.btnDeadManSkull)
         btnOverflowMenu = findViewById(R.id.btnOverflowMenu)
         layoutDeadManAlertBadge = findViewById(R.id.layoutDeadManAlertBadge)
+        tvSessionDot = findViewById(R.id.tvSessionDot)
+        tvSessionLabel = findViewById(R.id.tvSessionLabel)
+        tvTerminalBreadcrumb = findViewById(R.id.tvTerminalBreadcrumb)
+        layoutSessionBadge = findViewById(R.id.layoutSessionBadge)
+
+        layoutSessionBadge?.setOnClickListener {
+            val modeStr = if (ScriptExecutionManager.isRoot) "Root (UID 0)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else "Android system shell (sh)"
+            Toast.makeText(this, "Entorno: $modeStr", Toast.LENGTH_SHORT).show()
+        }
 
         btnScriptAudit?.setOnClickListener {
             showScriptAuditDialog()
@@ -276,8 +289,43 @@ class TerminalActivity : AppActivity() {
 
         if (TerminalSettings.isKeepBlackTheme(this)) {
             terminalView.setBackgroundColor(Color.BLACK)
-            window.statusBarColor = Color.BLACK
-            window.navigationBarColor = Color.BLACK
+            window.statusBarColor = Color.parseColor("#161B22")
+            window.navigationBarColor = Color.parseColor("#0F1217")
+        }
+    }
+
+    private fun updateHudState(
+        isRoot: Boolean,
+        isTermex: Boolean,
+        isRunning: Boolean,
+        exitStatus: Int? = null,
+        cwd: String? = null
+    ) {
+        runOnUiThread {
+            if (isRunning) {
+                tvSessionDot?.text = "●"
+                tvSessionDot?.setTextColor(Color.parseColor("#3FB950"))
+                val label = when {
+                    isRoot -> "ROOT (#)"
+                    isTermex -> "TERMEX"
+                    else -> "SHELL"
+                }
+                tvSessionLabel?.text = label
+            } else {
+                tvSessionDot?.text = "●"
+                tvSessionDot?.setTextColor(Color.parseColor("#F85149"))
+                val codeStr = exitStatus?.let { " $it" } ?: ""
+                tvSessionLabel?.text = "EXIT$codeStr"
+            }
+
+            if (cwd != null) {
+                val displayPath = when {
+                    cwd.startsWith("/storage/emulated/0") -> cwd.replace("/storage/emulated/0", "~")
+                    cwd.startsWith("/data/data/me.zhanghai.android.files") -> cwd.replace("/data/data/me.zhanghai.android.files", "[app]")
+                    else -> cwd
+                }
+                tvTerminalBreadcrumb?.text = displayPath
+            }
         }
     }
 
@@ -304,6 +352,9 @@ class TerminalActivity : AppActivity() {
                     if (!title.isNullOrEmpty()) {
                         toolbar.subtitle = title
                         ScriptExecutionManager.notifyTitleChanged(title)
+                        if (title.contains("/") || title.startsWith("~")) {
+                            tvTerminalBreadcrumb?.text = title
+                        }
                     }
                 }
             }
@@ -311,6 +362,12 @@ class TerminalActivity : AppActivity() {
             override fun onSessionFinished(finishedSession: TerminalSession) {
                 runOnUiThread {
                     toolbar.subtitle = "[Terminado (código ${finishedSession.exitStatus})]"
+                    updateHudState(
+                        isRoot = ScriptExecutionManager.isRoot,
+                        isTermex = ScriptExecutionManager.isTermex,
+                        isRunning = false,
+                        exitStatus = finishedSession.exitStatus
+                    )
                 }
                 ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, this@TerminalActivity)
             }
@@ -442,6 +499,13 @@ class TerminalActivity : AppActivity() {
             val mode = if (ScriptExecutionManager.isRoot) "Root (#)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else "Sistema (sh)"
             toolbar.title = ScriptExecutionManager.activeScriptName
             toolbar.subtitle = if (existingSession.isRunning) "$mode • En ejecución..." else "[Terminado (código ${existingSession.exitStatus})]"
+            updateHudState(
+                isRoot = ScriptExecutionManager.isRoot,
+                isTermex = ScriptExecutionManager.isTermex,
+                isRunning = existingSession.isRunning,
+                exitStatus = if (existingSession.isRunning) null else existingSession.exitStatus,
+                cwd = ScriptExecutionManager.activePath
+            )
             return
         }
 
@@ -513,6 +577,12 @@ class TerminalActivity : AppActivity() {
         val mode = if (config.isRoot) "Root (#)" else if (config.isTermex) "Termex (bash)" else "Sistema (sh)"
         toolbar.title = scriptName
         toolbar.subtitle = "$mode • Ejecutando..."
+        updateHudState(
+            isRoot = config.isRoot,
+            isTermex = config.isTermex,
+            isRunning = true,
+            cwd = config.cwd
+        )
     }
 
     private fun copyTerminalTranscript() {
