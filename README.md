@@ -7,6 +7,7 @@
 <p align="center"><i>Alternativa completa, moderna y 100% gratuita a MT Manager</i></p>
 
 <p align="center">
+  <a href="https://uamo11.github.io/OpenManager/"><img src="https://img.shields.io/badge/Sitio%20Web-OpenManager-blue.svg?logo=googlechrome&logoColor=white" alt="Sitio Web Oficial" /></a>
   <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="Estado del CI" /></a>
   <a href="https://github.com/uamo11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=versión" alt="Última versión" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-GPLv3-blue.svg" alt="Licencia GPLv3" /></a>
@@ -16,6 +17,7 @@
 </p>
 
 <p align="center">
+  🌐 <b>Sitio Web Oficial:</b> <a href="https://uamo11.github.io/OpenManager/"><b>uamo11.github.io/OpenManager</b></a><br>
   <a href="README.md">Español</a> · <a href="README_zh-CN.md">简体中文</a>
 </p>
 

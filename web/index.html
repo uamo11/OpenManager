@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenManager — Gestor de Archivos Dual-Panel & Suite de Modding para Android</title>
+  <meta name="description" content="OpenManager es un gestor de archivos de doble panel y suite de ingeniería inversa de código abierto para Android (alternativa a MT Manager). Edición DEX/Smali, JADX, editor HEX, AntiSplit, Shizuku y Root.">
+  <meta name="keywords" content="OpenManager, MT Manager, android file manager, reverse engineering, dex editor, hex editor, jadx, apktool, antisplit, shizuku, root, kernelsu, magisk">
+  <meta name="author" content="uamo11">
+  <meta name="theme-color" content="#0f1115">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://uamo11.github.io/OpenManager/">
+  <meta property="og:title" content="OpenManager — Gestor Dual-Panel & Suite de Ingeniería Inversa">
+  <meta property="og:description" content="Alternativa open-source a MT Manager para Android. DEX/Smali, JADX, HEX, AntiSplit, Root, Shizuku y protección DFROOT.">
+  <meta property="og:image" content="screenshots/01_dual_panel_audio.jpg">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://uamo11.github.io/OpenManager/">
+  <meta property="twitter:title" content="OpenManager — Gestor Dual-Panel & Suite de Ingeniería Inversa">
+  <meta property="twitter:description" content="Alternativa open-source a MT Manager para Android. DEX/Smali, JADX, HEX, AntiSplit, Root, Shizuku y protección DFROOT.">
+  <meta property="twitter:image" content="screenshots/01_dual_panel_audio.jpg">
+
+  <link rel="icon" type="image/png" href="launcher_icon.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="#" class="brand">
+        <img src="launcher_icon.png" alt="OpenManager Icon" class="brand-logo">
+        <span class="brand-name">OpenManager</span>
+        <span class="badge-tag">GPLv3</span>
+      </a>
+
+      <div class="nav-links" id="navLinks">
+        <a href="#caracteristicas">Características</a>
+        <a href="#capturas">Capturas</a>
+        <a href="#comparativa">Comparativa MT</a>
+        <a href="#compilacion">Compilar</a>
+        <a href="https://github.com/uamo11/OpenManager/releases" target="_blank" class="nav-btn-release">Releases</a>
+        <a href="https://github.com/uamo11/OpenManager" target="_blank" class="nav-btn-gh" aria-label="Repositorio GitHub">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+
+      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Abrir menú">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-glow"></div>
+    <div class="container hero-content">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        <span>Versión <strong id="latestTag">v1.9.31</strong> • Paridad Total con MT Manager</span>
+      </div>
+
+      <h1 class="hero-title">
+        Gestión Dual-Panel & <br><span class="gradient-text">Suite de Modding</span> en tu Móvil
+      </h1>
+
+      <p class="hero-subtitle">
+        El administrador de archivos definitivo para Android. Totalmente <strong>open-source</strong>, sin suscripciones de pago y sin publicidad. Descompila con JADX, edita Smali/DEX en tiempo real, inspecciona en HEX con Data Inspector, fusiona Split APKs, firma con esquemas V1–V3 y opera con Shizuku o Root.
+      </p>
+
+      <div class="hero-actions">
+        <a href="https://github.com/uamo11/OpenManager/releases" target="_blank" class="btn btn-primary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Ver Versiones en GitHub Releases</span>
+        </a>
+        <a href="https://github.com/uamo11/OpenManager" target="_blank" class="btn btn-secondary">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span>Explorar Repositorio</span>
+        </a>
+      </div>
+
+      <!-- Feature Tags Bar -->
+      <div class="tech-pills">
+        <span class="tech-pill">Android 5.0+ (API 21–35)</span>
+        <span class="tech-pill">Kotlin 2.0</span>
+        <span class="tech-pill">Root (Magisk / KernelSU / APatch)</span>
+        <span class="tech-pill">Shizuku Nativo</span>
+        <span class="tech-pill">DFROOT Boot Shield</span>
+        <span class="tech-pill">Cero Telemetría</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Key Metrics Section -->
+  <section class="metrics-bar">
+    <div class="container metrics-grid">
+      <div class="metric-item">
+        <div class="metric-number">100%</div>
+        <div class="metric-label">Código Abierto (GPLv3)</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-number">39+</div>
+        <div class="metric-label">Lenguajes con Sintaxis</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-number">0 $</div>
+        <div class="metric-label">Sin VIP ni Suscripciones</div>
+      </div>
+      <div class="metric-item">
+        <div class="metric-number">V1–V3</div>
+        <div class="metric-label">Esquemas de Firma APK</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features Section -->
+  <section id="caracteristicas" class="section">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2 class="section-title">Diseñado para la Potencia y el Control Absoluto</h2>
+        <p class="section-subtitle">Todo lo que necesitas en una sola app, combinando la velocidad de un gestor de archivos nativo con herramientas profesionales de ingeniería inversa.</p>
+      </div>
+
+      <div class="features-grid">
+
+        <!-- Card 1 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-blue">🗂️</div>
+          <h3 class="feature-title">Doble Panel Simultáneo (Estilo MT)</h3>
+          <p class="feature-desc">Navegación dividida en dos paneles A/B totalmente independientes. Copia, mueve y sincroniza carpetas al instante con historial breadcrumbs y estadísticas de disco en tiempo real.</p>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-emerald">🛠️</div>
+          <h3 class="feature-title">Editor DEX & DEX Plus (Baksmali)</h3>
+          <p class="feature-desc">Desensambla y ensambla Smali en tiempo real. Explora paquetes, clases, métodos, campos y la tabla de cadenas (<code>string_ids</code>). Guarda cambios directamente en el archivo <code>.dex</code>.</p>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-purple">🔍</div>
+          <h3 class="feature-title">Descompilador JADX Integrado</h3>
+          <p class="feature-desc">Inspecciona el código fuente en Java legible y limpio de cualquier APK o archivo DEX instalado o descargado en segundos, sin depender de un PC.</p>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-cyan">⚡</div>
+          <h3 class="feature-title">Editor HEX con Data Inspector</h3>
+          <p class="feature-desc">Visor virtualizado de alto rendimiento (16 bytes por fila). Inspector de tipos en vivo (Int8/16/32 LE, Float32, Binario, ASCII), búsqueda hex/texto y hashes MD5, SHA-1 y SHA-256.</p>
+        </div>
+
+        <!-- Card 5 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-amber">🧩</div>
+          <h3 class="feature-title">AntiSplit: Unificador de Split APKs</h3>
+          <p class="feature-desc">Detecta y fusiona paquetes divididos (<code>.apks</code>, <code>.xapk</code> o conjuntos de splits) en un único archivo APK universal, optimizado y autofirmado para su instalación limpia.</p>
+        </div>
+
+        <!-- Card 6 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-indigo">🔐</div>
+          <h3 class="feature-title">Firmador APK & Keystore Generator</h3>
+          <p class="feature-desc">Firma con esquemas V1, V2 y V3. Genera tus propias claves criptográficas RSA de 2048/4096 bits (.jks, .bks, .pk8+.pem) en la propia app con BouncyCastle sin <code>keytool</code>.</p>
+        </div>
+
+        <!-- Card 7 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-red">🛡️</div>
+          <h3 class="feature-title">DFROOT "Hombre Muerto" (Dead Man)</h3>
+          <p class="feature-desc">Escudo exclusivo contra brickeos para dispositivos con DFRoot / DirtyFlag. Bloquea escrituras destructivas en <code>/dev/block/</code> o particiones críticas con advertencia y cuenta regresiva de 5 segundos.</p>
+        </div>
+
+        <!-- Card 8 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-teal">📱</div>
+          <h3 class="feature-title">Shizuku Nativo & Root Elevado</h3>
+          <p class="feature-desc">Soporte completo para Magisk, KernelSU, KernelSU Next y APatch. Además, conéctate a Shizuku mediante Binder para acceder a <code>/Android/data</code> y <code>/Android/obb</code> en Android 11 a 15 sin Root.</p>
+        </div>
+
+        <!-- Card 9 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-orange">💻</div>
+          <h3 class="feature-title">Editor de Código $O(N)$</h3>
+          <p class="feature-desc">Tokenizador lineal en segundo plano con soporte para 39 lenguajes. Barra de atajos de teclado (flechas, TAB, sangría), alternador LF ⇄ CRLF, codificaciones y búsqueda con Regex.</p>
+        </div>
+
+        <!-- Card 10 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-pink">📊</div>
+          <h3 class="feature-title">Monitor de RAM & Procesos</h3>
+          <p class="feature-desc">Supervisa la memoria física real (PSS, VmRSS, Java Heap) de cada app en ejecución. Cierre forzoso seguro con insignias de elevación <code>🛡️ ROOT</code> y <code>⚡ SHIZUKU</code>.</p>
+        </div>
+
+        <!-- Card 11 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-yellow">⌨️</div>
+          <h3 class="feature-title">Terminal Integrada con Soporte Root</h3>
+          <p class="feature-desc">Shell interactiva con teclado extendido (Esc, Tab, Ctrl, Alt). Ejecuta scripts <code>.sh</code> en <code>/data/local/tmp</code>, inspecciona syscalls, revisa códigos de salida (EXIT 0) o vincula Termux.</p>
+        </div>
+
+        <!-- Card 12 -->
+        <div class="feature-card">
+          <div class="feature-icon bg-blue">🌐</div>
+          <h3 class="feature-title">Servidor FTP & Reproductor Flotante</h3>
+          <p class="feature-desc">Comparte archivos inalámbricamente con tu PC a través del servidor FTP integrado. Conéctate a SFTP, SMB y WebDAV, y escucha música con el reproductor flotante sin detener tu trabajo.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Screenshots Gallery Section -->
+  <section id="capturas" class="section bg-alt">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2 class="section-title">Galería de Capturas en Dispositivo Real</h2>
+        <p class="section-subtitle">Haz clic en cualquier imagen para verla en resolución completa.</p>
+      </div>
+
+      <div class="gallery-grid">
+        <!-- 1 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/01_dual_panel_audio.jpg', 'Explorador Doble Panel & Reproductor de Audio Flotante')">
+          <img src="screenshots/01_dual_panel_audio.jpg" alt="Doble Panel con Audio Flotante" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Doble Panel & Audio MP3</span>
+          </div>
+        </div>
+
+        <!-- 2 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/02_dual_panel_menu.jpg', 'Menú Rápido de Gestión de Archivos y Paneles')">
+          <img src="screenshots/02_dual_panel_menu.jpg" alt="Menú de Acciones y Paneles" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Menú de Acciones MT</span>
+          </div>
+        </div>
+
+        <!-- 3 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/03_code_editor.jpg', 'Editor de Código C++ con Resaltado y Atajos')">
+          <img src="screenshots/03_code_editor.jpg" alt="Editor de Código C++" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Editor de Código O(N)</span>
+          </div>
+        </div>
+
+        <!-- 4 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/04_syntax_selector.jpg', 'Selector de Sintaxis con 39 Lenguajes de Programación')">
+          <img src="screenshots/04_syntax_selector.jpg" alt="Selector de Sintaxis" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Selector de 39 Sintaxis</span>
+          </div>
+        </div>
+
+        <!-- 5 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/05_app_manager_apk_tools.jpg', 'Gestor de Aplicaciones y Suite de Modding APK')">
+          <img src="screenshots/05_app_manager_apk_tools.jpg" alt="Suite de Herramientas APK" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Suite APK, JADX & Split</span>
+          </div>
+        </div>
+
+        <!-- 6 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/06_running_apps_ram.jpg', 'Monitor de Memoria RAM y Procesos con Elevación Root')">
+          <img src="screenshots/06_running_apps_ram.jpg" alt="Monitor de RAM y Procesos" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Monitor RAM & Procesos</span>
+          </div>
+        </div>
+
+        <!-- 7 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/07_terminal_root.jpg', 'Terminal Integrada con Sesión Root (#) y Syscalls')">
+          <img src="screenshots/07_terminal_root.jpg" alt="Terminal Root y Syscalls" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Terminal Root (#)</span>
+          </div>
+        </div>
+
+        <!-- 8 -->
+        <div class="gallery-item" onclick="openLightbox('screenshots/08_terminal_script.jpg', 'Ejecución Interactiva de Scripts en Terminal')">
+          <img src="screenshots/08_terminal_script.jpg" alt="Ejecución de Scripts de Shell" loading="lazy">
+          <div class="gallery-overlay">
+            <span>Ejecución de Scripts (EXIT 0)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison Section -->
+  <section id="comparativa" class="section">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2 class="section-title">OpenManager frente a MT Manager</h2>
+        <p class="section-subtitle">Libertad total, privacidad garantizada y todas las herramientas avanzadas sin muros de pago.</p>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th>Característica / Módulo</th>
+              <th>MT Manager (Original)</th>
+              <th class="highlight-col">OpenManager</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Licencia & Código</strong></td>
+              <td>Propietario / Código Cerrado</td>
+              <td class="highlight-col"><span class="badge-success">100% Open Source (GPLv3)</span></td>
+            </tr>
+            <tr>
+              <td><strong>Publicidad & Telemetría</strong></td>
+              <td>Contiene anuncios y rastreadores</td>
+              <td class="highlight-col"><span class="badge-success">Cero Anuncios / 100% Privado</span></td>
+            </tr>
+            <tr>
+              <td><strong>Doble Panel Simultáneo</strong></td>
+              <td>✅ Sí</td>
+              <td class="highlight-col"><span class="badge-success">✅ Paridad Completa</span></td>
+            </tr>
+            <tr>
+              <td><strong>Edición DEX & Smali</strong></td>
+              <td>Requiere VIP (Pago)</td>
+              <td class="highlight-col"><span class="badge-success">✅ Gratis para Siempre</span></td>
+            </tr>
+            <tr>
+              <td><strong>Descompilador JADX</strong></td>
+              <td>Requiere VIP (Pago)</td>
+              <td class="highlight-col"><span class="badge-success">✅ Gratis para Siempre</span></td>
+            </tr>
+            <tr>
+              <td><strong>Editor HEX & Data Inspector</strong></td>
+              <td>✅ Sí</td>
+              <td class="highlight-col"><span class="badge-success">✅ Virtualizado & Checksums</span></td>
+            </tr>
+            <tr>
+              <td><strong>Editor ARSC & AXML Binario</strong></td>
+              <td>Requiere VIP (Pago)</td>
+              <td class="highlight-col"><span class="badge-success">✅ Gratis para Siempre</span></td>
+            </tr>
+            <tr>
+              <td><strong>Unificador AntiSplit (Split APKs)</strong></td>
+              <td>✅ Sí</td>
+              <td class="highlight-col"><span class="badge-success">✅ Integrado con Autofirma</span></td>
+            </tr>
+            <tr>
+              <td><strong>Integración Nativa con Shizuku</strong></td>
+              <td>Limitada / Sin Binder nativo</td>
+              <td class="highlight-col"><span class="badge-success">✅ Android 11–15 Nativo</span></td>
+            </tr>
+            <tr>
+              <td><strong>Blindaje DFROOT "Hombre Muerto"</strong></td>
+              <td>❌ No disponible</td>
+              <td class="highlight-col"><span class="badge-success">✅ Protección Anti-Brick</span></td>
+            </tr>
+            <tr>
+              <td><strong>Generador de Keystores en App</strong></td>
+              <td>Limitado</td>
+              <td class="highlight-col"><span class="badge-success">✅ RSA 2048/4096 (JKS, BKS)</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Compilation Section -->
+  <section id="compilacion" class="section bg-alt">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2 class="section-title">Compilar desde el Código Fuente</h2>
+        <p class="section-subtitle">Requiere JDK 21 y Android SDK configurado.</p>
+      </div>
+
+      <div class="code-terminal">
+        <div class="terminal-bar">
+          <span class="t-dot red"></span>
+          <span class="t-dot yellow"></span>
+          <span class="t-dot green"></span>
+          <span class="terminal-title">bash — OpenManager Build</span>
+        </div>
+        <pre class="terminal-body"><code><span class="c-comment"># 1. Clonar el repositorio</span>
+<span class="c-cmd">git clone</span> https://github.com/uamo11/OpenManager.git
+<span class="c-cmd">cd</span> OpenManager
+
+<span class="c-comment"># 2. Compilar APK en modo Debug</span>
+<span class="c-cmd">./gradlew</span> assembleDebug
+
+<span class="c-comment"># El archivo compilado se generará en:</span>
+<span class="c-comment"># app/build/outputs/apk/debug/app-debug.apk</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- Call to Action Banner -->
+  <section class="cta-banner">
+    <div class="container text-center">
+      <h2 class="cta-title">¿Listo para probar OpenManager?</h2>
+      <p class="cta-subtitle">Explora las versiones oficiales, notas de cambios y archivos publicados directamente en GitHub Releases.</p>
+      <div class="cta-buttons">
+        <a href="https://github.com/uamo11/OpenManager/releases" target="_blank" class="btn btn-primary btn-lg">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          <span>Ir a GitHub Releases</span>
+        </a>
+        <a href="https://github.com/uamo11/OpenManager" target="_blank" class="btn btn-secondary btn-lg">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          <span>Dar una Estrella ⭐</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-content">
+      <div class="footer-brand">
+        <img src="launcher_icon.png" alt="OpenManager Icon" class="footer-logo">
+        <span class="footer-name">OpenManager</span>
+        <p class="footer-desc">Gestor de archivos de doble panel y suite de ingeniería inversa para Android.</p>
+        <p class="footer-copyright">Copyright © 2018–2026 Hai Zhang, <a href="https://github.com/uamo11" target="_blank">uamo11</a> & Colaboradores.<br>Distribuido bajo la Licencia Pública General GNU v3.0 (GPLv3).</p>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Proyecto</h4>
+        <a href="https://github.com/uamo11/OpenManager" target="_blank">Repositorio GitHub</a>
+        <a href="https://github.com/uamo11/OpenManager/releases" target="_blank">Releases</a>
+        <a href="https://github.com/uamo11/OpenManager/issues" target="_blank">Reportar Fallo</a>
+        <a href="https://github.com/uamo11/OpenManager/blob/main/SECURITY.md" target="_blank">Seguridad</a>
+        <a href="https://github.com/uamo11/OpenManager/blob/main/PRIVACY.md" target="_blank">Privacidad</a>
+      </div>
+
+      <div class="footer-links-group">
+        <h4>Contacto & Web</h4>
+        <a href="https://uam.lol" target="_blank">uam.lol</a>
+        <a href="mailto:y@uam.lol">y@uam.lol</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Lightbox Modal -->
+  <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+      <img id="lightboxImg" src="" alt="Captura ampliada">
+      <p id="lightboxCaption" class="lightbox-caption"></p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

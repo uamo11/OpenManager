@@ -7,6 +7,7 @@
 <p align="center"><i>MT 管理器（MT Manager）的现代、全功能、100% 开源免费替代方案</i></p>
 
 <p align="center">
+  <a href="https://uamo11.github.io/OpenManager/"><img src="https://img.shields.io/badge/官方网站-OpenManager-blue.svg?logo=googlechrome&logoColor=white" alt="官方网站" /></a>
   <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="CI 状态" /></a>
   <a href="https://github.com/uamo11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=release" alt="最新版本" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="GPLv3 许可证" /></a>
@@ -16,6 +17,7 @@
 </p>
 
 <p align="center">
+  🌐 <b>官方网站：</b> <a href="https://uamo11.github.io/OpenManager/"><b>uamo11.github.io/OpenManager</b></a><br>
   <a href="README.md">Español</a> · <a href="README_zh-CN.md">简体中文</a>
 </p>
 
