@@ -1,3 +1,37 @@
+# OpenManager v1.9.45: Blindaje Integral de Seguridad, Remediación CVE y Protección Avanzada de Kernel
+
+### 🛡️ Auditoría y Mitigación Integral de Seguridad y Vulnerabilidades CVE
+- **#1 [ALTA] Hardening del Servidor FTP Integrado**:
+  - Restricción del acceso anónimo desactivado por defecto (`anonymous_login = false`).
+  - Si el usuario habilita el acceso anónimo, se fuerza modo estrictamente de solo lectura (`writable = false`), impidiendo sobreescritura, borrado o subida maliciosa de archivos en la red local.
+  - Generación de contraseñas seguras de alta entropía con `SecureRandom` excluyendo caracteres visualmente ambiguos (0, O, 1, l, I).
+- **#2 [CRÍTICA] Mitigación Definitiva de CVE-2024-52046 en Apache MINA (`mina-core:2.1.3`, CVSS 9.8)**:
+  - Neutralización en tiempo de compilación mediante clases seguras sustitutas (`ObjectSerializationDecoder.java` y `ObjectSerializationInputStream.java`) que anulan los gadgets RCE por deserialización insegura lanzando `SecurityException`.
+  - Reglas de optimización en `proguard-rules.pro` para depurar el paquete del binario final compilado sin romper compatibilidad con Android API < 24.
+- **#3 [MEDIA] Seguridad de Red y Supresión de Tráfico en Texto Claro Global**:
+  - Corrección del nombre del recurso `res/xml/network_security_config.xml` (eliminando typo `netework_`).
+  - Eliminación de `usesCleartextTraffic="true"` global en `AndroidManifest.xml`.
+  - Confinamiento de certificados de usuario (`user` CA) exclusivamente a compilaciones de depuración (`debug-overrides`).
+- **#4 [BAJA] Acotamiento de Exenciones de Hidden APIs en Runtime JNI (`hiddenapi.c`)**:
+  - Eliminación de las exenciones globales wildcard (`""` y `"L"`).
+  - Definición de lista blanca estricta (`EXEMPTION_PREFIXES`) limitada a las 17 firmas DEX esenciales para las funciones de OpenManager, con manejo y limpieza de excepciones JNI.
+- **#5 [ALTA] Mitigación de CVE-2026-15028 en `libarchive:1.1.7` (CVSS 8.6)**:
+  - Sanitizador continuo con estado `ArchiveSecuritySanitizer.StreamSanitizer` en `ReadArchive.kt` para inspeccionar flujos de entrada en tiempo real y neutralizar secuencias malformadas de atributos extendidos `SUN.holesdata` en cabeceras PAX de archivos TAR.
+- **#6 [ALTA] Mitigación de CVE-2026-14164 en `libarchive:1.1.7` (CVSS 7.8)**:
+  - Desactivación por defecto del soporte de descompresión RAR5 en `ArchiveSecurityManager.kt`.
+  - Diálogo interactivo de advertencia (`MaterialAlertDialogBuilder`) al intentar habilitar el formato en Ajustes.
+  - Pre-validación estructural profunda en Kotlin (`validateRar5`) antes de invocar la biblioteca C nativa: verificación de número mágico de 8 bytes, validación de CRC32 de cabecera, comprobación de VINT y limitación estricta de tipos de bloque (`HEAD_MAIN` / `HEAD_CRYPT`).
+- **#7 [ALTA] Mitigación de GHSA-hvp5-5x4f-33fq en `jadx-core:1.4.7` (CVSS 7.5)**:
+  - Decompilación exclusivamente en memoria con `NoOpCodeCache` y omisión de extracción de recursos nativos (`isSkipResources = true`).
+  - Sanitización estricta de nombres relativos de clases y archivos exportados (`sanitizeRelativeSourcePath`) y confinamiento de rutas canónicas (`canonicalPath.startsWith(...)`) para prevenir Path Traversal y Zip Slip.
+- **#8 [ALTA] Blindaje contra Syscalls Destructivas, Evasión por Symlinks y Comandos Encadenados**:
+  - Resolución canónica profunda con `File.canonicalPath` en `DeadManProtectionManager.kt` (`isProtectedFromModification`, `isCatastrophicSystemDeletion`, `isCriticalBootFile`) que impide saltos de seguridad mediante enlaces simbólicos o secuencias `..` dirigidas a `/system`, `/vendor`, `/dev/block/`, `/data/system/` o `/data/adb/`.
+  - Desglose de comandos encadenados mediante `[;&|\n]+` en `DeadManProtectionManager.kt` y `ScriptRunnerHelper.kt` para auditar cada subcomando de forma independiente contra patrones destructivos (`rm -r -f`, comodines, alias `toybox rm`/`busybox rm`, `chroot`, `pivot_root`, `reboot`, `sys_reboot`).
+  - Incorporación en `ElfInspector.kt` de símbolos sensibles para enlaces simbólicos (`symlink`, `symlinkat`, `readlink`, `readlinkat`) y aislamiento (`chroot`, `pivot_root`, `setns`, `unshare`, `sys_reboot`).
+  - Monitoreo en tiempo real de `/proc/<pid>/cwd` en `SyscallReaderMonitor.kt` para detectar ejecuciones con directorio de trabajo en particiones protegidas.
+
+---
+
 # OpenManager v1.9.44: Ejecución Avanzada de Binarios C/C++ (ELF) y Telemetría de Syscalls en Vivo
 
 ### ⚙️ Ejecución Hardened de Scripts y Binarios Compilados en C/C++ (ELF)
