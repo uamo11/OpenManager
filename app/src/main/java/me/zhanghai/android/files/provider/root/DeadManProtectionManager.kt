@@ -75,7 +75,7 @@ object DeadManProtectionManager {
         Pattern.compile("\\b(mkfs|mke2fs|newfs_msdos|wipefs|make_ext4fs|blkdiscard|fdisk|sfdisk)\\b", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bdd\\s+.*\\bof=[\"']?/dev/block/", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bfind\\s+[\"']?/(system|vendor|product|system_ext|odm|boot|dev)?[\"']?\\s+.*-delete", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bln\\s+(-[a-zA-Z0-9_-]+\\s+)*.*\\b/(system|vendor|product|dev/block|init)\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bln\\s+(-[a-zA-Z0-9_-]+\\s+)*.*[\"']?/(system|vendor|product|dev/block|init)\\b", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\b(chroot|pivot_root)\\s+", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\b(reboot|sys_reboot|poweroff|halt)\\b", Pattern.CASE_INSENSITIVE)
     )
@@ -117,8 +117,9 @@ object DeadManProtectionManager {
         Pattern.compile("\\b(rm|toybox\\s+rm|busybox\\s+rm)(\\s+-[a-zA-Z0-9_-]+)*\\s+[\"']?/(system|vendor|product|odm|apex|init)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bchmod\\s+.*\\s+/(system|vendor|product|init)", Pattern.CASE_INSENSITIVE),
         Pattern.compile(">\\s*[\"']?/dev/block/\\S*(boot|recovery|system)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bln\\s+(-[a-zA-Z0-9_-]+\\s+)*.*\\b/(system|vendor|product|dev/block|init)\\b", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\b(chroot|pivot_root)\\s+", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("\\bln\\s+(-[a-zA-Z0-9_-]+\\s+)*.*[\"']?/(system|vendor|product|dev/block|init)\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(chroot|pivot_root)\\s+", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(reboot|sys_reboot|poweroff|halt)\\b", Pattern.CASE_INSENSITIVE)
     )
 
     fun recordExplicitlyDisabled(context: Context, disabled: Boolean) {
@@ -183,7 +184,7 @@ object DeadManProtectionManager {
             val clean = if (p.length >= 2 && p[1] == ':') p.substring(2) else p
             if (clean == "/" || clean == "/*" || clean == "*" || clean == "/system" || clean == "/vendor") return true
             for (sysPath in CATASTROPHIC_SYSTEM_PATHS) {
-                if (clean == sysPath || clean.startsWith("$sysPath/")) return true
+                if (clean == sysPath || clean.startsWith("$sysPath/") || clean.contains("$sysPath/")) return true
             }
             if (clean.contains("/dev/block/")) return true
             return false
@@ -413,6 +414,11 @@ object DeadManProtectionManager {
                 clean.startsWith("/system_ext") ||
                 clean.startsWith("/odm") ||
                 clean.startsWith("/apex") ||
+                clean.contains("/system/") ||
+                clean.contains("/vendor/") ||
+                clean.contains("/product/") ||
+                clean.startsWith("/data/system") ||
+                clean.startsWith("/data/adb") ||
                 clean.startsWith("/etc") ||
                 clean.startsWith("/sbin") ||
                 clean.startsWith("/bin")
@@ -428,7 +434,7 @@ object DeadManProtectionManager {
         }
 
         // If the resolved target points to a system partition or block device, it is protected!
-        if (resolvedPath.isNotEmpty() && isSysOrDevPath(resolvedPath)) {
+        if (isSysOrDevPath(normPath) || (resolvedPath.isNotEmpty() && isSysOrDevPath(resolvedPath))) {
             return true
         }
 
