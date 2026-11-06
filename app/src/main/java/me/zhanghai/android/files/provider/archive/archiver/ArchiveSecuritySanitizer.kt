@@ -6,8 +6,12 @@
 package me.zhanghai.android.files.provider.archive.archiver
 
 import android.util.Log
+import java.io.ByteArrayInputStream
+import java.io.EOFException
+import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
+import java.util.zip.CRC32
 
 object ArchiveSecuritySanitizer {
     private const val TAG = "ArchiveSecurityGuard"
@@ -118,6 +122,164 @@ object ArchiveSecuritySanitizer {
             }
         }
         return true
+    }
+
+    sealed class Rar5ValidationResult {
+        object Valid : Rar5ValidationResult()
+        object NotRar5 : Rar5ValidationResult()
+        data class Corrupt(val reason: String) : Rar5ValidationResult()
+    }
+
+    /**
+     * Pre-validates the structure and CRC32 checksum of a RAR5 archive stream before
+     * passing it to native libarchive decompression routines.
+     *
+     * Prevents CVE-2026-14164 (Double-Free in filtered_buf during unpack state reinit)
+     * by rejecting malformed, truncated, or tampered header blocks before native execution.
+     */
+    fun validateRar5(inputStream: InputStream): Rar5ValidationResult {
+        // 1. Verify 8-byte RAR5 magic signature
+        val magic = ByteArray(RAR5_SIGNATURE.size)
+        val magicRead = readFully(inputStream, magic)
+        if (magicRead < RAR5_SIGNATURE.size || !isRar5Header(magic)) {
+            return Rar5ValidationResult.NotRar5
+        }
+
+        // 2. Read 4-byte Header CRC32 (little-endian unsigned 32-bit int)
+        val crcBytes = ByteArray(4)
+        val crcRead = readFully(inputStream, crcBytes)
+        if (crcRead < 4) {
+            return Rar5ValidationResult.Corrupt("Truncated RAR5 archive: missing header CRC32")
+        }
+        val storedCrc = (crcBytes[0].toLong() and 0xFF) or
+                ((crcBytes[1].toLong() and 0xFF) shl 8) or
+                ((crcBytes[2].toLong() and 0xFF) shl 16) or
+                ((crcBytes[3].toLong() and 0xFF) shl 24)
+
+        // 3. Read Header Size VINT (Variable length integer)
+        val headerSizeVintRaw = mutableListOf<Byte>()
+        var headerSize = 0L
+        var shift = 0
+        var vintLen = 0
+        while (true) {
+            val b = inputStream.read()
+            if (b == -1) {
+                return Rar5ValidationResult.Corrupt("Truncated RAR5 archive: unexpected EOF in header size VINT")
+            }
+            vintLen++
+            if (vintLen > 10) {
+                return Rar5ValidationResult.Corrupt("Malformed RAR5 header size VINT: exceeds 10 bytes")
+            }
+            headerSizeVintRaw.add(b.toByte())
+            headerSize = headerSize or ((b.toLong() and 0x7FL) shl shift)
+            if ((b and 0x80) == 0) {
+                break
+            }
+            shift += 7
+        }
+
+        if (headerSize <= 0) {
+            return Rar5ValidationResult.Corrupt("Invalid RAR5 header size: $headerSize (must be positive)")
+        }
+        if (headerSize > 2 * 1024 * 1024) { // 2MB max block header limit per RAR5 specification
+            return Rar5ValidationResult.Corrupt("Oversized RAR5 block header: $headerSize bytes exceeds 2MB limit")
+        }
+
+        // 4. Read Header Data bytes
+        val headerData = ByteArray(headerSize.toInt())
+        val dataRead = readFully(inputStream, headerData)
+        if (dataRead < headerData.size) {
+            return Rar5ValidationResult.Corrupt("Truncated RAR5 header data: expected ${headerData.size} bytes, got $dataRead")
+        }
+
+        // 5. Verify CRC32 checksum over [Header Size VINT bytes] + [Header Data bytes]
+        val crc32 = CRC32()
+        for (b in headerSizeVintRaw) {
+            crc32.update(b.toInt() and 0xFF)
+        }
+        crc32.update(headerData, 0, headerData.size)
+        val computedCrc = crc32.value
+        if (storedCrc != computedCrc) {
+            return Rar5ValidationResult.Corrupt(
+                "RAR5 header CRC32 mismatch: expected 0x%08X, calculated 0x%08X".format(storedCrc, computedCrc)
+            )
+        }
+
+        // 6. Inspect Header Type and Header Flags from header data
+        var offset = 0
+        fun readVintFromData(): Long {
+            var res = 0L
+            var s = 0
+            var l = 0
+            while (offset < headerData.size) {
+                val b = headerData[offset++].toInt() and 0xFF
+                l++
+                if (l > 10) throw IllegalArgumentException("VINT in header data exceeds 10 bytes")
+                res = res or ((b.toLong() and 0x7FL) shl s)
+                if ((b and 0x80) == 0) return res
+                s += 7
+            }
+            throw EOFException("Truncated VINT in header data")
+        }
+
+        val headerType = try {
+            readVintFromData()
+        } catch (e: Exception) {
+            return Rar5ValidationResult.Corrupt("Failed to parse RAR5 header type: ${e.message}")
+        }
+
+        // First block in a valid RAR5 file must be HEAD_MAIN (1) or HEAD_CRYPT (4)
+        if (headerType != 1L && headerType != 4L) {
+            return Rar5ValidationResult.Corrupt(
+                "Invalid initial RAR5 header block type: $headerType (expected 1 [MAIN] or 4 [CRYPT])"
+            )
+        }
+
+        val headerFlags = try {
+            readVintFromData()
+        } catch (e: Exception) {
+            return Rar5ValidationResult.Corrupt("Failed to parse RAR5 header flags: ${e.message}")
+        }
+
+        // RAR5 header flags: bits 0x0001 to 0x0040 are defined
+        val knownFlagsMask = 0x007FL
+        if ((headerFlags and knownFlagsMask.inv()) != 0L) {
+            return Rar5ValidationResult.Corrupt(
+                "Malformed RAR5 header flags: 0x%X contains invalid or reserved flag bits".format(headerFlags)
+            )
+        }
+
+        // If extra area flag (0x0001) is set, validate extra area size
+        if ((headerFlags and 0x0001L) != 0L) {
+            val extraSize = try {
+                readVintFromData()
+            } catch (e: Exception) {
+                return Rar5ValidationResult.Corrupt("Failed to parse RAR5 extra area size: ${e.message}")
+            }
+            if (extraSize < 0 || extraSize > (headerData.size - offset)) {
+                return Rar5ValidationResult.Corrupt(
+                    "Invalid RAR5 extra area size: $extraSize exceeds remaining header bytes (${headerData.size - offset})"
+                )
+            }
+        }
+
+        return Rar5ValidationResult.Valid
+    }
+
+    /**
+     * Convenience method to validate RAR5 byte array.
+     */
+    fun validateRar5(bytes: ByteArray): Rar5ValidationResult =
+        validateRar5(ByteArrayInputStream(bytes))
+
+    private fun readFully(inputStream: InputStream, buffer: ByteArray): Int {
+        var totalRead = 0
+        while (totalRead < buffer.size) {
+            val read = inputStream.read(buffer, totalRead, buffer.size - totalRead)
+            if (read == -1) break
+            totalRead += read
+        }
+        return totalRead
     }
 
     /**

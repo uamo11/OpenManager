@@ -164,4 +164,121 @@ class LibarchiveSecurityTest {
             reassembled.contains("SUN.holesdata")
         )
     }
+
+    @Test
+    fun testCve2026_14164_valid_rar5_header_passes_validation() {
+        val validArchive = createSyntheticRar5Archive()
+        val result = ArchiveSecuritySanitizer.validateRar5(validArchive)
+        assertTrue("Valid RAR5 header must pass validation", result is ArchiveSecuritySanitizer.Rar5ValidationResult.Valid)
+    }
+
+    @Test
+    fun testCve2026_14164_tampered_crc_rejected() {
+        val tamperedArchive = createSyntheticRar5Archive(tamperCrc = true)
+        val result = ArchiveSecuritySanitizer.validateRar5(tamperedArchive)
+        assertTrue("Tampered CRC32 must be rejected", result is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt)
+        val reason = (result as ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt).reason
+        assertTrue(reason.contains("CRC32 mismatch"))
+    }
+
+    @Test
+    fun testCve2026_14164_truncated_header_rejected() {
+        val truncatedArchive = createSyntheticRar5Archive(truncateBytes = 2)
+        val result = ArchiveSecuritySanitizer.validateRar5(truncatedArchive)
+        assertTrue("Truncated archive header must be rejected", result is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt)
+    }
+
+    @Test
+    fun testCve2026_14164_invalid_initial_block_type_rejected() {
+        val invalidTypeArchive = createSyntheticRar5Archive(headerType = 2L)
+        val result = ArchiveSecuritySanitizer.validateRar5(invalidTypeArchive)
+        assertTrue("Invalid initial block type must be rejected", result is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt)
+        val reason = (result as ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt).reason
+        assertTrue(reason.contains("Invalid initial RAR5 header block type"))
+    }
+
+    @Test
+    fun testCve2026_14164_corrupt_vint_exceeding_10_bytes_rejected() {
+        val magic = ArchiveSecuritySanitizer.RAR5_SIGNATURE
+        val fakeCrc = byteArrayOf(0x00, 0x00, 0x00, 0x00)
+        val corruptVint = ByteArray(11) { 0x80.toByte() }
+        val corruptPayload = magic + fakeCrc + corruptVint
+
+        val result = ArchiveSecuritySanitizer.validateRar5(corruptPayload)
+        assertTrue("VINT exceeding 10 bytes must be rejected", result is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt)
+        val reason = (result as ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt).reason
+        assertTrue(reason.contains("exceeds 10 bytes"))
+    }
+
+    @Test
+    fun testCve2026_14164_oversized_header_rejected() {
+        val magic = ArchiveSecuritySanitizer.RAR5_SIGNATURE
+        val fakeCrc = byteArrayOf(0x00, 0x00, 0x00, 0x00)
+        val oversizedVint = encodeVint(3_000_000L)
+        val payload = magic + fakeCrc + oversizedVint
+
+        val result = ArchiveSecuritySanitizer.validateRar5(payload)
+        assertTrue("Oversized block header must be rejected", result is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt)
+        val reason = (result as ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt).reason
+        assertTrue(reason.contains("exceeds 2MB limit"))
+    }
+
+    @Test
+    fun testCve2026_14164_non_rar5_returns_not_rar5() {
+        val zipBytes = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00)
+        val result = ArchiveSecuritySanitizer.validateRar5(zipBytes)
+        assertTrue("Non-RAR5 file must return NotRar5", result is ArchiveSecuritySanitizer.Rar5ValidationResult.NotRar5)
+    }
+
+    private fun createSyntheticRar5Archive(
+        headerType: Long = 1L,
+        headerFlags: Long = 0L,
+        tamperCrc: Boolean = false,
+        truncateBytes: Int = 0,
+        customPayload: ByteArray? = null
+    ): ByteArray {
+        val magic = ArchiveSecuritySanitizer.RAR5_SIGNATURE
+
+        val payload = customPayload ?: run {
+            val typeBytes = encodeVint(headerType)
+            val flagsBytes = encodeVint(headerFlags)
+            val arcFlagsBytes = byteArrayOf(0x00)
+            typeBytes + flagsBytes + arcFlagsBytes
+        }
+
+        val sizeVint = encodeVint(payload.size.toLong())
+
+        val crc = java.util.zip.CRC32()
+        crc.update(sizeVint)
+        crc.update(payload)
+        var crcVal = crc.value
+        if (tamperCrc) {
+            crcVal = crcVal xor 0xFFFFFFFFL
+        }
+
+        val crcBytes = byteArrayOf(
+            (crcVal and 0xFF).toByte(),
+            ((crcVal shr 8) and 0xFF).toByte(),
+            ((crcVal shr 16) and 0xFF).toByte(),
+            ((crcVal shr 24) and 0xFF).toByte()
+        )
+
+        val full = magic + crcBytes + sizeVint + payload
+        return if (truncateBytes > 0) full.copyOfRange(0, full.size - truncateBytes) else full
+    }
+
+    private fun encodeVint(value: Long): ByteArray {
+        val bytes = mutableListOf<Byte>()
+        var v = value
+        while (true) {
+            var b = (v and 0x7FL).toInt()
+            v = v ushr 7
+            if (v != 0L) {
+                b = b or 0x80
+            }
+            bytes.add(b.toByte())
+            if (v == 0L) break
+        }
+        return bytes.toByteArray()
+    }
 }

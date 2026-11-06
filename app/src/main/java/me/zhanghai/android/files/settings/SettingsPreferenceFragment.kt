@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.provider.archive.archiver.ArchiveSecurityPreferences
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment
 import me.zhanghai.android.files.provider.root.DeadManProtectedRulesDialogFragment
@@ -147,6 +148,20 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             DeadManProtectedRulesDialogFragment.show(this)
             true
         }
+
+        val rar5Pref = findPreference<androidx.preference.SwitchPreferenceCompat>(
+            getString(R.string.pref_key_archive_security_enable_rar5)
+        )
+        rar5Pref?.setOnPreferenceChangeListener { preference, newValue ->
+            val willEnable = newValue as Boolean
+            if (willEnable) {
+                showEnableRar5WarningDialog(preference as androidx.preference.SwitchPreferenceCompat)
+                false
+            } else {
+                ArchiveSecurityPreferences.setRar5Enabled(requireContext(), false)
+                true
+            }
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -197,6 +212,26 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             .setNegativeButton(R.string.dirtyflag_protection_cancel) { dialog, _ ->
                 dialog.dismiss()
                 pref.isChecked = true
+            }
+            .show()
+    }
+
+    private fun showEnableRar5WarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setIcon(R.drawable.ic_crash_alert_24dp)
+            .setTitle(R.string.settings_archive_security_rar5_dialog_title)
+            .setMessage(R.string.settings_archive_security_rar5_dialog_message)
+            .setPositiveButton(R.string.settings_archive_security_rar5_dialog_confirm) { dialog, _ ->
+                dialog.dismiss()
+                ArchiveSecurityPreferences.setRar5Enabled(requireContext(), true)
+                pref.isChecked = true
+            }
+            .setNegativeButton(android.R.string.cancel) { dialog, _ ->
+                dialog.dismiss()
+                pref.isChecked = false
+            }
+            .setOnCancelListener {
+                pref.isChecked = false
             }
             .show()
     }

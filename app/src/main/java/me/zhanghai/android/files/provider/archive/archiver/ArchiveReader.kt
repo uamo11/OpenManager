@@ -145,6 +145,18 @@ object ArchiveReader {
                         "CVE-2026-14164"
                     )
                 }
+
+                // Even if RAR5 is explicitly enabled by user, validate the header structure and CRC32
+                // to prevent CVE-2026-14164 double-free crashes in native libarchive memory.
+                val validation = file.newInputStream().use { ArchiveSecuritySanitizer.validateRar5(it) }
+                if (validation is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt) {
+                    ArchiveSecurityPreferences.recordCve2026_14164Blocked()
+                    throw me.zhanghai.android.files.provider.archive.ArchiveSecurityException(
+                        file,
+                        "Archivo RAR5 bloqueado por validación de seguridad: ${validation.reason}. Prevenida vulnerabilidad crítica CVE-2026-14164 (Double-Free en memoria nativa).",
+                        "CVE-2026-14164"
+                    )
+                }
             }
         } catch (e: me.zhanghai.android.files.provider.archive.ArchiveSecurityException) {
             throw e

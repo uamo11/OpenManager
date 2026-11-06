@@ -280,4 +280,33 @@ class SecurityHardeningTest {
             code.contains("streamSanitizer.reset()")
         )
     }
+
+    @Test
+    fun testRar5SecurityWarningAndPreValidationWired() {
+        val archiveReaderFile = File("src/main/java/me/zhanghai/android/files/provider/archive/archiver/ArchiveReader.kt")
+        assertTrue("ArchiveReader.kt must exist", archiveReaderFile.exists())
+        val readerCode = archiveReaderFile.readText()
+
+        assertTrue(
+            "ArchiveReader must validate RAR5 stream before native open",
+            readerCode.contains("ArchiveSecuritySanitizer.validateRar5")
+        )
+        assertTrue(
+            "ArchiveReader must record blocked event for corrupted RAR5 headers",
+            readerCode.contains("ArchiveSecurityPreferences.recordCve2026_14164Blocked()")
+        )
+
+        val settingsFragmentFile = File("src/main/java/me/zhanghai/android/files/settings/SettingsPreferenceFragment.kt")
+        assertTrue("SettingsPreferenceFragment.kt must exist", settingsFragmentFile.exists())
+        val fragmentCode = settingsFragmentFile.readText()
+
+        assertTrue(
+            "SettingsPreferenceFragment must attach listener to RAR5 toggle",
+            fragmentCode.contains("pref_key_archive_security_enable_rar5")
+        )
+        assertTrue(
+            "SettingsPreferenceFragment must show warning dialog when enabling RAR5",
+            fragmentCode.contains("showEnableRar5WarningDialog")
+        )
+    }
 }

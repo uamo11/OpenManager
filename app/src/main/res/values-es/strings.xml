@@ -1504,4 +1504,8 @@
     <string name="settings_archive_security_rar5_summary">Mantiene deshabilitado el descompresor RAR5 por defecto para prevenir doble liberación de memoria (Double-Free)</string>
     <string name="archive_security_rar5_blocked">Formato RAR5 bloqueado por protección activa contra la vulnerabilidad crítica CVE-2026-14164</string>
     <string name="archive_security_tar_neutralized">Atributo malformado SUN.holesdata en TAR neutralizado exitosamente (CVE-2026-15028)</string>
+    <string name="archive_security_rar5_corrupt_blocked">Archivo RAR5 bloqueado: Se detectó una cabecera de bloque malformada o suma de comprobación inválida. Se previno CVE-2026-14164 (doble liberación en memoria nativa).</string>
+    <string name="settings_archive_security_rar5_dialog_title">Advertencia de Seguridad: Soporte RAR5</string>
+    <string name="settings_archive_security_rar5_dialog_message">Advertencia: El motor nativo de descompresión RAR5 en libarchive presenta vulnerabilidades conocidas de seguridad en memoria (incluyendo CVE-2026-14164 Double-Free en búferes de filtrado).\n\nActivar el soporte RAR5 es una función experimental y conlleva riesgos de seguridad al abrir archivos de fuentes no confiables.\n\nOpenManager realizará una pre-validación estructural estricta, pero recomendamos abrir únicamente archivos de origen seguro.\n\n¿Deseas habilitar el soporte RAR5 de todos modos?</string>
+    <string name="settings_archive_security_rar5_dialog_confirm">Habilitar de todos modos</string>
 </resources>

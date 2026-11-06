@@ -1608,4 +1608,8 @@
     <string name="settings_archive_security_rar5_summary">Keep vulnerable RAR5 reader disabled by default to prevent Double-Free vulnerability</string>
     <string name="archive_security_rar5_blocked">RAR5 format blocked by security guard (CVE-2026-14164)</string>
     <string name="archive_security_tar_neutralized">Malformed SUN.holesdata PAX attribute neutralized (CVE-2026-15028)</string>
+    <string name="archive_security_rar5_corrupt_blocked">RAR5 archive blocked: Malformed block header or checksum mismatch detected. Prevented CVE-2026-14164 double-free in native memory.</string>
+    <string name="settings_archive_security_rar5_dialog_title">Security Warning: Experimental RAR5 Support</string>
+    <string name="settings_archive_security_rar5_dialog_message">Warning: The native RAR5 decompression engine in libarchive has known memory safety vulnerabilities (including CVE-2026-14164 Double-Free in unpacking state filter buffers).\n\nEnabling RAR5 support is experimental and carries security risks when opening untrusted or downloaded archives.\n\nOpenManager will perform strict structural pre-validation, but we strongly advise only opening archives from trusted sources.\n\nDo you want to enable RAR5 support anyway?</string>
+    <string name="settings_archive_security_rar5_dialog_confirm">Enable Anyway</string>
 </resources>
