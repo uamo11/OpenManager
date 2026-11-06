@@ -102,12 +102,30 @@
 
       <!-- Quick Highlights Bar -->
       <div class="tech-pills">
-        <span class="tech-pill">Android 5.0+ (API 21–35)</span>
-        <span class="tech-pill">Kotlin 2.0</span>
-        <span class="tech-pill">Root (KernelSU / APatch / Magisk)</span>
-        <span class="tech-pill">Shizuku Nativo</span>
-        <span class="tech-pill">DFROOT Boot Shield</span>
-        <span class="tech-pill">Cero Telemetría</span>
+        <span class="tech-pill">
+          <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.0833 12 8.0833s-3.5902.3283-5.1368.8664L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/></svg>
+          Android 5.0+ (API 21–35)
+        </span>
+        <span class="tech-pill">
+          <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 24H0V0h24L12 12Z"/></svg>
+          Kotlin 2.0
+        </span>
+        <span class="tech-pill">
+          <img src="icons/magisk.png" alt="Root" class="pill-img" width="14" height="14">
+          Root (KernelSU / APatch / Magisk)
+        </span>
+        <span class="tech-pill highlight-pill-shizuku">
+          <img src="icons/shizuku.png" alt="Shizuku" class="pill-img" width="14" height="14">
+          Shizuku Nativo
+        </span>
+        <span class="tech-pill highlight-pill-dfroot">
+          <img src="icons/dfroot.png" alt="DFROOT" class="pill-img" width="14" height="14">
+          DFROOT Boot Shield
+        </span>
+        <span class="tech-pill">
+          <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+          Cero Telemetría
+        </span>
       </div>
     </div>
   </header>
@@ -155,84 +173,108 @@
 
         <!-- Explorer -->
         <div class="feature-card" data-category="explorer">
-          <div class="feature-icon bg-blue">🗂️</div>
+          <div class="feature-icon bg-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="3" x2="12" y2="21"/><path d="M7 8h2"/><path d="M7 12h2"/><path d="M15 8h2"/><path d="M15 12h2"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_1_title">Doble Panel Simultáneo (Estilo MT)</h3>
           <p class="feature-desc" data-i18n="feat_1_desc">Navegación dividida en dos paneles A/B independientes. Copia, mueve y sincroniza carpetas al instante con historial breadcrumbs y estadísticas de disco en tiempo real.</p>
         </div>
 
         <!-- RE: DEX -->
         <div class="feature-card" data-category="re">
-          <div class="feature-icon bg-emerald">🛠️</div>
+          <div class="feature-icon bg-emerald">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m10 13-2 2 2 2"/><path d="m14 17 2-2-2-2"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_2_title">Editor DEX & DEX Plus (Baksmali)</h3>
           <p class="feature-desc" data-i18n="feat_2_desc">Desensambla y ensambla Smali en tiempo real. Explora paquetes, clases, métodos, campos y tabla de cadenas. Guarda cambios atómicos directamente en el archivo <code>.dex</code>.</p>
         </div>
 
         <!-- RE: JADX -->
         <div class="feature-card" data-category="re">
-          <div class="feature-icon bg-purple">🔍</div>
+          <div class="feature-icon bg-purple">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_3_title">Descompilador JADX Integrado</h3>
           <p class="feature-desc" data-i18n="feat_3_desc">Inspecciona el código fuente en Java legible y limpio de cualquier APK o archivo DEX instalado o descargado en segundos, sin requerir una PC.</p>
         </div>
 
         <!-- RE: HEX -->
         <div class="feature-card" data-category="re">
-          <div class="feature-icon bg-cyan">⚡</div>
+          <div class="feature-icon bg-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 8h4"/><path d="M7 12h4"/><path d="M7 16h4"/><path d="M15 8h2"/><path d="M15 12h2"/><path d="M15 16h2"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_4_title">Editor HEX con Data Inspector</h3>
           <p class="feature-desc" data-i18n="feat_4_desc">Visor virtualizado de alto rendimiento (16 bytes/fila). Inspector de tipos en vivo (Int8/16/32 LE, Float32, Binario, ASCII), búsqueda hex/texto y hashes MD5, SHA-1 y SHA-256.</p>
         </div>
 
         <!-- APK: AntiSplit -->
         <div class="feature-card" data-category="apk">
-          <div class="feature-icon bg-amber">🧩</div>
+          <div class="feature-icon bg-amber">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M12 4v16"/><path d="m8 10-3 2 3 2"/><path d="m16 10 3 2-3 2"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_5_title">AntiSplit: Fusión de Split APKs</h3>
           <p class="feature-desc" data-i18n="feat_5_desc">Detecta y fusiona paquetes divididos (<code>.apks</code>, <code>.xapk</code> o splits) en un único archivo APK universal, optimizado y autofirmado para su instalación limpia.</p>
         </div>
 
         <!-- APK: Signing -->
         <div class="feature-card" data-category="apk">
-          <div class="feature-icon bg-indigo">🔐</div>
+          <div class="feature-icon bg-indigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_6_title">Firmador APK & Keystore Generator</h3>
           <p class="feature-desc" data-i18n="feat_6_desc">Firma con esquemas V1, V2 y V3. Genera tus propias claves criptográficas RSA 2048/4096 (.jks, .bks, .pk8+.pem) en la propia app con BouncyCastle sin <code>keytool</code>.</p>
         </div>
 
         <!-- Root: DFROOT -->
         <div class="feature-card" data-category="root">
-          <div class="feature-icon bg-red">🛡️</div>
+          <div class="feature-icon bg-red">
+            <img src="icons/dfroot.png" alt="DFROOT Logo" class="feature-icon-asset" width="34" height="34" loading="lazy">
+          </div>
           <h3 class="feature-title" data-i18n="feat_7_title">DFROOT "Hombre Muerto" (Dead Man)</h3>
           <p class="feature-desc" data-i18n="feat_7_desc">Escudo exclusivo contra brickeos para dispositivos con DFRoot / DirtyFlag. Bloquea escrituras destructivas en <code>/dev/block/</code> o particiones críticas con aviso de riesgo de 5s.</p>
         </div>
 
         <!-- Root: Shizuku -->
         <div class="feature-card" data-category="root">
-          <div class="feature-icon bg-teal">📱</div>
+          <div class="feature-icon bg-teal">
+            <img src="icons/shizuku.png" alt="Shizuku Logo" class="feature-icon-asset" width="34" height="34" loading="lazy">
+          </div>
           <h3 class="feature-title" data-i18n="feat_8_title">Shizuku Nativo & Root Elevado</h3>
           <p class="feature-desc" data-i18n="feat_8_desc">Soporte total para Magisk, KernelSU y APatch. Además, conéctate a Shizuku mediante Binder para acceder a <code>/Android/data</code> y <code>/Android/obb</code> en Android 11 a 15 sin Root.</p>
         </div>
 
         <!-- Explorer: Code Editor -->
         <div class="feature-card" data-category="explorer">
-          <div class="feature-icon bg-orange">💻</div>
+          <div class="feature-icon bg-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/><line x1="14" y1="4" x2="10" y2="20"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_9_title">Editor de Código $O(N)$</h3>
           <p class="feature-desc" data-i18n="feat_9_desc">Tokenizador lineal para 39 lenguajes. Barra de atajos de teclado (flechas, TAB, sangría), alternador interactivo LF ⇄ CRLF, codificaciones y búsqueda con Regex.</p>
         </div>
 
         <!-- Root: Process Monitor -->
         <div class="feature-card" data-category="root">
-          <div class="feature-icon bg-pink">📊</div>
+          <div class="feature-icon bg-pink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_10_title">Monitor de RAM & Procesos</h3>
           <p class="feature-desc" data-i18n="feat_10_desc">Supervisa la memoria física real (PSS, VmRSS, Java Heap) de cada app en ejecución. Cierre forzoso seguro con insignias de elevación <code>🛡️ ROOT</code> y <code>⚡ SHIZUKU</code>.</p>
         </div>
 
         <!-- Explorer: Terminal -->
         <div class="feature-card" data-category="explorer">
-          <div class="feature-icon bg-yellow">⌨️</div>
+          <div class="feature-icon bg-yellow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_11_title">Terminal Integrada con Soporte Root</h3>
           <p class="feature-desc" data-i18n="feat_11_desc">Shell interactiva con teclado extendido (Esc, Tab, Ctrl, Alt). Ejecuta scripts en <code>/data/local/tmp</code>, inspecciona syscalls, revisa códigos de salida (EXIT 0) o vincula Termux.</p>
         </div>
 
         <!-- Explorer: Network & Audio -->
         <div class="feature-card" data-category="explorer">
-          <div class="feature-icon bg-blue">🌐</div>
+          <div class="feature-icon bg-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          </div>
           <h3 class="feature-title" data-i18n="feat_12_title">Servidor FTP & Reproductor Flotante</h3>
           <p class="feature-desc" data-i18n="feat_12_desc">Comparte archivos inalámbricamente con tu PC con el servidor FTP integrado. Conéctate a SFTP, SMB y WebDAV, y escucha música con el reproductor flotante sin detenerte.</p>
         </div>
@@ -352,12 +394,12 @@
               <td class="highlight-col"><span class="badge-success" data-i18n="row_8_om">✅ Integrado con Autofirma</span></td>
             </tr>
             <tr>
-              <td data-i18n="row_9_name"><strong>Integración Nativa con Shizuku</strong></td>
+              <td><img src="icons/shizuku.png" class="table-inline-icon" alt="Shizuku" width="18" height="18"><strong data-i18n="row_9_name">Integración Nativa con Shizuku</strong></td>
               <td data-i18n="row_9_mt">Limitada / Sin Binder nativo</td>
               <td class="highlight-col"><span class="badge-success" data-i18n="row_9_om">✅ Android 11–15 Nativo</span></td>
             </tr>
             <tr>
-              <td data-i18n="row_10_name"><strong>Blindaje DFROOT "Hombre Muerto"</strong></td>
+              <td><img src="icons/dfroot.png" class="table-inline-icon" alt="DFROOT" width="18" height="18"><strong data-i18n="row_10_name">Blindaje DFROOT "Hombre Muerto"</strong></td>
               <td data-i18n="row_10_mt">❌ No disponible</td>
               <td class="highlight-col"><span class="badge-success" data-i18n="row_10_om">✅ Protección Anti-Brick</span></td>
             </tr>
