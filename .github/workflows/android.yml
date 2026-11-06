@@ -163,6 +163,6 @@ jobs:
         cp "$APK_DBG" "$FINAL_DBG" || true
         
         gh release create "$TAG" "$FINAL_REL" "$FINAL_DBG" \
-          --title "OpenManager ${TAG}: Blindaje Integral de Seguridad, Remediación CVE y Protección de Kernel" \
+          --title "OpenManager ${TAG}: Terminal Developer-Grade, Teclado Táctil y Blindaje de Seguridad" \
           --notes-file RELEASE_NOTES.md \
           --latest

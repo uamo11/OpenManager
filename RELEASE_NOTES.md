@@ -1,3 +1,36 @@
+# OpenManager v1.9.46: Rediseño Developer-Grade de Terminal, Keycaps Táctiles y Blindaje de Seguridad
+
+### ⚡ Rediseño Integral de la Interfaz de Terminal (Developer-Grade)
+- **Eliminación del Aspecto Improvisado / Generado por IA en la Barra Superior**:
+  - Reestructuración de `activity_terminal.xml`: eliminación de los botones de texto planos (`A-`, `14sp`, `A+`) amontonados en la barra de herramientas.
+  - La barra principal (`MaterialToolbar`) ahora se concentra de forma limpia en la identidad del proceso (`scriptName` o shell activo) con tipografía monoespaciada y acciones superiores dedicadas: Escudo de auditoría de scripts, Copia rápida de salida y Menú contextual de tres puntos.
+- **Franja HUD Técnica y Breadcrumb de Sesión en Tiempo Real**:
+  - Subcabecera técnica (`38dp`, fondo Obsidian `#161B22` con borde divisor sutil `#21262D`):
+    - **Insignia de Sesión (`layoutSessionBadge`)**: Píldora redondeada con indicador LED en vivo (`●` verde esmeralda `#3FB950` en ejecución, rojo `#F85149` si finalizó) con etiquetas monoespaciadas: `ROOT (#)`, `TERMEX (bash)`, `SHELL (sh)`, `EXIT [código]`.
+    - **Ruta de Trabajo / Breadcrumb (`tvTerminalBreadcrumb`)**: Icono de carpeta vectorial con ruta acortada inteligentemente (`~`, `[app]`, `/system/bin`) en tipografía monoespaciada `#8B949E`.
+    - **Cápsula de Zoom Ergonómica (`layoutZoomPill`)**: Control táctil unificado `[ − ]  14sp  [ + ]` dentro de una cápsula oscura (`#161B22`, radio 14dp), manteniendo el 100% de compatibilidad con atajos táctiles, restablecimiento a 14sp y teclas físicas de volumen.
+- **Keycaps Táctiles de Desarrollador en el Teclado Extra (`TerminalExtraKeysView.kt`)**:
+  - **Fila 0 (Chips de sintaxis y señales)**: Píldoras con resaltado semántico de sintaxis:
+    - `Ctrl+C`: Insignia carmesí (`#3D1B1E` / texto `#FF7B72`) para identificación inmediata de interrupción SIGINT.
+    - `Ctrl+D`: Púrpura (`#2A1B38` / `#D2A8FF`) para señal EOF.
+    - `Ctrl+Z`: Ámbar (`#332212` / `#FFA657`) para suspensión SIGTSTP.
+    - `Clear`: Azul cian (`#122738` / `#79C0FF`) para limpieza de pantalla.
+    - Comillas (`"`, `'`), variables (`$`, `~`), tuberías (`|`, `>`, `&`) y banderas (`/`, `-`, `*`) con colores syntax-highlighting.
+  - **Filas 1 y 2 (Keycaps táctiles)**:
+    - Teclas direccionales (`▲`, `◀`, `▼`, `▶`): Keycaps elevados en gris pizarra (`#282E38`), borde `#3E4756`, glifos `#F0F6FC` y repetición continua con vibración háptica.
+    - Modificadores `Ctrl` y `Alt`: En reposo presentan texto `#58A6FF`; al activarse/enclavarse se iluminan en **azul eléctrico brillante (`#1F6FEB` con borde `#58A6FF` de 2dp y texto blanco)**, brindando certeza visual absoluta del estado enclavado.
+    - Tecla de borrado `⌫`: Acento ámbar `#FFA657` con auto-repetición.
+- **Insignia Flotante de Seguridad Dead Man (`layoutDeadManAlertBadge`)**:
+  - Cápsula flotante con elevación (4dp), degradado carmesí profundo (`#4A161A` ➔ `#2C0C0E`), borde `#F85149` (1.5dp), icono de calavera luminosa y texto monoespaciado `DEAD MAN: BLOQUEADO`.
+- **Encuadre de Pantalla del Monitor de Terminal y Paleta Obsidian Dark**:
+  - Fondo del contenedor en Obsidian oscuro (`#0D1117`), barras del sistema integradas (`#161B22` y `#0F1217`), y margen sutil para encuadrar la pantalla como un auténtico monitor de consola sin tocar los bordes del dispositivo.
+- **Diálogo de Preferencias Material 3 (`terminal_preferences_dialog.xml`)**:
+  - Reorganizado en tarjetas temáticas (`bg_terminal_pref_card`): Entorno & Ruta, Pantalla & Tipografía, Sistema & Binarios, con divisores suaves e iconos vectoriales.
+- **Suite de Pruebas Unitarias de Terminal (`TerminalLogicTest.kt`)**:
+  - Validación de combinaciones `Ctrl` / `Alt` y formateo de rutas de breadcrumb en el HUD.
+
+---
+
 # OpenManager v1.9.45: Blindaje Integral de Seguridad, Remediación CVE y Protección Avanzada de Kernel
 
 ### 🛡️ Auditoría y Mitigación Integral de Seguridad y Vulnerabilidades CVE
