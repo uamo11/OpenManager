@@ -86,23 +86,43 @@ object ScriptRunnerHelper {
             val lineNum = idx + 1
             if (line.startsWith("#")) return@forEachIndexed
 
-            if (Regex("""\b(rm|rmdir|unlink|truncate|shred|wipe)\b""").containsMatchIn(line)) {
+            // Split line into chained sub-commands (;, &&, ||, |, \n) for granular inspection
+            val subCommands = line.split(Regex("[;&|]+")).map { it.trim() }.filter { it.isNotEmpty() }
+            val targetsToCheck = if (subCommands.isNotEmpty()) subCommands + line else listOf(line)
+
+            val hasDeletion = targetsToCheck.any {
+                Regex("""\b(rm|rmdir|unlink|truncate|shred|wipe|toybox\s+rm|busybox\s+rm)\b""").containsMatchIn(it)
+            }
+            if (hasDeletion) {
                 deletions.add("Línea $lineNum: $line")
             }
-            if (Regex("""\bdd\s+if=|\b(mkfs|fdisk|sfdisk|blkdiscard)\b""").containsMatchIn(line)) {
+
+            val hasBlockOrFormat = targetsToCheck.any {
+                Regex("""\bdd\s+.*of=|\b(mkfs|mke2fs|fdisk|sfdisk|blkdiscard|wipefs|make_ext4fs)\b""").containsMatchIn(it)
+            }
+            if (hasBlockOrFormat) {
                 deletions.add("Línea $lineNum (formateo/bloque): $line")
             }
 
-            if (Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root)\b""").containsMatchIn(line)) {
+            val hasRoot = targetsToCheck.any {
+                Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root)\b""").containsMatchIn(it)
+            }
+            if (hasRoot) {
                 rootCalls.add("Línea $lineNum: $line")
             }
 
-            if (Regex("""\b(curl|wget|nc|netcat|ncat|socat|ssh|scp|rsync|ping|traceroute|nmap)\b""").containsMatchIn(line) ||
-                line.contains("/dev/tcp") || line.contains("/dev/udp")) {
+            val hasNetwork = targetsToCheck.any {
+                Regex("""\b(curl|wget|nc|netcat|ncat|socat|ssh|scp|rsync|ping|traceroute|nmap)\b""").containsMatchIn(it) ||
+                    it.contains("/dev/tcp") || it.contains("/dev/udp")
+            }
+            if (hasNetwork) {
                 networkCalls.add("Línea $lineNum: $line")
             }
 
-            if (Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+uninstall|\breboot|\bshutdown)""").containsMatchIn(line)) {
+            val hasSystemOrSymlink = targetsToCheck.any {
+                Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+uninstall|\breboot|\bsys_reboot|\bshutdown|\bpoweroff|\bhalt|\bchroot\b|\bpivot_root\b|\bmount\s+.*remount|\bln\s+(-[a-zA-Z0-9_-]+\s+)*.*)""").containsMatchIn(it)
+            }
+            if (hasSystemOrSymlink) {
                 systemPaths.add("Línea $lineNum: $line")
             }
         }

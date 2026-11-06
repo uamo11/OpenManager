@@ -333,4 +333,68 @@ class SecurityHardeningTest {
             code.contains("canonicalPath.startsWith(canonicalOutPrefix)")
         )
     }
+
+    @Test
+    fun testKernelAndSyscallHardeningAgainstSymlinkAndChainedCommands() {
+        // 1. Verify DeadManProtectionManager catches chained commands and symlink evasions
+        val dangerousChained = "echo safe && rm -rf /system"
+        assertTrue(
+            "DeadManProtectionManager must detect dangerous command inside chained operator &&",
+            me.zhanghai.android.files.provider.root.DeadManProtectionManager.containsDangerousSystemCommand(dangerousChained)
+        )
+
+        val quotedCmd = "rm -rf \"/system\""
+        assertTrue(
+            "DeadManProtectionManager must detect quoted system deletion target",
+            me.zhanghai.android.files.provider.root.DeadManProtectionManager.isCatastrophicSystemDeletion(quotedCmd, "/system")
+        )
+
+        val busyboxCmd = "busybox rm -rf /vendor"
+        assertTrue(
+            "DeadManProtectionManager must detect busybox rm variant",
+            me.zhanghai.android.files.provider.root.DeadManProtectionManager.isCatastrophicSystemDeletion(busyboxCmd, "/vendor")
+        )
+
+        val chrootCmd = "chroot /sdcard/fake_env /system/bin/sh"
+        assertTrue(
+            "DeadManProtectionManager must detect chroot evasion attempt",
+            me.zhanghai.android.files.provider.root.DeadManProtectionManager.containsDangerousSystemCommand(chrootCmd)
+        )
+
+        // 2. Verify traversal path evasion blocked in isProtectedFromModification
+        val traversalPath = "/data/local/tmp/../../system/bin/sh"
+        assertTrue(
+            "DeadManProtectionManager must block modification targeting system via path traversal",
+            me.zhanghai.android.files.provider.root.DeadManProtectionManager.isProtectedFromModification("sh", traversalPath)
+        )
+
+        // 3. Verify ElfInspector defines sensitive symbols for symlink and evasion syscalls
+        val elfFile = File("src/main/java/me/zhanghai/android/files/filelist/ElfInspector.kt")
+        assertTrue("ElfInspector.kt must exist", elfFile.exists())
+        val elfCode = elfFile.readText()
+        val requiredElfSyscalls = listOf(
+            "symlink", "symlinkat", "readlink", "readlinkat",
+            "chroot", "pivot_root", "setns", "unshare", "sys_reboot"
+        )
+        for (sc in requiredElfSyscalls) {
+            assertTrue("ElfInspector must audit sensitive symbol: $sc", elfCode.contains("\"$sc\" to Triple"))
+        }
+
+        // 4. Verify ScriptRunnerHelper audits chained commands and symlink creation
+        val scriptWithSymlinkAndChain = "echo init && ln -s /system /sdcard/syslink && chroot /sdcard/syslink"
+        val auditReport = me.zhanghai.android.files.filelist.ScriptRunnerHelper.auditScriptText(scriptWithSymlinkAndChain)
+        assertTrue(
+            "ScriptRunnerHelper must flag chained commands with symlink and chroot in systemPaths",
+            auditReport.systemPaths.isNotEmpty()
+        )
+
+        // 5. Verify SyscallReaderMonitor checks /proc/<pid>/cwd for protected partitions
+        val monitorFile = File("src/main/java/me/zhanghai/android/files/terminal/tracer/SyscallReaderMonitor.kt")
+        assertTrue("SyscallReaderMonitor.kt must exist", monitorFile.exists())
+        val monitorCode = monitorFile.readText()
+        assertTrue(
+            "SyscallReaderMonitor must inspect process working directory via /proc/<pid>/cwd",
+            monitorCode.contains("/proc/\$targetPid/cwd")
+        )
+    }
 }

@@ -70,11 +70,14 @@ object DeadManProtectionManager {
     )
 
     private val CATASTROPHIC_CMD_PATTERNS = listOf(
-        Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(\\s*|$|\\*)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(system|vendor|product|system_ext|odm|apex|data/adb|data/system|boot|dev|init)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\b(mkfs|mke2fs|newfs_msdos|wipefs|make_ext4fs)\\b", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bdd\\s+.*\\bof=/dev/block/", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\bfind\\s+/(system|vendor|product|system_ext|odm|boot|dev)?\\s+.*-delete", Pattern.CASE_INSENSITIVE)
+        Pattern.compile("\\b(rm|toybox\\s+rm|busybox\\s+rm)(\\s+-[a-zA-Z0-9_-]+)*\\s+[\"']?/(/\\*|\\*|\\s*|$|[\"'])", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(rm|toybox\\s+rm|busybox\\s+rm)(\\s+-[a-zA-Z0-9_-]+)*\\s+[\"']?/(system|vendor|product|system_ext|odm|apex|data/adb|data/system|boot|dev|init)(/.*|/|/\\*|[\"'])?", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(mkfs|mke2fs|newfs_msdos|wipefs|make_ext4fs|blkdiscard|fdisk|sfdisk)\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bdd\\s+.*\\bof=[\"']?/dev/block/", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bfind\\s+[\"']?/(system|vendor|product|system_ext|odm|boot|dev)?[\"']?\\s+.*-delete", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bln\\s+(-[a-zA-Z0-9_-]+\\s+)*.*\\b/(system|vendor|product|dev/block|init)\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(chroot|pivot_root)\\s+", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(reboot|sys_reboot|poweroff|halt)\\b", Pattern.CASE_INSENSITIVE)
     )
 
     private val CRITICAL_BOOT_IMG_PATTERN = Pattern.compile(
@@ -107,13 +110,15 @@ object DeadManProtectionManager {
 
     private val DANGEROUS_SYSTEM_CMD_PATTERNS = listOf(
         Pattern.compile("dd\\s+.*\\bof=\\S*(boot|init_boot|vendor_boot|vbmeta|dtbo|recovery)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("dd\\s+.*\\bof=/dev/block/", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("dd\\s+.*\\bof=[\"']?/dev/block/", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bflash_image\\s+\\S*(boot|recovery)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bblockdev\\s+--setrw", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bmount\\s+.*\\bremount\\b", Pattern.CASE_INSENSITIVE),
-        Pattern.compile("\\brm\\s+(-[a-zA-Z]*r[a-zA-Z]*\\s+)?/(system|vendor|product|odm|apex|init)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(rm|toybox\\s+rm|busybox\\s+rm)(\\s+-[a-zA-Z0-9_-]+)*\\s+[\"']?/(system|vendor|product|odm|apex|init)", Pattern.CASE_INSENSITIVE),
         Pattern.compile("\\bchmod\\s+.*\\s+/(system|vendor|product|init)", Pattern.CASE_INSENSITIVE),
-        Pattern.compile(">\\s*/dev/block/\\S*(boot|recovery|system)", Pattern.CASE_INSENSITIVE)
+        Pattern.compile(">\\s*[\"']?/dev/block/\\S*(boot|recovery|system)", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\bln\\s+(-[a-zA-Z0-9_-]+\\s+)*.*\\b/(system|vendor|product|dev/block|init)\\b", Pattern.CASE_INSENSITIVE),
+        Pattern.compile("\\b(chroot|pivot_root)\\s+", Pattern.CASE_INSENSITIVE)
     )
 
     fun recordExplicitlyDisabled(context: Context, disabled: Boolean) {
@@ -163,44 +168,70 @@ object DeadManProtectionManager {
         val normTarget = target.trim().replace('\\', '/')
         val normCmd = command.trim()
 
-        // 1. Allow safe user/temp zones
-        if (normTarget.startsWith("/data/local/tmp", ignoreCase = true) ||
+        val resolvedTarget = if (normTarget.isNotEmpty()) {
+            try {
+                File(normTarget).canonicalPath.replace('\\', '/')
+            } catch (_: Throwable) {
+                normTarget
+            }
+        } else {
+            ""
+        }
+
+        fun isSystemOrBlockPath(p: String): Boolean {
+            if (p.isEmpty()) return false
+            val clean = if (p.length >= 2 && p[1] == ':') p.substring(2) else p
+            if (clean == "/" || clean == "/*" || clean == "*" || clean == "/system" || clean == "/vendor") return true
+            for (sysPath in CATASTROPHIC_SYSTEM_PATHS) {
+                if (clean == sysPath || clean.startsWith("$sysPath/")) return true
+            }
+            if (clean.contains("/dev/block/")) return true
+            return false
+        }
+
+        // 1. Allow safe user/temp zones ONLY if neither original nor resolved path points to system/block devices
+        val isTargetInUserZone = normTarget.startsWith("/data/local/tmp", ignoreCase = true) ||
             normTarget.startsWith("/storage/emulated/", ignoreCase = true) ||
             normTarget.startsWith("/sdcard", ignoreCase = true) ||
             normTarget.startsWith("/data/data/", ignoreCase = true) ||
             normTarget.startsWith("/data/user/", ignoreCase = true)
-        ) {
-            if (!normTarget.contains("/dev/block/")) {
-                return false
-            }
+
+        if (isTargetInUserZone && !isSystemOrBlockPath(normTarget) && (resolvedTarget.isEmpty() || !isSystemOrBlockPath(resolvedTarget))) {
+            return false
+        }
+
+        val subCommands = if (normCmd.isNotEmpty()) {
+            normCmd.split(Regex("[;&|\n]+")).map { it.trim() }.filter { it.isNotEmpty() }
+        } else {
+            emptyList()
         }
 
         // If a command is explicitly given and is non-destructive (e.g. read-only commands like cat, ls, grep)
         if (normCmd.isNotEmpty()) {
             val isDestructiveCmd = normCmd.contains(">") ||
                 CATASTROPHIC_CMD_PATTERNS.any { it.matcher(normCmd).find() } ||
+                subCommands.any { sub -> CATASTROPHIC_CMD_PATTERNS.any { it.matcher(sub).find() } } ||
                 Pattern.compile("\\b(rm|rmdir|unlink|mkfs|mke2fs|wipefs|dd|blockdev|shred|truncate)\\b", Pattern.CASE_INSENSITIVE).matcher(normCmd).find()
             if (!isDestructiveCmd) {
                 return false
             }
         }
 
-        // 2. Target checks (root partition, system directories, block devices)
-        if (normTarget == "/" || normTarget == "/*" || normTarget == "*" || normTarget == "/system" || normTarget == "/vendor") {
+        // 2. Target checks (root partition, system directories, block devices, symlinks pointing to system)
+        if (isSystemOrBlockPath(normTarget) || (resolvedTarget.isNotEmpty() && isSystemOrBlockPath(resolvedTarget))) {
             return true
         }
 
-        for (sysPath in CATASTROPHIC_SYSTEM_PATHS) {
-            if (normTarget == sysPath || normTarget.startsWith("$sysPath/")) {
-                return true
-            }
-        }
-
-        // 3. Command checks (destructive patterns like rm -rf /, rm -rf /system, dd of=/dev/block)
+        // 3. Command checks (destructive patterns like rm -rf /, rm -rf /system, dd of=/dev/block, chained commands)
         if (normCmd.isNotEmpty()) {
             for (pattern in CATASTROPHIC_CMD_PATTERNS) {
                 if (pattern.matcher(normCmd).find()) {
                     return true
+                }
+                for (sub in subCommands) {
+                    if (pattern.matcher(sub).find()) {
+                        return true
+                    }
                 }
             }
         }
@@ -282,24 +313,38 @@ object DeadManProtectionManager {
             return true
         }
 
-        // 2. Check full path against critical system startup files
+        // 2. Check full path and resolved canonical path against critical system startup files
         val normalizedPath = fullPath.trim().replace('\\', '/')
-        if (normalizedPath.isNotEmpty()) {
+        val resolvedPath = if (normalizedPath.isNotEmpty()) {
+            try {
+                File(normalizedPath).canonicalPath.replace('\\', '/')
+            } catch (_: Throwable) {
+                normalizedPath
+            }
+        } else {
+            ""
+        }
+
+        fun checkSinglePath(p: String): Boolean {
+            if (p.isEmpty()) return false
             for (startupFile in CRITICAL_SYSTEM_STARTUP_FILES) {
-                if (normalizedPath == startupFile || normalizedPath.endsWith(startupFile)) {
+                if (p == startupFile || p.endsWith(startupFile)) {
                     return true
                 }
             }
-            if (normalizedPath.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
-                normalizedPath.matches(Regex(".*/fstab\\..*"))
+            if (p.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
+                p.matches(Regex(".*/fstab\\..*"))
             ) {
                 return true
             }
-
-            // 3. Check block devices
-            if (isCriticalBootDevice(normalizedPath)) {
+            if (isCriticalBootDevice(p)) {
                 return true
             }
+            return false
+        }
+
+        if (checkSinglePath(normalizedPath) || (resolvedPath.isNotEmpty() && checkSinglePath(resolvedPath))) {
+            return true
         }
 
         return false
@@ -342,12 +387,53 @@ object DeadManProtectionManager {
         val normPath = fullPath.trim().replace('\\', '/')
         val normName = File(name).name.trim().lowercase(Locale.ROOT)
 
-        // 1. Critical boot images are ALWAYS protected anywhere
-        if (CRITICAL_BOOT_IMG_PATTERN.matcher(normName).matches()) {
+        val resolvedPath = if (normPath.isNotEmpty()) {
+            try {
+                File(normPath).canonicalPath.replace('\\', '/')
+            } catch (_: Throwable) {
+                normPath
+            }
+        } else {
+            ""
+        }
+
+        // 1. Critical boot images are ALWAYS protected anywhere (by original name or resolved name)
+        if (CRITICAL_BOOT_IMG_PATTERN.matcher(normName).matches() ||
+            (resolvedPath.isNotEmpty() && CRITICAL_BOOT_IMG_PATTERN.matcher(File(resolvedPath).name.lowercase(Locale.ROOT)).matches())
+        ) {
+            return true
+        }
+
+        fun isSysOrDevPath(p: String): Boolean {
+            if (p.isEmpty()) return false
+            val clean = if (p.length >= 2 && p[1] == ':') p.substring(2) else p
+            val isSystemPartition = clean.startsWith("/system") ||
+                clean.startsWith("/vendor") ||
+                clean.startsWith("/product") ||
+                clean.startsWith("/system_ext") ||
+                clean.startsWith("/odm") ||
+                clean.startsWith("/apex") ||
+                clean.startsWith("/etc") ||
+                clean.startsWith("/sbin") ||
+                clean.startsWith("/bin")
+            if (isSystemPartition) return true
+            for (startup in CRITICAL_SYSTEM_STARTUP_FILES) {
+                if (clean == startup || clean.endsWith(startup)) return true
+            }
+            if (clean.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
+                clean.matches(Regex(".*/fstab\\..*"))
+            ) return true
+            if (clean.contains("/dev/block/")) return true
+            return false
+        }
+
+        // If the resolved target points to a system partition or block device, it is protected!
+        if (resolvedPath.isNotEmpty() && isSysOrDevPath(resolvedPath)) {
             return true
         }
 
         // 2. Allow user-created and temporary files (e.g. /data/local/tmp/test.sh, /sdcard/...)
+        // ONLY if neither original nor canonical path targets critical boot or system files
         if (normPath.startsWith("/data/local/tmp", ignoreCase = true) ||
             normPath.startsWith("/storage/emulated/", ignoreCase = true) ||
             normPath.startsWith("/sdcard", ignoreCase = true) ||
@@ -355,38 +441,12 @@ object DeadManProtectionManager {
             normPath.startsWith("/data/user/", ignoreCase = true)
         ) {
             // Check if it's a critical boot file inside tmp
-            return isCriticalBootFile(normName, normPath)
+            return isCriticalBootFile(normName, normPath) ||
+                (resolvedPath.isNotEmpty() && isCriticalBootFile(File(resolvedPath).name, resolvedPath))
         }
 
-        // 3. System partitions and startup files are protected
-        val isSystemPartition = normPath.startsWith("/system") ||
-            normPath.startsWith("/vendor") ||
-            normPath.startsWith("/product") ||
-            normPath.startsWith("/system_ext") ||
-            normPath.startsWith("/odm") ||
-            normPath.startsWith("/apex") ||
-            normPath.startsWith("/etc") ||
-            normPath.startsWith("/sbin") ||
-            normPath.startsWith("/bin")
-
-        if (isSystemPartition) {
-            return true
-        }
-
-        // 4. Critical system startup files
-        for (startup in CRITICAL_SYSTEM_STARTUP_FILES) {
-            if (normPath == startup || normPath.endsWith(startup)) {
-                return true
-            }
-        }
-        if (normPath.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
-            normPath.matches(Regex(".*/fstab\\..*"))
-        ) {
-            return true
-        }
-
-        // 5. Block devices (/dev/block/...)
-        if (normPath.contains("/dev/block/")) {
+        // 3. System partitions and startup files
+        if (isSysOrDevPath(normPath)) {
             return true
         }
 
@@ -409,7 +469,13 @@ object DeadManProtectionManager {
      */
     fun containsDangerousSystemCommand(cmd: String?): Boolean {
         if (cmd.isNullOrBlank()) return false
-        return DANGEROUS_SYSTEM_CMD_PATTERNS.any { it.matcher(cmd).find() }
+        if (DANGEROUS_SYSTEM_CMD_PATTERNS.any { it.matcher(cmd).find() }) {
+            return true
+        }
+        val subCommands = cmd.split(Regex("[;&|\n]+")).map { it.trim() }.filter { it.isNotEmpty() }
+        return subCommands.any { sub ->
+            DANGEROUS_SYSTEM_CMD_PATTERNS.any { it.matcher(sub).find() }
+        }
     }
 
     fun containsCriticalBootModification(content: String): Boolean {

@@ -100,6 +100,28 @@ object SyscallReaderMonitor {
                     }
                 }
 
+                // 4. Inspect working directory (/proc/<pid>/cwd) for protected partition operations and symlink evasion
+                for (targetPid in pidList.toList()) {
+                    runCatching {
+                        val cwdFile = File("/proc/$targetPid/cwd")
+                        val canonicalCwd = if (cwdFile.exists()) {
+                            try { cwdFile.canonicalPath.replace('\\', '/') } catch (_: Throwable) { "" }
+                        } else ""
+                        if (canonicalCwd.isNotEmpty() && (
+                            canonicalCwd.startsWith("/system") ||
+                            canonicalCwd.startsWith("/vendor") ||
+                            canonicalCwd.startsWith("/product") ||
+                            canonicalCwd.startsWith("/apex") ||
+                            canonicalCwd.contains("/dev/block")
+                        )) {
+                            BinaryTracerEngine.recordKernelProbe(
+                                "/proc/$targetPid/cwd",
+                                "[PID $targetPid] Proceso operando en particion de sistema protegida: $canonicalCwd"
+                            )
+                        }
+                    }
+                }
+
                 delay(250) // Sample every 250ms for low overhead
             }
         }

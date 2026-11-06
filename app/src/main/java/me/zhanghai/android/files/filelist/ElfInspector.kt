@@ -59,6 +59,12 @@ object ElfInspector {
         "rmdir" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Eliminación de directorios (rmdir)"),
         "remove" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Borrado de archivo/directorio (remove)"),
 
+        // Symlinks & Path Evasion
+        "symlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.HIGH, "Creación de enlace simbólico (symlink)"),
+        "symlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.HIGH, "Creación de enlace simbólico relativo (symlinkat)"),
+        "readlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.MEDIUM, "Lectura de enlace simbólico (readlink)"),
+        "readlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.MEDIUM, "Lectura de enlace simbólico relativo (readlinkat)"),
+
         // Execution
         "system" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Ejecución de comando en shell del sistema (system)"),
         "popen" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Apertura de tubería de proceso (popen)"),
@@ -94,11 +100,16 @@ object ElfInspector {
         "setresuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Modificación de permisos de usuario (setresuid)"),
         "capset" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.CRITICAL, "Modificación de capacidades de seguridad Linux"),
 
-        // System Control
-        "reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Reinicio o apagado del sistema"),
-        "mount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Montaje de sistemas de archivos"),
-        "umount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Desmontaje de sistemas de archivos"),
-        "umount2" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Desmontaje forzado de archivos/particiones"),
+        // System Control & Namespaces
+        "reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Reinicio o apagado del sistema (reboot)"),
+        "sys_reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Syscall de reinicio directo del kernel (sys_reboot)"),
+        "mount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Montaje de sistemas de archivos (mount)"),
+        "umount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Desmontaje de sistemas de archivos (umount)"),
+        "umount2" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Desmontaje forzado de archivos/particiones (umount2)"),
+        "chroot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Cambio de directorio raíz (chroot)"),
+        "pivot_root" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Pivote de sistema de archivos raíz (pivot_root)"),
+        "setns" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Cambio de namespace de procesos (setns)"),
+        "unshare" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Desvinculación de namespaces del sistema (unshare)"),
         "swapon" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Activación de partición swap")
     )
 

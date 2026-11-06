@@ -303,4 +303,45 @@ class DeadManProtectionManagerTest {
         DeadManProtectionManager.hasWaitedDeadManCountdown = false
         assertFalse(DeadManProtectionManager.hasWaitedDeadManCountdown)
     }
+
+    @Test
+    fun testChainedAndQuotedCommandsDetected() {
+        val dangerousChained = listOf(
+            "echo ok && rm -rf /system",
+            "ls -la; rm -r -f /vendor/app",
+            "cat /proc/cpuinfo || rm -rf \"/system\"",
+            "echo 1 | ln -s /system /sdcard/sys_link",
+            "chroot /sdcard/fake_root /bin/sh",
+            "pivot_root /sdcard /sdcard/old",
+            "mount -o remount,rw /system",
+            "echo test && toybox rm -rf /apex",
+            "echo test && busybox rm -rf /system_ext",
+            "reboot",
+            "sys_reboot"
+        )
+
+        for (cmd in dangerousChained) {
+            assertTrue(
+                "Expected chained/quoted command to be flagged as dangerous: '$cmd'",
+                DeadManProtectionManager.containsDangerousSystemCommand(cmd) ||
+                    DeadManProtectionManager.isCatastrophicSystemDeletion(cmd, "/system")
+            )
+        }
+    }
+
+    @Test
+    fun testSymlinkAndTraversalProtectionFromModification() {
+        val traversalPaths = listOf(
+            Pair("sh", "/data/local/tmp/../../system/bin/sh"),
+            Pair("build.prop", "/storage/emulated/0/../../system/build.prop"),
+            Pair("boot", "/sdcard/../../dev/block/by-name/boot")
+        )
+
+        for ((name, path) in traversalPaths) {
+            assertTrue(
+                "Expected traversed system path '$path' to be protected",
+                DeadManProtectionManager.isProtectedFromModification(name, path)
+            )
+        }
+    }
 }
