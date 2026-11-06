@@ -504,7 +504,7 @@ class TerminalActivity : AppActivity() {
                 isTermex = ScriptExecutionManager.isTermex,
                 isRunning = existingSession.isRunning,
                 exitStatus = if (existingSession.isRunning) null else existingSession.exitStatus,
-                cwd = ScriptExecutionManager.activePath
+                cwd = ScriptExecutionManager.activeScriptPath
             )
             return
         }
