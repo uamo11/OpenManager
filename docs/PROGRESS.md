@@ -588,3 +588,34 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - `ShizukuManager.isRootMode()`: Informa si Shizuku corre con privilegios de root nativos.
 - **Suite de Pruebas Unitarias**:
   - Nuevos tests en `SuperuserDetectorTest.kt` validando el uso del logo oficial de Shizuku, formateo de estados ADB/Root, coexistencia de Root + Shizuku y detección de Shizuku sin permisos.
+### Hito 52: Auditoría Integral de Seguridad y Mitigación de Vulnerabilidades CVE (v1.9.45)
+- **#1 [ALTA] Hardening del Servidor FTP Integrado**:
+  - Restricción del acceso anónimo desactivado por defecto (`pref_default_value_ftp_server_anonymous_login = false`).
+  - Si el usuario habilita el acceso anónimo, se fuerza modo estrictamente de solo lectura (`writable = false`).
+  - Generación de contraseñas de alta entropía con `SecureRandom` excluyendo caracteres visualmente ambiguos.
+- **#2 [CRÍTICA] Mitigación Definitiva de CVE-2024-52046 en `mina-core:2.1.3` (CVSS 9.8)**:
+  - Creación de clases de reemplazo seguro (`ObjectSerializationDecoder.java` y `ObjectSerializationInputStream.java`) que anulan permanentemente los gadgets de deserialización RCE insegura lanzando `SecurityException`.
+  - Reglas de optimización en `proguard-rules.pro` con `-dontwarn` y `-assumenosideeffects` para depurar el paquete del binario final compilado preservando compatibilidad con Android API < 24.
+- **#3 [MEDIA] Seguridad de Red y Supresión de Tráfico en Texto Claro Global**:
+  - Corrección del nombre del recurso `res/xml/network_security_config.xml` (eliminando typo `netework_`).
+  - Eliminación de `usesCleartextTraffic="true"` global en `AndroidManifest.xml`.
+  - Confinamiento de certificados de usuario exclusivamente a compilaciones de depuración (`debug-overrides`).
+- **#4 [BAJA] Acotamiento de Exenciones de Hidden APIs en Runtime JNI**:
+  - Eliminación de las exenciones globales wildcard (`""` o `"L"`) en `hiddenapi.c`.
+  - Definición de lista blanca estricta (`EXEMPTION_PREFIXES`) limitada a las firmas de clases de sistema necesarias para OpenManager, con captura y limpieza de excepciones JNI.
+- **#5 [ALTA] Mitigación de CVE-2026-15028 en `libarchive:1.1.7` (CVSS 8.6)**:
+  - Implementación del sanitizador continuo con estado `ArchiveSecuritySanitizer.StreamSanitizer` en `ReadArchive.kt` para inspeccionar flujos de entrada en tiempo real y neutralizar secuencias malformadas de atributos extendidos `SUN.holesdata` en cabeceras PAX de archivos TAR.
+- **#6 [ALTA] Mitigación de CVE-2026-14164 en `libarchive:1.1.7` (CVSS 7.8)**:
+  - Desactivación por defecto del soporte de descompresión RAR5 en `ArchiveSecurityManager.kt`.
+  - Diálogo de advertencia interactivo (`MaterialAlertDialogBuilder`) al intentar habilitar el formato en Ajustes.
+  - Pre-validación estructural profunda en Kotlin (`validateRar5`) antes de invocar la librería C nativa: verificación de número mágico de 8 bytes, validación de CRC32 de cabecera, comprobación de VINT y limitación estricta de tipos de bloque (`HEAD_MAIN` / `HEAD_CRYPT`).
+- **#7 [ALTA] Mitigación de GHSA-hvp5-5x4f-33fq en `jadx-core:1.4.7` (CVSS 7.5)**:
+  - Desactivación de extracción de recursos nativos (`isSkipResources = true`) y uso de caché de código en memoria (`NoOpCodeCache`).
+  - Sanitización estricta de nombres relativos de clases y archivos exportados (`sanitizeRelativeSourcePath`) y confinamiento de rutas canónicas (`canonicalPath.startsWith(...)`) para prevenir Path Traversal y Zip Slip.
+- **#8 [ALTA] Blindaje contra Syscalls Destructivas, Evasión por Symlinks y Comandos Encadenados**:
+  - Resolución canónica profunda con `File.canonicalPath` en `DeadManProtectionManager.kt` (`isProtectedFromModification`, `isCatastrophicSystemDeletion`, `isCriticalBootFile`) que impide saltos de seguridad mediante enlaces simbólicos o secuencias `..` dirigidas a `/system`, `/vendor`, `/dev/block/` o `/data/system/`.
+  - Desglose de comandos encadenados mediante `[;&|\n]+` en `DeadManProtectionManager.kt` y `ScriptRunnerHelper.kt` para auditar cada subcomando de forma independiente contra patrones destructivos (`rm -r -f`, comodines, alias `toybox rm`/`busybox rm`, `chroot`, `pivot_root`, `reboot`, `sys_reboot`).
+  - Incorporación en `ElfInspector.kt` de símbolos sensibles para enlaces simbólicos (`symlink`, `symlinkat`, `readlink`, `readlinkat`) y aislamiento (`chroot`, `pivot_root`, `setns`, `unshare`, `sys_reboot`).
+  - Monitoreo en tiempo real de `/proc/<pid>/cwd` en `SyscallReaderMonitor.kt` para detectar ejecuciones con directorio de trabajo en particiones protegidas.
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - Nuevos tests de seguridad en `DeadManProtectionManagerTest.kt` y `SecurityHardeningTest.kt` verificando la totalidad de los vectores de mitigación de la auditoría.
