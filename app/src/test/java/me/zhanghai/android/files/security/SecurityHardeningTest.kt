@@ -309,4 +309,28 @@ class SecurityHardeningTest {
             fragmentCode.contains("showEnableRar5WarningDialog")
         )
     }
+
+    @Test
+    fun testJadxDecompilerEngineHardeningForGhsaHvp55x4f33fq() {
+        val engineFile = File("src/main/java/me/zhanghai/android/files/viewer/dex/JadxDecompilerEngine.kt")
+        assertTrue("JadxDecompilerEngine.kt must exist", engineFile.exists())
+        val code = engineFile.readText()
+
+        assertTrue(
+            "JadxArgs must explicitly skip resources to prevent GHSA-hvp5-5x4f-33fq",
+            code.contains("isSkipResources = true")
+        )
+        assertTrue(
+            "JadxArgs must use in-memory NoOpCodeCache",
+            code.contains("NoOpCodeCache()")
+        )
+        assertTrue(
+            "JadxDecompilerEngine must sanitize relative source paths for export",
+            code.contains("sanitizeRelativeSourcePath")
+        )
+        assertTrue(
+            "decompileToDirectory must verify canonical path containment",
+            code.contains("canonicalPath.startsWith(canonicalOutPrefix)")
+        )
+    }
 }

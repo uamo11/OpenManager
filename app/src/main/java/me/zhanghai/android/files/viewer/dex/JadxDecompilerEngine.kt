@@ -33,6 +33,82 @@ import java.util.zip.ZipOutputStream
  */
 object JadxDecompilerEngine {
 
+    private const val TAG = "JadxDecompilerEngine"
+
+    private fun logWarning(msg: String, throwable: Throwable? = null) {
+        try {
+            if (throwable != null) {
+                android.util.Log.w(TAG, msg, throwable)
+            } else {
+                android.util.Log.w(TAG, msg)
+            }
+        } catch (_: Throwable) {
+            System.err.println("[$TAG] $msg")
+            throwable?.printStackTrace(System.err)
+        }
+    }
+
+    /**
+     * Sanitizes an arbitrary class name, descriptor, or path into a secure relative source file path
+     * to protect against Path Traversal and Zip Slip attacks (GHSA-hvp5-5x4f-33fq / CWE-22).
+     *
+     * - Eliminates directory traversal sequences (".." and ".").
+     * - Disallows absolute paths (leading slashes, Windows drive prefixes).
+     * - Replaces illegal filesystem characters (:, *, ?, ", <, >, |, \0, etc.) with _.
+     * - Prevents empty or hidden path components.
+     * - Returns a relative path formatted with forward slashes ending with ".java" (e.g. "com/example/MyClass.java").
+     */
+    fun sanitizeRelativeSourcePath(className: String): String {
+        var clean = className.trim()
+        if (clean.startsWith("L") && clean.endsWith(";")) {
+            clean = clean.substring(1, clean.length - 1)
+        }
+
+        clean = clean.replace('\\', '/').replace('.', '/')
+
+        if (clean.length >= 2 && clean[1] == ':' && clean[0].isLetter()) {
+            clean = clean.substring(2)
+        }
+
+        val segments = clean.split('/')
+        val safeSegments = mutableListOf<String>()
+
+        for (segment in segments) {
+            val trimmed = segment.trim()
+            if (trimmed.isEmpty() || trimmed == "." || trimmed == "..") {
+                continue
+            }
+
+            val sanitized = buildString {
+                for (ch in trimmed) {
+                    if (ch in "<>:\"/\\|?*" || ch.code in 0..31) {
+                        append('_')
+                    } else {
+                        append(ch)
+                    }
+                }
+            }.trim('.', ' ')
+
+            if (sanitized.isNotEmpty()) {
+                val bounded = if (sanitized.length > 128) sanitized.substring(0, 128) else sanitized
+                safeSegments.add(bounded)
+            }
+        }
+
+        if (safeSegments.isEmpty()) {
+            return "unnamed/Class_${System.nanoTime() and 0xFFFF}.java"
+        }
+
+        val relativePath = safeSegments.joinToString("/") + ".java"
+
+        if (relativePath.startsWith("/") || relativePath.contains("..")) {
+            return "sanitized/Class_${System.nanoTime() and 0xFFFF}.java"
+        }
+
+        return relativePath
+    }
+
+
     /**
      * Converts a DEX descriptor (e.g., "Lcom/example/MyClass;" or "I") or path into a standard Java type/class name ("com.example.MyClass" or "int").
      */
@@ -333,7 +409,7 @@ object JadxDecompilerEngine {
 
                                     val code = try { cls.code } catch (_: Throwable) { null }
                                     if (!code.isNullOrBlank()) {
-                                        val entryPath = fullName.replace('.', '/') + ".java"
+                                        val entryPath = sanitizeRelativeSourcePath(fullName)
                                         zos.putNextEntry(ZipEntry(entryPath))
                                         zos.write(code.toByteArray(StandardCharsets.UTF_8))
                                         zos.closeEntry()
@@ -367,7 +443,7 @@ object JadxDecompilerEngine {
                     }
                     val fullName = normalizeClassName(classDef.type)
                     onProgress?.invoke(index + 1, total, fullName)
-                    val entryPath = fullName.replace('.', '/') + ".java"
+                    val entryPath = sanitizeRelativeSourcePath(fullName)
                     zos.putNextEntry(ZipEntry(entryPath))
                     val code = try {
                         decompileClassDefFallback(classDef)
@@ -423,7 +499,7 @@ object JadxDecompilerEngine {
                             if (fullName.isNullOrBlank()) continue
                             onProgress?.invoke(index + 1, total, fullName)
 
-                            val relPath = fullName.replace('.', File.separatorChar) + ".java"
+                            val relPath = sanitizeRelativeSourcePath(fullName).replace('/', File.separatorChar)
                             val targetFile = File(outputDir, relPath)
                             if (!targetFile.canonicalPath.startsWith(canonicalOutPrefix)) {
                                 continue
@@ -466,7 +542,7 @@ object JadxDecompilerEngine {
                 if (fullName.isBlank()) continue
                 onProgress?.invoke(index + 1, total, fullName)
 
-                val relPath = fullName.replace('.', File.separatorChar) + ".java"
+                val relPath = sanitizeRelativeSourcePath(fullName).replace('/', File.separatorChar)
                 val targetFile = File(outputDir, relPath)
                 if (!targetFile.canonicalPath.startsWith(canonicalOutPrefix)) {
                     continue

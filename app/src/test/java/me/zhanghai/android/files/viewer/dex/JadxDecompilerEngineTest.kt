@@ -101,4 +101,60 @@ class JadxDecompilerEngineTest {
             tempDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun testSanitizeRelativeSourcePath_normalClass() {
+        assertEquals(
+            "com/example/MainActivity.java",
+            JadxDecompilerEngine.sanitizeRelativeSourcePath("com.example.MainActivity")
+        )
+        assertEquals(
+            "com/example/MyClass.java",
+            JadxDecompilerEngine.sanitizeRelativeSourcePath("Lcom/example/MyClass;")
+        )
+        assertEquals(
+            "com/example/MyClass\$Inner.java",
+            JadxDecompilerEngine.sanitizeRelativeSourcePath("Lcom/example/MyClass\$Inner;")
+        )
+    }
+
+    @Test
+    fun testSanitizeRelativeSourcePath_pathTraversalSequencesNeutralized() {
+        val payload1 = "../../../../../../system/etc/hosts"
+        val path1 = JadxDecompilerEngine.sanitizeRelativeSourcePath(payload1)
+        org.junit.Assert.assertFalse("Path must not contain traversal dots: $path1", path1.contains(".."))
+        org.junit.Assert.assertFalse("Path must not start with slash: $path1", path1.startsWith("/"))
+        assertEquals("system/etc/hosts.java", path1)
+
+        val payload2 = "com/example/../../malicious/Payload"
+        val path2 = JadxDecompilerEngine.sanitizeRelativeSourcePath(payload2)
+        org.junit.Assert.assertFalse("Path must not contain traversal dots: $path2", path2.contains(".."))
+        assertEquals("com/example/malicious/Payload.java", path2)
+    }
+
+    @Test
+    fun testSanitizeRelativeSourcePath_windowsBackslashTraversalNeutralized() {
+        val payload = "..\\..\\..\\Windows\\System32\\cmd"
+        val path = JadxDecompilerEngine.sanitizeRelativeSourcePath(payload)
+        org.junit.Assert.assertFalse("Path must not contain backslashes: $path", path.contains("\\"))
+        org.junit.Assert.assertFalse("Path must not contain traversal dots: $path", path.contains(".."))
+        assertEquals("Windows/System32/cmd.java", path)
+    }
+
+    @Test
+    fun testSanitizeRelativeSourcePath_illegalCharactersSanitized() {
+        val payload = "com.example.Class:with*illegal?chars\"<bar>|"
+        val path = JadxDecompilerEngine.sanitizeRelativeSourcePath(payload)
+        org.junit.Assert.assertFalse("Path must not contain illegal chars", path.contains(":") || path.contains("*") || path.contains("?") || path.contains("\"") || path.contains("<") || path.contains(">") || path.contains("|"))
+        assertEquals("com/example/Class_with_illegal_chars__bar__.java", path)
+    }
+
+    @Test
+    fun testSanitizeRelativeSourcePath_pureTraversalFallsBackToSafeName() {
+        val payload = "../../../.."
+        val path = JadxDecompilerEngine.sanitizeRelativeSourcePath(payload)
+        org.junit.Assert.assertFalse("Path must not contain traversal dots: $path", path.contains(".."))
+        assertTrue("Fallback path must start with unnamed/Class_: $path", path.startsWith("unnamed/Class_"))
+        assertTrue("Fallback path must end with .java: $path", path.endsWith(".java"))
+    }
 }
