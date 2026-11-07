@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="#161B22"
+    android:paddingStart="8dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp"
+    android:layout_marginTop="6dp">
+
+    <CheckBox
+        android:id="@+id/cbFileSelect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:buttonTint="#58A6FF" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="4dp">
+
+        <TextView
+            android:id="@+id/tvHeaderFileName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="MainActivity.kt"
+            android:textColor="#F0F6FC"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:ellipsize="middle" />
+
+        <TextView
+            android:id="@+id/tvHeaderFilePath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="1dp"
+            android:text="app/src/main/..."
+            android:textColor="#8B949E"
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:ellipsize="start" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvHeaderMatchBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:background="#21262D"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:textColor="#3FB950"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:text="3 coincidencias" />
+
+    <ImageView
+        android:id="@+id/ivExpandCollapse"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="6dp"
+        android:src="@drawable/arrow_up_icon_white_24dp"
+        android:contentDescription="Expandir/Contraer"
+        app:tint="#8B949E" />
+</LinearLayout>

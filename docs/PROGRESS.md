@@ -647,3 +647,34 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Iconos vectoriales por categoría, divisores suaves y microtipografía monoespaciada para valores configurados.
 - **Suite de Pruebas Unitarias Ampliada (`TerminalLogicTest.kt`)**:
   - Incorporadas pruebas para el mapeo de combinaciones `Ctrl` / `Alt` y el formateo de rutas de breadcrumb en el HUD.
+
+### Hito 54: Buscador de Duplicados MT, Buscador y Reemplazador de Palabras en Archivos y Fijación de Barra Inferior con Teclado
+- **Buscador de Archivos Duplicados (`DuplicateFinderEngine.kt`, `DuplicateFinderDialog.kt`, `dialog_duplicate_finder.xml`)**:
+  - Escaneo de alto rendimiento en 3 fases:
+    1. Agrupamiento preliminar por tamaño de archivo (omite archivos únicos sin lecturas de disco innecesarias).
+    2. Hash parcial rápido (primeros 4KB y últimos 4KB con SHA-256).
+    3. Confirmación estricta con suma de verificación SHA-256 de 64KB en búfer para garantizar identidad exacta sin falsos positivos.
+  - Opciones de configuración: búsqueda recursiva en subdirectorios, filtro por tamaño mínimo (Todos, >1KB, >100KB, >1MB), y filtro por extensiones personalizadas.
+  - Visualización agrupada de duplicados: desglose por grupos de archivos idénticos con indicación de espacio extra recuperable.
+  - Selectores inteligentes rápidos en píldoras: "Conservar más antiguo", "Conservar más nuevo", "Invertir selección", y "Desmarcar todo".
+  - Diálogo de confirmación y eliminación segura de duplicados marcados (liberando espacio de almacenamiento al instante).
+- **Buscador y Reemplazador de Texto/Palabras en Archivos (`FileTextSearchEngine.kt`, `FileTextSearchDialog.kt`, `dialog_file_text_search.xml`)**:
+  - Detección automática y protección contra archivos binarios (análisis de caracteres nulos en los primeros 512 bytes y límite de seguridad de 20MB).
+  - Opciones de coincidencia: distinción entre mayúsculas y minúsculas (case sensitive), coincidencia de palabra completa (`\b...\b`), expresiones regulares (Regex), y búsqueda recursiva.
+  - Filtro de extensiones con chips rápidos: Todos (`*`), `.xml`, `.smali`, `.java, .kt`, `.json, .txt`.
+  - Desglose jerárquico de resultados agrupados por archivo con conteo de coincidencias y previsualización de fragmentos con número de línea (`L12:`).
+  - Al pulsar sobre una coincidencia, se abre de inmediato en `TextEditorActivity` posicionando el cursor y haciendo scroll automático a la línea exacta (`EXTRA_GOTO_LINE`).
+  - **Soporte de Reemplazo Flexible**:
+    - **Reemplazar en seleccionados ("algunas palabras")**: Reemplaza únicamente en los archivos marcados mediante casilla de verificación.
+    - **Reemplazar en todos ("todas las palabras")**: Aplica la sustitución en la totalidad de los archivos que coinciden.
+    - Reemplazo atómico con archivo temporal y saneamiento con `Matcher.quoteReplacement` para proteger caracteres especiales (`$`, `\`).
+- **Solución a Desaparición de Barra Inferior al Abrir Teclado (`FileListActivity.kt`, `AndroidManifest.xml`, `TextEditorFragment.kt`)**:
+  - Configuración explícita de `android:windowSoftInputMode="adjustResize"` en `AndroidManifest.xml` para `FileListActivity`.
+  - Integración de escucha de insets del sistema `WindowInsetsCompat.Type.ime()` en `FileListActivity.kt`: cuando el teclado virtual está visible, el margen inferior de la barra de navegación se anula dinámicamente a 0dp para que la barra inferior (`#bottomBar`) repose perfectamente sobre el teclado sin ocultarse ni desplazarse fuera de la pantalla.
+  - Ajuste equivalente en `TextEditorFragment.kt` para que la barra de símbolos y la barra de búsqueda se asienten sobre el teclado sin separaciones vacías.
+- **Integración en Menú y Buscador MT (`FileListActivity.kt`, `mt_overflow_menu.xml`)**:
+  - Menú de desbordamiento de 3 puntos actualizado con "Buscar archivos...", "Buscar texto en archivos (Reemplazar)...", y "Buscador de duplicados...".
+  - Diálogo de búsqueda principal ampliado para seleccionar entre búsqueda rápida por nombre, búsqueda y reemplazo de texto en archivos, o búsqueda de archivos duplicados.
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - `DuplicateFinderEngineTest.kt`: validación de detección en 3 fases, cálculo de espacio desperdiciado, estrategias de selección inteligente y formateo de bytes.
+  - `FileTextSearchEngineTest.kt`: validación de búsqueda sensible a mayúsculas, palabra completa, regex, sustitución atómica selectiva ("algunas palabras") y sustitución global ("todas las palabras") con caracteres especiales.

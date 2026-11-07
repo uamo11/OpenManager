@@ -13,7 +13,17 @@
     <item
         android:id="@+id/mt_menu_search"
         android:icon="@drawable/search_icon_control_normal_24dp"
-        android:title="Buscar" />
+        android:title="Buscar archivos..." />
+
+    <item
+        android:id="@+id/mt_menu_search_text"
+        android:icon="@drawable/file_document_icon"
+        android:title="Buscar texto en archivos (Reemplazar)..." />
+
+    <item
+        android:id="@+id/mt_menu_find_duplicates"
+        android:icon="@drawable/filter_icon_control_normal_24dp"
+        android:title="Buscador de duplicados..." />
 
     <item
         android:id="@+id/mt_menu_filter"

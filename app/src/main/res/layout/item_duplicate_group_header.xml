@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="#161B22"
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:layout_marginTop="8dp">
+
+    <TextView
+        android:id="@+id/tvGroupTitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Grupo 1 • 2 copias • 14.5 MB"
+        android:textColor="#58A6FF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/tvGroupWasted"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="14.5 MB extra"
+        android:textColor="#FFA657"
+        android:textSize="11sp"
+        android:fontFamily="monospace" />
+</LinearLayout>

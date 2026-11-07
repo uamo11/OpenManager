@@ -1,3 +1,37 @@
+# OpenManager v1.9.47: Buscador de Duplicados MT, Reemplazador de Palabras por Lotes y Fix de Barra Inferior con Teclado
+
+### 🔍 Buscador de Archivos Duplicados MT
+- **Motor de Escaneo en 3 Fases (`DuplicateFinderEngine.kt`)**:
+  - Detección ultrarrápida:
+    1. Agrupamiento inicial por tamaño (descarta archivos únicos sin lecturas de disco innecesarias).
+    2. Hash parcial rápido (primeros y últimos 4KB con SHA-256).
+    3. Verificación exhaustiva con suma SHA-256 completa en búfer para garantizar identidad exacta.
+  - Filtros flexibles: profundidad recursiva, tamaño mínimo (`Todos`, `> 1 KB`, `> 100 KB`, `> 1 MB`), y extensiones de archivo personalizadas.
+- **Interfaz y Gestión de Duplicados (`DuplicateFinderDialog.kt`, `dialog_duplicate_finder.xml`)**:
+  - Vista de resultados agrupada por coincidencias idénticas con cálculo en tiempo real de bytes extra desperdiciados.
+  - Píldoras de selección inteligente: **"Conservar más antiguo"**, **"Conservar más nuevo"**, **"Invertir"**, y **"Desmarcar todo"**.
+  - Eliminación segura con confirmación y liberación inmediata de espacio en disco.
+
+### 📝 Buscador y Reemplazador de Palabras en Archivos
+- **Motor de Búsqueda y Reemplazo de Alto Rendimiento (`FileTextSearchEngine.kt`)**:
+  - Búsqueda recursiva o local en archivos de texto, con detección y protección contra archivos binarios (análisis de bytes nulos y límite de 20MB).
+  - Opciones de coincidencia: distinción de mayúsculas/minúsculas, palabra completa (`\b...\b`), expresiones regulares (Regex).
+  - Filtro por extensiones con chips rápidos (`Todos`, `.xml`, `.smali`, `.java, .kt`, `.json, .txt`).
+- **Sustitución de Texto Flexible ("algunas o todas las palabras")**:
+  - **Reemplazar en seleccionados ("algunas palabras")**: Reemplaza únicamente en los archivos marcados por el usuario.
+  - **Reemplazar en todos ("todas las palabras")**: Aplica el reemplazo en todas las coincidencias encontradas.
+  - Sustitución atómica y segura mediante `Matcher.quoteReplacement` (inmune a fallos con caracteres especiales como `$` o `\`).
+- **Navegación Interactiva al Editor de Código**:
+  - Al pulsar sobre cualquier coincidencia en los resultados, se abre de inmediato en `TextEditorActivity` posicionando el cursor y haciendo scroll a la línea exacta (`EXTRA_GOTO_LINE`).
+
+### ⌨️ Corrección de Visibilidad de Barra Inferior con Teclado
+- **Ajuste de `windowSoftInputMode` y Detección de Insets IME**:
+  - Declaración explícita de `android:windowSoftInputMode="adjustResize"` en `AndroidManifest.xml` para `FileListActivity`.
+  - Integración de escucha de insets `WindowInsetsCompat.Type.ime()` en `FileListActivity.kt`: al abrirse el teclado virtual, el margen inferior de la barra de navegación se anula dinámicamente a `0dp`, permitiendo que la barra inferior (`#bottomBar`) repose sobre el teclado sin ocultarse ni salirse de pantalla.
+  - Sincronización en `TextEditorFragment.kt` para que la barra de símbolos (`symbolBar`) y el panel de búsqueda se mantengan anclados sobre el teclado sin espacios muertos.
+
+---
+
 # OpenManager v1.9.46: Rediseño Developer-Grade de Terminal, Keycaps Táctiles y Blindaje de Seguridad
 
 ### ⚡ Rediseño Integral de la Interfaz de Terminal (Developer-Grade)

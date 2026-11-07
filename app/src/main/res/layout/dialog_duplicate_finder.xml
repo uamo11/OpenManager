@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="350dp"
+    android:background="#1E1E1E">
+
+    <!-- 1. SETUP VIEW -->
+    <LinearLayout
+        android:id="@+id/layoutSetup"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:visibility="visible">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buscador de Duplicados"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvSetupPath"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#8B949E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:singleLine="true"
+            android:ellipsize="middle"
+            android:text="/storage/emulated/0" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#2E2E2E"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Recursive switch -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Buscar en subdirectorios"
+                android:textColor="#F0F6FC"
+                android:textSize="14sp" />
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchRecursive"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+        </LinearLayout>
+
+        <!-- Min size selector -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Tamaño mínimo de archivo"
+            android:textColor="#8B949E"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <RadioGroup
+            android:id="@+id/rgMinSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <RadioButton
+                android:id="@+id/rbMinSize0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Todos"
+                android:textColor="#F0F6FC"
+                android:textSize="12sp" />
+
+            <RadioButton
+                android:id="@+id/rbMinSize1K"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="&gt; 1 KB"
+                android:checked="true"
+                android:textColor="#F0F6FC"
+                android:textSize="12sp" />
+
+            <RadioButton
+                android:id="@+id/rbMinSize100K"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="&gt; 100 KB"
+                android:textColor="#F0F6FC"
+                android:textSize="12sp" />
+
+            <RadioButton
+                android:id="@+id/rbMinSize1M"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="&gt; 1 MB"
+                android:textColor="#F0F6FC"
+                android:textSize="12sp" />
+        </RadioGroup>
+
+        <!-- Extension filter -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Filtro de extensiones (vacío o * = todos)"
+            android:textColor="#8B949E"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/editExtensionFilter"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:layout_marginTop="4dp"
+            android:background="#282828"
+            android:hint="Ej: jpg, png, mp4, apk"
+            android:textColorHint="#6E7681"
+            android:textColor="#F0F6FC"
+            android:textSize="13sp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:singleLine="true" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnStartScan"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="20dp"
+            android:text="Iniciar Búsqueda de Duplicados"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#1F6FEB"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+    <!-- 2. SCANNING VIEW -->
+    <LinearLayout
+        android:id="@+id/layoutScanning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp"
+        android:visibility="gone">
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            app:indicatorColor="#1F6FEB"
+            app:trackColor="#282828" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Analizando archivos y sumas de verificación..."
+            android:textColor="#F0F6FC"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvScanningProgress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="#8B949E"
+            android:textSize="12sp"
+            android:fontFamily="monospace"
+            android:text="Escaneando..." />
+    </LinearLayout>
+
+    <!-- 3. RESULTS VIEW -->
+    <LinearLayout
+        android:id="@+id/layoutResults"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <!-- Summary Header Card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="#282828"
+            android:padding="12dp">
+
+            <TextView
+                android:id="@+id/tvResultsSummary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="14 duplicados encontrados (128.4 MB recuperables)"
+                android:textColor="#F0F6FC"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvResultsSub"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="Se mantendrá 1 copia original de cada grupo."
+                android:textColor="#8B949E"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <!-- Quick Selection Pills -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/btnSelectOldest"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:background="@drawable/bg_terminal_hud_pill"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Conservar más antiguo"
+                    android:textColor="#58A6FF"
+                    android:textSize="11.5sp" />
+
+                <TextView
+                    android:id="@+id/btnSelectNewest"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_terminal_hud_pill"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Conservar más nuevo"
+                    android:textColor="#58A6FF"
+                    android:textSize="11.5sp" />
+
+                <TextView
+                    android:id="@+id/btnInvertSelection"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_terminal_hud_pill"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Invertir"
+                    android:textColor="#C9D1D9"
+                    android:textSize="11.5sp" />
+
+                <TextView
+                    android:id="@+id/btnClearSelection"
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/bg_terminal_hud_pill"
+                    android:gravity="center"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="Desmarcar todo"
+                    android:textColor="#C9D1D9"
+                    android:textSize="11.5sp" />
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- RecyclerView for duplicate groups -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerDuplicates"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:overScrollMode="never" />
+
+        <!-- Delete button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteDuplicates"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:text="Eliminar Duplicados Seleccionados"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            app:backgroundTint="#DA3633"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+</FrameLayout>

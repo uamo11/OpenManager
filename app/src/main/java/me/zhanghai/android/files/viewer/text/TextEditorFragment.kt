@@ -493,7 +493,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val navInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+            val navInset = if (isImeVisible) 0 else insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
             if (systemNavBarInset != navInset) {
                 systemNavBarInset = navInset
                 applyBottomBarInsets()
@@ -868,6 +869,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val lineTop = layout.getLineTop(line)
         val scrollY = (lineTop - binding.scrollView.height / 3).coerceAtLeast(0)
         binding.scrollView.smoothScrollTo(0, scrollY)
+    }
+
+    private fun jumpToLine(targetLine: Int) {
+        val layout = binding.textEdit.layout ?: return
+        val lineIndex = (targetLine - 1).coerceIn(0, (layout.lineCount - 1).coerceAtLeast(0))
+        val offset = layout.getLineStart(lineIndex)
+        binding.textEdit.setSelection(offset)
+        scrollToOffset(offset)
     }
 
     private fun updateNavigationHistoryMenuItems() {
@@ -1282,6 +1291,13 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     undoManager.isEnabled = true
                     binding.lineNumberView.syncLineCount()
                     checkLargeFileSize()
+                    val gotoLine = requireActivity().intent.getIntExtra("EXTRA_GOTO_LINE", -1)
+                    if (gotoLine > 0) {
+                        requireActivity().intent.removeExtra("EXTRA_GOTO_LINE")
+                        binding.textEdit.post {
+                            jumpToLine(gotoLine)
+                        }
+                    }
                 }
             }
             is DataState.Error -> {

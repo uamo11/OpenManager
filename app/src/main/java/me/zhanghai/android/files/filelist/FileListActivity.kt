@@ -36,6 +36,8 @@ import androidx.appcompat.view.menu.MenuPopupHelper
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.commit
@@ -1083,12 +1085,20 @@ class FileListActivity : AppActivity() {
                     showSearchDialog()
                     true
                 }
+                R.id.mt_menu_search_text -> {
+                    showFileTextSearchDialog()
+                    true
+                }
+                R.id.mt_menu_find_duplicates -> {
+                    showDuplicateFinderDialog()
+                    true
+                }
                 R.id.mt_menu_select_all -> {
                     activeFragment.selectAllFiles()
                     true
                 }
                 R.id.mt_menu_filter -> {
-                    showSearchDialog()
+                    showFileNameSearchPrompt()
                     true
                 }
                 R.id.mt_menu_sort -> {
@@ -1132,7 +1142,20 @@ class FileListActivity : AppActivity() {
         popup.show()
     }
 
+    private var isKeyboardVisible = false
+
     private fun setupBottomBarControls() {
+        val bottomBar = findViewById<View>(R.id.bottomBar)
+        if (bottomBar != null) {
+            ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->
+                val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+                if (isKeyboardVisible != imeVisible) {
+                    isKeyboardVisible = imeVisible
+                    updateBottomBarMargin()
+                }
+                insets
+            }
+        }
         updateBottomBarMargin()
         Settings.ADD_BOTTOM_MARGIN.observe(this) { updateBottomBarMargin() }
         Settings.BOTTOM_MARGIN_SIZE.observe(this) { updateBottomBarMargin() }
@@ -1282,7 +1305,7 @@ class FileListActivity : AppActivity() {
     private fun updateBottomBarMargin() {
         val bottomBar = findViewById<View>(R.id.bottomBar) ?: return
         val addMargin = Settings.ADD_BOTTOM_MARGIN.valueCompat
-        val marginDp = if (addMargin) {
+        val marginDp = if (addMargin && !isKeyboardVisible) {
             Settings.BOTTOM_MARGIN_SIZE.valueCompat.toIntOrNull() ?: 12
         } else {
             0
@@ -1788,6 +1811,25 @@ class FileListActivity : AppActivity() {
     }
 
     fun showSearchDialog() {
+        val options = arrayOf(
+            "Buscar archivos por nombre o extensión",
+            "Buscar texto y reemplazar en archivos",
+            "Buscar archivos duplicados"
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Buscador")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showFileNameSearchPrompt()
+                    1 -> showFileTextSearchDialog()
+                    2 -> showDuplicateFinderDialog()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    fun showFileNameSearchPrompt() {
         val input = EditText(this).apply {
             hint = "Nombre del archivo o extensión"
             setSingleLine()
@@ -1795,7 +1837,7 @@ class FileListActivity : AppActivity() {
             setPadding(padding, padding, padding, padding)
         }
         MaterialAlertDialogBuilder(this)
-            .setTitle("Buscar en panel actual")
+            .setTitle("Buscar archivos en panel actual")
             .setView(input)
             .setPositiveButton("Buscar") { _, _ ->
                 val query = input.text.toString().trim()
@@ -1807,6 +1849,28 @@ class FileListActivity : AppActivity() {
                 activeFragment.stopSearching()
             }
             .show()
+    }
+
+    fun showFileTextSearchDialog() {
+        val currentPathStr = try {
+            activeFragment.currentPath.toFile().absolutePath
+        } catch (_: Throwable) {
+            activeFragment.currentPath.toString()
+        }
+        me.zhanghai.android.files.filelist.textsearch.FileTextSearchDialog.show(this, currentPathStr) {
+            activeFragment.reload()
+        }
+    }
+
+    fun showDuplicateFinderDialog() {
+        val currentPathStr = try {
+            activeFragment.currentPath.toFile().absolutePath
+        } catch (_: Throwable) {
+            activeFragment.currentPath.toString()
+        }
+        me.zhanghai.android.files.filelist.duplicate.DuplicateFinderDialog.show(this, currentPathStr) {
+            activeFragment.reload()
+        }
     }
 
     private fun showMoreSelectionMenu(anchor: View) {

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="?selectableItemBackground"
+    android:paddingStart="24dp"
+    android:paddingEnd="12dp"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
+
+    <TextView
+        android:id="@+id/tvLineNumber"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="#21262D"
+        android:textColor="#58A6FF"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="2dp"
+        android:text="L1:" />
+
+    <TextView
+        android:id="@+id/tvLineSnippet"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="8dp"
+        android:textColor="#C9D1D9"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:singleLine="true"
+        android:ellipsize="middle"
+        android:text="val sample = 123" />
+
+    <ImageView
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="4dp"
+        android:src="@drawable/arrow_forward_chevron_white_24dp"
+        android:contentDescription="Abrir"
+        android:alpha="0.4" />
+</LinearLayout>
