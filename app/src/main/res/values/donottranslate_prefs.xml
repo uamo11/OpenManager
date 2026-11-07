@@ -164,7 +164,7 @@
 
     <!-- MT Manager Recycle Bin Preferences -->
     <string name="pref_key_enable_recycle_bin">key_enable_recycle_bin</string>
-    <bool name="pref_default_value_enable_recycle_bin">true</bool>
+    <bool name="pref_default_value_enable_recycle_bin">false</bool>
     <string name="pref_key_move_to_recycle_bin_default">key_move_to_recycle_bin_default</string>
     <bool name="pref_default_value_move_to_recycle_bin_default">true</bool>
     <string name="pref_key_auto_clean_recycle_bin">key_auto_clean_recycle_bin</string>

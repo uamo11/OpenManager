@@ -271,6 +271,7 @@ class FileListActivity : AppActivity() {
         setupDrawerControls()
         setupBottomBarControls()
         setupBackPressedHandler()
+        checkAutoCleanRecycleBin()
 
         val demoFilter = IntentFilter("me.zhanghai.android.files.action.DEMO")
         androidx.core.content.ContextCompat.registerReceiver(
@@ -715,15 +716,45 @@ class FileListActivity : AppActivity() {
         val drawerItemRecycleBin = findViewById<View>(R.id.drawerItemRecycleBin)
         drawerItemRecycleBin?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            val recyclePath = Settings.recycleBinDirectory
-            val recycleDir = java.io.File(recyclePath.toString())
-            if (!recycleDir.exists()) {
-                recycleDir.mkdirs()
+            if (Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+                val recyclePath = Settings.recycleBinDirectory
+                val recycleDir = java.io.File(recyclePath.toString())
+                if (!recycleDir.exists()) {
+                    recycleDir.mkdirs()
+                }
+                val nomedia = java.io.File(recycleDir, ".nomedia")
+                if (!nomedia.exists()) {
+                    try {
+                        nomedia.createNewFile()
+                    } catch (_: Throwable) {}
+                }
+                activeFragment.navigateTo(recyclePath)
+            } else {
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(R.string.recycle_bin_disabled_dialog_title)
+                    .setMessage(R.string.recycle_bin_disabled_dialog_message)
+                    .setPositiveButton(R.string.recycle_bin_disabled_dialog_enable_action) { _, _ ->
+                        Settings.ENABLE_RECYCLE_BIN.putValue(true)
+                        val recyclePath = Settings.recycleBinDirectory
+                        val recycleDir = java.io.File(recyclePath.toString())
+                        if (!recycleDir.exists()) {
+                            recycleDir.mkdirs()
+                        }
+                        val nomedia = java.io.File(recycleDir, ".nomedia")
+                        if (!nomedia.exists()) {
+                            try {
+                                nomedia.createNewFile()
+                            } catch (_: Throwable) {}
+                        }
+                        activeFragment.navigateTo(recyclePath)
+                        showToast(getString(R.string.recycle_bin_enabled_toast))
+                    }
+                    .setNeutralButton(R.string.settings) { _, _ ->
+                        startActivity(Intent(this, SettingsActivity::class.java))
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
             }
-            activeFragment.navigateTo(recyclePath)
-        }
-        Settings.ENABLE_RECYCLE_BIN.observe(this) { enabled ->
-            drawerItemRecycleBin?.isVisible = enabled
         }
 
         findViewById<View>(R.id.drawerItemSettings).setOnClickListener {
@@ -1075,8 +1106,14 @@ class FileListActivity : AppActivity() {
         val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
         popup.menu.findItem(R.id.mt_menu_hidden_files)?.title =
             if (showHidden) "Ocultar archivos y directorios ocultos" else "Mostrar archivos y directorios ocultos"
+        popup.menu.findItem(R.id.mt_menu_empty_recycle_bin)?.isVisible =
+            activeFragment.currentPath.isInsideRecycleBin
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.mt_menu_empty_recycle_bin -> {
+                    activeFragment.emptyRecycleBin()
+                    true
+                }
                 R.id.mt_menu_refresh -> {
                     activeFragment.reload()
                     true
@@ -1140,6 +1177,30 @@ class FileListActivity : AppActivity() {
             }
         }
         popup.show()
+    }
+
+    private fun checkAutoCleanRecycleBin() {
+        if (!Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+            return
+        }
+        val days = Settings.autoCleanRecycleBinDays
+        if (days <= 0) {
+            return
+        }
+        kotlin.concurrent.thread(name = "AutoCleanRecycleBin") {
+            try {
+                val recycleDir = java.io.File(Settings.recycleBinDirectory.toString())
+                if (!recycleDir.exists() || !recycleDir.isDirectory) {
+                    return@thread
+                }
+                val cutoff = System.currentTimeMillis() - (days.toLong() * 24L * 60L * 60L * 1000L)
+                recycleDir.listFiles()?.forEach { file ->
+                    if (file.name != ".nomedia" && file.lastModified() < cutoff) {
+                        file.deleteRecursively()
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
     }
 
     private var isKeyboardVisible = false

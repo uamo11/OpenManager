@@ -7,16 +7,21 @@ package me.zhanghai.android.files.filelist
 
 import android.app.Dialog
 import android.os.Bundle
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.Fragment
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.getQuantityString
 import me.zhanghai.android.files.util.putArgs
 import me.zhanghai.android.files.util.show
+import me.zhanghai.android.files.util.valueCompat
 
 class ConfirmDeleteFilesDialogFragment : AppCompatDialogFragment() {
     private val args by args<Args>()
@@ -26,6 +31,9 @@ class ConfirmDeleteFilesDialogFragment : AppCompatDialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val files = args.files
+        val isAlreadyInRecycleBin = files.any { it.isInsideRecycleBin }
+        val isRecycleBinEnabled = Settings.ENABLE_RECYCLE_BIN.valueCompat
+
         val message = if (files.size == 1) {
             val file = files.single()
             val messageRes = if (file.attributesNoFollowLinks.isDirectory) {
@@ -44,11 +52,51 @@ class ConfirmDeleteFilesDialogFragment : AppCompatDialogFragment() {
             }
             getQuantityString(messageRes, files.size, files.size)
         }
-        return MaterialAlertDialogBuilder(requireContext(), theme)
-            .setMessage(message)
-            .setPositiveButton(android.R.string.ok) { _, _ -> listener.deleteFiles(files) }
-            .setNegativeButton(android.R.string.cancel, null)
-            .create()
+
+        val builder = MaterialAlertDialogBuilder(requireContext(), theme)
+
+        if (isAlreadyInRecycleBin) {
+            builder.setTitle(R.string.recycle_bin_delete_permanently_title)
+            builder.setMessage(R.string.recycle_bin_delete_permanently_message)
+            builder.setPositiveButton(R.string.recycle_bin_delete_permanently_action) { _, _ ->
+                listener.deleteFiles(files, false)
+            }
+        } else if (isRecycleBinEnabled) {
+            val context = requireContext()
+            val dp16 = (16 * resources.displayMetrics.density).toInt()
+            val dp24 = (24 * resources.displayMetrics.density).toInt()
+            val dp8 = (8 * resources.displayMetrics.density).toInt()
+
+            val checkBox = MaterialCheckBox(context).apply {
+                setText(R.string.move_to_recycle_bin_checkbox)
+                isChecked = Settings.MOVE_TO_RECYCLE_BIN_DEFAULT.valueCompat
+            }
+            val tv = TextView(context).apply {
+                text = message
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_MaterialComponents_Body1)
+            }
+            val container = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp24, dp16, dp24, dp8)
+                addView(tv)
+                addView(checkBox, LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = dp8
+                })
+            }
+            builder.setView(container)
+            builder.setPositiveButton(android.R.string.ok) { _, _ ->
+                listener.deleteFiles(files, checkBox.isChecked)
+            }
+        } else {
+            builder.setMessage(message)
+            builder.setPositiveButton(android.R.string.ok) { _, _ ->
+                listener.deleteFiles(files, false)
+            }
+        }
+        return builder.setNegativeButton(android.R.string.cancel, null).create()
     }
 
     companion object {
@@ -64,5 +112,8 @@ class ConfirmDeleteFilesDialogFragment : AppCompatDialogFragment() {
 
     interface Listener {
         fun deleteFiles(files: FileItemSet)
+        fun deleteFiles(files: FileItemSet, moveToRecycleBin: Boolean) {
+            deleteFiles(files)
+        }
     }
 }

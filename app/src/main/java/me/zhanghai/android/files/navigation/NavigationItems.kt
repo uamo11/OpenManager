@@ -414,12 +414,12 @@ private class IntentMenuItem(
 
 private class RecycleBinItem(path: Path) : PathItem(path) {
     override val id: Long
-        get() = R.string.settings_category_recycle_bin_title.toLong()
+        get() = R.string.drawer_item_recycle_bin_title.toLong()
 
     @DrawableRes
     override val iconRes: Int = R.drawable.delete_icon_white_24dp
 
     override fun getTitle(context: Context): String =
-        context.getString(R.string.settings_category_recycle_bin_title)
+        context.getString(R.string.drawer_item_recycle_bin_title)
 }
 

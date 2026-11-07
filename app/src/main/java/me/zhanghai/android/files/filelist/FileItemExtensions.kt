@@ -54,6 +54,9 @@ fun FileItem.getMimeTypeName(context: Context): String {
 val FileItem.isArchiveFile: Boolean
     get() = path.isArchiveFile(mimeType)
 
+val FileItem.isInsideRecycleBin: Boolean
+    get() = path.isInsideRecycleBin
+
 val FileItem.isListable: Boolean
     get() = attributes.isDirectory || isArchiveFile
 

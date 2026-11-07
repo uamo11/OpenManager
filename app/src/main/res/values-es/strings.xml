@@ -886,7 +886,8 @@
     <string name="settings_category_appearance_summary">Tema, colores, modo noche, tamaños de texto, animaciones e iconos</string>
     <string name="settings_category_general_title">3. Gestión de Archivos y Operaciones</string>
     <string name="settings_category_general_summary">Codificación de archivos, favoritos, orden y rutas base</string>
-    <string name="settings_category_recycle_bin_title">4. Papelera de Reciclaje</string>
+    <string name="settings_category_recycle_bin_title">Papelera de Reciclaje</string>
+    <string name="drawer_item_recycle_bin_title">Papelera de Reciclaje</string>
     <string name="settings_category_recycle_bin_summary">Eliminación segura, limpieza automática y advertencias</string>
     <string name="settings_category_installation_title">5. Instalación de Paquetes y APK</string>
     <string name="settings_category_installation_summary">Verificación de APK, instalación con Root/Shizuku y prioridades</string>
@@ -974,6 +975,21 @@
     </string-array>
     <string name="settings_show_deletion_warning_title">Mostrar advertencia de eliminación</string>
     <string name="settings_show_deletion_warning_summary">Aparecerá una advertencia roja al eliminar un archivo si no eligió moverlo a la papelera de reciclaje.</string>
+    <string name="recycle_bin_disabled_dialog_title">Papelera de reciclaje desactivada</string>
+    <string name="recycle_bin_disabled_dialog_message">La función de papelera de reciclaje está desactivada en Ajustes. ¿Deseas activarla ahora para poder almacenar y recuperar archivos eliminados?</string>
+    <string name="recycle_bin_disabled_dialog_enable_action">Activar y abrir</string>
+    <string name="recycle_bin_enabled_toast">Papelera de reciclaje activada</string>
+    <string name="move_to_recycle_bin_checkbox">Mover a la papelera de reciclaje</string>
+    <string name="files_moved_to_recycle_bin_toast">Archivos movidos a la papelera de reciclaje</string>
+    <string name="recycle_bin_delete_permanently_title">Eliminar definitivamente</string>
+    <string name="recycle_bin_delete_permanently_message">¿Deseas eliminar permanentemente los archivos seleccionados de la papelera? Esta acción no se puede deshacer.</string>
+    <string name="recycle_bin_delete_permanently_action">Eliminar definitivamente</string>
+    <string name="empty_recycle_bin_title">Vaciar papelera de reciclaje</string>
+    <string name="empty_recycle_bin_message">¿Estás seguro de que deseas vaciar la papelera de reciclaje? Se eliminarán permanentemente todos los archivos y carpetas.</string>
+    <string name="empty_recycle_bin_action">Vaciar papelera</string>
+    <string name="recycle_bin_emptied_toast">Papelera de reciclaje vaciada</string>
+    <string name="recycle_bin_already_empty_toast">La papelera de reciclaje ya está vacía</string>
+    <string name="recycle_bin_display_name">Papelera de reciclaje</string>
 
     <!-- MT Manager Installation Preferences -->
     <string name="settings_apk_installation_verification_title">Verificación de instalación de APK</string>

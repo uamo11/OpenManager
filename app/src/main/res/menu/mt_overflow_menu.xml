@@ -6,6 +6,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
+        android:id="@+id/mt_menu_empty_recycle_bin"
+        android:icon="@drawable/delete_icon_white_24dp"
+        android:title="@string/empty_recycle_bin_title"
+        android:visible="false" />
+
+    <item
         android:id="@+id/mt_menu_refresh"
         android:icon="@drawable/reset_icon_white_24dp"
         android:title="Actualizar" />

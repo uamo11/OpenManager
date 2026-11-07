@@ -1,3 +1,25 @@
+# OpenManager v1.9.50: Integración Completa de la Papelera de Reciclaje, Estado Predeterminado Desactivado y Limpieza Segura
+
+### 🗑️ Integración de la Papelera de Reciclaje en el Menú Lateral y Ajustes
+- **Título Limpio en el Menú Lateral ("Papelera de Reciclaje")**:
+  - Se eliminó el prefijo numérico `"4. "` en el menú lateral ("Herramientas"), mostrando `"Papelera de Reciclaje"` (en español) / `"Recycle Bin"` (en inglés) de manera limpia y consistente.
+- **Estado Inicial Desactivado por Defecto ("Que vendrá off")**:
+  - La preferencia `key_enable_recycle_bin` viene configurada en `false` por defecto, respetando la configuración inicial solicitada.
+- **Acceso Inteligente desde el Menú Lateral**:
+  - Al pulsar sobre `"Papelera de Reciclaje"` en la barra de herramientas lateral:
+    - Si está **activa en ajustes**: Navega de inmediato a la carpeta de la papelera (`/storage/emulated/0/OpenManager/.recycle`), asegurando la creación del directorio y el archivo `.nomedia` para que los archivos borrados no aparezcan en la galería multimedia de Android.
+    - Si está **desactivada en ajustes**: Muestra un diálogo informativo que permite activarla y abrirla con un solo toque, o ingresar a los Ajustes.
+- **Eliminación Definitiva y Prevención de Bucles**:
+  - Al eliminar elementos situados dentro de la papelera (`isInsideRecycleBin`), el diálogo cambia automáticamente a `"Eliminar definitivamente"` y ejecuta un borrado permanente e irreversible (`FileJobService.delete`), evitando reubicar archivos sobre sí mismos.
+  - Al eliminar elementos fuera de la papelera con la función activa, se presenta la casilla de verificación `[✓] Mover a la papelera de reciclaje`.
+- **Acción "Vaciar papelera de reciclaje"**:
+  - Se añadió la opción `"Vaciar papelera de reciclaje"` en el menú contextual de 3 puntos (`mt_overflow_menu`), visible únicamente cuando el usuario se encuentra dentro del directorio de la papelera.
+- **Limpieza Automática Programada y Pruebas Unitarias**:
+  - Ejecución en segundo plano de limpieza de archivos expirados (según el intervalo configurado: nunca, 7 días o 30 días), preservando `.nomedia`.
+  - Cobertura completa de pruebas unitarias en `RecycleBinLogicTest.kt`.
+
+---
+
 # OpenManager v1.9.49: Corrección de Exploración de Archivos ZIP/ROM en Tarjeta SD y Aislamiento de Raíz Virtual
 
 ### 🗜️ Corrección de Exploración de ZIPs y ROMs desde Tarjeta SD / Almacenamiento Externo

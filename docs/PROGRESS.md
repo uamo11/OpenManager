@@ -708,3 +708,20 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - En `ReadArchive.kt`, los callbacks de seek, skip y read protegen contra desplazamientos negativos (`newPosition < 0`) y encapsulan excepciones de canal NIO (`IllegalArgumentException`, etc.) previniendo fugas no controladas a través de la interfaz JNI de libarchive.
 - **Suite de Pruebas Unitarias Automatizadas**:
   - `ArchiveAndDirectoryResolverTest.kt`: validación de aislamiento de claves de caché, protección de `UnprivilegedDirectoryResolver` para rutas de archivos comprimidos, manejo limpio de fallos en archivos comprimidos y exclusión de SAF para rutas internas de archivos comprimidos.
+
+### Hito 57: Integración Completa de la Papelera de Reciclaje, Estado Predeterminado Desactivado y Limpieza Segura
+- **Nombre Limpio en el Menú Lateral (`file_list_activity.xml`, `NavigationItems.kt`, `strings.xml`)**:
+  - Eliminación del prefijo `"4. "` en el cajón lateral, mostrando `"Papelera de Reciclaje"` / `"Recycle Bin"` de forma limpia en el grupo de Herramientas.
+- **Configuración Predeterminada Desactivada (`donottranslate_prefs.xml`, `Settings.kt`)**:
+  - Ajuste de `pref_default_value_enable_recycle_bin` a `false` ("Que vendrá off") de manera predeterminada.
+- **Flujo de Acceso desde el Cajón Lateral (`FileListActivity.kt`)**:
+  - Si la papelera está habilitada: navega a `/storage/emulated/0/OpenManager/.recycle`, garantizando la existencia de la carpeta y del archivo oculto `.nomedia`.
+  - Si la papelera está desactivada: despliega un diálogo informativo que permite activarla y abrirla de inmediato, o entrar a Ajustes.
+- **Eliminación Definitiva dentro de la Papelera y Casilla Condicional (`ConfirmDeleteFilesDialogFragment.kt`, `FileListFragment.kt`)**:
+  - Si se eliminan archivos dentro de la papelera (`isInsideRecycleBin`), se activa el diálogo de eliminación definitiva permanente (`FileJobService.delete`).
+  - Al borrar elementos estándar con la papelera activa, se añade el checkbox `[✓] Mover a la papelera de reciclaje`.
+- **Acción "Vaciar papelera de reciclaje" (`mt_overflow_menu.xml`, `FileListActivity.kt`, `FileListFragment.kt`)**:
+  - Acción visible dinámicamente en el menú de 3 puntos cuando se visualiza la papelera de reciclaje, con diálogo de confirmación y toast correspondiente.
+- **Limpieza Automática y Pruebas Unitarias (`RecycleBinLogicTest.kt`)**:
+  - Limpieza automática periódica en segundo plano según los días seleccionados (0, 7 o 30 días), preservando `.nomedia`.
+  - Suite de pruebas unitarias cubriendo detección de rutas, selección de eliminación/movimiento, cutoff de fechas y nombres descriptivos.

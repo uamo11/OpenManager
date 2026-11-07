@@ -7,6 +7,8 @@ package me.zhanghai.android.files.filelist
 
 import java8.nio.file.Path
 import java8.nio.file.Paths
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.app.application
 import me.zhanghai.android.files.compat.DocumentsContractCompat
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.file.asDocumentTreeUriOrNull
@@ -20,10 +22,42 @@ import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.storage.DocumentTree
 import me.zhanghai.android.files.util.valueCompat
 
+val Path.isInsideRecycleBin: Boolean
+    get() = try {
+        val recycleStr = Settings.recycleBinDirectory.toString().trimEnd('/')
+        val pathStr = toString().trimEnd('/')
+        pathStr == recycleStr || pathStr.startsWith("$recycleStr/")
+    } catch (_: Throwable) {
+        false
+    }
+
 val Path.name: String
-    get() = fileName?.toString() ?: if (isArchivePath) archiveFile.fileName.toString() else "/"
+    get() = if (isInsideRecycleBin && toString().trimEnd('/') == Settings.recycleBinDirectory.toString().trimEnd('/')) {
+        try {
+            application.getString(R.string.recycle_bin_display_name)
+        } catch (_: Throwable) {
+            "Recycle Bin"
+        }
+    } else {
+        fileName?.toString() ?: if (isArchivePath) archiveFile.fileName.toString() else "/"
+    }
 
 fun Path.toDisplayPath(trailingSlash: Boolean = true): String {
+    if (isInsideRecycleBin) {
+        val recycleStr = Settings.recycleBinDirectory.toString().trimEnd('/')
+        val pathStr = toString().trimEnd('/')
+        val binName = try {
+            application.getString(R.string.recycle_bin_display_name)
+        } catch (_: Throwable) {
+            "Recycle Bin"
+        }
+        if (pathStr == recycleStr) {
+            return binName + if (trailingSlash) "/" else ""
+        } else if (pathStr.startsWith("$recycleStr/")) {
+            val sub = pathStr.removePrefix("$recycleStr/").trimStart('/')
+            return "$binName/$sub" + if (trailingSlash) "/" else ""
+        }
+    }
     val raw = when {
         isArchivePath -> {
             val base = archiveFile.toDisplayPath(trailingSlash = false)

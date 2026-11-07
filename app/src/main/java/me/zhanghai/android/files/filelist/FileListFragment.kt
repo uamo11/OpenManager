@@ -1753,14 +1753,24 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun deleteFiles(files: FileItemSet) {
-        if (Settings.ENABLE_RECYCLE_BIN.valueCompat && Settings.MOVE_TO_RECYCLE_BIN_DEFAULT.valueCompat) {
+        deleteFiles(files, moveToRecycleBin = Settings.ENABLE_RECYCLE_BIN.valueCompat && Settings.MOVE_TO_RECYCLE_BIN_DEFAULT.valueCompat)
+    }
+
+    override fun deleteFiles(files: FileItemSet, moveToRecycleBin: Boolean) {
+        val isAlreadyInRecycleBin = files.any { it.isInsideRecycleBin }
+        if (moveToRecycleBin && !isAlreadyInRecycleBin && Settings.ENABLE_RECYCLE_BIN.valueCompat) {
             val recyclePath = Settings.recycleBinDirectory
             try {
                 val dirFile = java.io.File(recyclePath.toString())
                 if (!dirFile.exists()) {
                     dirFile.mkdirs()
                 }
+                val nomedia = java.io.File(dirFile, ".nomedia")
+                if (!nomedia.exists()) {
+                    try { nomedia.createNewFile() } catch (_: Throwable) {}
+                }
                 FileJobService.move(makePathListForJob(files), recyclePath, requireContext())
+                showToast(getString(R.string.files_moved_to_recycle_bin_toast))
             } catch (e: Exception) {
                 FileJobService.delete(makePathListForJob(files), requireContext())
             }
@@ -1768,6 +1778,26 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             FileJobService.delete(makePathListForJob(files), requireContext())
         }
         viewModel.selectFiles(files, false)
+    }
+
+    fun emptyRecycleBin() {
+        val recyclePath = Settings.recycleBinDirectory
+        val dir = java.io.File(recyclePath.toString())
+        val files = dir.listFiles()?.filterNot { it.name == ".nomedia" }
+        if (files.isNullOrEmpty()) {
+            showToast(getString(R.string.recycle_bin_already_empty_toast))
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.empty_recycle_bin_title)
+            .setMessage(R.string.empty_recycle_bin_message)
+            .setPositiveButton(R.string.empty_recycle_bin_action) { _, _ ->
+                val pathList = files.map { Paths.get(it.absolutePath) }
+                FileJobService.delete(pathList, requireContext())
+                showToast(getString(R.string.recycle_bin_emptied_toast))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun extractFiles(files: FileItemSet) {

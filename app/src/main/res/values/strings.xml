@@ -989,7 +989,8 @@
     <string name="settings_category_appearance_summary">Themes, colors, dark mode, font sizes and animations</string>
     <string name="settings_category_general_title">3. Files &amp; General Management</string>
     <string name="settings_category_general_summary">File encoding, favorites, sorting, and base directories</string>
-    <string name="settings_category_recycle_bin_title">4. Recycle Bin</string>
+    <string name="settings_category_recycle_bin_title">Recycle Bin</string>
+    <string name="drawer_item_recycle_bin_title">Recycle Bin</string>
     <string name="settings_category_recycle_bin_summary">Secure deletion, automatic cleanup and warnings</string>
     <string name="settings_category_installation_title">5. App Installation &amp; Packages</string>
     <string name="settings_category_installation_summary">APK verification, privileged root/Shizuku install and priority</string>
@@ -1078,6 +1079,21 @@
     </string-array>
     <string name="settings_show_deletion_warning_title">Show deletion warning</string>
     <string name="settings_show_deletion_warning_summary">A red warning will appear when deleting a file if you did not choose to move it to recycle bin.</string>
+    <string name="recycle_bin_disabled_dialog_title">Recycle Bin</string>
+    <string name="recycle_bin_disabled_dialog_message">The recycle bin feature is disabled in Settings. Do you want to enable it to store and recover deleted files?</string>
+    <string name="recycle_bin_disabled_dialog_enable_action">Enable and open</string>
+    <string name="recycle_bin_enabled_toast">Recycle bin enabled</string>
+    <string name="move_to_recycle_bin_checkbox">Move to recycle bin</string>
+    <string name="files_moved_to_recycle_bin_toast">Files moved to recycle bin</string>
+    <string name="recycle_bin_delete_permanently_title">Delete permanently</string>
+    <string name="recycle_bin_delete_permanently_message">Do you want to permanently delete the selected files from the recycle bin? This action cannot be undone.</string>
+    <string name="recycle_bin_delete_permanently_action">Delete permanently</string>
+    <string name="empty_recycle_bin_title">Empty recycle bin</string>
+    <string name="empty_recycle_bin_message">Are you sure you want to empty the recycle bin? All files and folders will be permanently deleted.</string>
+    <string name="empty_recycle_bin_action">Empty recycle bin</string>
+    <string name="recycle_bin_emptied_toast">Recycle bin emptied</string>
+    <string name="recycle_bin_already_empty_toast">Recycle bin is already empty</string>
+    <string name="recycle_bin_display_name">Recycle Bin</string>
 
     <!-- MT Manager Installation Preferences -->
     <string name="settings_apk_installation_verification_title">APK installation verification</string>

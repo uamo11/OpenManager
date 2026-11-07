@@ -242,6 +242,15 @@ object Settings {
             R.bool.pref_default_value_move_to_recycle_bin_default
         )
 
+    val AUTO_CLEAN_RECYCLE_BIN: SettingLiveData<String> =
+        StringSettingLiveData(
+            R.string.pref_key_auto_clean_recycle_bin,
+            R.string.pref_default_value_auto_clean_recycle_bin
+        )
+
+    val autoCleanRecycleBinDays: Int
+        get() = AUTO_CLEAN_RECYCLE_BIN.valueCompat.toIntOrNull() ?: 0
+
     val SHOW_DELETION_WARNING: SettingLiveData<Boolean> =
         BooleanSettingLiveData(
             R.string.pref_key_show_deletion_warning,
