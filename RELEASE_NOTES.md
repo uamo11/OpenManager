@@ -18,6 +18,18 @@
   - Ejecución en segundo plano de limpieza de archivos expirados (según el intervalo configurado: nunca, 7 días o 30 días), preservando `.nomedia`.
   - Cobertura completa de pruebas unitarias en `RecycleBinLogicTest.kt`.
 
+### 🗜️ Corrección Definitiva de Exploración de ZIPs en Tarjeta SD y Desintoxicación de Error Xar
+- **Eliminación del Formato XAR en `ArchiveSecurityManager`**:
+  - Al registrar formatos en libarchive, el formato XAR (no compilado en Android por falta de libxml2) emitía `ARCHIVE_WARN` y envenenaba el búfer de error interno con `"Xar not supported on this platform"`. Cualquier fallo posterior reportaba este mensaje engañoso.
+  - Se retiró la llamada a `readSupportFormatXar`, evitando la contaminación del búfer de error nativo.
+- **Prevención de Falsos Fin de Archivo (EOF) en Callbacks de Lectura (`ReadArchive.kt`)**:
+  - Cuando los callbacks de lectura sobre canales o streams leían 0 bytes transitorios, devolvían un búfer con `remaining() == 0`, lo que libarchive interpretaba como EOF prematuro.
+  - Los callbacks ahora leen en bucle hasta obtener al menos 1 byte o `-1` (EOF real).
+- **Motor de Respaldo Resiliente con `ZipFile` y `ZipInputStream` de Android**:
+  - Si libarchive experimenta problemas de seek o compatibilidad al leer archivos en tarjetas MicroSD o USB, el sistema conmuta automáticamente al motor nativo de Android (`java.util.zip.ZipFile` / `ZipInputStream`), permitiendo explorar archivos ZIP, ROMs, APKs y extraer sus contenidos sin fallo alguno.
+- **Corrección de Referencia en Diálogo de Ajustes (`FileListActivity.kt`)**:
+  - Se corrigió la referencia `R.string.settings` por `R.string.settings_title`.
+
 ---
 
 # OpenManager v1.9.49: Corrección de Exploración de Archivos ZIP/ROM en Tarjeta SD y Aislamiento de Raíz Virtual

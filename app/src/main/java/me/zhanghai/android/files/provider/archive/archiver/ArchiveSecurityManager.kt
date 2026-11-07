@@ -24,7 +24,6 @@ object ArchiveSecurityManager {
         Archive.readSupportFormatAr(archive)
         Archive.readSupportFormatCab(archive)
         Archive.readSupportFormatLha(archive)
-        Archive.readSupportFormatXar(archive)
         Archive.readSupportFormatEmpty(archive)
         Archive.readSupportFormatRar(archive) // Safe legacy RAR (1.x - 4.x)
         Archive.readSupportFormatRaw(archive)

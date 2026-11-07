@@ -42,11 +42,18 @@ class ReadArchive : Closeable {
             Archive.readSetReadCallback<Any?>(archive) { _, _ ->
                 buffer.clear()
                 val bytesRead = try {
-                    inputStream.read(buffer.array())
+                    var total = 0
+                    while (total < buffer.capacity()) {
+                        val read = inputStream.read(buffer.array(), total, buffer.capacity() - total)
+                        if (read == -1) break
+                        total += read
+                        if (total > 0) break
+                    }
+                    if (total > 0) total else -1
                 } catch (e: IOException) {
                     throw e.toArchiveException("InputStream.read")
                 }
-                if (bytesRead != -1) {
+                if (bytesRead > 0) {
                     streamSanitizer.sanitizeChunk(buffer.array(), 0, bytesRead)
                     buffer.limit(bytesRead)
                     buffer
@@ -85,11 +92,18 @@ class ReadArchive : Closeable {
             Archive.readSetReadCallback<Any?>(archive) { _, _ ->
                 buffer.clear()
                 val bytesRead = try {
-                    channel.read(buffer)
+                    var total = 0
+                    while (buffer.hasRemaining()) {
+                        val read = channel.read(buffer)
+                        if (read == -1) break
+                        total += read
+                        if (total > 0) break
+                    }
+                    if (total > 0) total else -1
                 } catch (e: Throwable) {
                     throw e.toArchiveException("SeekableByteChannel.read")
                 }
-                if (bytesRead != -1) {
+                if (bytesRead > 0) {
                     buffer.flip()
                     streamSanitizer.sanitizeDirectChunk(buffer)
                     buffer

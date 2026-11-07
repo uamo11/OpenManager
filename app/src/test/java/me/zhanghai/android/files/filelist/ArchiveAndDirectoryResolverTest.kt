@@ -135,4 +135,31 @@ class ArchiveAndDirectoryResolverTest {
         assertTrue(isAndroidObb("/storage/emulated/0/Android/obb", isArchive = false))
         assertFalse(isAndroidObb("/Android/obb", isArchive = true))
     }
+
+    @Test
+    fun testZipResilientFallbackExtractsEntries() {
+        val bos = java.io.ByteArrayOutputStream()
+        java.util.zip.ZipOutputStream(bos).use { zos ->
+            zos.putNextEntry(java.util.zip.ZipEntry("a.sh"))
+            zos.write("#!/bin/sh\necho test\n".toByteArray())
+            zos.closeEntry()
+            zos.putNextEntry(java.util.zip.ZipEntry("scripts/"))
+            zos.closeEntry()
+            zos.putNextEntry(java.util.zip.ZipEntry("scripts/sub.sh"))
+            zos.write("echo sub\n".toByteArray())
+            zos.closeEntry()
+        }
+        val zipBytes = bos.toByteArray()
+        assertTrue(zipBytes.size > 0)
+
+        val entryNames = mutableListOf<String>()
+        java.util.zip.ZipInputStream(java.io.ByteArrayInputStream(zipBytes)).use { zis ->
+            while (true) {
+                val entry = zis.nextEntry ?: break
+                entryNames += entry.name
+                zis.closeEntry()
+            }
+        }
+        assertEquals(listOf("a.sh", "scripts/", "scripts/sub.sh"), entryNames)
+    }
 }

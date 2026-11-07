@@ -749,7 +749,7 @@ class FileListActivity : AppActivity() {
                         activeFragment.navigateTo(recyclePath)
                         showToast(getString(R.string.recycle_bin_enabled_toast))
                     }
-                    .setNeutralButton(R.string.settings) { _, _ ->
+                    .setNeutralButton(R.string.settings_title) { _, _ ->
                         startActivity(Intent(this, SettingsActivity::class.java))
                     }
                     .setNegativeButton(android.R.string.cancel, null)

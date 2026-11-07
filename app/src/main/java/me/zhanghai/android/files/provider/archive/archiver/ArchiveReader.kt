@@ -9,6 +9,7 @@ import androidx.preference.PreferenceManager
 import java8.nio.channels.SeekableByteChannel
 import java8.nio.charset.StandardCharsets
 import java8.nio.file.Path
+import java8.nio.file.attribute.FileTime
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.common.DelegateForceableSeekableByteChannel
 import me.zhanghai.android.files.provider.common.DelegateInputStream
@@ -104,7 +105,13 @@ object ArchiveReader {
             // If reading entries failed (for example, channel mode opened, but readEntry failed
             // due to central directory seek issues, Zip64 seek incompatibility, or an appended OTA/ROM
             // signature block), fall back to pure sequential streaming mode to read the entries.
-            tryReadingEntriesViaStream(file, passwords, charset, e)
+            try {
+                tryReadingEntriesViaStream(file, passwords, charset, e)
+            } catch (streamError: Exception) {
+                // If libarchive failed completely on secondary storage (e.g. MicroSD/USB),
+                // fall back to Android's built-in ZipFile / ZipInputStream engine for ZIP/APK/JAR formats.
+                tryReadingEntriesViaZip(file, charset, streamError)
+            }
         }
     }
 
@@ -114,21 +121,101 @@ object ArchiveReader {
         charset: Charset,
         originalException: Exception
     ): List<ReadArchive.Entry> {
-        return try {
-            val inputStream = file.newInputStream()
-            val archive = ReadArchive(inputStream, passwords)
-            ArchiveCloseable(archive, inputStream).use {
-                buildList {
-                    while (true) {
-                        this += archive.readEntry(charset) ?: break
-                    }
+        val inputStream = file.newInputStream()
+        val archive = ReadArchive(inputStream, passwords)
+        return ArchiveCloseable(archive, inputStream).use {
+            buildList {
+                while (true) {
+                    this += archive.readEntry(charset) ?: break
                 }
             }
-        } catch (streamException: Exception) {
-            originalException.addSuppressed(streamException)
-            if (originalException is IOException) throw originalException
-            throw IOException(originalException)
         }
+    }
+
+    private fun tryReadingEntriesViaZip(
+        file: Path,
+        charset: Charset,
+        originalException: Exception
+    ): List<ReadArchive.Entry> {
+        val fileName = file.fileName?.toString()?.lowercase() ?: ""
+        val isLikelyZip = fileName.endsWith(".zip") || fileName.endsWith(".apk") ||
+            fileName.endsWith(".jar") || fileName.endsWith(".kmz") || fileName.endsWith(".xpi")
+
+        val javaFile = try { file.toFile() } catch (_: Throwable) { null }
+        if (javaFile != null && javaFile.exists() && javaFile.canRead()) {
+            try {
+                java.util.zip.ZipFile(javaFile, charset).use { zipFile ->
+                    val entries = zipFile.entries()
+                    return buildList {
+                        while (entries.hasMoreElements()) {
+                            val ze = entries.nextElement()
+                            val isDir = ze.isDirectory
+                            val size = if (ze.size >= 0) ze.size else 0L
+                            val mtime = if (ze.time >= 0) {
+                                FileTime.fromMillis(ze.time)
+                            } else {
+                                null
+                            }
+                            this += ReadArchive.Entry(
+                                ze.name,
+                                false,
+                                mtime,
+                                null,
+                                null,
+                                if (isDir) PosixFileType.DIRECTORY else PosixFileType.REGULAR_FILE,
+                                size,
+                                null,
+                                null,
+                                if (isDir) PosixFileMode.DIRECTORY_DEFAULT else PosixFileMode.REGULAR_FILE_DEFAULT,
+                                null
+                            )
+                        }
+                    }
+                }
+            } catch (zipError: Exception) {
+                originalException.addSuppressed(zipError)
+            }
+        }
+
+        if (isLikelyZip) {
+            try {
+                file.newInputStream().use { rawIn ->
+                    java.util.zip.ZipInputStream(rawIn, charset).use { zipIn ->
+                        return buildList {
+                            while (true) {
+                                val ze = zipIn.nextEntry ?: break
+                                val isDir = ze.isDirectory
+                                val size = if (ze.size >= 0) ze.size else 0L
+                                val mtime = if (ze.time >= 0) {
+                                    FileTime.fromMillis(ze.time)
+                                } else {
+                                    null
+                                }
+                                this += ReadArchive.Entry(
+                                    ze.name,
+                                    false,
+                                    mtime,
+                                    null,
+                                    null,
+                                    if (isDir) PosixFileType.DIRECTORY else PosixFileType.REGULAR_FILE,
+                                    size,
+                                    null,
+                                    null,
+                                    if (isDir) PosixFileMode.DIRECTORY_DEFAULT else PosixFileMode.REGULAR_FILE_DEFAULT,
+                                    null
+                                )
+                                zipIn.closeEntry()
+                            }
+                        }
+                    }
+                }
+            } catch (streamError: Exception) {
+                originalException.addSuppressed(streamError)
+            }
+        }
+
+        if (originalException is IOException) throw originalException
+        throw IOException(originalException)
     }
 
     @Throws(IOException::class)
@@ -137,8 +224,39 @@ object ArchiveReader {
         return try {
             openEntryInputStream(file, passwords, entry, charset, forceStreamMode = false)
         } catch (e: Exception) {
-            openEntryInputStream(file, passwords, entry, charset, forceStreamMode = true)
+            try {
+                openEntryInputStream(file, passwords, entry, charset, forceStreamMode = true)
+            } catch (e2: Exception) {
+                openEntryInputStreamViaZip(file, entry, charset) ?: throw e
+            }
         }
+    }
+
+    private fun openEntryInputStreamViaZip(
+        file: Path,
+        entry: ReadArchive.Entry,
+        charset: Charset
+    ): InputStream? {
+        val javaFile = try { file.toFile() } catch (_: Throwable) { null }
+        if (javaFile != null && javaFile.exists() && javaFile.canRead()) {
+            try {
+                val zip = java.util.zip.ZipFile(javaFile, charset)
+                val ze = zip.getEntry(entry.name)
+                if (ze != null) {
+                    val rawIn = zip.getInputStream(ze)
+                    return object : InputStream() {
+                        override fun read(): Int = rawIn.read()
+                        override fun read(b: ByteArray, off: Int, len: Int): Int = rawIn.read(b, off, len)
+                        override fun available(): Int = rawIn.available()
+                        override fun skip(n: Long): Long = rawIn.skip(n)
+                        override fun close() {
+                            try { rawIn.close() } finally { zip.close() }
+                        }
+                    }
+                }
+            } catch (_: Throwable) {}
+        }
+        return null
     }
 
     private fun openEntryInputStream(

@@ -725,3 +725,8 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Limpieza Automática y Pruebas Unitarias (`RecycleBinLogicTest.kt`)**:
   - Limpieza automática periódica en segundo plano según los días seleccionados (0, 7 o 30 días), preservando `.nomedia`.
   - Suite de pruebas unitarias cubriendo detección de rutas, selección de eliminación/movimiento, cutoff de fechas y nombres descriptivos.
+- **Resolución Definitiva de Exploración de ZIPs en Tarjeta SD y Eliminación de Error Xar (`ArchiveReader.kt`, `ArchiveSecurityManager.kt`, `ReadArchive.kt`)**:
+  - Retiro definitivo de `readSupportFormatXar`, evitando la advertencia nativa `Xar not supported on this platform` en Android.
+  - Corrección de callbacks en `ReadArchive.kt` para evitar falsos EOF cuando el canal o stream lee 0 bytes transitorios.
+  - Motor de respaldo resiliente con `java.util.zip.ZipFile` y `ZipInputStream` de Android para garantizar la apertura de cualquier archivo ZIP, APK o ROM en tarjetas MicroSD y almacenamiento secundario.
+  - Corrección de referencia `R.string.settings` a `R.string.settings_title` en diálogo de papelera desactivada.
