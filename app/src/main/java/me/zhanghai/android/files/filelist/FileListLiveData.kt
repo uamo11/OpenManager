@@ -12,9 +12,11 @@ import java8.nio.file.Paths
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.file.loadFileItem
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newDirectoryStream
 import me.zhanghai.android.files.provider.common.toByteString
 import me.zhanghai.android.files.provider.linux.LinuxPath
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.util.CloseableLiveData
 import me.zhanghai.android.files.util.Failure
 import me.zhanghai.android.files.util.Loading
@@ -33,17 +35,30 @@ import java.util.concurrent.Future
 object DirectorySnapshotCache {
     private val cache = LruCache<String, List<FileItem>>(80)
 
+    private fun getKey(path: Path): String =
+        try {
+            path.toUri().toString()
+        } catch (_: Throwable) {
+            path.toString()
+        }
+
     fun get(path: Path): List<FileItem>? {
-        val key = path.toString()
+        val key = getKey(path)
         synchronized(cache) {
             return cache.get(key)
         }
     }
 
     fun put(path: Path, items: List<FileItem>) {
-        val key = path.toString()
+        val key = getKey(path)
         synchronized(cache) {
             cache.put(key, items)
+        }
+    }
+
+    fun clear() {
+        synchronized(cache) {
+            cache.evictAll()
         }
     }
 }
@@ -81,7 +96,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                             childPath.createFallbackFileItem()?.let { fileList.add(it) }
                         }
                     }
-                    if (fileList.isEmpty()) {
+                    if (fileList.isEmpty() && path.isLinuxPath && !path.isArchivePath) {
                         val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
                         if (virtualEntries.isNotEmpty()) {
                             fileList.addAll(virtualEntries)
@@ -91,12 +106,13 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     Success(fileList as List<FileItem>)
                 }
             } catch (e: Exception) {
-                val fallbackList = ArrayList<FileItem>(64)
-                val localFile = try {
-                    (path as? LinuxPath)?.toFile() ?: java.io.File(path.toString())
-                } catch (_: Throwable) {
-                    null
+                if (path.isArchivePath) {
+                    val resultState = Failure(value?.value, e)
+                    postValue(resultState)
+                    return@submit
                 }
+                val fallbackList = ArrayList<FileItem>(64)
+                val localFile = (path as? LinuxPath)?.toFile()
                 val files = try { localFile?.listFiles() } catch (_: Throwable) { null }
                 if (files != null && files.isNotEmpty()) {
                     for (file in files) {
@@ -111,7 +127,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     }
                     DirectorySnapshotCache.put(path, fallbackList)
                     Success(fallbackList as List<FileItem>)
-                } else {
+                } else if (path.isLinuxPath && !path.isArchivePath) {
                     // Immediately consult UnprivilegedDirectoryResolver (MT Manager style virtual/known hierarchy)
                     // without spawning a blocking 800ms `ls` subprocess that shares the same unprivileged UID.
                     val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
@@ -124,13 +140,15 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                             e.message?.contains("Permission denied", ignoreCase = true) == true ||
                             e.message?.contains("EACCES", ignoreCase = true) == true ||
                             e.message?.contains("Root", ignoreCase = true) == true
-                        if (isAccessDenied && path is LinuxPath) {
+                        if (isAccessDenied) {
                             // Show read-only empty directory view with ".." navigation instead of a blocking "No tienes acceso" error screen
                             Success(emptyList())
                         } else {
                             Failure(value?.value, e)
                         }
                     }
+                } else {
+                    Failure(value?.value, e)
                 }
             }
             postValue(resultState)

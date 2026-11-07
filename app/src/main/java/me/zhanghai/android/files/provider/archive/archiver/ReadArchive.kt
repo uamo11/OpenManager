@@ -86,7 +86,7 @@ class ReadArchive : Closeable {
                 buffer.clear()
                 val bytesRead = try {
                     channel.read(buffer)
-                } catch (e: IOException) {
+                } catch (e: Throwable) {
                     throw e.toArchiveException("SeekableByteChannel.read")
                 }
                 if (bytesRead != -1) {
@@ -99,8 +99,14 @@ class ReadArchive : Closeable {
             }
             Archive.readSetSkipCallback<Any?>(archive) { _, _, request ->
                 try {
-                    channel.position(channel.position() + request)
-                } catch (e: IOException) {
+                    val target = channel.position() + request
+                    if (target < 0) {
+                        throw ArchiveException(OsConstants.EINVAL, "Skip to negative offset: $target")
+                    }
+                    channel.position(target)
+                } catch (e: ArchiveException) {
+                    throw e
+                } catch (e: Throwable) {
                     throw e.toArchiveException("SeekableByteChannel.position")
                 }
                 request
@@ -118,8 +124,13 @@ class ReadArchive : Closeable {
                             "Unknown whence $whence"
                         )
                     }
+                    if (newPosition < 0) {
+                        throw ArchiveException(OsConstants.EINVAL, "Seek to negative offset: $newPosition")
+                    }
                     channel.position(newPosition)
-                } catch (e: IOException) {
+                } catch (e: ArchiveException) {
+                    throw e
+                } catch (e: Throwable) {
                     throw e.toArchiveException("SeekableByteChannel.position")
                 }
                 newPosition
@@ -136,10 +147,11 @@ class ReadArchive : Closeable {
         }
     }
 
-    private fun IOException.toArchiveException(message: String): ArchiveException =
+    private fun Throwable.toArchiveException(message: String): ArchiveException =
         when (this) {
+            is ArchiveException -> this
             is InterruptedIOException -> ArchiveException(OsConstants.EINTR, message, this)
-            else -> ArchiveException(Archive.ERRNO_FATAL, message, this)
+            else -> ArchiveException(Archive.ERRNO_FATAL, "$message: ${this.message ?: javaClass.simpleName}", this)
         }
 
     @Throws(ArchiveException::class)

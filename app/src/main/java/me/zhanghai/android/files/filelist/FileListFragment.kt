@@ -237,6 +237,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun isAndroidData(path: Path): Boolean {
+        if (path.isArchivePath) return false
         val pathStr = path.toString()
         return pathStr.contains("/Android/data", ignoreCase = true) ||
                pathStr.endsWith("/Android/data", ignoreCase = true) ||
@@ -244,6 +245,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun isAndroidObb(path: Path): Boolean {
+        if (path.isArchivePath) return false
         val pathStr = path.toString()
         return pathStr.contains("/Android/obb", ignoreCase = true) ||
                pathStr.endsWith("/Android/obb", ignoreCase = true) ||

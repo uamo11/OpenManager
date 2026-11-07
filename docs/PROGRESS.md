@@ -692,3 +692,19 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Incorporación del vector de edición/lápiz Material (`ic_pencil_edit_16dp.xml`) en el botón `btnApkView` con tinte `#2196F3`.
 - **Validación con Pruebas Unitarias**:
   - `NavigationLogicTest.kt`: validación de `canNavigateUp` y `isToolbarBackButtonVisible` para rutas de archivos comprimidos y APKs.
+
+### Hito 56: Corrección de Exploración de Archivos ZIP/ROM en Tarjeta SD y Aislamiento de Raíz Virtual
+- **Aislamiento de Claves en `DirectorySnapshotCache` (`FileListLiveData.kt`)**:
+  - Corrección de la colisión de claves en la caché en memoria LRU (`DirectorySnapshotCache`), donde la ruta raíz interna de cualquier archivo comprimido (`path.toString() == "/"`) compartía la misma clave que la raíz del sistema de archivos de Linux (`"/"`).
+  - Al abrir un archivo ZIP, ROM o APK, la caché devolvía inmediatamente el listado almacenado de `/` (carpetas de sistema `/root`: `acct`, `apex`, `bin`, `data`, etc.) antes o durante la carga del archivo ("hace el intento de cargar pero al toque muestra las carpetas de /root").
+  - La clave de caché ahora utiliza el URI completo y único (`path.toUri().toString()`), garantizando total independencia entre el sistema de archivos raíz (`file:///`) y cada archivo comprimido (`archive:////.../archivo.zip?/`).
+- **Blindaje Estricto de `UnprivilegedDirectoryResolver` (`UnprivilegedDirectoryResolver.kt`, `FileListLiveData.kt`)**:
+  - Validación obligatoria al inicio de `UnprivilegedDirectoryResolver.resolveEntriesForPath`: si la ruta corresponde a un archivo comprimido (`isArchivePath`) o no es una ruta Linux (`!isLinuxPath`), devuelve inmediatamente una lista vacía.
+  - En `FileListLiveData`, se eliminó cualquier llamada de contingencia a `UnprivilegedDirectoryResolver` o a `java.io.File("/")` cuando la ruta cargada es un `ArchivePath`.
+  - Si un archivo comprimido no puede cargarse o está protegido con contraseña, se propaga el error limpio o el diálogo de contraseña en lugar de mostrar falsamente el árbol de carpetas de `/root`.
+- **Modo Fallback Resiliente en `ArchiveReader` para ZIPs Grandes y ROMs con Firma OTA (`ArchiveReader.kt`, `ReadArchive.kt`)**:
+  - Al abrir archivos ZIP complejos, paquetes de ROMs de Android (LineageOS, Xiaomi.eu, PixelExperience, etc.) con bloques de firma digital de recovery/OTA al final del archivo central, o canales de almacenamiento secundario con errores de seek, `ArchiveReader.openArchive` ahora captura cualquier excepción en `ReadArchive(channel)` y conmuta fluidamente a lectura secuencial vía `InputStream` desde el byte 0.
+  - En `ArchiveReader.readEntries`, si la lectura de entradas falla a través del canal seekable, se realiza un segundo intento automático mediante streaming secuencial antes de fallar.
+  - En `ReadArchive.kt`, los callbacks de seek, skip y read protegen contra desplazamientos negativos (`newPosition < 0`) y encapsulan excepciones de canal NIO (`IllegalArgumentException`, etc.) previniendo fugas no controladas a través de la interfaz JNI de libarchive.
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - `ArchiveAndDirectoryResolverTest.kt`: validación de aislamiento de claves de caché, protección de `UnprivilegedDirectoryResolver` para rutas de archivos comprimidos, manejo limpio de fallos en archivos comprimidos y exclusión de SAF para rutas internas de archivos comprimidos.

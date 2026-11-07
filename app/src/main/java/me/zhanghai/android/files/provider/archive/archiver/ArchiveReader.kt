@@ -91,20 +91,78 @@ object ArchiveReader {
     @Throws(IOException::class)
     private fun readEntries(file: Path, passwords: List<String>): List<ReadArchive.Entry> {
         val charset = archiveFileNameCharset
-        val (archive, closeable) = openArchive(file, passwords)
-        return closeable.use {
-            buildList {
-                while (true) {
-                    this += archive.readEntry(charset) ?: break
+        return try {
+            val (archive, closeable) = openArchive(file, passwords)
+            closeable.use {
+                buildList {
+                    while (true) {
+                        this += archive.readEntry(charset) ?: break
+                    }
                 }
             }
+        } catch (e: Exception) {
+            // If reading entries failed (for example, channel mode opened, but readEntry failed
+            // due to central directory seek issues, Zip64 seek incompatibility, or an appended OTA/ROM
+            // signature block), fall back to pure sequential streaming mode to read the entries.
+            tryReadingEntriesViaStream(file, passwords, charset, e)
+        }
+    }
+
+    private fun tryReadingEntriesViaStream(
+        file: Path,
+        passwords: List<String>,
+        charset: Charset,
+        originalException: Exception
+    ): List<ReadArchive.Entry> {
+        return try {
+            val inputStream = file.newInputStream()
+            val archive = ReadArchive(inputStream, passwords)
+            ArchiveCloseable(archive, inputStream).use {
+                buildList {
+                    while (true) {
+                        this += archive.readEntry(charset) ?: break
+                    }
+                }
+            }
+        } catch (streamException: Exception) {
+            originalException.addSuppressed(streamException)
+            if (originalException is IOException) throw originalException
+            throw IOException(originalException)
         }
     }
 
     @Throws(IOException::class)
     fun newInputStream(file: Path, passwords: List<String>, entry: ReadArchive.Entry): InputStream? {
         val charset = archiveFileNameCharset
-        val (archive, closeable) = openArchive(file, passwords)
+        return try {
+            openEntryInputStream(file, passwords, entry, charset, forceStreamMode = false)
+        } catch (e: Exception) {
+            openEntryInputStream(file, passwords, entry, charset, forceStreamMode = true)
+        }
+    }
+
+    private fun openEntryInputStream(
+        file: Path,
+        passwords: List<String>,
+        entry: ReadArchive.Entry,
+        charset: Charset,
+        forceStreamMode: Boolean
+    ): InputStream? {
+        val (archive, closeable) = if (forceStreamMode) {
+            val inputStream = file.newInputStream()
+            var successful = false
+            try {
+                val archive = ReadArchive(inputStream, passwords)
+                successful = true
+                archive to ArchiveCloseable(archive, inputStream)
+            } finally {
+                if (!successful) {
+                    try { inputStream.close() } catch (_: Throwable) {}
+                }
+            }
+        } else {
+            openArchive(file, passwords)
+        }
         var successful = false
         return try {
             while (true) {
@@ -122,7 +180,7 @@ object ArchiveReader {
             }
         } finally {
             if (!successful) {
-                closeable.close()
+                try { closeable.close() } catch (_: Throwable) {}
             }
         }
     }
@@ -164,8 +222,7 @@ object ArchiveReader {
 
         val channel = try {
             CacheSizeSeekableByteChannel(file.newByteChannel())
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } catch (e: Throwable) {
             null
         }
         if (channel != null) {
@@ -174,9 +231,12 @@ object ArchiveReader {
                 val archive = ReadArchive(channel, passwords)
                 successful = true
                 return archive to ArchiveCloseable(archive, channel)
+            } catch (e: Throwable) {
+                // If opening via SeekableByteChannel fails (e.g. invalid central directory,
+                // SD card seek error, or unsupported seek format), cleanly fall back to streaming InputStream.
             } finally {
                 if (!successful) {
-                    channel.close()
+                    try { channel.close() } catch (_: Throwable) {}
                 }
             }
         }
@@ -188,7 +248,7 @@ object ArchiveReader {
             return archive to ArchiveCloseable(archive, inputStream)
         } finally {
             if (!successful) {
-                inputStream.close()
+                try { inputStream.close() } catch (_: Throwable) {}
             }
         }
     }

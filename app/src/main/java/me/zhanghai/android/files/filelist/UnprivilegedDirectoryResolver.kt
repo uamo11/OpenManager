@@ -15,9 +15,11 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.file.createFastVirtualFileItem
 import me.zhanghai.android.files.file.loadFileItem
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.BasicFileType
 import me.zhanghai.android.files.provider.common.toByteString
 import me.zhanghai.android.files.provider.linux.LinuxPath
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import java.io.File
 
 /**
@@ -142,6 +144,9 @@ object UnprivilegedDirectoryResolver {
     )
 
     fun resolveEntriesForPath(directoryPath: Path): List<FileItem> {
+        if (directoryPath.isArchivePath || !directoryPath.isLinuxPath) {
+            return emptyList()
+        }
         val rawPath = directoryPath.toString()
         val normalized = if (rawPath.length > 1) rawPath.trimEnd('/') else rawPath
         val resultMap = LinkedHashMap<String, FileItem>()
