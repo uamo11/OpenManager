@@ -12,13 +12,14 @@ import org.junit.Test
 
 class NavigationLogicTest {
 
-    private fun isHomeOrRootPath(pathStr: String): Boolean {
+    private fun isHomeOrRootPath(pathStr: String, isArchive: Boolean = false): Boolean {
+        if (isArchive) return false
         val s = pathStr.trimEnd('/')
         return s.isEmpty() || s == "/"
     }
 
-    private fun canNavigateUp(pathStr: String, hasArchiveParent: Boolean = false): Boolean {
-        if (isHomeOrRootPath(pathStr)) {
+    private fun canNavigateUp(pathStr: String, hasArchiveParent: Boolean = false, isArchive: Boolean = false): Boolean {
+        if (isHomeOrRootPath(pathStr, isArchive)) {
             return false
         }
         return true || hasArchiveParent
@@ -105,6 +106,21 @@ class NavigationLogicTest {
         // Dedicated toolbar back button appears whenever canNavigateUp is true
         assertTrue(isToolbarBackButtonVisible(selectedCount = 0, canNavigateUp = true))
         assertFalse(isToolbarBackButtonVisible(selectedCount = 0, canNavigateUp = false))
+    }
+
+    @Test
+    fun testArchivePathCanAlwaysNavigateUpAndShowsBackButton() {
+        // When inside an APK/archive root, path is "/" internally, but isArchive is true
+        assertFalse(isHomeOrRootPath("/", isArchive = true))
+        val canNavUpArchiveRoot = canNavigateUp("/", hasArchiveParent = true, isArchive = true)
+        assertTrue(canNavUpArchiveRoot)
+
+        // Toolbar dedicated back button MUST be visible when viewing an APK
+        assertTrue(isToolbarBackButtonVisible(selectedCount = 0, canNavigateUp = canNavUpArchiveRoot))
+
+        // When inside an APK subfolder (e.g. /res/layout), it can also navigate up
+        assertFalse(isHomeOrRootPath("/res/layout", isArchive = true))
+        assertTrue(canNavigateUp("/res/layout", hasArchiveParent = false, isArchive = true))
     }
 
     @Test

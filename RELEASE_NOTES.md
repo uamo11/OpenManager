@@ -1,3 +1,21 @@
+# OpenManager v1.9.48: Botón de Atrás al Ver APKs y Rediseño Anti-Desbordamiento en Menú de APK con Icono de Lápiz
+
+### 🔙 Botón de Retroceso y Navegación al Explorar APKs
+- **Corrección de `isHomeOrRootPath` para Rutas de Archivos Comprimidos (`ArchivePath`)**:
+  - Al explorar el interior de un archivo APK o comprimido mediante la acción "VER", la ruta raíz interna (`/`) se clasificaba erróneamente como la raíz del sistema o directorio home.
+  - Esto provocaba que `canNavigateUp` devolviese `false`, ocultando el botón dedicado de retroceso `←` (`btnMainBack`) en la barra superior y desactivando los callbacks de retorno (`navigateUpCallback`).
+  - Con la nueva verificación (`if (path.isArchivePath) return false`), el botón `←` permanece visible en la barra superior y tanto el botón superior, como el botón inferior `<` y el gesto de retroceso del sistema permiten regresar de forma limpia a la carpeta contenedora (`/storage/emulated/0`).
+  - Se garantiza además la presencia del elemento `[📁↑] ..` como primer elemento en la lista de archivos del APK.
+
+### 📱 Rediseño Anti-Desbordamiento del Menú APK y Botón Ver con Lápiz
+- **Alineación Responsiva y Soporte Multi-Resolución (`dialog_mt_apk_info.xml`)**:
+  - Encapsulado de la botonera inferior dentro de un contenedor `HorizontalScrollView` con `fillViewport="true"`, permitiendo que en resoluciones compactas o con fuentes ampliadas los botones nunca se corten contra el borde derecho ("traspasen la pared").
+  - Optimización del padding del diálogo (`paddingStart/End="16dp"`) y márgenes entre botones para garantizar que en cualquier pantalla estándar de smartphone quepan las 4 acciones principales en una sola línea sin desbordar.
+- **Icono de Lápiz en el Botón "VER" (`ic_pencil_edit_16dp.xml`)**:
+  - Incorporación del vector de edición/lápiz Material en el botón de visualización (`btnApkView`) con tinte azul acorde a la acción (`#2196F3`), aportando una referencia visual clara de inspección y edición del APK.
+
+---
+
 # OpenManager v1.9.47: Buscador de Duplicados MT, Reemplazador de Palabras por Lotes y Fix de Barra Inferior con Teclado
 
 ### 🔍 Buscador de Archivos Duplicados MT

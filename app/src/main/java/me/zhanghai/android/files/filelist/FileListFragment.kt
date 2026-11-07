@@ -1236,6 +1236,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun isHomeOrRootPath(path: Path): Boolean {
+        if (path.isArchivePath) {
+            return false
+        }
         val s = path.toString().trimEnd('/')
         return s.isEmpty() || s == "/"
     }
@@ -1260,8 +1263,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun goBackSafely() {
         collapseSearchView()
-        val s = currentPath.toString().trimEnd('/')
-        if (s.isEmpty() || s == "/") {
+        if (isHomeOrRootPath(currentPath)) {
             return
         }
         if (!viewModel.navigateUp()) {

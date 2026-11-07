@@ -678,3 +678,17 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Suite de Pruebas Unitarias Automatizadas**:
   - `DuplicateFinderEngineTest.kt`: validación de detección en 3 fases, cálculo de espacio desperdiciado, estrategias de selección inteligente y formateo de bytes.
   - `FileTextSearchEngineTest.kt`: validación de búsqueda sensible a mayúsculas, palabra completa, regex, sustitución atómica selectiva ("algunas palabras") y sustitución global ("todas las palabras") con caracteres especiales.
+
+### Hito 55: Botón de Atrás al Explorar APKs y Rediseño Anti-Desbordamiento en Menú de APK con Icono de Lápiz
+- **Botón de Retroceso al Explorar APKs (`FileListFragment.kt`, `NavigationLogicTest.kt`)**:
+  - Corrección de `isHomeOrRootPath` para que las rutas internas de archivos comprimidos (`ArchivePath`) no sean catalogadas como raíz del sistema o home.
+  - Mantenimiento activo de `canNavigateUp = true` al estar dentro de cualquier APK o archivo comprimido, garantizando que el botón dedicado de retroceso `←` (`btnMainBack`) en la barra superior permanezca visible.
+  - Soporte completo de retorno tanto con el botón superior `←`, el botón inferior `<`, el gesto de retroceso del sistema, como con el elemento `[📁↑] ..` al inicio del listado dentro del APK.
+- **Botonera Responsiva Anti-Desbordamiento en Diálogo APK (`dialog_mt_apk_info.xml`)**:
+  - Integración de `HorizontalScrollView` con `fillViewport="true"` en la botonera de acciones del diálogo de información de APK (`dialog_mt_apk_info.xml`).
+  - Prevención definitiva del desbordamiento del botón "INSTALAR" contra el margen derecho ("traspasen la pared"), asegurando que todas las acciones (`FUNCIÓN`, `EDICIÓN RÁPIDA`, `VER`, `INSTALAR`) permanezcan visibles o navegables en cualquier tamaño de pantalla o escala de fuentes.
+  - Optimización de espaciados horizontales del diálogo y botones.
+- **Icono de Lápiz en el Botón "VER" (`ic_pencil_edit_16dp.xml`)**:
+  - Incorporación del vector de edición/lápiz Material (`ic_pencil_edit_16dp.xml`) en el botón `btnApkView` con tinte `#2196F3`.
+- **Validación con Pruebas Unitarias**:
+  - `NavigationLogicTest.kt`: validación de `canNavigateUp` y `isToolbarBackButtonVisible` para rutas de archivos comprimidos y APKs.
