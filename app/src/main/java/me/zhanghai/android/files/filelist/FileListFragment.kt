@@ -2130,13 +2130,22 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             navigateTo(file.listablePath)
             return
         }
-        if (ScriptRunnerHelper.isExecutableOrScript(file)) {
+        if (!file.path.isArchivePath && ScriptRunnerHelper.isExecutableOrScript(file)) {
             ScriptRunnerHelper.showScriptActionDialog(requireActivity(), file)
             return
         }
         val fileExtension = file.extension.lowercase()
-        val isTxtOrTextDoc = fileExtension in setOf("txt", "text", "log", "md", "markdown", "json", "xml", "html", "htm", "css", "csv", "properties", "ini", "conf", "yaml", "yml", "toml", "java", "kt", "smali", "c", "cpp", "h") ||
-            fileName.endsWith(".txt", ignoreCase = true) || fileName.endsWith(".log", ignoreCase = true)
+        val isTxtOrTextDoc = fileExtension in setOf(
+            "txt", "text", "log", "md", "markdown", "json", "xml", "html", "htm", "css", "csv",
+            "properties", "ini", "conf", "yaml", "yml", "toml", "java", "kt", "smali", "c", "cpp", "h",
+            "sh", "bash", "zsh", "py", "pyw", "lua", "js", "ts", "jsx", "tsx", "sql", "gradle",
+            "groovy", "rb", "pl", "php", "go", "rs", "bat", "cmd", "ps1", "env", "rc", "diff", "patch"
+        ) ||
+            fileName.endsWith(".txt", ignoreCase = true) ||
+            fileName.endsWith(".log", ignoreCase = true) ||
+            fileName.endsWith(".sh", ignoreCase = true) ||
+            fileName.endsWith(".bash", ignoreCase = true) ||
+            fileName.endsWith(".zsh", ignoreCase = true)
         if (isTxtOrTextDoc || file.mimeType.isText || isTextFileOrProbableText(file.path)) {
             val intent = Intent(requireContext(), TextEditorActivity::class.java).apply {
                 extraPath = file.path
@@ -2256,7 +2265,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     }
                 }
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             false
         }
     }

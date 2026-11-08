@@ -1,3 +1,24 @@
+# OpenManager v1.9.52: Corrección y Blindaje de Archivos Script (.sh) y Binarios dentro de Archivos Comprimidos (Paridad MT Manager)
+
+### 🛡️ Corrección Crítica de Crash al Pulsar Archivos de Script (.sh, .bash, .zsh, etc.) dentro de Archivos Comprimidos
+- **Apertura Directa en Editor de Texto (Paridad MT Manager)**:
+  - Al explorar dentro de archivos comprimidos (ZIP, APK, TAR, etc.) y pulsar sobre cualquier archivo `.sh`, `.bash`, `.zsh`, `.py`, `.lua`, etc., la aplicación ahora lo abre de inmediato en el Editor de Texto (`TextEditorActivity`), exactamente como lo hace MT Manager.
+  - Se eliminó el intento erróneo de enrutar rutas virtuales dentro de archivos hacia el ejecutor de scripts del sistema (`ScriptRunnerHelper.showScriptActionDialog`), el cual causaba caídas al intentar resolver permisos POSIX o invocar streams nativos concurrentes sobre entradas de archivo virtuales no extraídas.
+- **Blindaje Total de `ScriptRunnerHelper`**:
+  - `isExecutableOrScript(file: FileItem)` y `isExecutableOrScript(path: Path)` retornan estrictamente `false` si la ruta pertenece a un archivo comprimido (`path.isArchivePath == true`).
+  - Safe-calls con respaldo ante nombres de archivo nulos (`path.fileName?.toString() ?: ""`) previniendo `NullPointerException`.
+  - En `showScriptActionDialogInternal`: Se agregó una guarda inicial que redirige inmediatamente a `TextEditorActivity` si la ruta es un `ArchivePath`, además de envolver toda la inicialización de la interfaz en bloques defensivos `try-catch` con respaldo seguro.
+  - En `executeScriptOrBinary`: Se añadió comprobación que advierte amigablemente si se intenta ejecutar directamente un script virtual sin extraerlo primero.
+- **Protección de Permisos en Archivos Comprimidos (`MtPermissionsHelper`)**:
+  - `MtPermissionsHelper.getPermissions` detecta `path.isArchivePath` y genera información de permisos de sólo lectura simulada (660/755) sin intentar llamar a `Os.lstat` sobre rutas locales ficticias.
+  - `showPermissionsDialog` y `applyPermissions` rechazan modificaciones sobre archivos comprimidos informando al usuario que son de sólo lectura.
+- **Ampliación de Formatos de Texto y Código en `FileListFragment`**:
+  - Se expandió la lista de tipos editables reconocidos directamente para abarcar todos los scripts y lenguajes comunes (`sh`, `bash`, `zsh`, `py`, `lua`, `js`, `ts`, `sql`, `gradle`, `rs`, `go`, etc.) para abrir sin bloqueos ni lecturas síncronas innecesarias en el hilo principal.
+- **Suite de Pruebas Unitarias**:
+  - Nueva suite `ScriptArchiveHandlingTest.kt` validando la clasificación de documentos no ejecutables, la auditoría segura de scripts y la simulación del enrutamiento de scripts virtuales hacia el editor de texto.
+
+---
+
 # OpenManager v1.9.51: Sistema Inteligente de Actualizaciones In-App, Detección de Canal (Debug / Estable) y Descarga Directa
 
 ### 🔄 Sistema de Actualizaciones Integrado y Verificación Automática

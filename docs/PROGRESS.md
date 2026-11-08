@@ -754,3 +754,22 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Instalación inteligente: soporte para Root silencioso (`pm install`), Shizuku Shell o `PackageInstaller` del sistema mediante `FileProvider`.
 - **Pruebas Unitarias Automatizadas (`UpdateCheckerLogicTest.kt`)**:
   - Pruebas de comparación de versiones, selección de canal Debug vs Release, fallback ante APK único, parseo de JSON de GitHub Releases, formateo de tamaños y valor predeterminado `false` del interruptor.
+
+### Hito 59: Corrección y Blindaje de Archivos Script (.sh) y Binarios dentro de Archivos Comprimidos (Paridad MT Manager)
+- **Apertura Directa en Editor de Texto (`FileListFragment.kt`, `ScriptRunnerHelper.kt`)**:
+  - Al explorar dentro de cualquier archivo comprimido (ZIP, APK, TAR, etc.) y pulsar sobre un script (`.sh`, `.bash`, `.zsh`, etc.), OpenManager ahora lo abre de inmediato en el Editor de Texto (`TextEditorActivity`), exactamente como lo hace MT Manager.
+  - Se eliminó el intento erróneo de enrutar rutas virtuales de archivos comprimidos hacia `ScriptRunnerHelper.showScriptActionDialog`, el cual causaba caídas al intentar operaciones POSIX y llamadas nativas de libarchive en el hilo principal.
+- **Blindaje Defensivo en `ScriptRunnerHelper.kt`**:
+  - `isExecutableOrScript(file)` y `isExecutableOrScript(path)` retornan estrictamente `false` si la ruta es un `ArchivePath`.
+  - Safe-calls en nombres de archivo para evitar `NullPointerException`.
+  - Guarda inicial en `showScriptActionDialogInternal` que abre directamente en el editor de texto si la ruta es un archivo comprimido, envolviendo además la UI en un bloque defensivo `try-catch` con respaldo.
+  - Guarda en `executeScriptOrBinary` informando que los scripts en archivos comprimidos deben extraerse antes de su ejecución.
+  - Guarda en `checkCrlfAndConvert` para no intentar escribir en rutas de sólo lectura de archivos comprimidos.
+- **Protección de Permisos en Archivos Comprimidos (`MtPermissionsHelper.kt`)**:
+  - `getPermissions` detecta `path.isArchivePath` y devuelve metadatos de sólo lectura simulados (660/755) sin invocar llamadas `Os.lstat` sobre rutas locales ficticias.
+  - `showPermissionsDialog` y `applyPermissions` rechazan intentos de modificación de permisos en archivos comprimidos indicando que son de sólo lectura.
+- **Ampliación de Formatos de Texto y Código en `FileListFragment.kt`**:
+  - Se incorporaron las extensiones de scripts (`sh`, `bash`, `zsh`, `py`, `lua`, `js`, `ts`, `sql`, etc.) a `isTxtOrTextDoc` para apertura instantánea en el editor de texto.
+  - Blindaje con `catch (_: Throwable)` en `isTextFileOrProbableText`.
+- **Suite de Pruebas Unitarias (`ScriptArchiveHandlingTest.kt`)**:
+  - Validación de clasificación de documentos no ejecutables, auditoría de scripts y simulación del enrutamiento de scripts virtuales hacia el editor de texto.

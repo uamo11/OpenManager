@@ -29,6 +29,7 @@ import me.zhanghai.android.files.databinding.SetModeDialogBinding
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
 import me.zhanghai.android.files.provider.common.toModeString
@@ -188,6 +189,24 @@ object MtPermissionsHelper {
             } catch (_: Throwable) {}
         }
 
+        if (path.isArchivePath) {
+            val defaultBits = if (isDirectory) 0b111_101_101 else 0b110_110_000
+            val bits = modeBits ?: modeFromInt(defaultBits)
+            val mInt = modeToInt(bits)
+            return PermissionInfo(
+                modeBits = bits,
+                modeInt = mInt,
+                octalString = formatOctal(mInt),
+                symbolicString = formatSymbolic(bits),
+                displayString = formatDisplay(bits),
+                ownerDisplay = ownerDisplay ?: "-",
+                groupDisplay = groupDisplay ?: "-",
+                seLinuxContext = seLinuxContext,
+                isDirectory = isDirectory,
+                isSymbolicLink = isSymbolicLink
+            )
+        }
+
         val localFile = try {
             if (path.isLinuxPath) path.toFile() else File(path.toString())
         } catch (_: Throwable) {
@@ -269,6 +288,10 @@ object MtPermissionsHelper {
         fileItem: FileItem? = null,
         onApplied: ((PermissionInfo) -> Unit)? = null
     ) {
+        if (path.isArchivePath) {
+            Toast.makeText(context, "Los permisos dentro de un archivo comprimido son de sólo lectura", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (DeadManProtectionManager.isDfrootProtectionActive(context) &&
             DeadManProtectionManager.isProtectedFromModification(path)
         ) {
@@ -463,6 +486,13 @@ object MtPermissionsHelper {
         val octalStr = formatOctal(newModeInt)
 
         CoroutineScope(Dispatchers.IO).launch {
+            if (path.isArchivePath) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "No se pueden modificar permisos de un archivo comprimido", Toast.LENGTH_SHORT).show()
+                }
+                return@launch
+            }
+
             val localFile = try {
                 if (path.isLinuxPath) path.toFile() else File(path.toString())
             } catch (_: Throwable) {

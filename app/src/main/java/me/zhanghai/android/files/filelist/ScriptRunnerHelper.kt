@@ -41,6 +41,7 @@ import me.zhanghai.android.files.databinding.ScriptPreferencesDialogBinding
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.asFileSize
 import me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
@@ -379,10 +380,14 @@ object ScriptRunnerHelper {
 
     /**
      * Checks if a file is an executable binary (ELF) or a shell script.
-     * Guaranteed never to match .txt or regular document/media files.
+     * Guaranteed never to match .txt or regular document/media files,
+     * and always returns false for files inside archives (virtual filesystems).
      */
     fun isExecutableOrScript(file: FileItem): Boolean {
-        val fileName = file.path.fileName.toString()
+        if (file.path.isArchivePath) {
+            return false
+        }
+        val fileName = file.path.fileName?.toString() ?: file.name
         if (isNonExecutableDocument(fileName)) {
             return false
         }
@@ -398,7 +403,10 @@ object ScriptRunnerHelper {
     }
 
     fun isExecutableOrScript(path: Path): Boolean {
-        val fileName = path.fileName.toString()
+        if (path.isArchivePath) {
+            return false
+        }
+        val fileName = path.fileName?.toString() ?: ""
         if (isNonExecutableDocument(fileName)) {
             return false
         }
@@ -413,6 +421,9 @@ object ScriptRunnerHelper {
     }
 
     fun isElfOrShebang(path: Path): Boolean {
+        if (path.isArchivePath) {
+            return false
+        }
         return try {
             path.newInputStream().use { stream ->
                 val b0 = stream.read()
@@ -429,10 +440,10 @@ object ScriptRunnerHelper {
                 }
                 false
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             try {
-                path.toFile().canExecute()
-            } catch (e2: Exception) {
+                if (path.isLinuxPath) path.toFile().canExecute() else false
+            } catch (_: Throwable) {
                 false
             }
         }
@@ -447,7 +458,7 @@ object ScriptRunnerHelper {
                 val b3 = stream.read()
                 b0 == 0x7F && b1 == 'E'.code && b2 == 'L'.code && b3 == 'F'.code
             }
-        } catch (e: Exception) {
+        } catch (_: Throwable) {
             false
         }
     }
@@ -466,6 +477,42 @@ object ScriptRunnerHelper {
     }
 
     private fun showScriptActionDialogInternal(
+        activity: Activity,
+        path: Path,
+        fileItem: FileItem?
+    ) {
+        // Scripts or binaries inside virtual archive systems cannot be executed directly;
+        // open directly in TextEditorActivity matching MT Manager behavior.
+        if (path.isArchivePath) {
+            try {
+                val intent = Intent(activity, TextEditorActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    extraPath = path
+                }
+                activity.startActivity(intent)
+            } catch (t: Throwable) {
+                t.printStackTrace()
+            }
+            return
+        }
+
+        try {
+            showScriptActionDialogUi(activity, path, fileItem)
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            try {
+                val intent = Intent(activity, TextEditorActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    extraPath = path
+                }
+                activity.startActivity(intent)
+            } catch (_: Throwable) {
+                Toast.makeText(activity, "Error: ${t.localizedMessage}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun showScriptActionDialogUi(
         activity: Activity,
         path: Path,
         fileItem: FileItem?
@@ -941,6 +988,7 @@ object ScriptRunnerHelper {
     }
 
     private fun checkCrlfAndConvert(activity: Activity, path: Path) {
+        if (path.isArchivePath) return
         try {
             var hasCrlf = false
             path.newInputStream().use { stream ->
@@ -966,6 +1014,10 @@ object ScriptRunnerHelper {
     }
 
     private fun executeScriptOrBinary(activity: Activity, path: Path) {
+        if (path.isArchivePath) {
+            Toast.makeText(activity, "No se puede ejecutar directamente un script dentro de un archivo comprimido. Extráelo primero.", Toast.LENGTH_LONG).show()
+            return
+        }
         val fileSize = runCatching {
             if (path.isLinuxPath) path.toFile().length() else Files.size(path)
         }.getOrDefault(0L)
