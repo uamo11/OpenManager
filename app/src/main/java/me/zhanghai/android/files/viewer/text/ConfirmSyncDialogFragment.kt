@@ -22,7 +22,10 @@ class ConfirmSyncDialogFragment : AppCompatDialogFragment() {
 
     private val args by args<Args>()
     private val listener: Listener
-        get() = (parentFragment as? Listener) ?: (activity as Listener)
+        get() = (parentFragment as? Listener) ?: (activity as? Listener) ?: object : Listener {
+            override fun onSyncConfirmed() {}
+            override fun onSyncIgnored() {}
+        }
 
     private var actionTaken = false
 
