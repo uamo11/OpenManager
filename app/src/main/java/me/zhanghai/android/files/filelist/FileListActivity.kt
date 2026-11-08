@@ -128,6 +128,7 @@ class FileListActivity : AppActivity() {
     private var hasRequestedPermissionThisSession = false
     private var hasRequestedNotificationThisSession = false
     private var allFilesDialog: androidx.appcompat.app.AlertDialog? = null
+    private var statusBarHeight: Int = 0
 
     private var activePanelIndex = 0 // 0 = Panel A, 1 = Panel B
     val sharedRecycledViewPool = androidx.recyclerview.widget.RecyclerView.RecycledViewPool().apply {
@@ -148,7 +149,8 @@ class FileListActivity : AppActivity() {
 
         setContentView(R.layout.file_list_activity)
         val resId = resources.getIdentifier("status_bar_height", "dimen", "android")
-        val statusBarHeight = if (resId > 0) resources.getDimensionPixelSize(resId) else (28 * resources.displayMetrics.density).toInt()
+        statusBarHeight = if (resId > 0) resources.getDimensionPixelSize(resId) else (28 * resources.displayMetrics.density).toInt()
+        findViewById<View>(R.id.activityRoot)?.updatePadding(top = statusBarHeight)
         findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarHeight)
 
         me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
@@ -395,6 +397,24 @@ class FileListActivity : AppActivity() {
                     "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
                     "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
                     "create_choice" -> showCreateDialog()
+                    "show_update_dialog" -> {
+                        val mockAsset = me.zhanghai.android.files.update.ReleaseAsset(
+                            name = "OpenManager-v1.9.60-release.apk",
+                            size = 30541982L,
+                            downloadUrl = "https://github.com/uamo11/OpenManager/releases"
+                        )
+                        val mockRelease = me.zhanghai.android.files.update.ReleaseInfo(
+                            tagName = "v1.9.60",
+                            version = "1.9.60",
+                            name = "OpenManager v1.9.60",
+                            body = "# Novedades v1.9.60:\n- Barra superior MT-style visible y correctamente separada de la barra de estado.\n- Diálogo de actualización rediseñado con botón completo e imposible de comprimir.",
+                            htmlUrl = "https://github.com/uamo11/OpenManager/releases",
+                            assets = listOf(mockAsset),
+                            targetAsset = mockAsset,
+                            isDebugChannel = false
+                        )
+                        me.zhanghai.android.files.update.UpdateChecker.showUpdateDialog(this, mockRelease)
+                    }
                     "keystore" -> {
                         if (this::fragmentA.isInitialized) {
                             activeFragment.showKeystoreGeneratorDialog()
@@ -1280,7 +1300,7 @@ class FileListActivity : AppActivity() {
     private fun setupBottomBarControls() {
         val bottomBar = findViewById<View>(R.id.bottomBar)
         if (bottomBar != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { v, insets ->
+            ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->
                 val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
                 if (isKeyboardVisible != imeVisible) {
                     isKeyboardVisible = imeVisible
@@ -1288,14 +1308,16 @@ class FileListActivity : AppActivity() {
                 }
                 val statusBarInset = maxOf(
                     insets.getInsets(WindowInsetsCompat.Type.statusBars()).top,
-                    insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top
+                    insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top,
+                    statusBarHeight
                 )
                 if (statusBarInset > 0) {
+                    findViewById<View>(R.id.activityRoot)?.updatePadding(top = statusBarInset)
                     findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarInset)
                 }
                 val navBarBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
                 findViewById<View>(R.id.drawerScrollView)?.updatePadding(bottom = navBarBottom)
-                ViewCompat.onApplyWindowInsets(v, insets)
+                insets
             }
         }
         updateBottomBarMargin()

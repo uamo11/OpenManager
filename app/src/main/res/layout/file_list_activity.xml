@@ -18,13 +18,14 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:background="#151515"
-        android:fitsSystemWindows="true">
+        android:fitsSystemWindows="false">
 
         <!-- 1. Top Unified MT-Style Toolbar -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/mainToolbar"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
             android:background="#151515"
             app:navigationIcon="@drawable/menu_icon_control_normal_24dp"
             app:navigationIconTint="@android:color/white"
@@ -34,7 +35,7 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="56dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 

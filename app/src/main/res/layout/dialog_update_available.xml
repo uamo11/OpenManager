@@ -124,38 +124,51 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="end">
+        android:orientation="vertical">
 
-        <Button
-            android:id="@+id/btnUpdateLater"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?selectableItemBackground"
-            android:text="@string/update_action_later"
-            android:textColor="#9E9E9E"
-            android:textSize="13sp"
-            android:layout_marginEnd="6dp" />
-
-        <Button
-            android:id="@+id/btnUpdateGitHub"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?selectableItemBackground"
-            android:text="@string/update_action_view_on_github"
-            android:textColor="#64B5F6"
-            android:textSize="13sp"
-            android:layout_marginEnd="6dp" />
-
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnUpdateDownload"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="?selectableItemBackground"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
             android:text="@string/update_action_download_and_install"
-            android:textColor="#4CAF50"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:backgroundTint="#2E7D32"
+            app:cornerRadius="8dp"
+            app:icon="@drawable/download_icon_white_24dp"
+            app:iconGravity="textStart"
+            app:iconTint="#FFFFFF"
+            app:iconPadding="8dp"
+            android:layout_marginBottom="8dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnUpdateLater"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/update_action_later"
+                android:textColor="#9E9E9E"
+                android:textSize="13sp" />
+
+            <Button
+                android:id="@+id/btnUpdateGitHub"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?selectableItemBackground"
+                android:gravity="center"
+                android:text="@string/update_action_view_on_github"
+                android:textColor="#64B5F6"
+                android:textSize="13sp" />
+        </LinearLayout>
     </LinearLayout>
 
 </LinearLayout>
