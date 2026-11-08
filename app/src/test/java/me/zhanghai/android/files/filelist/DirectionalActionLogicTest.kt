@@ -56,4 +56,25 @@ class DirectionalActionLogicTest {
         // When no files selected
         assertEquals("Todo", getSelectAllText(selectedCount = 0, totalSelectable = 10))
     }
+
+    private fun getDirectionalMoveIconRes(isPanelA: Boolean): String {
+        return if (isPanelA) "move_icon_white_24dp" else "move_left_icon_white_24dp"
+    }
+
+    private fun getCopyIconRes(isArchive: Boolean): String {
+        return if (isArchive) "extract_icon_white_24dp" else "copy_icon_white_24dp"
+    }
+
+    private fun getSelectionCloseIconRes(): String {
+        return "close_icon_white_24dp"
+    }
+
+    @Test
+    fun testDirectionalIconResolution() {
+        assertEquals("move_icon_white_24dp", getDirectionalMoveIconRes(isPanelA = true))
+        assertEquals("move_left_icon_white_24dp", getDirectionalMoveIconRes(isPanelA = false))
+        assertEquals("copy_icon_white_24dp", getCopyIconRes(isArchive = false))
+        assertEquals("extract_icon_white_24dp", getCopyIconRes(isArchive = true))
+        assertEquals("close_icon_white_24dp", getSelectionCloseIconRes())
+    }
 }

@@ -790,3 +790,18 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Método `acknowledgeExternalChange` que actualiza los valores conocidos si el usuario descarta o decide conservar sus cambios, evitando alertas repetitivas.
 - **Suite de Pruebas Unitarias Automatizadas (`TextEditorFileSynchronizationTest.kt`)**:
   - Cobertura completa de verificación de cambios por timestamp y tamaño, supresión en autoguardado, persistencia tras descartar diálogo y selección adaptativa de mensajes y botones.
+
+### Hito 61: Rediseño de la Barra Inferior de Selección con Iconos MT Manager y Botón de Cancelación [✕]
+- **Sustitución de Botones de Texto por Barra de Iconos Idéntica a la Normal (`file_list_activity.xml`, `FileListActivity.kt`)**:
+  - Se transformaron los 5 botones de texto plano (`Todo`, `Copiar >>`, `Mover >>`, `Borrar`, `Más...`) en `ImageButton` con fondo de ripple sin bordes (`?selectableItemBackgroundBorderless`) y tinte blanco, calcando la estética de `bottomBarNormal`.
+- **Botón de Cancelación [✕] (`btnSelectionClose`)**:
+  - Sustituye la etiqueta "Todo". Al hacer clic, deselecciona todos los archivos y sale del modo de selección (`activeFragment.clearSelectedFiles()`).
+  - Al mantener presionado (Long Click), atajo para seleccionar todos los elementos (`activeFragment.selectAllFiles()`) con aviso toast.
+- **Iconos Direccionales Dinámicos para Copiar y Mover (`FileListActivity.kt`)**:
+  - Iconos de alta resolución (`copy_icon_white_24dp`, `extract_icon_white_24dp`, `move_icon_white_24dp`, `move_left_icon_white_24dp`).
+  - El icono de mover orienta la flecha hacia la derecha al operar desde el Panel A (hacia B), o hacia la izquierda desde el Panel B (hacia A), con atenuación visual (`alpha = 0.35f`) cuando la acción está deshabilitada.
+- **Tooltips Nativos e Integración de "Seleccionar todo" en Menú Contextual (`FileListActivity.kt`)**:
+  - Configurados tooltips nativos en los 5 iconos con `TooltipCompat.setTooltipText`.
+  - Agregada la opción `"Seleccionar todo"` en el menú emergente de 3 puntos `showMoreSelectionMenu`.
+- **Ampliación de Pruebas Unitarias (`DirectionalActionLogicTest.kt`)**:
+  - Pruebas añadidas para la resolución de drawables según panel izquierdo/derecho y directorios comprimidos vs normales.

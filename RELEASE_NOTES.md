@@ -1,3 +1,26 @@
+# OpenManager v1.9.54: Rediseño de la Barra Inferior de Selección con Iconos MT Manager y Botón de Cancelación [✕]
+
+### 🎯 Rediseño Estético y Funcional de la Barra de Selección (Paridad MT Manager)
+- **Sustitución de Texto Simple por Barra de Iconos Estilizada**:
+  - Se sustituyeron los textos planos (`Todo (1)`, `Copiar >>`, `Mover >>`, `Borrar`, `Más...`) por una barra inferior idéntica en diseño y dimensiones a la barra de estado normal (`bottomBarNormal`).
+  - Cada acción es ahora un `ImageButton` con efecto ripple sin bordes (`?selectableItemBackgroundBorderless`), tintado blanco nítido y distribución simétrica de 5 columnas.
+- **Botón de Cancelación de Selección [✕]**:
+  - El primer botón ahora muestra el icono de cierre `[✕]`.
+  - **Pulsación corta**: Desmarca todos los elementos y cierra el modo de selección al instante (`activeFragment.clearSelectedFiles()`).
+  - **Pulsación larga**: Atajo para seleccionar todos los archivos (`activeFragment.selectAllFiles()`) con aviso toast.
+- **Iconos Direccionales e Inteligentes para Copiar y Mover**:
+  - **Copiar / Extraer**: Muestra el icono de duplicación/copia o el icono de extracción de caja con flecha (`extract_icon_white_24dp`) cuando se navega dentro de archivos comprimidos.
+  - **Mover Direccional**: Muestra la carpeta con flecha apuntando a la derecha (`move_icon_white_24dp`) al estar en el panel izquierdo (A), o apuntando a la izquierda (`move_left_icon_white_24dp`) al estar en el panel derecho (B).
+  - Atenuación y deshabilitación reactiva (`alpha = 0.35f`) cuando la operación de mover no es permitida (rutas de sólo lectura o archivos comprimidos).
+- **Iconos de Borrado y Menú Contextual con Tooltips**:
+  - Icono de papelera para eliminación rápida y 3 puntos verticales (`⋮`) para el menú desplegable.
+  - Soporte completo de tooltips nativos (`TooltipCompat.setTooltipText`) al mantener pulsado cualquier icono.
+  - Incorporada la opción `"Seleccionar todo"` en el menú desplegable de más opciones (`showMoreSelectionMenu`).
+- **Pruebas Unitarias**:
+  - Suite `DirectionalActionLogicTest.kt` ampliada para validar la resolución dinámica de iconos según el panel y el tipo de origen.
+
+---
+
 # OpenManager v1.9.53: Sincronización Automática y Detección de Cambios Externos en el Editor de Texto (Paridad MT Manager)
 
 ### 🔄 Detección Inteligente de Cambios Externos en el Editor de Texto

@@ -35,6 +35,7 @@ import androidx.annotation.DrawableRes
 import androidx.appcompat.view.menu.MenuPopupHelper
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -112,11 +113,11 @@ class FileListActivity : AppActivity() {
     private lateinit var btnBottomSwap: ImageButton
     private lateinit var btnBottomUp: ImageButton
 
-    private lateinit var btnSelectAll: TextView
-    private lateinit var btnCopyOpposite: TextView
-    private lateinit var btnMoveOpposite: TextView
-    private lateinit var btnDeleteSelection: TextView
-    private lateinit var btnMoreSelection: TextView
+    private lateinit var btnSelectionClose: ImageButton
+    private lateinit var btnCopyOpposite: ImageButton
+    private lateinit var btnMoveOpposite: ImageButton
+    private lateinit var btnDeleteSelection: ImageButton
+    private lateinit var btnMoreSelection: ImageButton
 
     private lateinit var progressRootStorage: ProgressBar
     private lateinit var tvRootStorageStats: TextView
@@ -212,7 +213,7 @@ class FileListActivity : AppActivity() {
         btnBottomSwap = findViewById(R.id.btnBottomSwap)
         btnBottomUp = findViewById(R.id.btnBottomUp)
 
-        btnSelectAll = findViewById(R.id.btnSelectAll)
+        btnSelectionClose = findViewById(R.id.btnSelectionClose)
         btnCopyOpposite = findViewById(R.id.btnCopyOpposite)
         btnMoveOpposite = findViewById(R.id.btnMoveOpposite)
         btnDeleteSelection = findViewById(R.id.btnDeleteSelection)
@@ -1259,18 +1260,13 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        // Selection Mode: 5 Text Columns (MT Manager Style)
-        btnSelectAll.setOnClickListener {
-            val totalSelectable = activeFragment.selectableItemCount
-            val currentSelected = activeFragment.selectedFiles.size
-            if (currentSelected >= totalSelectable && totalSelectable > 0) {
-                activeFragment.clearSelectedFiles()
-            } else {
-                activeFragment.selectAllFiles()
-            }
+        // Selection Mode: 5 Icon Buttons (MT Manager Style matching bottomBarNormal)
+        btnSelectionClose.setOnClickListener {
+            activeFragment.clearSelectedFiles()
         }
-        btnSelectAll.setOnLongClickListener {
-            activeFragment.invertSelection()
+        btnSelectionClose.setOnLongClickListener {
+            activeFragment.selectAllFiles()
+            Toast.makeText(this, "Todos los archivos seleccionados", Toast.LENGTH_SHORT).show()
             true
         }
 
@@ -1328,27 +1324,28 @@ class FileListActivity : AppActivity() {
     }
 
     private fun updateSelectionButtons(count: Int) {
-        val totalSelectable = activeFragment.selectableItemCount
-        val allSelected = count > 0 && count >= totalSelectable && totalSelectable > 0
-        btnSelectAll.text = if (allSelected) {
-            "Desmarcar"
-        } else if (count > 0) {
-            "Todo ($count)"
-        } else {
-            "Todo"
-        }
-        btnSelectAll.setTextColor(if (allSelected) android.graphics.Color.parseColor("#42A5F5") else android.graphics.Color.WHITE)
-
         val isPanelA = (activePanelIndex == 0)
         val isArchive = activeFragment.currentPath.isArchivePath
         val copyVerb = if (isArchive) "Extraer" else "Copiar"
 
-        if (isPanelA) {
-            btnCopyOpposite.text = "$copyVerb >>"
-            btnMoveOpposite.text = "Mover >>"
+        if (isArchive) {
+            btnCopyOpposite.setImageResource(R.drawable.extract_icon_white_24dp)
         } else {
-            btnCopyOpposite.text = "<< $copyVerb"
-            btnMoveOpposite.text = "<< Mover"
+            btnCopyOpposite.setImageResource(R.drawable.copy_icon_white_24dp)
+        }
+        val copyTarget = if (isPanelA) "al panel derecho" else "al panel izquierdo"
+        val copyDesc = "$copyVerb $copyTarget"
+        btnCopyOpposite.contentDescription = copyDesc
+        TooltipCompat.setTooltipText(btnCopyOpposite, copyDesc)
+
+        if (isPanelA) {
+            btnMoveOpposite.setImageResource(R.drawable.move_icon_white_24dp)
+            btnMoveOpposite.contentDescription = "Mover al panel derecho"
+            TooltipCompat.setTooltipText(btnMoveOpposite, "Mover al panel derecho")
+        } else {
+            btnMoveOpposite.setImageResource(R.drawable.move_left_icon_white_24dp)
+            btnMoveOpposite.contentDescription = "Mover al panel izquierdo"
+            TooltipCompat.setTooltipText(btnMoveOpposite, "Mover al panel izquierdo")
         }
 
         val isReadOnly = !activeFragment.canWriteTo(activeFragment.currentPath)
@@ -1356,9 +1353,14 @@ class FileListActivity : AppActivity() {
         val oppositeIsArchive = opposite.currentPath.isArchivePath
         val isSameDir = activeFragment.currentPath == opposite.currentPath
         val moveDisabled = isArchive || isReadOnly || oppositeIsArchive || isSameDir
-        btnMoveOpposite.alpha = if (moveDisabled) 0.4f else 1.0f
+        btnMoveOpposite.alpha = if (moveDisabled) 0.35f else 1.0f
         btnMoveOpposite.isEnabled = !moveDisabled
 
+        TooltipCompat.setTooltipText(btnSelectionClose, "Cancelar selección")
+        TooltipCompat.setTooltipText(btnDeleteSelection, "Eliminar seleccionados")
+        TooltipCompat.setTooltipText(btnMoreSelection, "Más opciones")
+
+        val totalSelectable = activeFragment.selectableItemCount
         val disk = getDiskStats()
         tvStatsSubtitle.text = if (disk.isNotEmpty()) {
             "Seleccionados: $count / $totalSelectable  $disk"
@@ -1955,11 +1957,20 @@ class FileListActivity : AppActivity() {
             add(0, 6, 0, "Comprimir / Añadir a ZIP...")
             add(0, 13, 0, getString(R.string.share))
             add(0, 2, 0, getString(R.string.action_export_file_list))
+            val totalSelectable = activeFragment.selectableItemCount
+            val currentSelected = activeFragment.selectedFiles.size
+            if (currentSelected < totalSelectable) {
+                add(0, 7, 0, "Seleccionar todo")
+            }
             add(0, 4, 0, "Invertir selección")
             add(0, 1, 0, "Desmarcar todo")
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                7 -> {
+                    activeFragment.selectAllFiles()
+                    true
+                }
                 10 -> {
                     val selected = activeFragment.selectedFiles
                     if (selected.isNotEmpty()) {

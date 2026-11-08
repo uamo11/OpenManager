@@ -192,7 +192,7 @@
                     app:tint="@android:color/white" />
             </LinearLayout>
 
-            <!-- Selection Mode: [Todo] [Copiar >>] [Mover >>] [Borrar] [Más...] (MT Manager style) -->
+            <!-- Selection Mode: [X] [Copiar] [Mover] [Borrar] [Más...] (MT Manager style with ImageButtons matching bottomBarNormal) -->
             <LinearLayout
                 android:id="@+id/bottomBarSelection"
                 android:layout_width="match_parent"
@@ -201,95 +201,55 @@
                 android:gravity="center_vertical"
                 android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/btnSelectAll"
+                <ImageButton
+                    android:id="@+id/btnSelectionClose"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:paddingLeft="2dp"
-                    android:paddingRight="2dp"
-                    android:text="Todo"
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/close_icon_white_24dp"
+                    android:contentDescription="Cancelar selección"
+                    app:tint="@android:color/white" />
 
-                <TextView
+                <ImageButton
                     android:id="@+id/btnCopyOpposite"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:paddingLeft="2dp"
-                    android:paddingRight="2dp"
-                    android:text="Copiar >>"
-                    android:textColor="#42A5F5"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/copy_icon_white_24dp"
+                    android:contentDescription="Copiar al panel opuesto"
+                    app:tint="@android:color/white" />
 
-                <TextView
+                <ImageButton
                     android:id="@+id/btnMoveOpposite"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:paddingLeft="2dp"
-                    android:paddingRight="2dp"
-                    android:text="Mover >>"
-                    android:textColor="#42A5F5"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/move_icon_white_24dp"
+                    android:contentDescription="Mover al panel opuesto"
+                    app:tint="@android:color/white" />
 
-                <TextView
+                <ImageButton
                     android:id="@+id/btnDeleteSelection"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:paddingLeft="2dp"
-                    android:paddingRight="2dp"
-                    android:text="Borrar"
-                    android:textColor="#EF5350"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/delete_icon_white_24dp"
+                    android:contentDescription="Eliminar seleccionados"
+                    app:tint="@android:color/white" />
 
-                <TextView
+                <ImageButton
                     android:id="@+id/btnMoreSelection"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
-                    android:gravity="center"
-                    android:background="?selectableItemBackground"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:singleLine="true"
-                    android:ellipsize="end"
-                    android:paddingLeft="2dp"
-                    android:paddingRight="2dp"
-                    android:text="Más..."
-                    android:textColor="#FFFFFF"
-                    android:textSize="12.5sp"
-                    android:textStyle="bold" />
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/more_vertical_icon_white_24dp"
+                    android:contentDescription="Más opciones"
+                    app:tint="@android:color/white" />
             </LinearLayout>
         </LinearLayout>
 
