@@ -40,6 +40,7 @@ import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.filelist.ApkInstallHelper
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.util.startActivitySafe
+import me.zhanghai.android.files.util.valueCompat
 import org.json.JSONObject
 
 data class ReleaseAsset(
