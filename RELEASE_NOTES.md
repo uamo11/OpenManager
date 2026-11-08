@@ -1,3 +1,31 @@
+# OpenManager v1.9.53: Sincronización Automática y Detección de Cambios Externos en el Editor de Texto (Paridad MT Manager)
+
+### 🔄 Detección Inteligente de Cambios Externos en el Editor de Texto
+- **Aviso en Tiempo Real cuando un Archivo es Modificado Externamente**:
+  - Exactamente como en MT Manager, cuando un archivo abierto en el Editor de Texto es modificado en segundo plano en disco (por scripts de consola/terminal, compiladores, comandos Git, descargas o aplicaciones externas), OpenManager detecta el cambio automáticamente y despliega un diálogo de confirmación:
+    - **Título**: `"Archivo modificado externamente"`
+    - **Opciones claras**: `"Sincronizar"` y `"Conservar mis cambios"` (o `"Cancelar"` si no hay cambios pendientes).
+- **Protección de Cambios Locales sin Guardar**:
+  - Si el usuario tiene ediciones sin guardar en el editor, el diálogo advierte explícitamente:
+    `"El archivo ha sido modificado externamente y tienes cambios locales sin guardar en el editor.\n\nSi sincronizas, se perderán tus modificaciones actuales.\n\n¿Deseas sincronizar de todas formas o conservar tus cambios?"`
+  - Evita la pérdida accidental de trabajo en curso.
+- **Sincronización Limpia y Preservación de Estado**:
+  - Al pulsar `"Sincronizar"`:
+    - Se recarga el contenido fresco desde el disco.
+    - Se preserva de forma transparente la posición del cursor de texto y el desplazamiento de scroll (`scrollY`), evitando desorientación visual.
+    - Se notifica mediante Toast: `"Archivo sincronizado exitosamente"`.
+  - Al pulsar `"Conservar mis cambios"` o descartar el diálogo:
+    - Se actualiza la marca de tiempo conocida (`acknowledgeExternalChange`), evitando que el cuadro de diálogo vuelva a aparecer de manera molesta mientras el usuario continúa redactando.
+- **Doble Mecanismo de Verificación (Al Reanudar y en Segundo Plano)**:
+  - Verificación inmediata en `onResume()` al regresar de otra aplicación o pestaña.
+  - Observador periódico (`startFileChangeWatcher`) cada 2.5 segundos mientras la pantalla está activa, con cancelación automática en `onPause()` y `onDestroyView()` para garantizar cero impacto en la batería.
+- **Supresión de Falsos Positivos durante el Autoguardado (`isSelfSaving`)**:
+  - Cuando el usuario pulsa Guardar o la app guarda el archivo, la bandera `isSelfSaving` ignora temporalmente la actualización del timestamp en disco generada por la propia aplicación, actualizando atómicamente los metadatos internos de carga.
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - `TextEditorFileSynchronizationTest.kt` validando detección de timestamp, variaciones de tamaño, supresión en autoguardado, persistencia tras descartar diálogo y selección adaptativa de textos de confirmación.
+
+---
+
 # OpenManager v1.9.52: Corrección y Blindaje de Archivos Script (.sh) y Binarios dentro de Archivos Comprimidos (Paridad MT Manager)
 
 ### 🛡️ Corrección Crítica de Crash al Pulsar Archivos de Script (.sh, .bash, .zsh, etc.) dentro de Archivos Comprimidos

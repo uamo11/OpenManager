@@ -847,6 +847,12 @@
     <string name="text_editor_highlight_current_line">Highlight current line</string>
     <string name="text_editor_syntax_highlighting">Syntax highlighting</string>
     <string name="text_editor_confirm_exit">Confirm on exit with unsaved changes</string>
+    <string name="text_editor_file_changed_title">File modified externally</string>
+    <string name="text_editor_file_changed_message">The file has been modified on disk by another process.\n\nDo you want to synchronize and reload the updated content?</string>
+    <string name="text_editor_file_changed_unsaved_message">The file has been modified externally, and you have unsaved changes in the editor.\n\nIf you synchronize, your local changes will be lost.\n\nDo you want to synchronize anyway or keep your changes?</string>
+    <string name="text_editor_sync">Synchronize</string>
+    <string name="text_editor_keep_changes">Keep my changes</string>
+    <string name="text_editor_sync_success">File synchronized successfully</string>
 
     <string name="ftp_server_title">FTP server</string>
     <string name="ftp_server_state_title">Status</string>

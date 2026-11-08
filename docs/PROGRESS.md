@@ -773,3 +773,20 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Blindaje con `catch (_: Throwable)` en `isTextFileOrProbableText`.
 - **Suite de Pruebas Unitarias (`ScriptArchiveHandlingTest.kt`)**:
   - Validación de clasificación de documentos no ejecutables, auditoría de scripts y simulación del enrutamiento de scripts virtuales hacia el editor de texto.
+
+### Hito 60: Sincronización Automática y Detección de Cambios Externos en el Editor de Texto (Paridad MT Manager)
+- **Detección Automática de Modificaciones Externas (`TextEditorViewModel.kt`, `TextEditorFragment.kt`)**:
+  - Implementación de `hasExternalChange(path)` y almacenamiento de `lastLoadedModifiedTime` y `lastLoadedFileSize` tanto en la carga inicial como en recargas manuales.
+  - Comprobación inmediata en `onResume()` y observador en segundo plano periódico (`startFileChangeWatcher`) cada 2.5 segundos mientras la pantalla está activa, cancelado limpiamente en `onPause()` y `onDestroyView()`.
+- **Diálogo de Sincronización Estilo MT Manager (`ConfirmSyncDialogFragment.kt`)**:
+  - Modal interactivo con título `"Archivo modificado externamente"` y textos adaptativos.
+  - Al no haber cambios pendientes: opciones `"Sincronizar"` y `"Cancelar"`.
+  - Al existir cambios locales sin guardar: advierte que se perderán las modificaciones locales y ofrece las opciones `"Sincronizar"` y `"Conservar mis cambios"`.
+- **Sincronización Limpia y Preservación de Estado (`TextEditorFragment.kt`)**:
+  - Al sincronizar, recarga el contenido desde el disco, preservando la posición del cursor de texto y el desplazamiento vertical (`scrollY`) para evitar desorientación visual.
+  - Notificación Toast de confirmación: `"Archivo sincronizado exitosamente"`.
+- **Supresión de Falsos Positivos durante Autoguardado (`TextEditorViewModel.kt`)**:
+  - Bandera `isSelfSaving` activada durante las escrituras del editor (`FileJobService.write`), actualizando los metadatos internos de carga para que el propio guardado de la app no active el aviso de cambio externo.
+  - Método `acknowledgeExternalChange` que actualiza los valores conocidos si el usuario descarta o decide conservar sus cambios, evitando alertas repetitivas.
+- **Suite de Pruebas Unitarias Automatizadas (`TextEditorFileSynchronizationTest.kt`)**:
+  - Cobertura completa de verificación de cambios por timestamp y tamaño, supresión en autoguardado, persistencia tras descartar diálogo y selección adaptativa de mensajes y botones.

@@ -69,7 +69,8 @@ import kotlin.math.max
 import kotlin.math.min
 
 class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
-    ConfirmCloseDialogFragment.Listener, TextEditorPreferencesDialogFragment.Listener {
+    ConfirmCloseDialogFragment.Listener, TextEditorPreferencesDialogFragment.Listener,
+    ConfirmSyncDialogFragment.Listener {
     private val args by args<Args>()
     private lateinit var argsFile: Path
 
@@ -303,11 +304,107 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (::argsFile.isInitialized) {
+            checkAndPromptExternalChange()
+            startFileChangeWatcher()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopFileChangeWatcher()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        stopFileChangeWatcher()
         highlightJob?.cancel()
         if (this::binding.isInitialized) {
             binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+        }
+    }
+
+    private var isSyncDialogShowing = false
+    private var fileChangeWatcherJob: Job? = null
+
+    private fun checkAndPromptExternalChange() {
+        if (!::argsFile.isInitialized) return
+        if (isSyncDialogShowing) return
+        if (!isResumed) return
+        val file = argsFile
+        lifecycleScope.launch(Dispatchers.IO) {
+            val changed = viewModel.hasExternalChange(file)
+            if (changed) {
+                withContext(Dispatchers.Main) {
+                    if (isResumed && !isSyncDialogShowing && !parentFragmentManager.isStateSaved) {
+                        isSyncDialogShowing = true
+                        ConfirmSyncDialogFragment.show(
+                            hasUnsavedChanges = viewModel.isTextChanged.value,
+                            fragment = this@TextEditorFragment
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun startFileChangeWatcher() {
+        fileChangeWatcherJob?.cancel()
+        fileChangeWatcherJob = viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive) {
+                delay(2500L)
+                if (!isSyncDialogShowing && isResumed && ::argsFile.isInitialized) {
+                    val file = argsFile
+                    val changed = withContext(Dispatchers.IO) {
+                        viewModel.hasExternalChange(file)
+                    }
+                    if (changed && isActive && !isSyncDialogShowing && isResumed && !parentFragmentManager.isStateSaved) {
+                        isSyncDialogShowing = true
+                        ConfirmSyncDialogFragment.show(
+                            hasUnsavedChanges = viewModel.isTextChanged.value,
+                            fragment = this@TextEditorFragment
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopFileChangeWatcher() {
+        fileChangeWatcherJob?.cancel()
+        fileChangeWatcherJob = null
+    }
+
+    override fun onSyncConfirmed() {
+        isSyncDialogShowing = false
+        val currentSelection = try {
+            binding.textEdit.selectionStart
+        } catch (_: Throwable) {
+            0
+        }
+        val currentScrollY = try {
+            binding.scrollView.scrollY
+        } catch (_: Throwable) {
+            0
+        }
+        reload()
+        binding.textEdit.post {
+            try {
+                if (currentSelection >= 0 && currentSelection <= binding.textEdit.length()) {
+                    binding.textEdit.setSelection(currentSelection)
+                }
+                binding.scrollView.scrollY = currentScrollY
+            } catch (_: Throwable) {}
+        }
+        showToast(getString(R.string.text_editor_sync_success))
+    }
+
+    override fun onSyncIgnored() {
+        isSyncDialogShowing = false
+        if (::argsFile.isInitialized) {
+            viewModel.acknowledgeExternalChange(argsFile)
         }
     }
 

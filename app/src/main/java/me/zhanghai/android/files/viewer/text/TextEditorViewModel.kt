@@ -25,8 +25,10 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.file.AxmlDecoder
 import me.zhanghai.android.files.filejob.FileJobService
+import me.zhanghai.android.files.provider.common.getLastModifiedTime
 import me.zhanghai.android.files.provider.common.readAllBytes
 import me.zhanghai.android.files.provider.common.size
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.util.ActionState
 import me.zhanghai.android.files.util.DataState
 import me.zhanghai.android.files.util.isFinished
@@ -46,6 +48,13 @@ class TextEditorViewModel(file: Path) : ViewModel() {
     val fileSize = MutableStateFlow(0L)
     val isCrlf = MutableStateFlow(false)
     val syntaxLanguage = MutableStateFlow(SyntaxLanguage.detectFromFileName(file.fileName.toString()))
+
+    var lastLoadedModifiedTime: Long = 0L
+        private set
+    var lastLoadedFileSize: Long = 0L
+        private set
+    var isSelfSaving: Boolean = false
+        private set
 
     private var loadJob: Job? = null
     private var reloadJob: Job? = null
@@ -81,14 +90,22 @@ class TextEditorViewModel(file: Path) : ViewModel() {
     private suspend fun mapFileToBytesState(file: Path) {
         _bytesState.value = _bytesState.value.toLoading()
         try {
-            val bytes = runInterruptible(Dispatchers.IO) {
+            val (bytes, size, modTime) = runInterruptible(Dispatchers.IO) {
                 val size = file.size()
-                fileSize.value = size
                 if (size > MAX_FILE_SIZE) {
                     throw IOException("File size $size is too large (max 20MB)")
                 }
-                file.readAllBytes()
+                val modTime = try {
+                    if (file.isLinuxPath) file.toFile().lastModified() else file.getLastModifiedTime().toMillis()
+                } catch (_: Throwable) {
+                    0L
+                }
+                val bytes = file.readAllBytes()
+                Triple(bytes, size, modTime)
             }
+            fileSize.value = size
+            lastLoadedFileSize = size
+            lastLoadedModifiedTime = modTime
             currentCoroutineContext().ensureActive()
             _bytesState.value = DataState.Success(bytes)
         } catch (e: CancellationException) {
@@ -166,6 +183,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
             check(_writeFileState.value.isReady)
             val argument = path to text
             _writeFileState.value = ActionState.Running(argument)
+            isSelfSaving = true
 
             val bytes = withContext(Dispatchers.Default) {
                 // Restore line endings if CRLF
@@ -181,8 +199,17 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                 if (successful) {
                     loadJob?.cancel()?.also { loadJob = null }
                     reloadJob?.cancel()?.also { reloadJob = null }
+                    val newModTime = try {
+                        if (path.isLinuxPath) path.toFile().lastModified() else path.getLastModifiedTime().toMillis()
+                    } catch (_: Throwable) {
+                        System.currentTimeMillis()
+                    }
+                    lastLoadedModifiedTime = newModTime
+                    lastLoadedFileSize = bytes.size.toLong()
+                    fileSize.value = bytes.size.toLong()
                     _bytesState.value = DataState.Success(bytes)
                 }
+                isSelfSaving = false
                 _writeFileState.value = if (successful) {
                     ActionState.Success(argument, Unit)
                 } else {
@@ -190,6 +217,33 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                 }
             }
         }
+    }
+
+    fun hasExternalChange(path: Path = _file.value): Boolean {
+        if (isSelfSaving) return false
+        if (lastLoadedModifiedTime <= 0L) return false
+        val (currentModTime, currentSize) = try {
+            val m = if (path.isLinuxPath) path.toFile().lastModified() else path.getLastModifiedTime().toMillis()
+            val s = if (path.isLinuxPath) path.toFile().length() else path.size()
+            m to s
+        } catch (_: Throwable) {
+            return false
+        }
+        if (currentModTime <= 0L) return false
+
+        return currentModTime > lastLoadedModifiedTime ||
+            (currentModTime != lastLoadedModifiedTime && currentSize != lastLoadedFileSize)
+    }
+
+    fun acknowledgeExternalChange(path: Path = _file.value) {
+        try {
+            val m = if (path.isLinuxPath) path.toFile().lastModified() else path.getLastModifiedTime().toMillis()
+            val s = if (path.isLinuxPath) path.toFile().length() else path.size()
+            if (m > 0L) {
+                lastLoadedModifiedTime = m
+                lastLoadedFileSize = s
+            }
+        } catch (_: Throwable) {}
     }
 
     fun finishWritingFile() {

@@ -730,6 +730,12 @@
     <string name="text_editor_highlight_current_line">Resaltar línea actual</string>
     <string name="text_editor_syntax_highlighting">Resaltado de sintaxis</string>
     <string name="text_editor_confirm_exit">Confirmar al salir si hay cambios sin guardar</string>
+    <string name="text_editor_file_changed_title">Archivo modificado externamente</string>
+    <string name="text_editor_file_changed_message">El archivo ha sido modificado en el disco por otro proceso.\n\n¿Deseas sincronizar y recargar el contenido actualizado?</string>
+    <string name="text_editor_file_changed_unsaved_message">El archivo ha sido modificado externamente y tienes cambios locales sin guardar en el editor.\n\nSi sincronizas, se perderán tus modificaciones actuales.\n\n¿Deseas sincronizar de todas formas o conservar tus cambios?</string>
+    <string name="text_editor_sync">Sincronizar</string>
+    <string name="text_editor_keep_changes">Conservar mis cambios</string>
+    <string name="text_editor_sync_success">Archivo sincronizado exitosamente</string>
     <string name="navigation_terminal">Simulador de Terminal</string>
     <string name="terminal_title">Terminal</string>
     <string name="terminal_wakelock">WakeLock</string>
