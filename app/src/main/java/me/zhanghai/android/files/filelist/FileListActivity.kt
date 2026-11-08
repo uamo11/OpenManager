@@ -399,15 +399,15 @@ class FileListActivity : AppActivity() {
                     "create_choice" -> showCreateDialog()
                     "show_update_dialog" -> {
                         val mockAsset = me.zhanghai.android.files.update.ReleaseAsset(
-                            name = "OpenManager-v1.9.60-release.apk",
+                            name = "OpenManager-v1.9.61-release.apk",
                             size = 30541982L,
                             downloadUrl = "https://github.com/uamo11/OpenManager/releases"
                         )
                         val mockRelease = me.zhanghai.android.files.update.ReleaseInfo(
-                            tagName = "v1.9.60",
-                            version = "1.9.60",
-                            name = "OpenManager v1.9.60",
-                            body = "# Novedades v1.9.60:\n- Barra superior MT-style visible y correctamente separada de la barra de estado.\n- Diálogo de actualización rediseñado con botón completo e imposible de comprimir.",
+                            tagName = "v1.9.61",
+                            version = "1.9.61",
+                            name = "OpenManager v1.9.61",
+                            body = "# Novedades v1.9.61:\n- Barra superior MT-style visible y correctamente separada de la barra de estado.\n- Diálogo de actualización rediseñado con botón completo e imposible de comprimir.",
                             htmlUrl = "https://github.com/uamo11/OpenManager/releases",
                             assets = listOf(mockAsset),
                             targetAsset = mockAsset,
