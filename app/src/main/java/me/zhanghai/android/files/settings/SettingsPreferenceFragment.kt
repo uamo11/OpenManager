@@ -64,7 +64,9 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_acknowledgement))?.setOnPreferenceClickListener {
-            requireContext().startActivitySafe(me.zhanghai.android.files.about.AboutActivity::class.createIntent())
+            val intent = me.zhanghai.android.files.about.AboutActivity::class.createIntent()
+                .putExtra(me.zhanghai.android.files.about.AboutActivity.EXTRA_SCROLL_TO_ACKNOWLEDGEMENTS, true)
+            requireContext().startActivitySafe(intent)
             true
         }
 

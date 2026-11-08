@@ -1,3 +1,28 @@
+# OpenManager v1.9.57: Atribución Completa de Autoría a Uamo11, Sitio Web uam.lol y Sección Dedicada de Agradecimientos a Hai Zhang (Shangai)
+
+### 👤 Autoría y Desarrollo Exclusivo de OpenManager: Uamo11
+- **Atribución Clara y Precisa del Creador**:
+  - Se actualizó toda la información de autoría en la aplicación para dejar perfectamente claro que el único autor y desarrollador de OpenManager es **Uamo11**.
+  - Enlace directo al sitio web personal del autor: [uam.lol](https://uam.lol), acompañado de un nuevo icono vectorial de globo terráqueo/web de Material Design.
+  - Enlace directo al perfil de GitHub del desarrollador: [github.com/uamo11](https://github.com/uamo11).
+  - Actualización exhaustiva en los 34 idiomas soportados por la aplicación (`res/values-*/strings.xml`).
+
+### 🤝 Sección Dedicada de Agradecimientos y Proyecto Base (Hai Zhang / Shangai)
+- **Reconocimiento Honesto al Proyecto Base**:
+  - Incorporada una sección especial titulada *"Agradecimientos y Proyecto Base"* que acredita formalmente a **Hai Zhang (Shangai)** como autor del proyecto base original Material Files.
+  - Se explica claramente que OpenManager toma como base el trabajo de Hai Zhang con profundas modificaciones y añadidos (gestor root MT Manager, compatibilidad libarchive, terminal, editor de texto, backup en la nube, APK tools, etc.).
+  - Enlaces directos al repositorio original de Material Files (`github.com/zhanghai/MaterialFiles`) y al perfil de Hai Zhang (`github.com/zhanghai`).
+
+### 📱 Rediseño Modular de la Pantalla «Acerca de OpenManager» en Material Cards
+- **Estructura Visual Elegante y Limpia**:
+  - **Tarjeta 1 (OpenManager)**: Nombre de la app, icono, versión actual, repositorio oficial (`github.com/uamo11/OpenManager`), licencias de código abierto (GPLv3) y política de privacidad.
+  - **Tarjeta 2 (Autor de OpenManager)**: Ficha de Uamo11 como único creador de OpenManager con accesos directos a su web (`uam.lol`) y GitHub (`uamo11`).
+  - **Tarjeta 3 (Agradecimientos y Proyecto Base)**: Ficha de agradecimientos a Hai Zhang (Shangai) y enlace al repositorio base.
+- **Navegación Inteligente desde Ajustes**:
+  - Al pulsar la opción *"Agradecimientos"* en el menú de Ajustes, la aplicación abre automáticamente la pantalla y realiza un desplazamiento fluido (`smoothScrollTo`) directamente hasta la tarjeta de Agradecimientos y Proyecto Base.
+
+---
+
 # OpenManager v1.9.56: Detección Dinámica de Root en Caliente (Sin Salir de la App), Corrección Integral de Iconos y Soporte Robusto para DFRoot y Gestores
 
 ### 🚀 Detección Dinámica de Superusuario en Caliente (Sin Reiniciar la App)

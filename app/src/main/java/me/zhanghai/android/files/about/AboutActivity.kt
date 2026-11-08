@@ -21,4 +21,9 @@ class AboutActivity : AppActivity() {
             supportFragmentManager.commit { add<AboutFragment>(android.R.id.content) }
         }
     }
+
+    companion object {
+        const val EXTRA_SCROLL_TO_ACKNOWLEDGEMENTS =
+            "me.zhanghai.android.files.about.extra.SCROLL_TO_ACKNOWLEDGEMENTS"
+    }
 }

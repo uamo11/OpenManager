@@ -838,13 +838,24 @@
 
     <string name="about_title">Información</string>
     <string name="about_version_title">Versión</string>
-    <string name="about_github_title">Ver en GitHub</string>
-    <string name="about_licenses_title">Licencias</string>
+    <string name="about_github_title">Proyecto en GitHub</string>
+    <string name="about_github_summary" translatable="false">github.com/uamo11/OpenManager</string>
+    <string name="about_licenses_title">Licencias de código abierto</string>
     <string name="about_privacy_policy_title">Política de privacidad</string>
-    <string name="about_author_title">Autor</string>
-    <string name="about_author_name_title">Hai Zhang</string>
-    <string name="about_author_github_title">Seguir en GitHub</string>
-    <string name="about_author_twitter_title">Seguir en Twitter</string>
+    <string name="about_author_title">Autor de OpenManager</string>
+    <string name="about_author_name_title" translatable="false">Uamo11</string>
+    <string name="about_author_subtitle">Único autor y desarrollador de OpenManager</string>
+    <string name="about_author_website_title">Sitio Web</string>
+    <string name="about_author_website_summary" translatable="false">uam.lol</string>
+    <string name="about_author_github_title">GitHub del Desarrollador</string>
+    <string name="about_author_github_summary" translatable="false">github.com/uamo11</string>
+    <string name="about_acknowledgements_card_title">Agradecimientos y Proyecto Base</string>
+    <string name="about_base_project_title">Basado en Material Files</string>
+    <string name="about_base_project_summary">OpenManager está basado originalmente en Material Files de Hai Zhang (Shangai). Agradecimientos a Hai Zhang y la comunidad open source.</string>
+    <string name="about_base_author_title">Hai Zhang (Shangai)</string>
+    <string name="about_base_author_summary" translatable="false">Autor original de Material Files (github.com/zhanghai)</string>
+    <string name="about_base_github_title">Repositorio Material Files</string>
+    <string name="about_base_github_summary" translatable="false">github.com/zhanghai/MaterialFiles</string>
 
     <!-- MT Manager Settings Categories -->
     <string name="settings_category_superuser_title">Estado de Privilegios y Root</string>

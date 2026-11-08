@@ -819,7 +819,22 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Suite de Pruebas Unitarias Automatizadas (`TextEditorKeyboardInsetsTest.kt`)**:
   - Cobertura de cálculos de márgenes con teclado cerrado, elevación sobre teclado abierto, reseteo tras descartar y tolerancia a particularidades de fabricantes OEM.
 
-### Hito 63: Detección Dinámica de Root en Caliente (Sin Salir de la App), Corrección Integral de Iconos y Detección Robusta de DFRoot y Gestores (v1.9.56)
+### Hito 64: Atribución Completa de Autoría a Uamo11, Sitio Web uam.lol y Sección Dedicada de Agradecimientos a Hai Zhang (Shangai) (v1.9.57)
+- **Acreditación Exclusiva de Autoría a Uamo11**:
+  - Actualización completa de la autoría de OpenManager para certificar a **Uamo11** como su único autor y desarrollador.
+  - Creación del nuevo recurso vectorial de alta calidad `web_icon_white_24dp.xml` (globo terráqueo Material Design) para representar su sitio web personal.
+  - Configuración de enlaces directos a su página web ([uam.lol](https://uam.lol)) y a su perfil de GitHub ([github.com/uamo11](https://github.com/uamo11)).
+  - Modificación de los 34 archivos de idioma (`app/src/main/res/values-*/strings.xml`) asegurando que `about_author_name_title` sea invariablemente `Uamo11`.
+- **Sección Dedicada de Agradecimientos y Proyecto Base (Hai Zhang / Shangai)**:
+  - Creación de una tarjeta independiente `"Agradecimientos y Proyecto Base"` (`cardAcknowledgements`) que rinde homenaje a **Hai Zhang (Shangai)** por ser el autor del proyecto base original Material Files.
+  - Enlaces directos a su perfil de desarrollador (`github.com/zhanghai`) y al repositorio base (`github.com/zhanghai/MaterialFiles`).
+- **Rediseño Modular en Material Cards de «Acerca de OpenManager» (`about_fragment.xml`, `AboutFragment.kt`)**:
+  - Estructuración limpia en 3 tarjetas MaterialCardView:
+    1. `cardAppInfo`: Datos de la app, versión actual, repositorio oficial (`github.com/uamo11/OpenManager`), licencias de código abierto (GPLv3) y política de privacidad.
+    2. `cardAuthor`: Ficha del autor (Uamo11), sitio web (`uam.lol`) y GitHub (`uamo11`).
+    3. `cardAcknowledgements`: Agradecimiento a Hai Zhang (Shangai) y enlace a Material Files.
+  - Implementación de navegación inteligente: al hacer clic en `"Agradecimientos"` en la sección de Ajustes (`SettingsPreferenceFragment`), se envía `EXTRA_SCROLL_TO_ACKNOWLEDGEMENTS`, activando un desplazamiento automático (`smoothScrollTo`) directamente hasta la tarjeta de agradecimientos.
+
 - **Detección Dinámica de Root en Caliente (`SuperuserDetector.kt`, `FileListActivity.kt`, `SettingsPreferenceFragment.kt`, `SuperuserStatusPreference.kt`, `LibSuFileServiceLauncher.kt`)**:
   - **Eliminación del bug de salida obligatoria de la app**: Previamente, al conceder permisos root en Magisk, KernelSU, APatch o DFRoot, libsu y `SuperuserDetector` mantenían un estado en caché rígido (`isAppGrantedRoot() == false`) que requería forzar el cierre y reiniciar OpenManager.
   - **Invalidación dinámica de caché**: Creado `SuperuserDetector.invalidateCache()` que limpia `cachedStatus`, resetea el enfriamiento de fallos de libsu (`LibSuFileServiceLauncher.resetCooldown()`) y cierra shells obsoletos denegados para permitir la obtención inmediata de un shell root activo.

@@ -372,7 +372,6 @@
     <string name="about_licenses_title">Lizentziak</string>
     <string name="about_privacy_policy_title">Pribatutasun gidalerroak</string>
     <string name="about_author_title">Egilea</string>
-    <string name="about_author_name_title">Hai Zhang</string>
+    <string name="about_author_name_title" translatable="false">Uamo11</string>
     <string name="about_author_github_title">Jarraitu GitHub-en</string>
-    <string name="about_author_twitter_title">Jarraitu Twitter-en</string>
 </resources>
