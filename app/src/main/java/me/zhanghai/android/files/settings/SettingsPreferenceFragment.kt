@@ -41,7 +41,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_check_for_update))?.setOnPreferenceClickListener {
-            requireContext().startActivitySafe(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://github.com/anhot11/OpenManager")))
+            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true)
             true
         }
 

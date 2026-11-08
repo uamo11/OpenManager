@@ -730,3 +730,27 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Corrección de callbacks en `ReadArchive.kt` para evitar falsos EOF cuando el canal o stream lee 0 bytes transitorios.
   - Motor de respaldo resiliente con `java.util.zip.ZipFile` y `ZipInputStream` de Android para garantizar la apertura de cualquier archivo ZIP, APK o ROM en tarjetas MicroSD y almacenamiento secundario.
   - Corrección de referencia `R.string.settings` a `R.string.settings_title` en diálogo de papelera desactivada.
+
+### Hito 58: Sistema Inteligente de Actualizaciones In-App, Detección de Canal (Debug / Estable) y Descarga Directa
+- **Preferencia de Verificación Automática en Ajustes (`donottranslate_prefs.xml`, `settings.xml`, `Settings.kt`)**:
+  - Incorporación de `pref_key_auto_check_updates` (`key_auto_check_updates`) con valor predeterminado en `false` ("desactivado por defecto").
+  - SwitchPreference en sección **10. Información del Sistema y Registro** de Ajustes.
+- **Verificación Automática al Iniciar (`FileListActivity.kt`)**:
+  - Si la opción está habilitada en Ajustes, consulta la API de GitHub Releases con cooldown de 2 horas.
+  - Si existe una actualización, muestra la ventana emergente con las novedades y botones de acción. Si no hay actualización o falla la red, opera de forma 100% silenciosa sin interrumpir.
+- **Comprobación Manual con Diálogos Modales (`SettingsPreferenceFragment.kt`, `UpdateChecker.kt`)**:
+  - Al pulsar "Buscar actualizaciones" en Ajustes:
+    - Despliega indicador modal de carga: `"Comprobando versiones disponibles en GitHub…"`.
+    - Si está al día: Diálogo `"OpenManager está al día"` informando la versión actual y el canal.
+    - Si hay actualización: Diálogo con el canal detectado, versión actual vs nueva, tamaño de APK, notas de la versión scrolleables y botones para "Descargar e instalar", "Ver en GitHub" y "Más tarde".
+    - Si hay fallo de red: Diálogo de error con botón "Reintentar".
+- **Detección Automática de Canal del Celular (Debug vs Release / Estable) (`UpdateChecker.kt`)**:
+  - Evalúa `BuildConfig.DEBUG` y `ApplicationInfo.FLAG_DEBUGGABLE`.
+  - Para compilaciones Debug: selecciona automáticamente el activo `*-debug.apk`.
+  - Para compilaciones Release / Estable: selecciona automáticamente el activo `*-release.apk`.
+- **Gestor de Descarga en Tiempo Real e Instalación Directa (`UpdateChecker.kt`, `ApkInstallHelper.kt`, `dialog_update_download.xml`)**:
+  - Descarga con barra de progreso continua `LinearProgressIndicator`, métricas en tiempo real (`MB / Total MB`, `%`, velocidad en `MB/s`) y soporte de redirecciones HTTP múltiples.
+  - Almacenamiento en `/storage/emulated/0/OpenManager/updates/` (o fallback a caché de app).
+  - Instalación inteligente: soporte para Root silencioso (`pm install`), Shizuku Shell o `PackageInstaller` del sistema mediante `FileProvider`.
+- **Pruebas Unitarias Automatizadas (`UpdateCheckerLogicTest.kt`)**:
+  - Pruebas de comparación de versiones, selección de canal Debug vs Release, fallback ante APK único, parseo de JSON de GitHub Releases, formateo de tamaños y valor predeterminado `false` del interruptor.

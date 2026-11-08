@@ -1,3 +1,46 @@
+# OpenManager v1.9.51: Sistema Inteligente de Actualizaciones In-App, Detección de Canal (Debug / Estable) y Descarga Directa
+
+### 🔄 Sistema de Actualizaciones Integrado y Verificación Automática
+- **Interruptor de Verificación Automática en Ajustes (Desactivado por Defecto)**:
+  - En la sección **10. Información del Sistema y Registro** de Ajustes, se incorporó la opción `"Buscar actualizaciones automáticamente"` (`key_auto_check_updates`), configurada como **desactivada (`false`) por defecto** según los requerimientos.
+  - Al estar activada, la aplicación comprueba en segundo plano al iniciar (`FileListActivity.onCreate`) si existe una versión más reciente en GitHub Releases. Si hay una nueva versión disponible, despliega una ventana emergente informativa con las novedades y el enlace de actualización. Si no hay actualizaciones o no hay conexión, se mantiene en silencio sin interrumpir al usuario.
+- **Comprobación Manual con Diálogos Informativos**:
+  - Al pulsar `"Buscar actualizaciones"` en Ajustes:
+    - Muestra un diálogo de progreso modal: `"Comprobando versiones disponibles en GitHub…"`.
+    - Si el usuario ya cuenta con la versión más reciente: Despliega el diálogo `"OpenManager está al día"` informando que se posee la última versión disponible (`v1.9.51`) y mostrando el canal actual del dispositivo.
+    - Si se produce un error de red o timeout: Informa amigablemente con opción de `"Reintentar"`.
+    - Si existe una actualización: Abre la ventana de actualización completa con las mejoras y opciones de descarga.
+
+### 📱 Detección Inteligente de Canal (Debug vs Release / Estable)
+- **Selección Precisa del APK Adecuado para el Celular**:
+  - `UpdateChecker` inspecciona el entorno del dispositivo mediante `BuildConfig.DEBUG` y banderas de desarrollo (`ApplicationInfo.FLAG_DEBUGGABLE`).
+  - **Canal Debug**: Asigna y descarga automáticamente `OpenManager-vX.Y.Z-debug.apk` con distintivo visual en azul `[Canal: Debug (Desarrollo)]`.
+  - **Canal Release / Estable**: Asigna y descarga automáticamente `OpenManager-vX.Y.Z-release.apk` con distintivo visual en verde `[Canal: Release (Estable)]`.
+  - Evita inconsistencias de firma o errores de paquete cruzados entre versiones de depuración y producción.
+
+### 📥 Descarga en Tiempo Real e Instalación Directa
+- **Diálogo de Descarga con Métricas**:
+  - Progreso visual mediante `LinearProgressIndicator` horizontal (`0% - 100%`).
+  - Muestra bytes descargados contra el total (`12.5 MB / 34.9 MB (35%)`) y velocidad de transferencia en tiempo real (`3.2 MB/s`).
+  - Soporta redirecciones HTTP (301, 302, 307, 308) hacia el almacenamiento de GitHub/Amazon S3.
+  - Opción de cancelación limpia eliminando fragmentos temporales (`.apk.tmp`).
+  - Guarda los archivos en `/storage/emulated/0/OpenManager/updates/` (o caché interno si el almacenamiento externo no está disponible).
+- **Instalación Integrada y Multimétodo**:
+  - Al concluir la descarga, inicia automáticamente el instalador:
+    - Si el usuario tiene activo Root y privilegios concedidos: Instala silenciosamente vía `pm install` con `ApkInstallHelper.installApkWithRoot`.
+    - Si el usuario tiene activo Shizuku y el servicio enlazado: Instala vía `ApkInstallHelper.installApkWithShizuku`.
+    - Por defecto o respaldo: Lanza el instalador estándar de Android mediante `FileProvider` (`ACTION_VIEW`, `application/vnd.android.package-archive`, `FLAG_GRANT_READ_URI_PERMISSION`).
+
+### 🧪 Pruebas Unitarias Automatizadas
+- Nueva suite `UpdateCheckerLogicTest.kt` validando:
+  - Comparación de versiones semánticas (`isVersionNewer`).
+  - Selección de APK según el canal (Debug vs Release) y fallback ante APK único.
+  - Parseo de respuestas JSON de la API de GitHub Releases.
+  - Formateo de bytes y unidades (`B`, `KB`, `MB`, `GB`).
+  - Validación de que la comprobación automática está desactivada por defecto (`default == false`).
+
+---
+
 # OpenManager v1.9.50: Integración Completa de la Papelera de Reciclaje, Estado Predeterminado Desactivado y Limpieza Segura
 
 ### 🗑️ Integración de la Papelera de Reciclaje en el Menú Lateral y Ajustes

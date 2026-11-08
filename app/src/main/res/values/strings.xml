@@ -1159,8 +1159,34 @@
     <string name="settings_cloud_restore_summary">Restore your cloud data to your local device.</string>
 
     <!-- MT Manager Other Preferences -->
-    <string name="settings_check_update_title">Check for update</string>
-    <string name="settings_check_update_summary" translatable="false">GitHub: github.com/anhot11/OpenManager</string>
+    <string name="settings_auto_check_updates_title">Check for updates automatically</string>
+    <string name="settings_auto_check_updates_summary">Check for updates on app launch and notify with a window.</string>
+    <string name="settings_check_update_title">Check for updates</string>
+    <string name="settings_check_update_summary" translatable="false">GitHub: github.com/uamo11/OpenManager</string>
+    <string name="update_checking_title">Check for updates</string>
+    <string name="update_checking_message">Checking latest release on GitHub…</string>
+    <string name="update_up_to_date_title">OpenManager is up to date</string>
+    <string name="update_up_to_date_message">You have the latest version installed (%1$s).\n\nCurrent channel: %2$s</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_channel_debug">Debug</string>
+    <string name="update_channel_release">Release / Stable</string>
+    <string name="update_detected_channel">Detected channel: %1$s</string>
+    <string name="update_current_version_label">Current: %1$s</string>
+    <string name="update_new_version_label">Latest: %1$s</string>
+    <string name="update_target_apk_label">Package: %1$s (%2$s)</string>
+    <string name="update_changelog_label">Changelog &amp; Improvements:</string>
+    <string name="update_action_download_and_install">Download &amp; Install</string>
+    <string name="update_action_view_on_github">View on GitHub</string>
+    <string name="update_action_later">Later</string>
+    <string name="update_downloading_title">Downloading update…</string>
+    <string name="update_downloading_format">%1$s / %2$s (%3$d%%)</string>
+    <string name="update_download_speed_format">%1$s/s</string>
+    <string name="update_download_success_title">Download completed</string>
+    <string name="update_download_failed_title">Download failed</string>
+    <string name="update_download_failed_message">Could not download update file: %1$s</string>
+    <string name="update_check_error_title">Check failed</string>
+    <string name="update_check_error_message">Could not retrieve update info from GitHub: %1$s\nPlease check your internet connection and try again.</string>
+    <string name="update_installing_title">Installing update…</string>
     <string name="settings_acknowledgement_title">Acknowledgement</string>
     <string name="settings_acknowledgement_summary">People and open source projects that helped the development of OpenManager.</string>
     <string name="settings_user_agreement_title">User Agreement and Privacy Policy</string>

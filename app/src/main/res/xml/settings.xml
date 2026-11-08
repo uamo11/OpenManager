@@ -566,6 +566,13 @@
             android:summary="@string/settings_view_error_logs_summary"
             app:iconSpaceReserved="false" />
 
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_auto_check_updates"
+            android:title="@string/settings_auto_check_updates_title"
+            android:summary="@string/settings_auto_check_updates_summary"
+            android:defaultValue="@bool/pref_default_value_auto_check_updates"
+            app:iconSpaceReserved="false" />
+
         <Preference
             android:key="@string/pref_key_check_for_update"
             android:title="@string/settings_check_update_title"

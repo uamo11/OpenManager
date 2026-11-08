@@ -273,6 +273,10 @@ class FileListActivity : AppActivity() {
         setupBackPressedHandler()
         checkAutoCleanRecycleBin()
 
+        if (savedInstanceState == null && Settings.AUTO_CHECK_UPDATES.valueCompat) {
+            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(this, isManual = false)
+        }
+
         val demoFilter = IntentFilter("me.zhanghai.android.files.action.DEMO")
         androidx.core.content.ContextCompat.registerReceiver(
             this,

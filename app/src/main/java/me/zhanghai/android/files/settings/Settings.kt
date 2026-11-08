@@ -293,6 +293,12 @@ object Settings {
             R.bool.pref_default_value_dead_man_root_protection
         )
 
+    val AUTO_CHECK_UPDATES: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_auto_check_updates,
+            R.bool.pref_default_value_auto_check_updates
+        )
+
     val recycleBinDirectory: Path
         get() {
             val base = CUSTOM_OPENMANAGER_DIR.valueCompat.let {

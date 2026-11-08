@@ -29,6 +29,44 @@ object ApkInstallHelper {
         return ShizukuManager.ready()
     }
 
+    suspend fun installApkWithRoot(
+        context: Context,
+        apkFile: File
+    ): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        val targetTmpPath = "/data/local/tmp/om_root_install_${System.currentTimeMillis()}.apk"
+
+        val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
+        // Flags: -r (replace existing), -d (allow downgrade), -t (allow test packages), -g (grant permissions)
+        val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
+
+        val commands = listOf(
+            "cp ${apkFile.absolutePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
+            "chmod 644 ${targetTmpPath.escapeShellArg()}",
+            installCmd,
+            "STATUS=$?",
+            "rm -f ${targetTmpPath.escapeShellArg()}",
+            "exit \$STATUS"
+        )
+        val script = commands.joinToString(" && ")
+
+        val result = try {
+            Shell.cmd(script).exec()
+        } catch (e: Exception) {
+            return@withContext false to "Error al ejecutar en shell root: ${e.message}"
+        }
+
+        val output = (result.out + result.err).joinToString("\n").trim()
+        val isSuccess = (result.isSuccess || result.code == 0) &&
+            (output.contains("Success", ignoreCase = true) || !output.contains("Failure", ignoreCase = true))
+
+        if (isSuccess) {
+            true to "Instalación completada con éxito"
+        } else {
+            val errorMsg = if (output.isNotEmpty()) output else "Código de error: ${result.code}"
+            false to errorMsg
+        }
+    }
+
     suspend fun installWithRoot(
         context: Context,
         file: FileItem
@@ -50,15 +88,27 @@ object ApkInstallHelper {
             null
         }
 
-        val sourceFilePath = tempApkInCache?.absolutePath ?: path.toFile().absolutePath
-        val targetTmpPath = "/data/local/tmp/om_root_install_${System.currentTimeMillis()}.apk"
+        val targetFile = tempApkInCache ?: path.toFile()
+        val result = installApkWithRoot(context, targetFile)
+        tempApkInCache?.delete()
+        result
+    }
+
+    suspend fun installApkWithShizuku(
+        context: Context,
+        apkFile: File
+    ): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        if (!ShizukuManager.ready()) {
+            return@withContext false to "Shizuku no está listo o no tiene permisos concedidos"
+        }
+
+        val targetTmpPath = "/data/local/tmp/om_shizuku_install_${System.currentTimeMillis()}.apk"
 
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
-        // Flags: -r (replace existing), -d (allow downgrade), -t (allow test packages), -g (grant permissions)
         val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
-            "cp ${sourceFilePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
+            "cp ${apkFile.absolutePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
             "chmod 644 ${targetTmpPath.escapeShellArg()}",
             installCmd,
             "STATUS=$?",
@@ -68,20 +118,17 @@ object ApkInstallHelper {
         val script = commands.joinToString(" && ")
 
         val result = try {
-            Shell.cmd(script).exec()
+            ShizukuShell.exec(script, timeoutSeconds = 60)
         } catch (e: Exception) {
-            tempApkInCache?.delete()
-            return@withContext false to "Error al ejecutar en shell root: ${e.message}"
+            return@withContext false to "Error al ejecutar en shell Shizuku: ${e.message}"
         }
 
-        tempApkInCache?.delete()
-
-        val output = (result.out + result.err).joinToString("\n").trim()
+        val output = (result.out + "\n" + result.err).trim()
         val isSuccess = (result.isSuccess || result.code == 0) &&
             (output.contains("Success", ignoreCase = true) || !output.contains("Failure", ignoreCase = true))
 
         if (isSuccess) {
-            true to "Instalación completada con éxito"
+            true to "Instalación con Shizuku completada con éxito"
         } else {
             val errorMsg = if (output.isNotEmpty()) output else "Código de error: ${result.code}"
             false to errorMsg
@@ -113,40 +160,9 @@ object ApkInstallHelper {
             null
         }
 
-        val sourceFilePath = tempApkInCache?.absolutePath ?: path.toFile().absolutePath
-        val targetTmpPath = "/data/local/tmp/om_shizuku_install_${System.currentTimeMillis()}.apk"
-
-        val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
-        val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
-
-        val commands = listOf(
-            "cp ${sourceFilePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
-            "chmod 644 ${targetTmpPath.escapeShellArg()}",
-            installCmd,
-            "STATUS=$?",
-            "rm -f ${targetTmpPath.escapeShellArg()}",
-            "exit \$STATUS"
-        )
-        val script = commands.joinToString(" && ")
-
-        val result = try {
-            ShizukuShell.exec(script, timeoutSeconds = 60)
-        } catch (e: Exception) {
-            tempApkInCache?.delete()
-            return@withContext false to "Error al ejecutar en shell Shizuku: ${e.message}"
-        }
-
+        val targetFile = tempApkInCache ?: path.toFile()
+        val result = installApkWithShizuku(context, targetFile)
         tempApkInCache?.delete()
-
-        val output = (result.out + "\n" + result.err).trim()
-        val isSuccess = (result.isSuccess || result.code == 0) &&
-            (output.contains("Success", ignoreCase = true) || !output.contains("Failure", ignoreCase = true))
-
-        if (isSuccess) {
-            true to "Instalación con Shizuku completada con éxito"
-        } else {
-            val errorMsg = if (output.isNotEmpty()) output else "Código de error: ${result.code}"
-            false to errorMsg
-        }
+        result
     }
 }
