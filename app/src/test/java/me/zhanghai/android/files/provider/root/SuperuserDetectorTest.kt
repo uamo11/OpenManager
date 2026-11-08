@@ -406,4 +406,35 @@ class SuperuserDetectorTest {
         assertFalse(status.isShizukuReady)
         assertTrue(status.isShizukuAvailable)
     }
+
+    @Test
+    fun testInvalidateCacheResetsCachedStatus() {
+        SuperuserDetector.cachedStatus = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.KERNEL_SU,
+            isRootGranted = true
+        )
+        assertTrue(SuperuserDetector.cachedStatus != null)
+        SuperuserDetector.invalidateCache()
+        assertEquals(null, SuperuserDetector.cachedStatus)
+    }
+
+    @Test
+    fun testDfRootStatusFormattingWhenRootActive() {
+        val status = SuperuserDetector.SuperuserStatus(
+            type = SuperuserDetector.SuperuserType.DFROOT,
+            isRootGranted = true,
+            isRootEnabledInSettings = true,
+            isShizukuReady = false,
+            hasDfRoot = true,
+            suVersion = "DFROOT v2.1",
+            managerPackage = "com.diabl0w.dfroot",
+            detectedBinaryPath = "/data/local/tmp/dfroot"
+        )
+
+        assertEquals("Superusuario: DFRoot (Jailbreak)", status.title)
+        assertEquals("ROOT", status.statusTag)
+        assertTrue(status.isRootGranted)
+        assertTrue(status.hasDfRoot)
+        assertEquals(R.drawable.ic_root_dfroot, status.type.iconRes)
+    }
 }

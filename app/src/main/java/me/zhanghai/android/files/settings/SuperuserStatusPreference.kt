@@ -85,7 +85,7 @@ class SuperuserStatusPreference : Preference {
 
     fun refresh() {
         scope.launch {
-            val status = SuperuserDetector.detect(context)
+            val status = SuperuserDetector.detect(context, forceRefresh = true)
             currentStatus = status
             notifyChanged()
         }
@@ -126,7 +126,12 @@ class SuperuserStatusPreference : Preference {
         }
 
         card?.setOnClickListener {
-            currentStatus?.let { showDetailsDialog(it) }
+            scope.launch {
+                val detected = SuperuserDetector.detect(context, forceRefresh = true)
+                currentStatus = detected
+                notifyChanged()
+                showDetailsDialog(detected)
+            }
         }
 
         scope.launch {
@@ -159,7 +164,8 @@ class SuperuserStatusPreference : Preference {
         cardInner.setBackgroundResource(R.drawable.bg_superuser_card_gray)
         flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_gray)
         ivIcon.setImageResource(R.drawable.ic_shield_locked)
-        ivIcon.setColorFilter(0xFFB0BEC5.toInt(), PorterDuff.Mode.SRC_IN)
+        ivIcon.imageTintList = android.content.res.ColorStateList.valueOf(0xFFB0BEC5.toInt())
+        ivIcon.clearColorFilter()
         tvManagerHeader.visibility = View.GONE
         tvStatus.text = "No Root"
         tvStatus.setTextColor(0xFFE2E8F0.toInt())
@@ -190,25 +196,28 @@ class SuperuserStatusPreference : Preference {
             // GREEN GRADIENT CARD
             cardInner.setBackgroundResource(R.drawable.bg_superuser_card_green)
             flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_green)
+            ivIcon.imageTintList = null
             ivIcon.clearColorFilter()
+            ivDfRootMini.imageTintList = null
+            ivDfRootMini.clearColorFilter()
+            ivShizukuMini.imageTintList = null
+            ivShizukuMini.clearColorFilter()
 
             if (hasRoot) {
-                if (status.type == SuperuserDetector.SuperuserType.DFROOT) {
-                    ivIcon.setImageResource(R.drawable.ic_root_dfroot)
-                } else {
-                    ivIcon.setImageResource(status.type.iconRes)
-                }
+                ivIcon.setImageResource(status.type.iconRes)
 
                 // Top Header: Manager name centered over top border line
                 tvManagerHeader.visibility = View.VISIBLE
                 tvManagerHeader.setBackgroundResource(R.drawable.bg_superuser_header_badge_green)
                 tvManagerHeader.setTextColor(0xFF34D399.toInt())
                 val headerText = when {
+                    status.type == SuperuserDetector.SuperuserType.DFROOT && hasShizuku -> "DFRoot + Shizuku"
+                    status.type == SuperuserDetector.SuperuserType.DFROOT -> "DFRoot (Jailbreak)"
                     status.hasDfRoot && hasShizuku -> "${status.type.displayName} + DFRoot + Shizuku"
                     status.hasDfRoot -> "${status.type.displayName} + DFRoot"
                     hasShizuku && status.type != SuperuserDetector.SuperuserType.NONE -> "${status.type.displayName} + Shizuku"
                     status.type != SuperuserDetector.SuperuserType.NONE -> status.type.displayName
-                    status.hasDfRoot -> "DFRoot"
+                    status.hasDfRoot -> "DFRoot (Jailbreak)"
                     else -> "Superusuario"
                 }
                 tvManagerHeader.text = headerText
@@ -218,6 +227,12 @@ class SuperuserStatusPreference : Preference {
                 tvStatus.setTextColor(0xFFFFFFFF.toInt())
 
                 when {
+                    status.type == SuperuserDetector.SuperuserType.DFROOT -> {
+                        tvJailbreakTag.text = if (hasShizuku) "[Jailbreak + Shizuku]" else "[Jailbreak Root]"
+                        tvJailbreakTag.visibility = View.VISIBLE
+                        ivDfRootMini.visibility = View.GONE
+                        ivShizukuMini.visibility = if (hasShizuku) View.VISIBLE else View.GONE
+                    }
                     status.hasDfRoot -> {
                         tvJailbreakTag.text = if (hasShizuku) "[Jailbreak + Shizuku]" else "[Jailbreak Root]"
                         tvJailbreakTag.visibility = View.VISIBLE
@@ -239,6 +254,8 @@ class SuperuserStatusPreference : Preference {
             } else {
                 // Shizuku Active Only (No Root) - Full official Shizuku logo
                 ivIcon.setImageResource(R.drawable.ic_shizuku_logo)
+                ivIcon.imageTintList = null
+                ivIcon.clearColorFilter()
 
                 tvManagerHeader.visibility = View.VISIBLE
                 tvManagerHeader.setBackgroundResource(R.drawable.bg_superuser_header_badge_green)
@@ -262,10 +279,36 @@ class SuperuserStatusPreference : Preference {
             // NO ROOT: GRAY GRADIENT CARD
             cardInner.setBackgroundResource(R.drawable.bg_superuser_card_gray)
             flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_gray)
+            ivDfRootMini.imageTintList = null
+            ivDfRootMini.clearColorFilter()
+            ivShizukuMini.imageTintList = null
+            ivShizukuMini.clearColorFilter()
 
-            if (status.isShizukuAvailable && !status.isShizukuReady) {
+            if (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) {
+                // Root manager is installed on device, but not authorized
+                ivIcon.setImageResource(status.type.iconRes)
+                ivIcon.imageTintList = null
+                ivIcon.clearColorFilter()
+
+                tvManagerHeader.visibility = View.VISIBLE
+                tvManagerHeader.setBackgroundResource(R.drawable.bg_superuser_card_gray)
+                tvManagerHeader.setTextColor(0xFF94A3B8.toInt())
+                tvManagerHeader.text = "${status.type.displayName} Detectado"
+
+                tvStatus.text = "No Root"
+                tvStatus.setTextColor(0xFFE2E8F0.toInt())
+
+                tvJailbreakTag.text = "[No Autorizado]"
+                tvJailbreakTag.visibility = View.VISIBLE
+                ivDfRootMini.visibility = View.GONE
+                ivShizukuMini.visibility = View.GONE
+
+                ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+                ivCornerStatus.visibility = View.VISIBLE
+            } else if (status.isShizukuAvailable && !status.isShizukuReady) {
                 // Shizuku service is running on device, but OpenManager lacks execution permission
                 ivIcon.setImageResource(R.drawable.ic_shizuku_logo)
+                ivIcon.imageTintList = null
                 ivIcon.clearColorFilter()
 
                 tvManagerHeader.visibility = View.VISIBLE
@@ -286,7 +329,8 @@ class SuperuserStatusPreference : Preference {
             } else {
                 // Primary icon: Shield locked
                 ivIcon.setImageResource(R.drawable.ic_shield_locked)
-                ivIcon.setColorFilter(0xFFB0BEC5.toInt(), PorterDuff.Mode.SRC_IN)
+                ivIcon.imageTintList = android.content.res.ColorStateList.valueOf(0xFFB0BEC5.toInt())
+                ivIcon.clearColorFilter()
 
                 tvManagerHeader.visibility = View.GONE
                 tvStatus.text = "No Root"

@@ -309,9 +309,28 @@ class FileListActivity : AppActivity() {
     override fun onResume() {
         super.onResume()
         checkAndRequestStoragePermissions()
+        refreshRootStatusOnResume()
         updateDrawerStats()
         handleDemoIntent(intent)
         handleApktoolIntent(intent)
+    }
+
+    private fun refreshRootStatusOnResume() {
+        if (!Settings.REQUEST_ROOT_PERMISSION.valueCompat) return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val wasGranted = me.zhanghai.android.files.provider.root.SuperuserDetector.cachedStatus?.isRootGranted == true
+            me.zhanghai.android.files.provider.root.SuperuserDetector.invalidateCache()
+            val status = me.zhanghai.android.files.provider.root.SuperuserDetector.detect(this@FileListActivity)
+            if (status.isRootGranted && !wasGranted) {
+                withContext(Dispatchers.Main) {
+                    updateDrawerStats()
+                    val path = activeFragment.currentPath.toString()
+                    if (path == "/" || path.startsWith("/data") || path.startsWith("/system")) {
+                        activeFragment.reload()
+                    }
+                }
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -636,6 +655,9 @@ class FileListActivity : AppActivity() {
             drawerLayout.closeDrawer(GravityCompat.START)
             try {
                 if (activeFragment.isAdded) {
+                    if (me.zhanghai.android.files.provider.root.SuperuserDetector.cachedStatus?.isRootGranted != true) {
+                        me.zhanghai.android.files.provider.root.SuperuserDetector.invalidateCache()
+                    }
                     activeFragment.navigateToRoot(Paths.get("/"))
                 }
             } catch (e: Throwable) {

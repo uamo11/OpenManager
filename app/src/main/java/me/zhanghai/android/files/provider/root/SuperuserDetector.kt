@@ -24,6 +24,18 @@ object SuperuserDetector {
     @Volatile
     var cachedStatus: SuperuserStatus? = null
 
+    fun invalidateCache() {
+        cachedStatus = null
+        try {
+            LibSuFileServiceLauncher.resetCooldown()
+        } catch (_: Throwable) {}
+        try {
+            if (Shell.isAppGrantedRoot() != true) {
+                Shell.getCachedShell()?.close()
+            }
+        } catch (_: Throwable) {}
+    }
+
     enum class SuperuserType(
         val displayName: String,
         val iconRes: Int,
@@ -147,7 +159,14 @@ object SuperuserDetector {
             }
     }
 
-    suspend fun detect(context: Context): SuperuserStatus = withContext(Dispatchers.IO) {
+    suspend fun detect(context: Context, forceRefresh: Boolean = false): SuperuserStatus = withContext(Dispatchers.IO) {
+        if (forceRefresh) {
+            invalidateCache()
+        }
+        val cached = cachedStatus
+        if (!forceRefresh && cached != null) {
+            return@withContext cached
+        }
         val pm = context.packageManager
         val isRootEnabledInSettings = try {
             me.zhanghai.android.files.settings.Settings.REQUEST_ROOT_PERMISSION.valueCompat
@@ -177,44 +196,45 @@ object SuperuserDetector {
         val shizukuUid = if (isShizukuReady) ShizukuManager.getUid() else -1
         val shizukuVersion = if (isShizukuAvailable) ShizukuManager.getVersion() else -1
 
-        // 3. Verificar si el comando su está disponible en el sistema
-        val isSuAvailable = try {
-            LibSuFileServiceLauncher.isSuAvailable()
-        } catch (_: Throwable) {
-            false
+        // 3. Versión de su (no requiere privilegios root, devuelve identificación del gestor)
+        val suVersion: String? = if (isRootEnabledInSettings) {
+            getSuVersionFast()
+        } else {
+            null
         }
 
-        // 4. Versión de su (solo si el ajuste de pedir root está activo para evitar invocar su con el toggle apagado)
-        var suVersion: String? = null
-        if (isSuAvailable && isRootEnabledInSettings) {
-            suVersion = getSuVersionFast()
-        }
-
-        // 5. Identificar tipo de gestor de Superusuario
-        val (identifiedType, detectedPkg, binaryPath) = identifySuperuserType(pm, suVersion, isSuAvailable)
-
-        // 6. Verificar si la app tiene permiso root concedido
-        // Si el usuario desactivó la solicitud de root en ajustes, NUNCA ejecutar su ni reportar concedido
-        val isRootGranted = if (isRootEnabledInSettings && isSuAvailable) {
+        // 4. Verificar si la app tiene permiso root concedido
+        val isRootGranted = if (isRootEnabledInSettings) {
             testRootExecutionSafe()
         } else {
             false
         }
 
-        // Si tenemos root concedido o su disponible pero no coincidió con ningún gestor específico,
-        // asignar GENERIC_ROOT con icono genérico de Android
-        val resolvedType = if (identifiedType == SuperuserType.NONE && (isSuAvailable || isRootGranted)) {
-            SuperuserType.GENERIC_ROOT
-        } else {
-            identifiedType
+        // 5. Verificar si el comando su está disponible en el sistema
+        val isSuAvailable = isRootGranted || suVersion != null || try {
+            LibSuFileServiceLauncher.isSuAvailable()
+        } catch (_: Throwable) {
+            false
+        }
+
+        // 6. Identificar tipo de gestor de Superusuario
+        val (identifiedType, detectedPkg, binaryPath) = identifySuperuserType(pm, suVersion, isSuAvailable)
+
+        // Resolver tipo adecuado:
+        // Si no coincidió con un gestor específico (identifiedType == NONE), pero DFRoot está activo -> DFROOT
+        // Si no, si tiene root o su disponible -> GENERIC_ROOT
+        val resolvedType = when {
+            identifiedType != SuperuserType.NONE -> identifiedType
+            hasDfRoot -> SuperuserType.DFROOT
+            isRootGranted || isSuAvailable -> SuperuserType.GENERIC_ROOT
+            else -> SuperuserType.NONE
         }
 
         // Resolver tipo final
         val finalType = when {
             isRootGranted -> resolvedType
-            isSuAvailable && resolvedType != SuperuserType.NONE -> resolvedType
-            isShizukuReady -> SuperuserType.SHIZUKU
             resolvedType != SuperuserType.NONE -> resolvedType
+            isShizukuReady -> SuperuserType.SHIZUKU
             hasDfRoot -> SuperuserType.DFROOT
             else -> SuperuserType.NONE
         }
@@ -320,8 +340,8 @@ object SuperuserDetector {
             return Triple(SuperuserType.BAKA_SU, "com.shatyuka.bakasu", "/data/adb/bakasu")
         }
 
-        // G. Comprobación por DFRoot directo
-        if (detectDfRoot(pm)) {
+        // G. Comprobación por DFRoot directo o versión de su con firma DFRoot
+        if (vUpper.contains("DFROOT") || vUpper.contains("DIRTYFLAG") || vUpper.contains("DF-ROOT") || detectDfRoot(pm)) {
             val pkg = when {
                 isPkgInstalled(pm, "df.root") -> "df.root"
                 isPkgInstalled(pm, "com.df.root") -> "com.df.root"
@@ -330,9 +350,18 @@ object SuperuserDetector {
                 isPkgInstalled(pm, "io.github.diabl0w.dfroot") -> "io.github.diabl0w.dfroot"
                 isPkgInstalled(pm, "org.dfroot") -> "org.dfroot"
                 isPkgInstalled(pm, "com.dfroot") -> "com.dfroot"
+                isPkgInstalled(pm, "com.dirtyflag") -> "com.dirtyflag"
+                isPkgInstalled(pm, "org.dirtyflag") -> "org.dirtyflag"
+                isPkgInstalled(pm, "com.dfroot.manager") -> "com.dfroot.manager"
                 else -> "df.root"
             }
-            return Triple(SuperuserType.DFROOT, pkg, "/data/local/tmp/dfroot")
+            val bin = when {
+                safeFileExists("/data/local/tmp/dfroot") -> "/data/local/tmp/dfroot"
+                safeFileExists("/data/local/tmp/dirtyflag") -> "/data/local/tmp/dirtyflag"
+                safeFileExists("/system/bin/dfroot") -> "/system/bin/dfroot"
+                else -> "/data/local/tmp/dfroot"
+            }
+            return Triple(SuperuserType.DFROOT, pkg, bin)
         }
 
         // H. Comprobación genérica de Superusuario (gestor con nombre modificado o binario su independiente)
@@ -362,7 +391,8 @@ object SuperuserDetector {
                 "df.root", "com.df.root", "org.df.root",
                 "com.diabl0w.dfroot", "io.github.diabl0w.dfroot", "org.dfroot",
                 "com.dfroot", "me.dfroot", "com.df.jailbreak",
-                "com.dirtyflag", "org.dirtyflag", "me.dirtyflag", "com.diablo.dirtyflag"
+                "com.dirtyflag", "org.dirtyflag", "me.dirtyflag", "com.diablo.dirtyflag",
+                "com.jailbreak.dfroot", "net.dfroot", "com.dfroot.manager", "org.dfroot.manager"
             )
             if (knownPkgs.any { isPkgInstalled(pm, it) }) {
                 return true
@@ -374,7 +404,13 @@ object SuperuserDetector {
             "/data/local/tmp/dfroot",
             "/data/local/tmp/dfroot.sh",
             "/data/local/tmp/dirtyflag",
-            "/data/local/tmp/dirty_flag"
+            "/data/local/tmp/dirty_flag",
+            "/data/local/tmp/dirty_flag.sh",
+            "/data/local/tmp/df",
+            "/data/local/tmp/rootshell",
+            "/data/local/tmp/dfsu",
+            "/system/bin/dfroot",
+            "/system/xbin/dfroot"
         )
         if (dfRootFiles.any { safeFileExists(it) }) {
             return true
@@ -385,6 +421,14 @@ object SuperuserDetector {
         if (dfProp.isNotEmpty() && dfProp != "0") return true
         val dfRootProp = getSystemProperty("ro.dfroot")
         if (dfRootProp.isNotEmpty() && dfRootProp != "0") return true
+        val dfSysProp = getSystemProperty("sys.dfroot")
+        if (dfSysProp.isNotEmpty() && dfSysProp != "0") return true
+        val dfPersistProp = getSystemProperty("persist.dfroot")
+        if (dfPersistProp.isNotEmpty() && dfPersistProp != "0") return true
+        val dfDirtyProp = getSystemProperty("ro.dirtyflag")
+        if (dfDirtyProp.isNotEmpty() && dfDirtyProp != "0") return true
+        val dfVerProp = getSystemProperty("dfroot.version")
+        if (dfVerProp.isNotEmpty() && dfVerProp != "0") return true
 
         return false
     }
@@ -449,46 +493,76 @@ object SuperuserDetector {
     }
 
     private fun getSuVersionFast(): String? {
-        return try {
-            val process = ProcessBuilder("su", "-v")
-                .redirectErrorStream(true)
-                .start()
-            val completed = process.waitFor(500, TimeUnit.MILLISECONDS)
-            if (completed && process.exitValue() == 0) {
-                BufferedReader(InputStreamReader(process.inputStream)).use { it.readLine()?.trim() }
-            } else {
-                process.destroyForcibly()
-                null
-            }
-        } catch (_: Throwable) {
-            null
+        val candidates = listOf(
+            arrayOf("su", "-v"),
+            arrayOf("/system/bin/su", "-v"),
+            arrayOf("/system/xbin/su", "-v"),
+            arrayOf("/sbin/su", "-v"),
+            arrayOf("/data/local/tmp/su", "-v"),
+            arrayOf("/data/local/tmp/dfroot", "-v")
+        )
+        for (cmd in candidates) {
+            try {
+                val process = ProcessBuilder(*cmd)
+                    .redirectErrorStream(true)
+                    .start()
+                val completed = process.waitFor(500, TimeUnit.MILLISECONDS)
+                if (completed && process.exitValue() == 0) {
+                    val version = BufferedReader(InputStreamReader(process.inputStream)).use { it.readLine()?.trim() }
+                    if (!version.isNullOrBlank()) {
+                        return version
+                    }
+                } else {
+                    process.destroyForcibly()
+                }
+            } catch (_: Throwable) {}
         }
+        return null
     }
 
     private fun testRootExecutionSafe(): Boolean {
-        return try {
-            val process = ProcessBuilder("su", "-c", "id")
-                .redirectErrorStream(true)
-                .start()
-            val completed = process.waitFor(1500, TimeUnit.MILLISECONDS)
-            if (completed && process.exitValue() == 0) {
-                val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
-                val isRoot = output.lineSequence().any { line ->
-                    val trimmed = line.trim()
-                    trimmed.startsWith("uid=0(root)") || trimmed.startsWith("uid=0 ") || trimmed == "uid=0"
-                }
-                if (!isRoot) {
-                    try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
-                }
-                isRoot
-            } else {
-                process.destroyForcibly()
-                try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
-                false
-            }
-        } catch (_: Throwable) {
-            try { Shell.getCachedShell()?.close() } catch (_: Throwable) {}
-            false
+        if (try { Shell.isAppGrantedRoot() == true } catch (_: Throwable) { false }) {
+            return true
         }
+        val suCommands = listOf(
+            arrayOf("su", "-c", "id"),
+            arrayOf("/system/bin/su", "-c", "id"),
+            arrayOf("/system/xbin/su", "-c", "id"),
+            arrayOf("/sbin/su", "-c", "id"),
+            arrayOf("/data/local/tmp/su", "-c", "id"),
+            arrayOf("/data/local/tmp/dfroot", "-c", "id")
+        )
+        for (cmd in suCommands) {
+            try {
+                val process = ProcessBuilder(*cmd)
+                    .redirectErrorStream(true)
+                    .start()
+                val completed = process.waitFor(1500, TimeUnit.MILLISECONDS)
+                if (completed && process.exitValue() == 0) {
+                    val output = BufferedReader(InputStreamReader(process.inputStream)).use { it.readText() }
+                    val isRoot = output.contains("uid=0(root)") ||
+                        output.contains("uid=0 ") ||
+                        output.contains("uid=0\n") ||
+                        output.trim() == "uid=0" ||
+                        (output.contains("root") && output.contains("uid=0"))
+                    if (isRoot) {
+                        try {
+                            if (Shell.isAppGrantedRoot() != true) {
+                                Shell.getCachedShell()?.close()
+                            }
+                        } catch (_: Throwable) {}
+                        return true
+                    }
+                } else {
+                    process.destroyForcibly()
+                }
+            } catch (_: Throwable) {}
+        }
+        try {
+            if (Shell.isAppGrantedRoot() != true) {
+                Shell.getCachedShell()?.close()
+            }
+        } catch (_: Throwable) {}
+        return false
     }
 }

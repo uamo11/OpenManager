@@ -79,8 +79,8 @@ object LibSuFileServiceLauncher {
         }
         try {
             val cachedGranted = Shell.isAppGrantedRoot()
-            if (cachedGranted != null) {
-                return cachedGranted
+            if (cachedGranted == true) {
+                return true
             }
         } catch (_: Throwable) {}
 
@@ -92,7 +92,9 @@ object LibSuFileServiceLauncher {
             "/system/sd/xbin/su",
             "/data/adb/ksu/bin/su",
             "/data/adb/ap/bin/su",
-            "/data/adb/magisk/su"
+            "/data/adb/magisk/su",
+            "/data/local/tmp/su",
+            "/data/local/tmp/dfroot"
         )
         var suBinaryFound = false
         for (path in paths) {
@@ -106,26 +108,40 @@ object LibSuFileServiceLauncher {
         }
 
         // Also test PATH if no explicit path matched
-        return try {
-            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "id"))
-            val finished = process.waitFor(800, TimeUnit.MILLISECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-                false
-            } else {
-                val out = process.inputStream.bufferedReader().readText()
-                val isGranted = process.exitValue() == 0 && (
-                    out.contains("uid=0(root)") ||
-                    out.lineSequence().any { line ->
-                        val trimmed = line.trim()
-                        trimmed.startsWith("uid=0(root)") || trimmed.startsWith("uid=0 ") || trimmed == "uid=0"
+        val candidateCommands = listOf(
+            arrayOf("su", "-c", "id"),
+            arrayOf("/system/bin/su", "-c", "id"),
+            arrayOf("/system/xbin/su", "-c", "id"),
+            arrayOf("/sbin/su", "-c", "id"),
+            arrayOf("/data/local/tmp/su", "-c", "id"),
+            arrayOf("/data/local/tmp/dfroot", "-c", "id")
+        )
+        for (cmd in candidateCommands) {
+            try {
+                val process = Runtime.getRuntime().exec(cmd)
+                val finished = process.waitFor(1200, TimeUnit.MILLISECONDS)
+                if (!finished) {
+                    process.destroyForcibly()
+                } else if (process.exitValue() == 0) {
+                    val out = process.inputStream.bufferedReader().readText()
+                    val isGranted = out.contains("uid=0(root)") ||
+                        out.contains("uid=0 ") ||
+                        out.contains("uid=0\n") ||
+                        out.trim() == "uid=0" ||
+                        (out.contains("root") && out.contains("uid=0"))
+                    if (isGranted) {
+                        resetCooldown()
+                        try {
+                            if (Shell.isAppGrantedRoot() != true) {
+                                Shell.getCachedShell()?.close()
+                            }
+                        } catch (_: Throwable) {}
+                        return true
                     }
-                )
-                isGranted
-            }
-        } catch (e: Exception) {
-            false
+                }
+            } catch (_: Exception) {}
         }
+        return false
     }
 
     @Throws(RemoteFileSystemException::class)

@@ -818,3 +818,20 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Auto-scroll del cursor activo si queda oculto tras el despliegue del teclado mediante `smoothScrollTo`.
 - **Suite de Pruebas Unitarias Automatizadas (`TextEditorKeyboardInsetsTest.kt`)**:
   - Cobertura de cálculos de márgenes con teclado cerrado, elevación sobre teclado abierto, reseteo tras descartar y tolerancia a particularidades de fabricantes OEM.
+
+### Hito 63: Detección Dinámica de Root en Caliente (Sin Salir de la App), Corrección Integral de Iconos y Detección Robusta de DFRoot y Gestores (v1.9.56)
+- **Detección Dinámica de Root en Caliente (`SuperuserDetector.kt`, `FileListActivity.kt`, `SettingsPreferenceFragment.kt`, `SuperuserStatusPreference.kt`, `LibSuFileServiceLauncher.kt`)**:
+  - **Eliminación del bug de salida obligatoria de la app**: Previamente, al conceder permisos root en Magisk, KernelSU, APatch o DFRoot, libsu y `SuperuserDetector` mantenían un estado en caché rígido (`isAppGrantedRoot() == false`) que requería forzar el cierre y reiniciar OpenManager.
+  - **Invalidación dinámica de caché**: Creado `SuperuserDetector.invalidateCache()` que limpia `cachedStatus`, resetea el enfriamiento de fallos de libsu (`LibSuFileServiceLauncher.resetCooldown()`) y cierra shells obsoletos denegados para permitir la obtención inmediata de un shell root activo.
+  - **Re-detección en `onResume()`**: `FileListActivity.onResume()` y `SettingsPreferenceFragment.onResume()` re-evalúan automáticamente los privilegios de superusuario en segundo plano. Si root fue concedido mientras el usuario estaba en otra app o en el diálogo de root, OpenManager actualiza el estado, refresca las estadísticas de disco del drawer y recarga el directorio raíz (`/`) de forma transparente.
+  - **Re-detección forzada al tocar la tarjeta**: Al pulsar sobre la tarjeta de estado en `Ajustes > Superusuario`, se ejecuta inmediatamente `SuperuserDetector.detect(context, forceRefresh = true)`, garantizando que el diálogo de detalles muestre siempre la información más reciente sin reiniciar.
+- **Corrección Integral de Calidad y Renderizado de Iconos (`preference_superuser_flag.xml`, `SuperuserStatusPreference.kt`, `drawable/`, `drawable-nodpi/`)**:
+  - **Supresión del tintado gris parásito**: Eliminado el atributo `app:tint="#B0BEC5"` de `ivRootIcon` en `preference_superuser_flag.xml` y configurada la limpieza completa de tintes (`imageTintList = null` y `clearColorFilter()`) al activar root/shizuku, permitiendo que KernelSU, Magisk, APatch, DFRoot y Shizuku muestren sus colores y detalles originales sin verse opacos ni grisáceos.
+  - **Aislamiento de fondos con transparencia alpha**: Eliminados los fondos cuadrados sólidos (marrones en KernelSU, blancos en APatch y fucsias en Magisk Delta) que arruinaban la estética circular de la tarjeta. Procesados con transparencia alpha limpia y exportados a `drawable-nodpi/` para una nitidez cristalina en pantallas de alta densidad.
+  - **Eliminación de iconos duplicados y texto repetido en DFRoot**: Corregido el bug donde el logo de DFRoot se mostraba simultáneamente como icono principal y como mini icono al lado del texto, y el encabezado repetía `"DFRoot (Jailbreak) + DFRoot"`.
+- **Detección Robusta de DFRoot y Gestores**:
+  - Detección de binarios y scripts en `/data/local/tmp/dfroot`, `/data/local/tmp/dirtyflag`, `/data/local/tmp/dfsu`, `/data/local/tmp/rootshell` y `/system/bin/dfroot`.
+  - Detección de propiedades `ro.boot.dirtyflag`, `ro.dfroot`, `sys.dfroot`, `persist.dfroot`, `ro.dirtyflag` y `dfroot.version`.
+  - Reconocimiento de paquetes de gestión DFRoot y preservación del tipo `SuperuserType.DFROOT` al conceder privilegios.
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - Ampliada la suite `SuperuserDetectorTest.kt` con pruebas para `invalidateCache()`, formato de DFRoot con privilegios activos y resolución de recursos visuales.

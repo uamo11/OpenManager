@@ -1,3 +1,32 @@
+# OpenManager v1.9.56: Detección Dinámica de Root en Caliente (Sin Salir de la App), Corrección Integral de Iconos y Soporte Robusto para DFRoot y Gestores
+
+### 🚀 Detección Dinámica de Superusuario en Caliente (Sin Reiniciar la App)
+- **Eliminada la Necesidad de Salir de la App tras Conceder Permisos Root**:
+  - Se corrigió el problema por el cual al conceder permisos root (en Magisk, KernelSU, APatch, DFRoot, etc.), era necesario forzar el cierre y volver a abrir la aplicación para que reconociera el acceso root.
+  - Implementado sistema de invalidación dinámica de caché (`SuperuserDetector.invalidateCache()`) y reactivación en `FileListActivity.onResume()`.
+  - Al regresar a OpenManager tras conceder permisos en el diálogo o app de root, se re-evalúan los privilegios en segundo plano automáticamente, actualizando el estado, estadísticas del drawer y recargando el directorio raíz si estaba abierto con error de permisos.
+- **Re-detección Instantánea al Pulsar la Tarjeta en Ajustes**:
+  - Al tocar la tarjeta de superusuario en `Ajustes`, se realiza una comprobación forzada en caliente (`detect(forceRefresh = true)`), actualizando el diálogo de detalles al segundo con el estado real.
+
+### 🎨 Corrección Integral de Renderizado y Calidad de Iconos de Root
+- **Eliminación del Tintado Gris Parásito (`app:tint`)**:
+  - Se corrigió la regla XML en la tarjeta de estado donde `app:tint="#B0BEC5"` teñía de gris todos los iconos de superusuario (KernelSU, Magisk, APatch, DFRoot, Shizuku), destruyendo sus colores originales y contraste.
+  - Se configuró la limpieza completa de tintes (`imageTintList = null` y `clearColorFilter()`) en modo activo para que cada icono luzca con sus colores e identidad originales.
+- **Aislamiento de Fondos y Transparencias Alpha**:
+  - Se eliminaron los fondos sólidos cuadrados (marrones, blancos y fucsias) que causaban bordes toscos en KernelSU, Magisk Delta y APatch dentro del contenedor circular.
+  - Se procesaron e integraron versiones con transparencia alfa limpia en `drawable/` y `drawable-nodpi/` para máxima nitidez en pantallas de cualquier densidad (xxhdpi, xxxhdpi).
+- **Corrección de Duplicidad de Iconos y Encabezados en DFRoot**:
+  - Corregido el bug donde el logo de DFRoot se mostraba duplicado (icono principal + mini icono) y el encabezado repetía `"DFRoot (Jailbreak) + DFRoot"`. Ahora se muestra de forma limpia y elegante.
+
+### 🛡️ Detección Robusta de DFRoot (DirtyFlag Exploit) y Gestores de Kernel
+- **Ampliación Exhaustiva de Firmas para DFRoot**:
+  - Reconocimiento de nuevas rutas de binarios y scripts de elevación: `/data/local/tmp/dfroot`, `/data/local/tmp/dirtyflag`, `/data/local/tmp/dfroot.sh`, `/data/local/tmp/dirty_flag.sh`, `/data/local/tmp/dfsu`, `/data/local/tmp/rootshell`, `/system/bin/dfroot`.
+  - Reconocimiento de propiedades de sistema: `ro.boot.dirtyflag`, `ro.dfroot`, `sys.dfroot`, `persist.dfroot`, `ro.dirtyflag`, `dfroot.version`.
+  - Detección de nuevos paquetes del gestor DFRoot / DirtyFlag.
+  - Preservación del tipo `DFROOT` con su icono nativo tras la concesión de privilegios root (evitando degradación a genérico).
+
+---
+
 # OpenManager v1.9.55: Elevación Automática de la Barra Inferior del Editor de Texto sobre el Teclado Virtual (Paridad MT Manager)
 
 ### ⌨️ Elevación y Sincronización de la Barra de Herramientas y Símbolos con el Teclado

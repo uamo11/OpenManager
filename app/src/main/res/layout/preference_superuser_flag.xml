@@ -55,7 +55,6 @@
                     android:layout_gravity="center"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_shield_locked"
-                    app:tint="#B0BEC5"
                     tools:src="@drawable/ic_root_kernelsu" />
             </FrameLayout>
 

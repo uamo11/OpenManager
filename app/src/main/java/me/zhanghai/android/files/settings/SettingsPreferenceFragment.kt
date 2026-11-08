@@ -291,6 +291,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     override fun onResume() {
         super.onResume()
 
+        me.zhanghai.android.files.provider.root.SuperuserDetector.invalidateCache()
         findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
