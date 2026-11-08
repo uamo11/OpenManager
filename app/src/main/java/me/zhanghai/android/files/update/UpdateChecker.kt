@@ -113,7 +113,7 @@ object UpdateChecker {
         return try {
             val root = JSONObject(jsonString)
             val tagName = root.optString("tag_name")
-            if (tagName.isNullOrEmpty()) return null
+            if (tagName.isNullOrEmpty()) return parseReleaseJsonFallback(jsonString, isDebug)
             val version = tagName.removePrefix("v").removePrefix("V").trim()
             val name = root.optString("name", "OpenManager $tagName")
             val body = root.optString("body", "")
@@ -143,10 +143,46 @@ object UpdateChecker {
                 targetAsset = targetAsset,
                 isDebugChannel = isDebug
             )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
+        } catch (_: Throwable) {
+            parseReleaseJsonFallback(jsonString, isDebug)
         }
+    }
+
+    fun parseReleaseJsonFallback(json: String, isDebug: Boolean): ReleaseInfo? {
+        val tagMatch = Regex("\"tag_name\"\\s*:\\s*\"([^\"]+)\"").find(json) ?: return null
+        val tagName = tagMatch.groupValues[1]
+        val version = tagName.removePrefix("v").removePrefix("V").trim()
+
+        val nameMatch = Regex("\"name\"\\s*:\\s*\"([^\"]+)\"").find(json)
+        val name = nameMatch?.groupValues?.get(1) ?: "OpenManager $tagName"
+
+        val htmlUrlMatch = Regex("\"html_url\"\\s*:\\s*\"([^\"]+)\"").find(json)
+        val htmlUrl = htmlUrlMatch?.groupValues?.get(1) ?: "https://github.com/$GITHUB_REPO/releases"
+
+        val bodyMatch = Regex("\"body\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").find(json)
+        val body = bodyMatch?.groupValues?.get(1)?.replace("\\n", "\n")?.replace("\\\"", "\"") ?: ""
+
+        val assets = mutableListOf<ReleaseAsset>()
+        val genericAssetRegex = Regex("\\{[^{}]*\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"[^{}]*\\}")
+        for (match in genericAssetRegex.findAll(json)) {
+            val block = match.value
+            val aName = Regex("\"name\"\\s*:\\s*\"([^\"]+)\"").find(block)?.groupValues?.get(1) ?: continue
+            val aSize = Regex("\"size\"\\s*:\\s*([0-9]+)").find(block)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
+            val aUrl = match.groupValues[1]
+            assets.add(ReleaseAsset(aName, aSize, aUrl))
+        }
+
+        val targetAsset = selectAssetForDevice(assets, isDebug) ?: return null
+        return ReleaseInfo(
+            tagName = tagName,
+            version = version,
+            name = name,
+            body = body,
+            htmlUrl = htmlUrl,
+            assets = assets,
+            targetAsset = targetAsset,
+            isDebugChannel = isDebug
+        )
     }
 
     fun formatSize(bytes: Long): String {
@@ -382,10 +418,13 @@ object UpdateChecker {
                     }
 
                     val apkName = releaseInfo.targetAsset.name
-                    finalFile = File(updatesDir, apkName)
-                    tempFile = File(updatesDir, "$apkName.tmp")
-                    if (tempFile!!.exists()) {
-                        tempFile!!.delete()
+                    val destinationFile = File(updatesDir, apkName)
+                    val temporaryFile = File(updatesDir, "$apkName.tmp")
+                    finalFile = destinationFile
+                    tempFile = temporaryFile
+
+                    if (temporaryFile.exists()) {
+                        temporaryFile.delete()
                     }
 
                     val connection = openConnectionWithRedirects(releaseInfo.targetAsset.downloadUrl)
@@ -400,7 +439,7 @@ object UpdateChecker {
                     var bytesSinceLastUpdate = 0L
 
                     connection.inputStream.use { input ->
-                        FileOutputStream(tempFile!!).use { output ->
+                        FileOutputStream(temporaryFile).use { output ->
                             val buffer = ByteArray(16384)
                             var read: Int
                             while (input.read(buffer).also { read = it } != -1) {
@@ -437,12 +476,12 @@ object UpdateChecker {
                         }
                     }
 
-                    if (finalFile!!.exists()) {
-                        finalFile!!.delete()
+                    if (destinationFile.exists()) {
+                        destinationFile.delete()
                     }
-                    if (!tempFile!!.renameTo(finalFile!!)) {
-                        tempFile!!.copyTo(finalFile!!, overwrite = true)
-                        tempFile!!.delete()
+                    if (!temporaryFile.renameTo(destinationFile)) {
+                        temporaryFile.copyTo(destinationFile, overwrite = true)
+                        temporaryFile.delete()
                     }
                 }
 
