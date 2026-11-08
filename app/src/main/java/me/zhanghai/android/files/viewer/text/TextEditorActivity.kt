@@ -7,6 +7,7 @@ package me.zhanghai.android.files.viewer.text
 
 import android.os.Bundle
 import android.view.View
+import androidx.core.view.WindowCompat
 import androidx.fragment.app.commit
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.util.putArgs
@@ -16,6 +17,8 @@ class TextEditorActivity : AppActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
 
         // Calls ensureSubDecor().
         findViewById<View>(android.R.id.content)

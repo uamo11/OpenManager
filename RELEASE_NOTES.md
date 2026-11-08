@@ -1,3 +1,22 @@
+# OpenManager v1.9.55: Elevación Automática de la Barra Inferior del Editor de Texto sobre el Teclado Virtual (Paridad MT Manager)
+
+### ⌨️ Elevación y Sincronización de la Barra de Herramientas y Símbolos con el Teclado
+- **Barra de Símbolos sobre el Teclado Virtual (`WindowInsetsCompat.Type.ime()`)**:
+  - Se corrigió el problema por el cual la barra inferior de símbolos y navegación (`[◀] [▶] [▲] [▼] [→|] [|←] [TAB] [↶] [↷] [🔍]`) quedaba oculta detrás del teclado al editar archivos en Android 10, 11, 12, 13, 14 y 15.
+  - Ahora, al abrir el teclado virtual de Android (IME), la barra inferior sube automáticamente y se posiciona directamente encima del teclado, exactamente igual que en MT Manager.
+  - Al cerrar o descartar el teclado, la barra regresa suavemente al borde inferior de la pantalla, adaptándose a la barra de navegación o barra de gestos del sistema.
+- **Animación Fluida Sincronizada con el Teclado (`WindowInsetsAnimationCompat`)**:
+  - Implementado callback de animación en tiempo real que desliza la barra hacia arriba y hacia abajo acompañando el movimiento del teclado a 60/120 Hz sin saltos visuales.
+- **Auto-Ajuste del Área de Edición y Auto-Scroll del Cursor**:
+  - El espacio de trabajo del editor se redimensiona reactivamente para mantenerse visible entre la barra superior y la barra de símbolos.
+  - Si la posición actual del cursor queda debajo del área visible al desplegarse el teclado, el editor realiza automáticamente un desplazamiento suave (`smoothScrollTo`) para mantener la línea activa a la vista del usuario.
+- **Transición Edge-to-Edge en `TextEditorActivity`**:
+  - Habilitada la gestión avanzada de ventanas mediante `WindowCompat.setDecorFitsSystemWindows(window, false)` garantizando entrega precisa de eventos de teclado en todos los fabricantes (MIUI, HyperOS, OneUI, Pixel OS, etc.).
+- **Suite de Pruebas Unitarias Automatizadas**:
+  - Nueva suite `TextEditorKeyboardInsetsTest.kt` validando el cálculo de márgenes, restauración tras descartar teclado y compatibilidad con particularidades de fabricantes OEM.
+
+---
+
 # OpenManager v1.9.54: Rediseño de la Barra Inferior de Selección con Iconos MT Manager y Botón de Cancelación [✕]
 
 ### 🎯 Rediseño Estético y Funcional de la Barra de Selección (Paridad MT Manager)

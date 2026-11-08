@@ -32,6 +32,7 @@ import android.widget.TextView
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
 import androidx.core.widget.doAfterTextChanged
@@ -587,47 +588,116 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         }
     }
 
-    private var systemNavBarInset: Int = 0
+    private var currentImeBottom: Int = 0
+    private var currentNavBottom: Int = 0
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
-            val navInset = if (isImeVisible) 0 else insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            if (systemNavBarInset != navInset) {
-                systemNavBarInset = navInset
-                applyBottomBarInsets()
-            }
+            updateInsetsFromWindow(insets)
             insets
+        }
+
+        ViewCompat.setWindowInsetsAnimationCallback(
+            binding.root,
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: List<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat {
+                    updateInsetsFromWindow(insets)
+                    return insets
+                }
+            }
+        )
+    }
+
+    private fun updateInsetsFromWindow(insets: WindowInsetsCompat) {
+        val imeInsetsBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+        val navInsetsBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+        val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime()) || imeInsetsBottom > navInsetsBottom
+        val imeBottom = if (isImeVisible && imeInsetsBottom > 0) imeInsetsBottom else 0
+
+        if (currentImeBottom != imeBottom || currentNavBottom != navInsetsBottom) {
+            currentImeBottom = imeBottom
+            currentNavBottom = navInsetsBottom
+            applyBottomBarInsets()
         }
     }
 
     private fun applyBottomBarInsets() {
-        val navInset = systemNavBarInset
+        if (!this::binding.isInitialized) return
+        val imeBottom = currentImeBottom
+        val navBottom = currentNavBottom
         val baseSearchBottomPadding = (8 * resources.displayMetrics.density).toInt()
-        if (binding.symbolBar.visibility == View.VISIBLE) {
-            binding.symbolBar.setPadding(0, 0, 0, navInset)
+
+        val lp = binding.editorContentLayout.layoutParams as? ViewGroup.MarginLayoutParams
+        if (imeBottom > 0) {
+            // Soft keyboard is OPEN: lift the entire content layout so symbol bar sits right on top of keyboard
+            if (lp != null && lp.bottomMargin != imeBottom) {
+                lp.bottomMargin = imeBottom
+                binding.editorContentLayout.layoutParams = lp
+            }
+            binding.symbolBar.setPadding(0, 0, 0, 0)
             binding.searchPanel.setPadding(
                 binding.searchPanel.paddingLeft,
                 binding.searchPanel.paddingTop,
                 binding.searchPanel.paddingRight,
                 baseSearchBottomPadding
             )
-        } else if (binding.searchPanel.visibility == View.VISIBLE) {
-            binding.symbolBar.setPadding(0, 0, 0, 0)
-            binding.searchPanel.setPadding(
-                binding.searchPanel.paddingLeft,
-                binding.searchPanel.paddingTop,
-                binding.searchPanel.paddingRight,
-                baseSearchBottomPadding + navInset
-            )
+            binding.editorContainer.setPadding(0, 0, 0, 0)
+
+            binding.textEdit.post {
+                try {
+                    val sel = binding.textEdit.selectionStart
+                    val layout = binding.textEdit.layout
+                    if (sel >= 0 && layout != null) {
+                        val line = layout.getLineForOffset(sel)
+                        val lineBottom = layout.getLineBottom(line)
+                        val scrollY = binding.scrollView.scrollY
+                        val height = binding.scrollView.height
+                        if (height > 0 && lineBottom > scrollY + height) {
+                            binding.scrollView.smoothScrollTo(
+                                0,
+                                lineBottom - height + (40 * resources.displayMetrics.density).toInt()
+                            )
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
         } else {
-            binding.symbolBar.setPadding(0, 0, 0, 0)
-            binding.searchPanel.setPadding(
-                binding.searchPanel.paddingLeft,
-                binding.searchPanel.paddingTop,
-                binding.searchPanel.paddingRight,
-                baseSearchBottomPadding
-            )
+            // Soft keyboard is CLOSED: content layout rests at bottom, pad above navigation bar
+            if (lp != null && lp.bottomMargin != 0) {
+                lp.bottomMargin = 0
+                binding.editorContentLayout.layoutParams = lp
+            }
+            if (binding.symbolBar.visibility == View.VISIBLE) {
+                binding.symbolBar.setPadding(0, 0, 0, navBottom)
+                binding.searchPanel.setPadding(
+                    binding.searchPanel.paddingLeft,
+                    binding.searchPanel.paddingTop,
+                    binding.searchPanel.paddingRight,
+                    baseSearchBottomPadding
+                )
+                binding.editorContainer.setPadding(0, 0, 0, 0)
+            } else if (binding.searchPanel.visibility == View.VISIBLE) {
+                binding.symbolBar.setPadding(0, 0, 0, 0)
+                binding.searchPanel.setPadding(
+                    binding.searchPanel.paddingLeft,
+                    binding.searchPanel.paddingTop,
+                    binding.searchPanel.paddingRight,
+                    baseSearchBottomPadding + navBottom
+                )
+                binding.editorContainer.setPadding(0, 0, 0, 0)
+            } else {
+                binding.symbolBar.setPadding(0, 0, 0, 0)
+                binding.searchPanel.setPadding(
+                    binding.searchPanel.paddingLeft,
+                    binding.searchPanel.paddingTop,
+                    binding.searchPanel.paddingRight,
+                    baseSearchBottomPadding
+                )
+                binding.editorContainer.setPadding(0, 0, 0, navBottom)
+            }
         }
     }
 

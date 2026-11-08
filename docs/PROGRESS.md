@@ -805,3 +805,16 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
   - Agregada la opción `"Seleccionar todo"` en el menú emergente de 3 puntos `showMoreSelectionMenu`.
 - **Ampliación de Pruebas Unitarias (`DirectionalActionLogicTest.kt`)**:
   - Pruebas añadidas para la resolución de drawables según panel izquierdo/derecho y directorios comprimidos vs normales.
+
+### Hito 62: Elevación Automática de la Barra Inferior del Editor de Texto sobre el Teclado Virtual (Paridad MT Manager)
+- **Seguimiento e Insets de Teclado IME (`TextEditorFragment.kt`, `TextEditorActivity.kt`, `text_editor_fragment.xml`)**:
+  - Habilitado `WindowCompat.setDecorFitsSystemWindows(window, false)` en `TextEditorActivity` para entrega precisa y sin retrasos de los insets del teclado en Android 10, 11, 12, 13, 14 y 15.
+  - Asignado identificador `@+id/editorContentLayout` al contenedor principal del editor y barra de símbolos.
+  - Implementado listener `ViewCompat.setOnApplyWindowInsetsListener` y callback `ViewCompat.setWindowInsetsAnimationCallback` con `WindowInsetsAnimationCompat`.
+- **Posicionamiento Dinámico Encima del Teclado**:
+  - Cuando el teclado virtual está activo (`imeBottom > 0`), se asigna `bottomMargin = imeBottom` a `editorContentLayout`, elevando la barra de símbolos (`symbolBar`) y el panel de búsqueda (`searchPanel`) directamente por encima del teclado.
+  - La barra de símbolos resetea su padding inferior a 0 para asentarse al ras del teclado virtual.
+  - Al cerrar el teclado, `bottomMargin` se restablece a 0 y `symbolBar` readopta el padding de la barra de navegación o barra de gestos del sistema.
+  - Auto-scroll del cursor activo si queda oculto tras el despliegue del teclado mediante `smoothScrollTo`.
+- **Suite de Pruebas Unitarias Automatizadas (`TextEditorKeyboardInsetsTest.kt`)**:
+  - Cobertura de cálculos de márgenes con teclado cerrado, elevación sobre teclado abierto, reseteo tras descartar y tolerancia a particularidades de fabricantes OEM.
