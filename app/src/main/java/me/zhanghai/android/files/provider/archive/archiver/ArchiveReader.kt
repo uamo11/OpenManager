@@ -166,7 +166,7 @@ object ArchiveReader {
                                 size,
                                 null,
                                 null,
-                                if (isDir) PosixFileMode.DIRECTORY_DEFAULT else PosixFileMode.REGULAR_FILE_DEFAULT,
+                                if (isDir) PosixFileMode.DIRECTORY_DEFAULT else PosixFileMode.FILE_DEFAULT,
                                 null
                             )
                         }
@@ -201,7 +201,7 @@ object ArchiveReader {
                                     size,
                                     null,
                                     null,
-                                    if (isDir) PosixFileMode.DIRECTORY_DEFAULT else PosixFileMode.REGULAR_FILE_DEFAULT,
+                                    if (isDir) PosixFileMode.DIRECTORY_DEFAULT else PosixFileMode.FILE_DEFAULT,
                                     null
                                 )
                                 zipIn.closeEntry()
