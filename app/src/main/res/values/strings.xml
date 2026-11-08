@@ -1006,7 +1006,7 @@
     <string name="settings_category_appearance_summary">Themes, colors, dark mode, font sizes and animations</string>
     <string name="settings_category_general_title">3. Files &amp; General Management</string>
     <string name="settings_category_general_summary">File encoding, favorites, sorting, and base directories</string>
-    <string name="settings_category_recycle_bin_title">Recycle Bin</string>
+    <string name="settings_category_recycle_bin_title">4. Recycle Bin</string>
     <string name="drawer_item_recycle_bin_title">Recycle Bin</string>
     <string name="settings_category_recycle_bin_summary">Secure deletion, automatic cleanup and warnings</string>
     <string name="settings_category_installation_title">5. App Installation &amp; Packages</string>
@@ -1084,6 +1084,8 @@
     <string name="settings_custom_openmanager_dir_summary">After modifying the directory path, the files in the original folder will not be automatically transferred, and you need to move them manually.</string>
 
     <!-- MT Manager Recycle Bin Preferences -->
+    <string name="settings_move_to_recycle_bin_on_delete_title">Move to recycle bin when deleting files</string>
+    <string name="settings_move_to_recycle_bin_on_delete_summary">When disabled, files are deleted directly without asking to move them to recycle bin, and the recycle bin does not appear in the sidebar.</string>
     <string name="settings_enable_recycle_bin_title">Enable recycle bin feature</string>
     <string name="settings_enable_recycle_bin_summary">After disabling the recycle bin feature, the \"Move to recycle bin\" option will not be displayed when deleting files, and the \"Recycle Bin\" tool will not be displayed in the sidebar.</string>
     <string name="settings_move_to_recycle_bin_default_title">Move to recycle bin by default</string>

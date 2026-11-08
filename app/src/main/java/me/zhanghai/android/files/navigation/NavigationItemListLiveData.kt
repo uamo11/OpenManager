@@ -17,6 +17,7 @@ object NavigationItemListLiveData : MediatorLiveData<List<NavigationItem?>>() {
         addSource(StorageVolumeListLiveData) { loadValue() }
         addSource(StandardDirectoriesLiveData) { loadValue() }
         addSource(Settings.BOOKMARK_DIRECTORIES) { loadValue() }
+        addSource(Settings.MOVE_TO_RECYCLE_BIN_ON_DELETE) { loadValue() }
         addSource(Settings.ENABLE_RECYCLE_BIN) { loadValue() }
         addSource(Settings.SHOW_BOOKMARKS_SIDEBAR) { loadValue() }
     }

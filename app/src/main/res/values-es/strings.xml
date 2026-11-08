@@ -903,7 +903,7 @@
     <string name="settings_category_appearance_summary">Tema, colores, modo noche, tamaños de texto, animaciones e iconos</string>
     <string name="settings_category_general_title">3. Gestión de Archivos y Operaciones</string>
     <string name="settings_category_general_summary">Codificación de archivos, favoritos, orden y rutas base</string>
-    <string name="settings_category_recycle_bin_title">Papelera de Reciclaje</string>
+    <string name="settings_category_recycle_bin_title">4. Papelera de Reciclaje</string>
     <string name="drawer_item_recycle_bin_title">Papelera de Reciclaje</string>
     <string name="settings_category_recycle_bin_summary">Eliminación segura, limpieza automática y advertencias</string>
     <string name="settings_category_installation_title">5. Instalación de Paquetes y APK</string>
@@ -980,6 +980,8 @@
     <string name="settings_custom_openmanager_dir_summary">Después de modificar la ruta del directorio, los archivos de la carpeta original no se transferirán automáticamente, y deberá moverlos manualmente.</string>
 
     <!-- MT Manager Recycle Bin Preferences -->
+    <string name="settings_move_to_recycle_bin_on_delete_title">Mover a la papelera al eliminar archivos</string>
+    <string name="settings_move_to_recycle_bin_on_delete_summary">Al desactivar esta opción, los archivos se eliminan directamente sin preguntar si moverlos a la papelera, y la papelera de reciclaje no aparece en la barra lateral.</string>
     <string name="settings_enable_recycle_bin_title">Activar función de papelera de reciclaje</string>
     <string name="settings_enable_recycle_bin_summary">Al desactivar la función de papelera, la opción \"Mover a la papelera\" no se mostrará al eliminar archivos, y la herramienta \"Papelera de reciclaje\" no aparecerá en la barra lateral.</string>
     <string name="settings_move_to_recycle_bin_default_title">Mover a la papelera por defecto</string>

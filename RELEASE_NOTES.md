@@ -1,3 +1,25 @@
+# OpenManager v1.9.58: Control en Ajustes para Mover a la Papelera al Eliminar (OFF por Defecto) y Ocultamiento de la Barra Lateral
+
+### 🗑️ Supresión de la Papelera al Borrar por Defecto
+- **Eliminación Directa y Limpia sin Avisos de Papelera**:
+  - Se solucionó el comportamiento por el cual al borrar archivos se preguntaba si se deseaban mover a la papelera de reciclaje.
+  - Se añadió la opción **«Mover a la papelera al eliminar archivos»** en Ajustes (`Ajustes > 4. Papelera de Reciclaje`), la cual viene **desactivada por defecto (OFF)**.
+  - Al estar desactivada (estado predeterminado), el diálogo de eliminación muestra una confirmación directa y limpia (`¿Eliminar “archivo”?` o `¿Eliminar X archivos?`) sin casillas, avisos ni menciones de papelera de reciclaje, borrando los archivos directamente.
+
+### 🚫 Ocultamiento Completo de la Papelera en la Barra Lateral
+- **No Aparece a Menos que se Active en Ajustes**:
+  - La herramienta `4. Papelera de Reciclaje` en el menú lateral (drawer) ahora se oculta de forma automática (`View.GONE`) cuando la opción está desactivada en Ajustes.
+  - No aparece en la barra lateral ni molesta al usuario a menos que éste decida activarla explícitamente desde Ajustes.
+
+### ⚙️ Habilitación Manual y Sub-Opciones Dependientes
+- **Control Total para el Usuario**:
+  - Únicamente si el usuario entra a `Ajustes > 4. Papelera de Reciclaje` y activa manualmente el interruptor:
+    1. Se hace visible el elemento `Papelera de Reciclaje` en la barra lateral con navegación a su directorio protegido.
+    2. En el diálogo de eliminación aparece la casilla `[ ] Mover a la papelera de reciclaje`.
+    3. Se habilitan las opciones dependientes: marcar por defecto y auto-limpieza programada (a los 7 o 30 días).
+
+---
+
 # OpenManager v1.9.57: Atribución Completa de Autoría a Uamo11, Sitio Web uam.lol y Sección Dedicada de Agradecimientos a Hai Zhang (Shangai)
 
 ### 👤 Autoría y Desarrollo Exclusivo de OpenManager: Uamo11

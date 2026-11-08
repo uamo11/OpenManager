@@ -1753,12 +1753,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun deleteFiles(files: FileItemSet) {
-        deleteFiles(files, moveToRecycleBin = Settings.ENABLE_RECYCLE_BIN.valueCompat && Settings.MOVE_TO_RECYCLE_BIN_DEFAULT.valueCompat)
+        deleteFiles(files, moveToRecycleBin = Settings.isRecycleBinActive && Settings.MOVE_TO_RECYCLE_BIN_DEFAULT.valueCompat)
     }
 
     override fun deleteFiles(files: FileItemSet, moveToRecycleBin: Boolean) {
         val isAlreadyInRecycleBin = files.any { it.isInsideRecycleBin }
-        if (moveToRecycleBin && !isAlreadyInRecycleBin && Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+        if (moveToRecycleBin && !isAlreadyInRecycleBin && Settings.isRecycleBinActive) {
             val recyclePath = Settings.recycleBinDirectory
             try {
                 val dirFile = java.io.File(recyclePath.toString())

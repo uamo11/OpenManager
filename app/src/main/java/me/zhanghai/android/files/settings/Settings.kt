@@ -230,11 +230,20 @@ object Settings {
             R.string.pref_default_value_file_list_size
         )
 
+    val MOVE_TO_RECYCLE_BIN_ON_DELETE: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_move_to_recycle_bin_on_delete,
+            R.bool.pref_default_value_move_to_recycle_bin_on_delete
+        )
+
     val ENABLE_RECYCLE_BIN: SettingLiveData<Boolean> =
         BooleanSettingLiveData(
             R.string.pref_key_enable_recycle_bin,
             R.bool.pref_default_value_enable_recycle_bin
         )
+
+    val isRecycleBinActive: Boolean
+        get() = MOVE_TO_RECYCLE_BIN_ON_DELETE.valueCompat && ENABLE_RECYCLE_BIN.valueCompat
 
     val MOVE_TO_RECYCLE_BIN_DEFAULT: SettingLiveData<Boolean> =
         BooleanSettingLiveData(

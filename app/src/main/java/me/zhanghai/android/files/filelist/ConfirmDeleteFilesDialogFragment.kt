@@ -32,7 +32,7 @@ class ConfirmDeleteFilesDialogFragment : AppCompatDialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val files = args.files
         val isAlreadyInRecycleBin = files.any { it.isInsideRecycleBin }
-        val isRecycleBinEnabled = Settings.ENABLE_RECYCLE_BIN.valueCompat
+        val isRecycleBinEnabled = Settings.isRecycleBinActive
 
         val message = if (files.size == 1) {
             val file = files.single()

@@ -242,6 +242,10 @@ class FileListActivity : AppActivity() {
             activePanelIndex = savedInstanceState.getInt(KEY_ACTIVE_PANEL, 0)
         }
 
+        if (!Settings.MOVE_TO_RECYCLE_BIN_ON_DELETE.valueCompat && Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+            Settings.ENABLE_RECYCLE_BIN.putValue(false)
+        }
+
         if (Settings.AUTO_START_SERVICES.valueCompat == "1") {
             try {
                 FtpServerService.start(this)
@@ -741,9 +745,16 @@ class FileListActivity : AppActivity() {
         }
 
         val drawerItemRecycleBin = findViewById<View>(R.id.drawerItemRecycleBin)
+        val updateRecycleBinVisibility = {
+            drawerItemRecycleBin?.isVisible = Settings.isRecycleBinActive
+        }
+        updateRecycleBinVisibility()
+        Settings.MOVE_TO_RECYCLE_BIN_ON_DELETE.observe(this) { updateRecycleBinVisibility() }
+        Settings.ENABLE_RECYCLE_BIN.observe(this) { updateRecycleBinVisibility() }
+
         drawerItemRecycleBin?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            if (Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+            if (Settings.isRecycleBinActive) {
                 val recyclePath = Settings.recycleBinDirectory
                 val recycleDir = java.io.File(recyclePath.toString())
                 if (!recycleDir.exists()) {
@@ -761,6 +772,7 @@ class FileListActivity : AppActivity() {
                     .setTitle(R.string.recycle_bin_disabled_dialog_title)
                     .setMessage(R.string.recycle_bin_disabled_dialog_message)
                     .setPositiveButton(R.string.recycle_bin_disabled_dialog_enable_action) { _, _ ->
+                        Settings.MOVE_TO_RECYCLE_BIN_ON_DELETE.putValue(true)
                         Settings.ENABLE_RECYCLE_BIN.putValue(true)
                         val recyclePath = Settings.recycleBinDirectory
                         val recycleDir = java.io.File(recyclePath.toString())
@@ -1207,7 +1219,7 @@ class FileListActivity : AppActivity() {
     }
 
     private fun checkAutoCleanRecycleBin() {
-        if (!Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+        if (!Settings.isRecycleBinActive) {
             return
         }
         val days = Settings.autoCleanRecycleBinDays

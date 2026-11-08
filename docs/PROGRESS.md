@@ -819,7 +819,18 @@ OpenManager es un administrador de archivos avanzado y suite de ingeniería inve
 - **Suite de Pruebas Unitarias Automatizadas (`TextEditorKeyboardInsetsTest.kt`)**:
   - Cobertura de cálculos de márgenes con teclado cerrado, elevación sobre teclado abierto, reseteo tras descartar y tolerancia a particularidades de fabricantes OEM.
 
-### Hito 64: Atribución Completa de Autoría a Uamo11, Sitio Web uam.lol y Sección Dedicada de Agradecimientos a Hai Zhang (Shangai) (v1.9.57)
+### Hito 65: Control en Ajustes para Mover a la Papelera al Eliminar (OFF por Defecto) y Ocultamiento de la Barra Lateral (v1.9.58)
+- **Opción en Ajustes para Mover a la Papelera al Eliminar (Desactivada por Defecto)**:
+  - Creación del nuevo ajuste «Mover a la papelera al eliminar archivos» (`pref_key_move_to_recycle_bin_on_delete`), configurado para venir predeterminado en **OFF (`false`)**.
+  - Al estar desactivado, el diálogo de confirmación de eliminación no incluye casillas ni texto solicitando mover archivos a la papelera: muestra únicamente la confirmación estándar y elimina de manera definitiva e inmediata.
+- **Ocultamiento Dinámico de la Papelera en la Barra Lateral**:
+  - `drawerItemRecycleBin` en `FileListActivity` oculta de forma reactiva (`View.GONE`) el elemento de la papelera en el panel lateral mientras la opción esté desactivada.
+  - No aparece en el menú lateral a menos que el usuario lo active manualmente en Ajustes.
+- **Habilitación Opcional y Dependencias en Ajustes**:
+  - Al activar el interruptor en `Ajustes > 4. Papelera de Reciclaje`, se habilita la papelera en la barra lateral, aparece la opción en el diálogo de eliminación y se desbloquean las sub-opciones dependientes (marcar por defecto y limpieza automática programada).
+- **Ampliación de Pruebas Unitarias**:
+  - Actualización de `RecycleBinLogicTest.kt` validando que la opción predeterminada sea OFF, el ocultamiento del drawer y el comportamiento del diálogo de borrado.
+
 - **Acreditación Exclusiva de Autoría a Uamo11**:
   - Actualización completa de la autoría de OpenManager para certificar a **Uamo11** como su único autor y desarrollador.
   - Creación del nuevo recurso vectorial de alta calidad `web_icon_white_24dp.xml` (globo terráqueo Material Design) para representar su sitio web personal.

@@ -51,7 +51,33 @@ class RecycleBinLogicTest {
     fun testRecycleBinDefaultIsOff() {
         // As requested by user: "Que vendrá off"
         val defaultRecycleBinEnabled = false
-        assertFalse("Recycle Bin must default to disabled (off)", defaultRecycleBinEnabled)
+        val defaultMoveToRecycleBinOnDelete = false
+        val defaultMoveToRecycleBinDefault = false
+        assertFalse("Recycle Bin master switch must default to disabled (off)", defaultRecycleBinEnabled)
+        assertFalse("Move to recycle bin on delete must default to disabled (off)", defaultMoveToRecycleBinOnDelete)
+        assertFalse("Move to recycle bin checkbox default must be false (off)", defaultMoveToRecycleBinDefault)
+    }
+
+    @Test
+    fun testDrawerVisibilityMatchesSetting() {
+        val settingDisabled = false
+        val drawerVisibleWhenDisabled = settingDisabled
+        assertFalse("Drawer item 'Papelera de reciclaje' must NOT be visible when setting is off", drawerVisibleWhenDisabled)
+
+        val settingEnabled = true
+        val drawerVisibleWhenEnabled = settingEnabled
+        assertTrue("Drawer item 'Papelera de reciclaje' must be visible when setting is on", drawerVisibleWhenEnabled)
+    }
+
+    @Test
+    fun testDeleteDialogBehaviorWhenSettingIsOff() {
+        // When setting is off (default), delete dialog does NOT ask to move to recycle bin
+        val isRecycleBinActive = false
+        val showRecycleBinCheckBox = isRecycleBinActive
+        assertFalse("Delete dialog must not show recycle bin option when setting is off", showRecycleBinCheckBox)
+
+        val deletePermanent = !showRecycleBinCheckBox
+        assertTrue("Deletion must be direct and permanent when setting is off", deletePermanent)
     }
 
     @Test

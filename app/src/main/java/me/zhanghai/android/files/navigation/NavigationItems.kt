@@ -61,7 +61,7 @@ val navigationItems: List<NavigationItem?>
                 add(null)
                 addAll(bookmarkDirectoryItems)
             }
-            if (Settings.ENABLE_RECYCLE_BIN.valueCompat) {
+            if (Settings.isRecycleBinActive) {
                 add(null)
                 add(RecycleBinItem(Settings.recycleBinDirectory))
             }

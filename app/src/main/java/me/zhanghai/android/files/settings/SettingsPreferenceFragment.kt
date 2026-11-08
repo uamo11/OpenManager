@@ -97,6 +97,13 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<androidx.preference.SwitchPreferenceCompat>(getString(R.string.pref_key_move_to_recycle_bin_on_delete))
+            ?.setOnPreferenceChangeListener { _, newValue ->
+                val isEnabled = newValue as Boolean
+                Settings.ENABLE_RECYCLE_BIN.putValue(isEnabled)
+                true
+            }
+
         val dfrootPref = findPreference<androidx.preference.SwitchPreferenceCompat>(
             getString(R.string.pref_key_dead_man_dfroot_protection)
         )

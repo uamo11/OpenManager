@@ -320,10 +320,10 @@
         app:iconSpaceReserved="false">
 
         <SwitchPreferenceCompat
-            android:key="@string/pref_key_enable_recycle_bin"
-            android:title="@string/settings_enable_recycle_bin_title"
-            android:summary="@string/settings_enable_recycle_bin_summary"
-            android:defaultValue="@bool/pref_default_value_enable_recycle_bin"
+            android:key="@string/pref_key_move_to_recycle_bin_on_delete"
+            android:title="@string/settings_move_to_recycle_bin_on_delete_title"
+            android:summary="@string/settings_move_to_recycle_bin_on_delete_summary"
+            android:defaultValue="@bool/pref_default_value_move_to_recycle_bin_on_delete"
             app:iconSpaceReserved="false" />
 
         <SwitchPreferenceCompat
@@ -331,6 +331,7 @@
             android:title="@string/settings_move_to_recycle_bin_default_title"
             android:summary="@string/settings_move_to_recycle_bin_default_summary"
             android:defaultValue="@bool/pref_default_value_move_to_recycle_bin_default"
+            app:dependency="@string/pref_key_move_to_recycle_bin_on_delete"
             app:iconSpaceReserved="false" />
 
         <rikka.preference.SimpleMenuPreference
@@ -339,6 +340,7 @@
             android:defaultValue="@string/pref_default_value_auto_clean_recycle_bin"
             android:entries="@array/settings_auto_clean_recycle_bin_entries"
             android:entryValues="@array/pref_entry_values_auto_clean_recycle_bin"
+            app:dependency="@string/pref_key_move_to_recycle_bin_on_delete"
             app:useSimpleSummaryProvider="true"
             app:iconSpaceReserved="false" />
 
