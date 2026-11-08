@@ -20,6 +20,11 @@ abstract class PreferenceFragmentCompat : TakisoftPreferenceFragmentCompat() {
         }
 
         super.onViewCreated(view, savedInstanceState)
+
+        listView.apply {
+            clipToPadding = false
+            setOnApplyWindowInsetsListener(ScrollingViewOnApplyWindowInsetsListener(this))
+        }
     }
 
     override fun onDisplayPreferenceDialog(preference: Preference) {

@@ -7,8 +7,15 @@
 
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <style name="Preference.MaterialFiles.Preference" parent="Preference.Material">
+        <item name="android:singleLineTitle">false</item>
+        <item name="singleLineTitle">false</item>
+    </style>
+
     <style name="Preference.MaterialFiles.SwitchPreferenceCompat" parent="Preference.SwitchPreferenceCompat.Material">
         <item name="android:widgetLayout">@layout/switch_preference_compat_widget</item>
+        <item name="android:singleLineTitle">false</item>
+        <item name="singleLineTitle">false</item>
     </style>
 
     <style name="ShapeAppearance.MaterialFiles.MediumComponent" parent="ShapeAppearance.MaterialComponents.MediumComponent">

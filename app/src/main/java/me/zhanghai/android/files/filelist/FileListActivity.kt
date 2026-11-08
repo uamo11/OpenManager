@@ -40,6 +40,7 @@ import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.core.view.updatePadding
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -146,6 +147,10 @@ class FileListActivity : AppActivity() {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.file_list_activity)
+        val resId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        val statusBarHeight = if (resId > 0) resources.getDimensionPixelSize(resId) else (28 * resources.displayMetrics.density).toInt()
+        findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarHeight)
+
         me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
 
         drawerLayout = findViewById(R.id.drawerLayout)
@@ -1083,45 +1088,73 @@ class FileListActivity : AppActivity() {
     }
 
     private fun updateDrawerStats() {
-        try {
-            val rootStat = StatFs("/")
-            val rootTotal = rootStat.totalBytes
-            val rootAvail = rootStat.availableBytes
-            val rootUsed = rootTotal - rootAvail
-            val rootPercent = if (rootTotal > 0) ((rootUsed * 100) / rootTotal).toInt() else 100
-            progressRootStorage.progress = rootPercent
-            val rootUsedStr = Formatter.formatFileSize(this, rootUsed)
-            val rootAvailStr = Formatter.formatFileSize(this, rootAvail)
-            tvRootStorageStats.text = "$rootUsedStr usado, $rootAvailStr disponible ($rootPercent%)"
-        } catch (e: Exception) {
-            tvRootStorageStats.text = "/ (Raíz del sistema)"
-        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            val rootData = try {
+                val rootStat = StatFs("/")
+                val rootTotal = rootStat.totalBytes
+                val rootAvail = rootStat.availableBytes
+                val rootUsed = rootTotal - rootAvail
+                val rootPercent = if (rootTotal > 0) ((rootUsed * 100) / rootTotal).toInt() else 100
+                val rootUsedStr = Formatter.formatFileSize(this@FileListActivity, rootUsed)
+                val rootAvailStr = Formatter.formatFileSize(this@FileListActivity, rootAvail)
+                rootPercent to "$rootUsedStr usado, $rootAvailStr disponible ($rootPercent%)"
+            } catch (e: Exception) {
+                100 to "/ (Raíz del sistema)"
+            }
 
-        try {
-            val emulatedStat = StatFs("/storage/emulated/0")
-            val emulatedTotal = emulatedStat.totalBytes
-            val emulatedAvail = emulatedStat.availableBytes
-            val emulatedUsed = emulatedTotal - emulatedAvail
-            val emulatedPercent = if (emulatedTotal > 0) ((emulatedUsed * 100) / emulatedTotal).toInt() else 80
-            progressInternalStorage.progress = emulatedPercent
-            val emulatedUsedStr = Formatter.formatFileSize(this, emulatedUsed)
-            val emulatedAvailStr = Formatter.formatFileSize(this, emulatedAvail)
-            tvInternalStorageStats.text = "$emulatedUsedStr usado, $emulatedAvailStr disponible ($emulatedPercent%)"
-        } catch (e: Exception) {
-            tvInternalStorageStats.text = "/storage/emulated/0"
-        }
+            val emulatedData = try {
+                val emulatedStat = StatFs("/storage/emulated/0")
+                val emulatedTotal = emulatedStat.totalBytes
+                val emulatedAvail = emulatedStat.availableBytes
+                val emulatedUsed = emulatedTotal - emulatedAvail
+                val emulatedPercent = if (emulatedTotal > 0) ((emulatedUsed * 100) / emulatedTotal).toInt() else 80
+                val emulatedUsedStr = Formatter.formatFileSize(this@FileListActivity, emulatedUsed)
+                val emulatedAvailStr = Formatter.formatFileSize(this@FileListActivity, emulatedAvail)
+                emulatedPercent to "$emulatedUsedStr usado, $emulatedAvailStr disponible ($emulatedPercent%)"
+            } catch (e: Exception) {
+                80 to "/storage/emulated/0"
+            }
 
-        // Also update live space stats for any SD card / custom storage items in the drawer
-        if (this::layoutCustomStorages.isInitialized) {
-            for (i in 0 until layoutCustomStorages.childCount) {
-                val child = layoutCustomStorages.getChildAt(i) ?: continue
-                val pathTag = child.tag as? String ?: continue
-                val stats = computeStorageSpaceStats(pathTag) ?: continue
-                val progressView = child.findViewById<ProgressBar>(R.id.progressCustomStorage)
-                val subtitleView = child.findViewById<TextView>(R.id.tvStorageSubtitle)
-                progressView?.isVisible = true
-                progressView?.progress = stats.percent
-                subtitleView?.text = stats.formattedText
+            val customTags = mutableListOf<String>()
+            withContext(Dispatchers.Main) {
+                if (this@FileListActivity::layoutCustomStorages.isInitialized) {
+                    for (i in 0 until layoutCustomStorages.childCount) {
+                        val child = layoutCustomStorages.getChildAt(i) ?: continue
+                        val pathTag = child.tag as? String ?: continue
+                        customTags.add(pathTag)
+                    }
+                }
+            }
+
+            val customStatsMap = mutableMapOf<String, StorageSpaceStats>()
+            for (pathTag in customTags) {
+                val stats = computeStorageSpaceStats(pathTag)
+                if (stats != null) {
+                    customStatsMap[pathTag] = stats
+                }
+            }
+
+            withContext(Dispatchers.Main) {
+                if (this@FileListActivity::progressRootStorage.isInitialized) {
+                    progressRootStorage.progress = rootData.first
+                    tvRootStorageStats.text = rootData.second
+                }
+                if (this@FileListActivity::progressInternalStorage.isInitialized) {
+                    progressInternalStorage.progress = emulatedData.first
+                    tvInternalStorageStats.text = emulatedData.second
+                }
+                if (this@FileListActivity::layoutCustomStorages.isInitialized) {
+                    for (i in 0 until layoutCustomStorages.childCount) {
+                        val child = layoutCustomStorages.getChildAt(i) ?: continue
+                        val pathTag = child.tag as? String ?: continue
+                        val stats = customStatsMap[pathTag] ?: continue
+                        val progressView = child.findViewById<ProgressBar>(R.id.progressCustomStorage)
+                        val subtitleView = child.findViewById<TextView>(R.id.tvStorageSubtitle)
+                        progressView?.isVisible = true
+                        progressView?.progress = stats.percent
+                        subtitleView?.text = stats.formattedText
+                    }
+                }
             }
         }
     }
@@ -1247,13 +1280,22 @@ class FileListActivity : AppActivity() {
     private fun setupBottomBarControls() {
         val bottomBar = findViewById<View>(R.id.bottomBar)
         if (bottomBar != null) {
-            ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->
+            ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { v, insets ->
                 val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
                 if (isKeyboardVisible != imeVisible) {
                     isKeyboardVisible = imeVisible
                     updateBottomBarMargin()
                 }
-                insets
+                val statusBarInset = maxOf(
+                    insets.getInsets(WindowInsetsCompat.Type.statusBars()).top,
+                    insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top
+                )
+                if (statusBarInset > 0) {
+                    findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarInset)
+                }
+                val navBarBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+                findViewById<View>(R.id.drawerScrollView)?.updatePadding(bottom = navBarBottom)
+                ViewCompat.onApplyWindowInsets(v, insets)
             }
         }
         updateBottomBarMargin()
@@ -1484,8 +1526,8 @@ class FileListActivity : AppActivity() {
         }
         return try {
             val stat = StatFs(android.os.Environment.getExternalStorageDirectory().path)
-            val available = Formatter.formatFileSize(this, stat.availableBytes)
-            val total = Formatter.formatFileSize(this, stat.totalBytes)
+            val available = Formatter.formatShortFileSize(this, stat.availableBytes).replace(" ", "")
+            val total = Formatter.formatShortFileSize(this, stat.totalBytes).replace(" ", "")
             val res = "Disk: $available/$total"
             cachedDiskStats = res
             lastDiskStatsTime = now

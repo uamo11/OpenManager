@@ -33,6 +33,7 @@
         <item name="floatingActionButtonStyle">?floatingActionButtonSecondaryStyle</item>
         <item name="materialCardViewStyle">@style/Widget.MaterialFiles.CardView</item>
         <item name="navigationViewStyle">@style/Widget.MaterialFiles.Material3.NavigationView</item>
+        <item name="preferenceStyle">@style/Preference.MaterialFiles.Material3.Preference</item>
         <item name="simpleMenuPreferenceStyle">@style/Preference.MaterialFiles.Material3.SimpleMenuPreference</item>
         <item name="switchPreferenceCompatStyle">@style/Preference.MaterialFiles.Material3.SwitchPreferenceCompat</item>
         <item name="tabStyle">@style/Widget.MaterialFiles.Material3.TabLayout</item>
@@ -88,6 +89,7 @@
         <item name="floatingActionButtonStyle">?floatingActionButtonSecondaryStyle</item>
         <item name="materialCardViewStyle">@style/Widget.MaterialFiles.CardView</item>
         <item name="navigationViewStyle">@style/Widget.MaterialFiles.Material3.NavigationView</item>
+        <item name="preferenceStyle">@style/Preference.MaterialFiles.Material3.Preference</item>
         <item name="simpleMenuPreferenceStyle">@style/Preference.MaterialFiles.Material3.SimpleMenuPreference</item>
         <item name="switchPreferenceCompatStyle">@style/Preference.MaterialFiles.Material3.SwitchPreferenceCompat</item>
         <item name="tabStyle">@style/Widget.MaterialFiles.Material3.TabLayout</item>

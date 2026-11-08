@@ -58,6 +58,8 @@
                     android:layout_marginTop="2dp"
                     android:textSize="12.5sp"
                     android:textColor="#BBBBBB"
+                    android:maxLines="1"
+                    android:ellipsize="end"
                     tools:text="v2.24.1.75 (240175001) • 45.2 MB" />
 
                 <TextView
@@ -68,6 +70,8 @@
                     android:fontFamily="monospace"
                     android:textSize="11sp"
                     android:textColor="#888888"
+                    android:maxLines="1"
+                    android:ellipsize="middle"
                     tools:text="com.whatsapp" />
 
                 <TextView

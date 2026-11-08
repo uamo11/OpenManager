@@ -1261,7 +1261,7 @@
     <string name="open_as_html_edit">Edit</string>
 
     <!-- MT Manager Features: Installed Apps, Swap Names, Split & Merge, Symlink, Export List -->
-    <string name="navigation_installed_apps">View Apps</string>
+    <string name="navigation_installed_apps">Applications</string>
     <string name="navigation_running_apps">Running Apps</string>
     <string name="running_apps_title">Running Apps</string>
     <string name="running_apps_tab_user">User</string>

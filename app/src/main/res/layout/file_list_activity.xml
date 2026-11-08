@@ -79,7 +79,7 @@
                         android:layout_height="wrap_content"
                         android:singleLine="true"
                         android:ellipsize="end"
-                        android:textSize="10.5sp"
+                        android:textSize="10sp"
                         android:textColor="#909090"
                         android:text="Cargando..." />
                 </LinearLayout>
@@ -265,10 +265,12 @@
         android:orientation="vertical"
         android:fitsSystemWindows="true">
 
-        <!-- Drawer Header (56dp, #151515) -->
+        <!-- Drawer Header -->
         <LinearLayout
+            android:id="@+id/layoutDrawerHeader"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
+            android:layout_height="wrap_content"
+            android:minHeight="56dp"
             android:background="#151515"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -315,8 +317,11 @@
 
         <!-- Drawer Content -->
         <ScrollView
+            android:id="@+id/drawerScrollView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
             android:fillViewport="true">
 
             <LinearLayout

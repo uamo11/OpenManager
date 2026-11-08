@@ -16,8 +16,15 @@
         <item name="android:popupBackground">@drawable/m3_popupmenu_background_overlay</item>
     </style>
 
+    <style name="Preference.MaterialFiles.Material3.Preference" parent="Preference.Material">
+        <item name="android:singleLineTitle">false</item>
+        <item name="singleLineTitle">false</item>
+    </style>
+
     <style name="Preference.MaterialFiles.Material3.SwitchPreferenceCompat" parent="Preference.SwitchPreferenceCompat.Material">
         <item name="android:widgetLayout">@layout/switch_preference_compat_widget_material3</item>
+        <item name="android:singleLineTitle">false</item>
+        <item name="singleLineTitle">false</item>
     </style>
 
     <style name="ShapeAppearance.MaterialFiles.Material3.SmallComponent" parent="ShapeAppearance.Material3.SmallComponent">
