@@ -6,6 +6,8 @@
 package me.zhanghai.android.files.provider.linux
 
 import android.os.Parcelable
+import android.system.Os
+import android.system.OsConstants
 import java.time.Instant
 import java8.nio.file.attribute.FileTime
 import kotlinx.parcelize.Parcelize
@@ -19,6 +21,7 @@ import me.zhanghai.android.files.provider.common.PosixFileType
 import me.zhanghai.android.files.provider.common.PosixGroup
 import me.zhanghai.android.files.provider.common.PosixUser
 import me.zhanghai.android.files.provider.linux.syscall.StructStat
+import me.zhanghai.android.files.provider.linux.syscall.Syscall
 
 @Parcelize
 internal class LinuxFileAttributes(
@@ -35,6 +38,7 @@ internal class LinuxFileAttributes(
 ) : AbstractPosixFileAttributes() {
     companion object {
         fun from(
+            path: ByteString?,
             stat: StructStat,
             owner: PosixUser,
             group: PosixGroup,
@@ -46,7 +50,23 @@ internal class LinuxFileAttributes(
                 FileTime.from(Instant.ofEpochSecond(stat.st_atim.tv_sec, stat.st_atim.tv_nsec))
             val creationTime = lastModifiedTime
             val type = PosixFileType.fromMode(stat.st_mode)
-            val size = stat.st_size
+            val size = if (path != null && (OsConstants.S_ISBLK(stat.st_mode) ||
+                (OsConstants.S_ISLNK(stat.st_mode) && path.toString().startsWith("/dev/block")))
+            ) {
+                try {
+                    val fd = Syscall.open(path, OsConstants.O_RDONLY, 0)
+                    try {
+                        val s = Os.lseek(fd, 0L, OsConstants.SEEK_END)
+                        if (s > 0) s else stat.st_size
+                    } finally {
+                        Syscall.close(fd)
+                    }
+                } catch (e: Throwable) {
+                    stat.st_size
+                }
+            } else {
+                stat.st_size
+            }
             val fileKey = LinuxFileKey(stat.st_dev, stat.st_ino)
             val mode = PosixFileMode.fromInt(stat.st_mode)
             return LinuxFileAttributes(
@@ -54,5 +74,12 @@ internal class LinuxFileAttributes(
                 mode, seLinuxContext
             )
         }
+
+        fun from(
+            stat: StructStat,
+            owner: PosixUser,
+            group: PosixGroup,
+            seLinuxContext: ByteString?
+        ): LinuxFileAttributes = from(null, stat, owner, group, seLinuxContext)
     }
 }

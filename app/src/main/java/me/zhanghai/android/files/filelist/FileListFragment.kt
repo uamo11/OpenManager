@@ -1978,8 +1978,20 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun pasteFiles(targetDirectory: Path) {
         val pasteState = viewModel.pasteState
+        if (targetDirectory.toString().startsWith("/dev/block") || targetDirectory.toString().startsWith("/dev/")) {
+            showToast("Por seguridad, no se puede escribir directamente en particiones del sistema")
+            return
+        }
+        if (!pasteState.copy && pasteState.files.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
+            showToast("Por seguridad, las particiones no se pueden mover ni cortar (solo copiar)")
+            return
+        }
         if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {
-            val criticalSource = pasteState.files.firstOrNull { DeadManProtectionManager.isProtectedFromModification(it.path) }?.path
+            val criticalSource = if (!pasteState.copy) {
+                pasteState.files.firstOrNull { DeadManProtectionManager.isProtectedFromModification(it.path) }?.path
+            } else {
+                null
+            }
             val targetIsCritical = DeadManProtectionManager.isProtectedFromModification(targetDirectory)
             if (criticalSource != null || targetIsCritical) {
                 DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
@@ -2605,6 +2617,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val validFiles = files.filterNot { it.isParentDirectoryItem }
         if (validFiles.isEmpty()) return
 
+        if (targetDirectory.toString().startsWith("/dev/block") || targetDirectory.toString().startsWith("/dev/")) {
+            showToast("Por seguridad, no se puede escribir directamente en particiones del sistema")
+            return
+        }
+
         if (!canWriteTo(targetDirectory)) {
             val msg = if (targetDirectory.isArchivePath) {
                 "No se puede copiar dentro de un archivo comprimido"
@@ -2629,6 +2646,16 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     fun moveFilesTo(files: FileItemSet, targetDirectory: Path) {
         val validFiles = files.filterNot { it.isParentDirectoryItem }
         if (validFiles.isEmpty()) return
+
+        if (validFiles.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
+            showToast("Por seguridad, las particiones no se pueden mover ni cortar (solo copiar)")
+            return
+        }
+
+        if (targetDirectory.toString().startsWith("/dev/block") || targetDirectory.toString().startsWith("/dev/")) {
+            showToast("Por seguridad, no se puede mover hacia particiones del sistema")
+            return
+        }
 
         if (currentPath == targetDirectory) {
             showToast("El origen y el destino son el mismo directorio")
@@ -2659,6 +2686,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     fun deleteSelectedFiles() {
         val validFiles = viewModel.selectedFiles.filterNot { it.isParentDirectoryItem }
         if (validFiles.isEmpty()) return
+        if (validFiles.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
+            showToast("Por seguridad, las particiones del sistema no se pueden eliminar")
+            return
+        }
         if (!canWriteTo(currentPath)) {
             showToast("Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)")
             return

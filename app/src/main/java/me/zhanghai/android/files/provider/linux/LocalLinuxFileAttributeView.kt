@@ -61,7 +61,7 @@ internal class LocalLinuxFileAttributeView(
             e.toFileSystemException(path.toString()).printStackTrace()
             if (e.errno == OsConstants.ENODATA) ByteString.EMPTY else null
         }
-        return LinuxFileAttributes.from(stat, owner, group, seLinuxContext)
+        return LinuxFileAttributes.from(path, stat, owner, group, seLinuxContext)
     }
 
     @Throws(IOException::class)

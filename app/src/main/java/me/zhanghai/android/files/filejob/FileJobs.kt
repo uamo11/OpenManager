@@ -182,7 +182,21 @@ private fun FileJob.getTargetFileName(source: Path): Path {
             )
         }
     }
-    return source.fileName
+    val fileName = source.fileName
+    if (source.toString().startsWith("/dev/block")) {
+        val name = fileName?.toString() ?: ""
+        if (name.isNotEmpty() && !name.endsWith(".img", ignoreCase = true)) {
+            val isDir = try {
+                source.readAttributes(BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS).isDirectory
+            } catch (e: Exception) {
+                false
+            }
+            if (!isDir) {
+                return source.fileSystem.getPath("$name.img")
+            }
+        }
+    }
+    return fileName
 }
 
 // The attributes for start path prefers following links, but falls back to not following.
@@ -237,6 +251,19 @@ private fun FileJob.throwIfInterrupted() {
 private fun FileJob.scan(sources: List<Path?>, @PluralsRes notificationTitleRes: Int): ScanInfo {
     val scanInfo = ScanInfo()
     for (source in sources) {
+        if (source == null) continue
+        if (source.toString().startsWith("/dev/block")) {
+            val attr = try {
+                source.readAttributes(BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+            } catch (e: Exception) {
+                null
+            }
+            if (attr != null && !attr.isDirectory) {
+                scanPath(attr, scanInfo, notificationTitleRes)
+                throwIfInterrupted()
+                continue
+            }
+        }
         Files.walkFileTree(source, object : SimpleFileVisitor<Path>() {
             @Throws(IOException::class)
             override fun preVisitDirectory(
@@ -784,7 +811,11 @@ class CopyFileJob(private val sources: List<Path>, private val targetDirectory: 
 
             @Throws(IOException::class)
             override fun visitFile(file: Path, attributes: BasicFileAttributes): FileVisitResult {
-                val fileInTarget = target.resolveForeign(source.relativize(file))
+                val fileInTarget = if (file == source) {
+                    target
+                } else {
+                    target.resolveForeign(source.relativize(file))
+                }
                 copy(file, fileInTarget, isExtract, transferInfo, actionAllInfo)
                 throwIfInterrupted()
                 return FileVisitResult.CONTINUE
@@ -949,6 +980,10 @@ private fun FileJob.create(path: Path, createDirectory: Boolean) {
 class DeleteFileJob(private val paths: List<Path>) : FileJob() {
     @Throws(IOException::class)
     override fun run() {
+        val forbidden = paths.filter { it.toString().startsWith("/dev/block") || it.toString().startsWith("/dev/") }
+        if (forbidden.isNotEmpty()) {
+            throw IOException("Por razones de seguridad, las particiones no se pueden eliminar")
+        }
         val scanInfo = scan(paths, R.plurals.file_job_delete_scan_notification_title_format)
         val transferInfo = TransferInfo(scanInfo, null)
         val actionAllInfo = ActionAllInfo()
@@ -1074,6 +1109,10 @@ private fun FileJob.postDeleteNotification(transferInfo: TransferInfo, currentPa
 class MoveFileJob(private val sources: List<Path>, private val targetDirectory: Path) : FileJob() {
     @Throws(IOException::class)
     override fun run() {
+        val forbidden = sources.filter { it.toString().startsWith("/dev/block") || it.toString().startsWith("/dev/") }
+        if (forbidden.isNotEmpty()) {
+            throw IOException("Por razones de seguridad, las particiones no se pueden mover ni cortar")
+        }
         val validSources = sources.filter { source ->
             source.parent != targetDirectory && !targetDirectory.startsWith(source)
         }

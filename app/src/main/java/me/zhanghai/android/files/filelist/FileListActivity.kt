@@ -1372,6 +1372,10 @@ class FileListActivity : AppActivity() {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
+                if (opposite.currentPath.toString().startsWith("/dev/block") || opposite.currentPath.toString().startsWith("/dev/")) {
+                    Toast.makeText(this, "Por seguridad, no se puede escribir directamente en particiones del sistema", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 if (!activeFragment.canWriteTo(opposite.currentPath)) {
                     val msg = if (opposite.currentPath.isArchivePath) {
                         "No se puede copiar dentro de un archivo comprimido"
@@ -1388,9 +1392,17 @@ class FileListActivity : AppActivity() {
         btnMoveOpposite.setOnClickListener {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
+                if (selected.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
+                    Toast.makeText(this, "Por seguridad, las particiones no se pueden mover ni cortar (solo copiar)", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 val opposite = getOppositeFragment(activeFragment)
                 if (activeFragment.currentPath == opposite.currentPath) {
                     Toast.makeText(this, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (opposite.currentPath.toString().startsWith("/dev/block") || opposite.currentPath.toString().startsWith("/dev/")) {
+                    Toast.makeText(this, "Por seguridad, no se puede mover hacia particiones del sistema", Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
@@ -1408,6 +1420,10 @@ class FileListActivity : AppActivity() {
 
         btnDeleteSelection.setOnClickListener {
             if (activeFragment.selectedFiles.isNotEmpty()) {
+                if (activeFragment.selectedFiles.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
+                    Toast.makeText(this, "Por seguridad, las particiones del sistema no se pueden eliminar", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
                 if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
                     Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
                 } else {

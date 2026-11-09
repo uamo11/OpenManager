@@ -43,7 +43,11 @@ fun <T, R> callRootable(
                 try {
                     rootObject.block()
                 } catch (e: Exception) {
-                    localObject.block()
+                    try {
+                        localObject.block()
+                    } catch (_: Exception) {
+                        throw e
+                    }
                 }
             } else {
                 try {
@@ -89,7 +93,11 @@ fun <T, R> callRootable(
                 try {
                     rootObject.block()
                 } catch (e: Exception) {
-                    localObject.block()
+                    try {
+                        localObject.block()
+                    } catch (_: Exception) {
+                        throw e
+                    }
                 }
             } else {
                 try {
