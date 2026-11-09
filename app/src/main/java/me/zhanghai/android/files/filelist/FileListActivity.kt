@@ -1836,6 +1836,15 @@ class FileListActivity : AppActivity() {
                 var isRegularFile = false
                 var accessDenied = false
 
+                val targetStr = target.trim()
+                val isSystemOrDev = targetStr.startsWith("/dev") ||
+                    targetStr.startsWith("/data") ||
+                    targetStr.startsWith("/system") ||
+                    targetStr.startsWith("/vendor") ||
+                    targetStr.startsWith("/product") ||
+                    targetStr.startsWith("/odm") ||
+                    targetStr.startsWith("/apex")
+
                 try {
                     exists = resolved.exists()
                     if (exists) {
@@ -1847,9 +1856,14 @@ class FileListActivity : AppActivity() {
                     if (e is java8.nio.file.AccessDeniedException ||
                         e is me.zhanghai.android.files.provider.remote.RemoteFileSystemException ||
                         msg.contains("Permission denied", ignoreCase = true) ||
-                        msg.contains("Root isn't available", ignoreCase = true)) {
+                        msg.contains("Root isn't available", ignoreCase = true) ||
+                        msg.contains("lstat", ignoreCase = true)) {
                         accessDenied = true
                     }
+                }
+
+                if (isSystemOrDev && !exists) {
+                    accessDenied = true
                 }
 
                 withContext(Dispatchers.Main) {

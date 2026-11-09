@@ -85,6 +85,10 @@ internal class LinuxPath : ByteStringListPath<LinuxPath>, RootablePath {
     }
 
     override fun isRootRequired(isAttributeAccess: Boolean): Boolean {
+        val pathStr = toString()
+        if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/data/adb") || pathStr.startsWith("/data/data")) {
+            return true
+        }
         val file = toFile()
         if (isAttributeAccess) {
             if (file.canRead() || (file.isDirectory && file.canExecute())) {
