@@ -1816,7 +1816,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         filter: Int,
         password: String?
     ) {
-        val archiveFile = viewModel.currentPath.resolve(name)
+        val destinationDir: Path = if (viewModel.currentPath.toString().startsWith("/dev/block") || viewModel.currentPath.toString().startsWith("/dev/")) {
+            val otherPath = (activity as? FileListActivity)?.getOppositeFragment(this)?.currentPath
+            if (otherPath != null && !otherPath.toString().startsWith("/dev/")) {
+                otherPath
+            } else {
+                java8.nio.file.Paths.get("/storage/emulated/0/Download")
+            }
+        } else {
+            viewModel.currentPath
+        }
+        val archiveFile = destinationDir.resolve(name)
         FileJobService.archive(
             makePathListForJob(files), archiveFile, format, filter, password, requireContext()
         )
@@ -2427,6 +2437,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun renameFile(file: FileItem, newName: String) {
+        val pathStr = file.path.toString()
+        if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
+            showToast("Por seguridad anti-brick, las particiones y nodos del sistema no se pueden renombrar")
+            return
+        }
         if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {
             if (DeadManProtectionManager.isProtectedFromModification(file.path) ||
                 DeadManProtectionManager.isCriticalBootFile(newName)
@@ -2581,6 +2596,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun createFile(name: String) {
+        if (currentPath.toString().startsWith("/dev/block") || currentPath.toString().startsWith("/dev/")) {
+            showToast("Por seguridad anti-brick, no se pueden crear archivos en las rutas de particiones (/dev)")
+            return
+        }
         if (!canWriteTo(currentPath)) {
             showToast("Permiso denegado: no se pueden crear archivos en este directorio (solo lectura)")
             return
@@ -2594,6 +2613,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun createDirectory(name: String) {
+        if (currentPath.toString().startsWith("/dev/block") || currentPath.toString().startsWith("/dev/")) {
+            showToast("Por seguridad anti-brick, no se pueden crear carpetas en las rutas de particiones (/dev)")
+            return
+        }
         if (!canWriteTo(currentPath)) {
             showToast("Permiso denegado: no se pueden crear carpetas en este directorio (solo lectura)")
             return

@@ -131,6 +131,10 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
     @Throws(IOException::class)
     override fun createDirectory(directory: Path, vararg attributes: FileAttribute<*>) {
         directory as? LinuxPath ?: throw ProviderMismatchException(directory.toString())
+        val pathStr = directory.toString()
+        if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
+            throw AccessDeniedException(pathStr, null, "Por seguridad anti-brick, no se pueden crear directorios en las rutas de particiones del sistema")
+        }
         val directoryBytes = directory.toByteString()
         val mode = (PosixFileMode.fromAttributes(attributes)
             ?: PosixFileMode.CREATE_DIRECTORY_DEFAULT).toInt()
@@ -146,6 +150,10 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
     @Throws(IOException::class)
     override fun createSymbolicLink(link: Path, target: Path, vararg attributes: FileAttribute<*>) {
         link as? LinuxPath ?: throw ProviderMismatchException(link.toString())
+        val linkStr = link.toString()
+        if (linkStr.startsWith("/dev/block") || linkStr.startsWith("/dev/")) {
+            throw AccessDeniedException(linkStr, null, "Por seguridad anti-brick, no se pueden crear enlaces simbólicos en rutas de particiones del sistema")
+        }
         val targetBytes = when (target) {
             is LinuxPath -> target.toByteString()
             is ByteStringPath -> target.toByteString()
@@ -168,6 +176,10 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
     override fun createLink(link: Path, existing: Path) {
         link as? LinuxPath ?: throw ProviderMismatchException(link.toString())
         existing as? LinuxPath ?: throw ProviderMismatchException(existing.toString())
+        val linkStr = link.toString()
+        if (linkStr.startsWith("/dev/block") || linkStr.startsWith("/dev/")) {
+            throw AccessDeniedException(linkStr, null, "Por seguridad anti-brick, no se pueden crear enlaces en rutas de particiones del sistema")
+        }
         val oldPathBytes = existing.toByteString()
         val newPathBytes = link.toByteString()
         try {
@@ -182,6 +194,10 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
     @Throws(IOException::class)
     override fun delete(path: Path) {
         path as? LinuxPath ?: throw ProviderMismatchException(path.toString())
+        val pathStr = path.toString()
+        if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
+            throw AccessDeniedException(pathStr, null, "Por seguridad anti-brick, no se permite eliminar nodos de particiones o dispositivos del sistema")
+        }
         val pathBytes = path.toByteString()
         try {
             Syscall.remove(pathBytes)

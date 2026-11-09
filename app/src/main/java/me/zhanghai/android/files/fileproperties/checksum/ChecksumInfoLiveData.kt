@@ -29,6 +29,11 @@ class ChecksumInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ChecksumI
     override fun loadValue() {
         future?.cancel(true)
         value = Loading(value?.value)
+        val pathStr = path.toString()
+        if (pathStr == "/dev/zero" || pathStr == "/dev/urandom" || pathStr == "/dev/random" || pathStr.startsWith("/dev/pts/")) {
+            value = Failure(valueCompat.value, UnsupportedOperationException("No se admiten sumas de verificación en dispositivos de flujo continuo ($pathStr)"))
+            return
+        }
         future = (AsyncTask.THREAD_POOL_EXECUTOR as ExecutorService).submit<Unit> {
             val value = try {
                 val messageDigests =

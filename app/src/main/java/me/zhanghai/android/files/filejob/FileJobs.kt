@@ -760,6 +760,17 @@ private fun FileJob.postArchiveNotification(transferInfo: TransferInfo, currentF
 class CopyFileJob(private val sources: List<Path>, private val targetDirectory: Path) : FileJob() {
     @Throws(IOException::class)
     override fun run() {
+        val targetDirStr = targetDirectory.toString()
+        if (targetDirStr.startsWith("/dev/block") || targetDirStr.startsWith("/dev/")) {
+            throw IOException("Por razones de seguridad anti-brick, no se permite copiar o escribir archivos dentro de directorios de particiones del sistema")
+        }
+        val infiniteStreams = sources.filter {
+            val s = it.toString()
+            s == "/dev/zero" || s == "/dev/urandom" || s == "/dev/random" || s.startsWith("/dev/pts/")
+        }
+        if (infiniteStreams.isNotEmpty()) {
+            throw IOException("Por razones de seguridad, no se pueden copiar dispositivos de flujo continuo (/dev/zero, /dev/urandom)")
+        }
         val isExtract = sources.all { it.isArchivePath }
         val scanInfo = scan(
             sources, if (isExtract) {
@@ -933,6 +944,10 @@ class CreateFileJob(private val path: Path, private val createDirectory: Boolean
 
 @Throws(IOException::class)
 private fun FileJob.create(path: Path, createDirectory: Boolean) {
+    val pathStr = path.toString()
+    if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
+        throw IOException("Por razones de seguridad anti-brick, no se permite crear archivos ni directorios en rutas de particiones del sistema")
+    }
     var retry: Boolean
     do {
         retry = false
@@ -1109,6 +1124,10 @@ private fun FileJob.postDeleteNotification(transferInfo: TransferInfo, currentPa
 class MoveFileJob(private val sources: List<Path>, private val targetDirectory: Path) : FileJob() {
     @Throws(IOException::class)
     override fun run() {
+        val targetDirStr = targetDirectory.toString()
+        if (targetDirStr.startsWith("/dev/block") || targetDirStr.startsWith("/dev/")) {
+            throw IOException("Por razones de seguridad anti-brick, no se pueden mover archivos hacia directorios de particiones del sistema")
+        }
         val forbidden = sources.filter { it.toString().startsWith("/dev/block") || it.toString().startsWith("/dev/") }
         if (forbidden.isNotEmpty()) {
             throw IOException("Por razones de seguridad, las particiones no se pueden mover ni cortar")
@@ -1595,6 +1614,10 @@ class RenameFileJob(private val path: Path, private val newName: String) : FileJ
 
 @Throws(IOException::class)
 private fun FileJob.rename(path: Path, newPath: Path) {
+    val pathStr = path.toString()
+    if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
+        throw IOException("Por razones de seguridad anti-brick, no se pueden renombrar particiones ni nodos del sistema")
+    }
     var retry: Boolean
     do {
         retry = false

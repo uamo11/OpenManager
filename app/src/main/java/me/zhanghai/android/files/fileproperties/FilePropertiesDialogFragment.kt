@@ -106,6 +106,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         val file = args.file
         val path = file.path
         val isDir = file.attributes.isDirectory
+        val isPartition = !isDir && PartitionInspector.isPartitionPath(path)
         val isScript = !isDir && ScriptRunnerHelper.isExecutableOrScript(file)
         val isApk = !isDir && (file.name.endsWith(".apk", ignoreCase = true) ||
             file.mimeType.value == "application/vnd.android.package-archive")
@@ -113,6 +114,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         ivIcon.setImageResource(FileIconHelper.getIconRes(file))
         tvTitle.text = file.name
         tvSubtitle.text = when {
+            isPartition -> "Partición del Sistema (Dispositivo de bloques)"
             isDir -> getString(R.string.file_properties_basic)
             isScript -> "Script Ejecutable (/system/bin/sh)"
             else -> "${file.getMimeTypeName(context)} (${file.mimeType.value})"
@@ -205,10 +207,17 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             addRow("Ruta completa", path.toUserFriendlyString(), singleLineMiddle = true)
         }
 
-        addRow(
-            getString(R.string.file_properties_basic_type),
-            "${file.getMimeTypeName(context)} (${file.mimeType.value})"
-        )
+        if (isPartition) {
+            addRow(
+                getString(R.string.file_properties_basic_type),
+                "Dispositivo de bloques (Partición de sistema)"
+            )
+        } else {
+            addRow(
+                getString(R.string.file_properties_basic_type),
+                "${file.getMimeTypeName(context)} (${file.mimeType.value})"
+            )
+        }
 
         val symbolicLinkTarget = file.symbolicLinkTarget
         if (symbolicLinkTarget != null) {
@@ -268,6 +277,23 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                 "${sizeBytes.formatHumanReadable(context)} (${sizeBytes.value} B)"
             )
             tvSizeOrContents = tvSize
+        }
+
+        if (isPartition) {
+            val (_, tvFormat) = addRow("Formato de partición", "Analizando firma...")
+            val (_, tvDetails) = addRow("Detalles técnicos", "Leyendo información...")
+            lifecycleScope.launch(Dispatchers.IO) {
+                val report = PartitionInspector.inspect(path)
+                withContext(Dispatchers.Main) {
+                    tvFormat.text = "${report.formatName} (${report.magicDescription})"
+                    tvFormat.setTextColor(Color.parseColor("#81C784"))
+                    tvDetails.text = report.details ?: "Partición de bajo nivel"
+                    if (report.sizeBytes > 0 && file.attributes.fileSize.value == 0L) {
+                        val humanSize = report.sizeBytes.asFileSize().formatHumanReadable(context)
+                        tvSizeOrContents.text = "$humanSize (${report.sizeBytes} B)"
+                    }
+                }
+            }
         }
 
         val lastModMillis = try { file.attributes.lastModifiedTime().toMillis() } catch (_: Throwable) { 0L }
@@ -454,6 +480,11 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         var hashesCalculated = false
         fun calculateAndShowHashes() {
             if (hashesCalculated || isDir) return
+            val pathStr = path.toString()
+            if (pathStr == "/dev/zero" || pathStr == "/dev/urandom" || pathStr == "/dev/random" || pathStr.startsWith("/dev/pts/")) {
+                Toast.makeText(context, "No se admiten sumas de verificación en flujos continuos", Toast.LENGTH_SHORT).show()
+                return
+            }
             hashesCalculated = true
             btnAction2.isEnabled = false
             btnAction2.alpha = 0.5f
@@ -498,8 +529,8 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             }
         }
 
-        // Auto-calculate hashes for small/medium files (<= 16 MB)
-        if (!isDir && file.attributes.size() in 1..(16 * 1024 * 1024L)) {
+        // Auto-calculate hashes for small/medium files (<= 16 MB), but not for raw partitions
+        if (!isDir && !isPartition && file.attributes.size() in 1..(16 * 1024 * 1024L)) {
             calculateAndShowHashes()
         }
 

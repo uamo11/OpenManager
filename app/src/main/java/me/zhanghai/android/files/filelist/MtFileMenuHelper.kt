@@ -39,7 +39,11 @@ object MtFileMenuHelper {
         val selected = fragment.selectedFiles
         val targetFiles = if (file in selected && selected.size > 1) selected else fileItemSetOf(file)
         val isSingleFile = targetFiles.size <= 1
-        val isReadOnly = file.path.fileSystem.isReadOnly
+        val isBlockPartition = targetFiles.any {
+            val p = it.path.toString()
+            p.startsWith("/dev/block") || p.startsWith("/dev/")
+        }
+        val isReadOnly = file.path.fileSystem.isReadOnly || isBlockPartition
         val isDirectory = file.attributes.isDirectory
         val isArchivePath = file.path.isArchivePath
 
@@ -166,7 +170,7 @@ object MtFileMenuHelper {
         val tvMoveLabel = view.findViewById<TextView>(R.id.tvMoveLabel)
         val isOppositeSame = (oppositePath != null && fragment.currentPath == oppositePath)
         val isOppositeArchive = (oppositePath?.isArchivePath == true)
-        if (isReadOnly || isArchivePath || isOppositeArchive || isOppositeSame) {
+        if (isReadOnly || isArchivePath || isOppositeArchive || isOppositeSame || isBlockPartition) {
             btnMove.alpha = 0.4f
             btnMove.isEnabled = false
             tvMoveLabel.text = "Mover"
@@ -197,7 +201,7 @@ object MtFileMenuHelper {
 
         // 3. Delete
         val btnDelete = view.findViewById<LinearLayout>(R.id.btnDelete)
-        if (isReadOnly) {
+        if (isReadOnly || isBlockPartition) {
             btnDelete.alpha = 0.4f
             btnDelete.isEnabled = false
         } else {
@@ -209,7 +213,7 @@ object MtFileMenuHelper {
 
         // 4. Rename
         val btnRename = view.findViewById<LinearLayout>(R.id.btnRename)
-        if (isReadOnly || !isSingleFile) {
+        if (isReadOnly || !isSingleFile || isBlockPartition) {
             btnRename.alpha = 0.4f
             btnRename.isEnabled = false
         } else {
@@ -292,7 +296,11 @@ object MtFileMenuHelper {
         val context = fragment.requireContext()
         val activity = fragment.requireActivity()
         val isSingleFile = targetFiles.size <= 1
-        val isReadOnly = file.path.fileSystem.isReadOnly
+        val isBlockPartition = targetFiles.any {
+            val p = it.path.toString()
+            p.startsWith("/dev/block") || p.startsWith("/dev/")
+        }
+        val isReadOnly = file.path.fileSystem.isReadOnly || isBlockPartition
         val isDirectory = file.attributes.isDirectory
         val isArchivePath = file.path.isArchivePath
 
@@ -316,7 +324,7 @@ object MtFileMenuHelper {
 
         // Dividir archivo
         val toolSplitFile = view.findViewById<LinearLayout>(R.id.toolSplitFile)
-        if (!isDirectory && !isArchivePath && isSingleFile) {
+        if (!isDirectory && !isArchivePath && isSingleFile && !isBlockPartition) {
             toolSplitFile.setOnClickListener {
                 dialog.dismiss()
                 fragment.splitFile(file)
@@ -328,7 +336,7 @@ object MtFileMenuHelper {
 
         // Unir archivos
         val toolMergeFiles = view.findViewById<LinearLayout>(R.id.toolMergeFiles)
-        if (FileSplitMergeHelper.isSplitPart(file) && isSingleFile) {
+        if (FileSplitMergeHelper.isSplitPart(file) && isSingleFile && !isBlockPartition) {
             toolMergeFiles.setOnClickListener {
                 dialog.dismiss()
                 fragment.mergeFiles(file)
@@ -340,7 +348,7 @@ object MtFileMenuHelper {
 
         // Cifrar archivo
         val toolEncryptFile = view.findViewById<LinearLayout>(R.id.toolEncryptFile)
-        if (!isDirectory && !isArchivePath && isSingleFile && !FileEncryptDecryptHelper.isEncryptedFile(file)) {
+        if (!isDirectory && !isArchivePath && isSingleFile && !isBlockPartition && !FileEncryptDecryptHelper.isEncryptedFile(file)) {
             toolEncryptFile.setOnClickListener {
                 dialog.dismiss()
                 FileEncryptDecryptHelper.showEncryptDialog(activity, file) {
@@ -354,7 +362,7 @@ object MtFileMenuHelper {
 
         // Descifrar archivo
         val toolDecryptFile = view.findViewById<LinearLayout>(R.id.toolDecryptFile)
-        if (!isDirectory && !isArchivePath && isSingleFile && FileEncryptDecryptHelper.isEncryptedFile(file)) {
+        if (!isDirectory && !isArchivePath && isSingleFile && !isBlockPartition && FileEncryptDecryptHelper.isEncryptedFile(file)) {
             toolDecryptFile.setOnClickListener {
                 dialog.dismiss()
                 FileEncryptDecryptHelper.showDecryptDialog(activity, file) {
@@ -388,7 +396,7 @@ object MtFileMenuHelper {
 
         // Crear enlace simbólico
         val toolCreateSymlink = view.findViewById<LinearLayout>(R.id.toolCreateSymlink)
-        if (!isArchivePath && isSingleFile) {
+        if (!isArchivePath && isSingleFile && !isBlockPartition) {
             toolCreateSymlink.setOnClickListener {
                 dialog.dismiss()
                 fragment.createSymlink(file)

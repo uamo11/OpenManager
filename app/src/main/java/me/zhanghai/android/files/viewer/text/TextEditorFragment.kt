@@ -10,6 +10,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
@@ -35,6 +36,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.children
+import androidx.core.view.updatePadding
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
@@ -593,6 +595,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
+            binding.appBarLayout.updatePadding(top = statusBarTop)
             updateInsetsFromWindow(insets)
             insets
         }
@@ -609,13 +613,45 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 }
             }
         )
+
+        binding.root.viewTreeObserver.addOnGlobalLayoutListener {
+            if (!this::binding.isInitialized) return@addOnGlobalLayoutListener
+            val insets = ViewCompat.getRootWindowInsets(binding.root)
+            if (insets != null) {
+                updateInsetsFromWindow(insets)
+            } else {
+                val r = Rect()
+                binding.root.getWindowVisibleDisplayFrame(r)
+                val screenHeight = binding.root.rootView.height
+                val heightDiff = screenHeight - r.bottom
+                val density = resources.displayMetrics.density
+                val imeBottom = if (heightDiff > (120 * density).toInt()) heightDiff else 0
+                if (currentImeBottom != imeBottom) {
+                    currentImeBottom = imeBottom
+                    applyBottomBarInsets()
+                }
+            }
+        }
     }
 
     private fun updateInsetsFromWindow(insets: WindowInsetsCompat) {
         val imeInsetsBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-        val navInsetsBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+        val navInsetsBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            .coerceAtLeast(insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom)
         val isImeVisible = insets.isVisible(WindowInsetsCompat.Type.ime()) || imeInsetsBottom > navInsetsBottom
-        val imeBottom = if (isImeVisible && imeInsetsBottom > 0) imeInsetsBottom else 0
+        var imeBottom = if (isImeVisible && imeInsetsBottom > 0) imeInsetsBottom else 0
+
+        // Fallback display frame check for OEM ROMs
+        if (imeBottom == 0 && this::binding.isInitialized) {
+            val r = Rect()
+            binding.root.getWindowVisibleDisplayFrame(r)
+            val screenHeight = binding.root.rootView.height
+            val heightDiff = screenHeight - r.bottom
+            val density = resources.displayMetrics.density
+            if (heightDiff > (120 * density).toInt()) {
+                imeBottom = heightDiff
+            }
+        }
 
         if (currentImeBottom != imeBottom || currentNavBottom != navInsetsBottom) {
             currentImeBottom = imeBottom

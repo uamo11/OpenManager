@@ -31,6 +31,10 @@ internal object LinuxCopyMove {
         if (copyOptions.atomicMove) {
             throw UnsupportedOperationException(StandardCopyOption.ATOMIC_MOVE.toString())
         }
+        val sourceStr = source.toString()
+        if (sourceStr == "/dev/zero" || sourceStr == "/dev/urandom" || sourceStr == "/dev/random" || sourceStr.startsWith("/dev/pts/")) {
+            throw IOException("Por seguridad, no se permite copiar dispositivos de flujo continuo ($sourceStr)")
+        }
         val sourceStat = try {
             if (copyOptions.noFollowLinks) Syscall.lstat(source) else Syscall.stat(source)
         } catch (e: SyscallException) {
@@ -104,13 +108,41 @@ internal object LinuxCopyMove {
                     val progressListener = copyOptions.progressListener
                     var lastProgressMillis = System.currentTimeMillis()
                     var copiedSize = 0L
+                    var useSendfile = true
+                    val bufferSize = 256 * 1024
+                    var buffer: ByteArray? = null
                     while (true) {
-                        val sentSize = try {
-                            Syscall.sendfile(targetFd, sourceFd, null, SEND_FILE_COUNT.toLong())
-                        } catch (e: SyscallException) {
-                            throw e.toFileSystemException(source.toString(), target.toString())
+                        var sentSize = 0L
+                        if (useSendfile) {
+                            try {
+                                sentSize = Syscall.sendfile(targetFd, sourceFd, null, SEND_FILE_COUNT.toLong())
+                            } catch (e: SyscallException) {
+                                if (e.errno == OsConstants.EINVAL || e.errno == OsConstants.ENOSYS || e.errno == OsConstants.EXDEV) {
+                                    useSendfile = false
+                                } else {
+                                    throw e.toFileSystemException(source.toString(), target.toString())
+                                }
+                            }
                         }
-                        if (sentSize == 0L) {
+                        if (!useSendfile) {
+                            if (buffer == null) {
+                                buffer = ByteArray(bufferSize)
+                            }
+                            val readBytes = try {
+                                Syscall.read(sourceFd, buffer, 0, bufferSize)
+                            } catch (e: SyscallException) {
+                                throw e.toFileSystemException(source.toString())
+                            }
+                            if (readBytes <= 0) {
+                                break
+                            }
+                            try {
+                                Syscall.write(targetFd, buffer, 0, readBytes)
+                            } catch (e: SyscallException) {
+                                throw e.toFileSystemException(target.toString())
+                            }
+                            sentSize = readBytes.toLong()
+                        } else if (sentSize == 0L) {
                             break
                         }
                         copiedSize += sentSize
@@ -410,6 +442,14 @@ internal object LinuxCopyMove {
 
     @Throws(IOException::class)
     fun move(source: ByteString, target: ByteString, copyOptions: CopyOptions) {
+        val sourceStr = source.toString()
+        if (sourceStr.startsWith("/dev/block") || sourceStr.startsWith("/dev/")) {
+            throw SecurityException("Por seguridad anti-brick, no se permite mover nodos de particiones del sistema ($sourceStr)")
+        }
+        val targetStr = target.toString()
+        if (targetStr.startsWith("/dev/block") || targetStr.startsWith("/dev/")) {
+            throw SecurityException("Por seguridad anti-brick, no se permite mover archivos hacia directorios de particiones del sistema ($targetStr)")
+        }
         val sourceStat = try {
             Syscall.lstat(source)
         } catch (e: SyscallException) {
