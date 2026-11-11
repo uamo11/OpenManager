@@ -1673,4 +1673,26 @@
     <string name="settings_archive_security_rar5_dialog_title">Security Warning: Experimental RAR5 Support</string>
     <string name="settings_archive_security_rar5_dialog_message">Warning: The native RAR5 decompression engine in libarchive has known memory safety vulnerabilities (including CVE-2026-14164 Double-Free in unpacking state filter buffers).\n\nEnabling RAR5 support is experimental and carries security risks when opening untrusted or downloaded archives.\n\nOpenManager will perform strict structural pre-validation, but we strongly advise only opening archives from trusted sources.\n\nDo you want to enable RAR5 support anyway?</string>
     <string name="settings_archive_security_rar5_dialog_confirm">Enable Anyway</string>
+    <!-- PDF Viewer -->
+    <string name="pdf_viewer_title">PDF Reader</string>
+    <string name="open_as_pdf_viewer">PDF Reader</string>
+    <string name="pdf_menu_theme">Reading Theme</string>
+    <string name="pdf_theme_day">Day (Normal)</string>
+    <string name="pdf_theme_night">Night (Inverted)</string>
+    <string name="pdf_theme_sepia">Sepia (Eye Comfort)</string>
+    <string name="pdf_menu_jump_page">Jump to Page</string>
+    <string name="pdf_menu_view_mode">View Mode</string>
+    <string name="pdf_view_continuous">Continuous Vertical</string>
+    <string name="pdf_view_paged">Page by Page</string>
+    <string name="pdf_menu_info">Document Info</string>
+    <string name="pdf_page_indicator_format">Page %1$d of %2$d</string>
+    <string name="pdf_page_badge_format">%1$d / %2$d</string>
+    <string name="pdf_jump_prompt">Enter page number (1 – %1$d):</string>
+    <string name="pdf_invalid_page_number">Please enter a valid page number between 1 and %1$d</string>
+    <string name="pdf_error_open">Failed to open PDF document</string>
+    <string name="pdf_error_encrypted">This PDF file is password protected or encrypted.</string>
+    <string name="pdf_info_filename">Filename</string>
+    <string name="pdf_info_pages">Total Pages</string>
+    <string name="pdf_info_size">Size</string>
+    <string name="pdf_info_path">Location</string>
 </resources>

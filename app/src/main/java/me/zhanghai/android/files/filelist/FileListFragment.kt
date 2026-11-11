@@ -100,6 +100,7 @@ import me.zhanghai.android.files.viewer.binary.ElfInfoDialogFragment
 import me.zhanghai.android.files.viewer.sqlite.SqliteViewerActivity
 import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import me.zhanghai.android.files.viewer.video.VideoPlayerActivity
+import me.zhanghai.android.files.viewer.pdf.PdfViewerActivity
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.filelist.FileSortOptions.By
 import me.zhanghai.android.files.filelist.FileSortOptions.Order
@@ -2217,7 +2218,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             ElfInfoDialogFragment.show(file.path, childFragmentManager)
             return
         }
-        if (file.mimeType.isImage || file.mimeType.isPdf) {
+        if (file.mimeType.isPdf || fileExtension == "pdf" || fileName.endsWith(".pdf", true)) {
+            PdfViewerActivity.start(requireContext(), file.path)
+            return
+        }
+        if (file.mimeType.isImage) {
             openFileWithIntent(file, false)
             return
         }

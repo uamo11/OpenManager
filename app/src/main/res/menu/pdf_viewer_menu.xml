@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_theme"
+        android:icon="@drawable/ic_night_mode_24dp"
+        android:orderInCategory="10"
+        android:title="@string/pdf_menu_theme"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_jump_page"
+        android:icon="@drawable/ic_jump_page_24dp"
+        android:orderInCategory="20"
+        android:title="@string/pdf_menu_jump_page"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_view_mode"
+        android:orderInCategory="30"
+        android:title="@string/pdf_menu_view_mode"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_info"
+        android:icon="@drawable/information_icon_white_24dp"
+        android:orderInCategory="40"
+        android:title="@string/pdf_menu_info"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_share"
+        android:icon="@drawable/ic_mt_share"
+        android:orderInCategory="50"
+        android:title="@string/share"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_open_external"
+        android:orderInCategory="60"
+        android:title="@string/file_item_action_open_with"
+        app:showAsAction="never" />
+</menu>

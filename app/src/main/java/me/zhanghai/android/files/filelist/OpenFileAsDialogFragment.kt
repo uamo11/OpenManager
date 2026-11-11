@@ -40,6 +40,7 @@ import me.zhanghai.android.files.viewer.dex.DexActionDialogFragment
 import me.zhanghai.android.files.viewer.hex.HexEditorActivity
 import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import me.zhanghai.android.files.viewer.video.VideoPlayerActivity
+import me.zhanghai.android.files.viewer.pdf.PdfViewerActivity
 
 class OpenFileAsDialogFragment : AppCompatDialogFragment() {
     private val args by args<Args>()
@@ -205,6 +206,12 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
             // 6. Video Player
             ToolItem("video_player", R.string.open_as_video_player, R.drawable.ic_open_as_video) {
                 VideoPlayerActivity.start(requireContext(), path)
+                dismissOrFinishActivity()
+            },
+
+            // 7. PDF Reader
+            ToolItem("pdf_viewer", R.string.open_as_pdf_viewer, R.drawable.file_pdf_icon) {
+                PdfViewerActivity.start(requireContext(), path)
                 dismissOrFinishActivity()
             },
 

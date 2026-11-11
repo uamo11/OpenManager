@@ -1569,4 +1569,26 @@
     <string name="settings_archive_security_rar5_dialog_title">Advertencia de Seguridad: Soporte RAR5</string>
     <string name="settings_archive_security_rar5_dialog_message">Advertencia: El motor nativo de descompresión RAR5 en libarchive presenta vulnerabilidades conocidas de seguridad en memoria (incluyendo CVE-2026-14164 Double-Free en búferes de filtrado).\n\nActivar el soporte RAR5 es una función experimental y conlleva riesgos de seguridad al abrir archivos de fuentes no confiables.\n\nOpenManager realizará una pre-validación estructural estricta, pero recomendamos abrir únicamente archivos de origen seguro.\n\n¿Deseas habilitar el soporte RAR5 de todos modos?</string>
     <string name="settings_archive_security_rar5_dialog_confirm">Habilitar de todos modos</string>
+    <!-- PDF Viewer -->
+    <string name="pdf_viewer_title">Lector de PDF</string>
+    <string name="open_as_pdf_viewer">Lector de PDF</string>
+    <string name="pdf_menu_theme">Tema de lectura</string>
+    <string name="pdf_theme_day">Día (Normal)</string>
+    <string name="pdf_theme_night">Noche (Invertido)</string>
+    <string name="pdf_theme_sepia">Sepia (Cálido)</string>
+    <string name="pdf_menu_jump_page">Ir a la página</string>
+    <string name="pdf_menu_view_mode">Modo de vista</string>
+    <string name="pdf_view_continuous">Desplazamiento continuo</string>
+    <string name="pdf_view_paged">Página por página</string>
+    <string name="pdf_menu_info">Información del documento</string>
+    <string name="pdf_page_indicator_format">Página %1$d de %2$d</string>
+    <string name="pdf_page_badge_format">%1$d / %2$d</string>
+    <string name="pdf_jump_prompt">Introduce el número de página (1 – %1$d):</string>
+    <string name="pdf_invalid_page_number">Introduce un número de página válido entre 1 y %1$d</string>
+    <string name="pdf_error_open">No se pudo abrir el documento PDF</string>
+    <string name="pdf_error_encrypted">Este archivo PDF está protegido con contraseña o cifrado.</string>
+    <string name="pdf_info_filename">Nombre de archivo</string>
+    <string name="pdf_info_pages">Total de páginas</string>
+    <string name="pdf_info_size">Tamaño</string>
+    <string name="pdf_info_path">Ubicación</string>
 </resources>
