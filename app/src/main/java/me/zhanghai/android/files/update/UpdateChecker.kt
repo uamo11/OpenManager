@@ -209,7 +209,9 @@ object UpdateChecker {
                 )
             }
 
-            if (candidates.isEmpty()) return null
+            if (candidates.isEmpty()) {
+                return parseReleaseListJsonFallback(jsonString, isDebug, currentVersion)
+            }
 
             // Find highest version among all releases returned
             var bestRelease = candidates.first()
@@ -242,9 +244,91 @@ object UpdateChecker {
 
             bestRelease.copy(intermediateChangelog = intermediateChangelog)
         } catch (_: Throwable) {
-            // Fallback to single release parsing
-            parseReleaseJson(jsonString, isDebug)
+            parseReleaseListJsonFallback(jsonString, isDebug, currentVersion)
         }
+    }
+
+    fun extractTopLevelJsonObjects(json: String): List<String> {
+        val objects = mutableListOf<String>()
+        var depth = 0
+        var start = -1
+        var inString = false
+        var escape = false
+        for (i in json.indices) {
+            val ch = json[i]
+            if (escape) {
+                escape = false
+                continue
+            }
+            if (ch == '\\') {
+                if (inString) {
+                    escape = true
+                }
+                continue
+            }
+            if (ch == '"') {
+                inString = !inString
+                continue
+            }
+            if (inString) continue
+
+            if (ch == '{') {
+                if (depth == 0) {
+                    start = i
+                }
+                depth++
+            } else if (ch == '}') {
+                depth--
+                if (depth == 0 && start != -1) {
+                    objects.add(json.substring(start, i + 1))
+                    start = -1
+                }
+            }
+        }
+        return objects
+    }
+
+    fun parseReleaseListJsonFallback(
+        jsonString: String,
+        isDebug: Boolean,
+        currentVersion: String = BuildConfig.VERSION_NAME
+    ): ReleaseInfo? {
+        val blocks = extractTopLevelJsonObjects(jsonString)
+        val candidates = mutableListOf<ReleaseInfo>()
+        for (block in blocks) {
+            val rel = parseReleaseJsonFallback(block, isDebug) ?: continue
+            candidates.add(rel)
+        }
+        if (candidates.isEmpty()) return parseReleaseJsonFallback(jsonString, isDebug)
+
+        var bestRelease = candidates.first()
+        for (cand in candidates) {
+            if (isVersionNewer(cand.version, bestRelease.version)) {
+                bestRelease = cand
+            }
+        }
+
+        val newerReleases = candidates.filter { isVersionNewer(it.version, currentVersion) }
+            .sortedWith { a, b ->
+                if (isVersionNewer(a.version, b.version)) -1
+                else if (isVersionNewer(b.version, a.version)) 1
+                else 0
+            }
+
+        val intermediateChangelog = if (newerReleases.size > 1) {
+            newerReleases.mapNotNull { rel ->
+                val text = rel.body.trim()
+                if (text.isNotEmpty()) {
+                    if (text.startsWith("#")) text else "# OpenManager ${rel.tagName}\n\n$text"
+                } else null
+            }.joinToString("\n\n---\n\n")
+        } else if (newerReleases.size == 1) {
+            newerReleases.first().body
+        } else {
+            bestRelease.body
+        }
+
+        return bestRelease.copy(intermediateChangelog = intermediateChangelog)
     }
 
     fun cleanHtmlToMarkdown(html: String): String {
