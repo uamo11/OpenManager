@@ -1,3 +1,20 @@
+# OpenManager v1.9.68: Limpieza y Filtrado Estricto de Notas de Actualización (Solo Versión Más Reciente y Cero Textos Largos de Versiones Antiguas)
+
+### 🧹 Información Exclusiva de la Versión Más Reciente
+- **Supresión Total de Versiones Antiguas Acumuladas**:
+  - Al abrir el diálogo de actualización disponible, ahora se muestran únicamente las novedades de la versión más reciente que se va a instalar.
+  - Se eliminó por completo la concatenación de versiones intermedias y notas pasadas, evitando paredes interminables de texto de 65 KB.
+- **Formato Limpio y Legible (Sin Basura de Markdown)**:
+  - Eliminación automática de hashes crudos (`#`, `##`, `###`), negritas con asteriscos (`**`) y comillas invertidas de código (`` ` ``).
+  - Encabezados claros (`Título:`) y viñetas elegantes (`•` y sub-viñetas `▫`), preservando intactos los iconos de navegación `[<] [>] [+] [⇆] [↑]`.
+  - Supresión del encabezado duplicado con el nombre de versión dentro del registro de cambios.
+
+### ⚙️ Automatización en CI
+- **Publicación Aislada por Tag**:
+  - El flujo de trabajo en GitHub Actions ahora extrae de forma automática y estricta únicamente la sección de la versión específica (`$TAG`), garantizando que los releases oficiales contengan únicamente sus notas correspondientes.
+
+---
+
 # OpenManager v1.9.67: Perfeccionamiento de Escala, Adaptación Dinámica a Gestos / 3 Botones, Barra Superior Compacta (44dp) y Compatibilidad de Recortes (Notch/Cutout)
 
 ### 📐 Adaptación Dinámica de la Barra Inferior a Botones y Gestos del Sistema

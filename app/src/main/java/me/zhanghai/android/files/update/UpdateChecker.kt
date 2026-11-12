@@ -120,7 +120,8 @@ object UpdateChecker {
             if (tagName.isNullOrEmpty()) return parseReleaseJsonFallback(jsonString, isDebug)
             val version = tagName.removePrefix("v").removePrefix("V").trim()
             val name = root.optString("name", "OpenManager $tagName")
-            val body = root.optString("body", "")
+            val rawBody = root.optString("body", "")
+            val body = cleanReleaseNotes(rawBody)
             val htmlUrl = root.optString("html_url", "https://github.com/$GITHUB_REPO/releases/tag/$tagName")
 
             val assetsArray = root.optJSONArray("assets")
@@ -221,28 +222,8 @@ object UpdateChecker {
                 }
             }
 
-            // Find all releases newer than current version and compile changelog
-            val newerReleases = candidates.filter { isVersionNewer(it.version, currentVersion) }
-                .sortedWith { a, b ->
-                    if (isVersionNewer(a.version, b.version)) -1
-                    else if (isVersionNewer(b.version, a.version)) 1
-                    else 0
-                }
-
-            val intermediateChangelog = if (newerReleases.size > 1) {
-                newerReleases.mapNotNull { rel ->
-                    val text = rel.body.trim()
-                    if (text.isNotEmpty()) {
-                        if (text.startsWith("#")) text else "# OpenManager ${rel.tagName}\n\n$text"
-                    } else null
-                }.joinToString("\n\n---\n\n")
-            } else if (newerReleases.size == 1) {
-                newerReleases.first().body
-            } else {
-                bestRelease.body
-            }
-
-            bestRelease.copy(intermediateChangelog = intermediateChangelog)
+            val cleanBody = cleanReleaseNotes(bestRelease.body)
+            bestRelease.copy(body = cleanBody, intermediateChangelog = cleanBody)
         } catch (_: Throwable) {
             parseReleaseListJsonFallback(jsonString, isDebug, currentVersion)
         }
@@ -308,27 +289,8 @@ object UpdateChecker {
             }
         }
 
-        val newerReleases = candidates.filter { isVersionNewer(it.version, currentVersion) }
-            .sortedWith { a, b ->
-                if (isVersionNewer(a.version, b.version)) -1
-                else if (isVersionNewer(b.version, a.version)) 1
-                else 0
-            }
-
-        val intermediateChangelog = if (newerReleases.size > 1) {
-            newerReleases.mapNotNull { rel ->
-                val text = rel.body.trim()
-                if (text.isNotEmpty()) {
-                    if (text.startsWith("#")) text else "# OpenManager ${rel.tagName}\n\n$text"
-                } else null
-            }.joinToString("\n\n---\n\n")
-        } else if (newerReleases.size == 1) {
-            newerReleases.first().body
-        } else {
-            bestRelease.body
-        }
-
-        return bestRelease.copy(intermediateChangelog = intermediateChangelog)
+        val cleanBody = cleanReleaseNotes(bestRelease.body)
+        return bestRelease.copy(body = cleanBody, intermediateChangelog = cleanBody)
     }
 
     fun cleanHtmlToMarkdown(html: String): String {
@@ -356,10 +318,66 @@ object UpdateChecker {
             .replace(Regex("(?i)</strong>"), "**")
             .replace(Regex("(?i)<code[^>]*>"), "`")
             .replace(Regex("(?i)</code>"), "`")
-            .replace(Regex("<[^>]+>"), "")
+            .replace(Regex("</?[a-zA-Z][^>]*>"), "")
             .replace(Regex("\n{3,}"), "\n\n")
             .trim()
         return text
+    }
+
+    fun cleanReleaseNotes(raw: String): String {
+        if (raw.isBlank()) return ""
+        val section = raw.trim()
+
+        val dividerRegex = Regex("(?i)^(?:---+|___+|\\*\\*\\*+|<hr\\s*/?>|#+\\s+OpenManager\\s+v[0-9.]+|#+\\s+v[0-9.]+)[:\\s]*$")
+        val lines = section.lines()
+        val currentLines = mutableListOf<String>()
+        var foundTopTitle = false
+
+        for (line in lines) {
+            val trimmed = line.trim()
+            // Skip redundant top release title "# OpenManager v1.9.XX: ..." or "# v1.9.XX"
+            if (!foundTopTitle && trimmed.matches(Regex("(?i)^#+\\s*(OpenManager\\s+)?v[0-9.]+.*"))) {
+                foundTopTitle = true
+                continue
+            }
+            // Stop at divider or subsequent release header (strictly isolates latest release notes)
+            if (foundTopTitle && dividerRegex.matches(trimmed)) {
+                break
+            }
+            if (currentLines.isNotEmpty() && dividerRegex.matches(trimmed)) {
+                break
+            }
+            currentLines.add(line)
+        }
+
+        var body = currentLines.joinToString("\n").trim()
+        if (body.isEmpty()) {
+            body = section
+        }
+
+        // Clean markdown headings: "### 📐 Title" -> "📐 Title:"
+        body = body.replace(Regex("(?m)^#+\\s*(.+?):?\\s*$"), "$1:")
+
+        // Remove bold/italic markers
+        body = body.replace(Regex("\\*\\*([^*]+)\\*\\*"), "$1")
+        body = body.replace(Regex("__([^_]+)__"), "$1")
+
+        // Remove code backticks
+        body = body.replace(Regex("`([^`]+)`"), "$1")
+
+        // Format bullet points cleanly:
+        // Sub-bullets (2 or more leading spaces/tabs)
+        body = body.replace(Regex("(?m)^[ \t]{2,}[-*][ \t]+"), "   ▫ ")
+        // Top-level bullets
+        body = body.replace(Regex("(?m)^[ \t]*[-*][ \t]+"), "• ")
+
+        // Remove real HTML tags if any remain
+        body = body.replace(Regex("</?[a-zA-Z][^>]*>"), "")
+
+        // Collapse excessive newlines
+        body = body.replace(Regex("\n{3,}"), "\n\n").trim()
+
+        return body
     }
 
     fun parseReleaseAtomFeed(
@@ -419,27 +437,8 @@ object UpdateChecker {
                 }
             }
 
-            val newerReleases = candidates.filter { isVersionNewer(it.version, currentVersion) }
-                .sortedWith { a, b ->
-                    if (isVersionNewer(a.version, b.version)) -1
-                    else if (isVersionNewer(b.version, a.version)) 1
-                    else 0
-                }
-
-            val intermediateChangelog = if (newerReleases.size > 1) {
-                newerReleases.mapNotNull { rel ->
-                    val text = rel.body.trim()
-                    if (text.isNotEmpty()) {
-                        if (text.startsWith("#")) text else "# OpenManager ${rel.tagName}\n\n$text"
-                    } else null
-                }.joinToString("\n\n---\n\n")
-            } else if (newerReleases.size == 1) {
-                newerReleases.first().body
-            } else {
-                bestRelease.body
-            }
-
-            bestRelease.copy(intermediateChangelog = intermediateChangelog)
+            val cleanBody = cleanReleaseNotes(bestRelease.body)
+            bestRelease.copy(body = cleanBody, intermediateChangelog = cleanBody)
         } catch (_: Throwable) {
             null
         }
@@ -457,7 +456,8 @@ object UpdateChecker {
         val htmlUrl = htmlUrlMatch?.groupValues?.get(1) ?: "https://github.com/$GITHUB_REPO/releases"
 
         val bodyMatch = Regex("\"body\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").find(json)
-        val body = bodyMatch?.groupValues?.get(1)?.replace("\\n", "\n")?.replace("\\\"", "\"") ?: ""
+        val rawBody = bodyMatch?.groupValues?.get(1)?.replace("\\n", "\n")?.replace("\\\"", "\"") ?: ""
+        val body = cleanReleaseNotes(rawBody)
 
         val assets = mutableListOf<ReleaseAsset>()
         val genericAssetRegex = Regex("\\{[^{}]*\"browser_download_url\"\\s*:\\s*\"([^\"]+)\"[^{}]*\\}")
@@ -703,14 +703,16 @@ object UpdateChecker {
         val sizeFormatted = if (releaseInfo.targetAsset.size > 0) formatSize(releaseInfo.targetAsset.size) else "APK"
         tvUpdateFileInfo.text = activity.getString(R.string.update_target_apk_label, releaseInfo.targetAsset.name, sizeFormatted)
 
-        val changelogText = if (releaseInfo.intermediateChangelog.isNotBlank()) {
-            releaseInfo.intermediateChangelog
-        } else if (releaseInfo.body.isNotBlank()) {
+        val rawChangelog = if (releaseInfo.body.isNotBlank()) {
             releaseInfo.body
+        } else if (releaseInfo.intermediateChangelog.isNotBlank()) {
+            releaseInfo.intermediateChangelog
+        } else if (releaseInfo.name.isNotBlank()) {
+            releaseInfo.name
         } else {
             activity.getString(R.string.update_up_to_date_title)
         }
-        tvUpdateChangelog.text = changelogText
+        tvUpdateChangelog.text = cleanReleaseNotes(rawChangelog)
 
         btnUpdateLater.setOnClickListener {
             dialog.dismiss()

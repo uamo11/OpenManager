@@ -147,10 +147,10 @@ class UpdateCheckerLogicTest {
         assertEquals("v1.9.65", parsed.tagName)
         assertEquals("OpenManager-v1.9.65-release.apk", parsed.targetAsset.name)
 
-        // Must aggregate changelog for all intermediate releases
-        assertTrue(parsed.intermediateChangelog.contains("Added DOCX reader"))
-        assertTrue(parsed.intermediateChangelog.contains("Fixed update dialog buttons"))
-        assertTrue(parsed.intermediateChangelog.contains("Fixed insets and latency"))
+        // Must show ONLY the notes of the latest release (1.9.65), never old releases!
+        assertTrue(parsed.body.contains("Added DOCX reader"))
+        assertFalse(parsed.body.contains("Fixed update dialog buttons"))
+        assertFalse(parsed.body.contains("Fixed insets and latency"))
     }
 
     @Test
@@ -179,8 +179,43 @@ class UpdateCheckerLogicTest {
         assertEquals("v1.9.65", parsed.tagName)
         assertEquals("OpenManager-v1.9.65-release.apk", parsed.targetAsset.name)
         assertTrue(parsed.targetAsset.downloadUrl.contains("v1.9.65/OpenManager-v1.9.65-release.apk"))
-        assertTrue(parsed.intermediateChangelog.contains("DOCX support"))
-        assertTrue(parsed.intermediateChangelog.contains("PDF viewer"))
+        assertTrue(parsed.body.contains("Word Reader") || parsed.body.contains("DOCX support"))
+        assertFalse(parsed.body.contains("PDF Reader"))
+        assertFalse(parsed.body.contains("PDF viewer"))
+    }
+
+    @Test
+    fun testCleanReleaseNotesStripsOldReleasesAndMarkdownClutter() {
+        val rawNotes = """
+            # OpenManager v1.9.67: UI Scale and Inset Fixes
+
+            ### 📐 Insets
+            - **Navigation Bar**:
+              - Automatically insets buttons above 3-button bar `navigationBars().bottom`
+              - Preserves [<] [>] [+] [⇆] [↑]
+
+            ---
+
+            # OpenManager v1.9.66: Old Update
+            - Old feature from previous release
+        """.trimIndent()
+
+        val clean = UpdateChecker.cleanReleaseNotes(rawNotes)
+        // Redundant top title stripped
+        assertFalse(clean.contains("# OpenManager v1.9.67"))
+        // Markdown headings converted
+        assertTrue(clean.contains("📐 Insets:"))
+        // Bold stripped
+        assertTrue(clean.contains("• Navigation Bar:"))
+        // Backticks stripped
+        assertTrue(clean.contains("navigationBars().bottom"))
+        // [<] [>] preserved!
+        assertTrue(clean.contains("[<] [>] [+] [⇆] [↑]"))
+        // Sub-bullets formatted
+        assertTrue(clean.contains("   ▫ Automatically insets"))
+        // Old release (v1.9.66) completely excluded!
+        assertFalse(clean.contains("OpenManager v1.9.66"))
+        assertFalse(clean.contains("Old feature"))
     }
 
     @Test
