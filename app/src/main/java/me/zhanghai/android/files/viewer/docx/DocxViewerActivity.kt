@@ -130,8 +130,17 @@ class DocxViewerActivity : AppActivity() {
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.rootView) { _, insets ->
-            val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            binding.appBarLayout.setPadding(0, statusBarHeight, 0, 0)
+            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val cutouts = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+
+            val topInset = maxOf(statusBars.top, cutouts.top)
+            val leftInset = maxOf(navBars.left, cutouts.left)
+            val rightInset = maxOf(navBars.right, cutouts.right)
+            val bottomInset = navBars.bottom
+
+            binding.appBarLayout.setPadding(leftInset, topInset, rightInset, 0)
+            binding.webView.setPadding(leftInset, 0, rightInset, bottomInset)
             insets
         }
     }

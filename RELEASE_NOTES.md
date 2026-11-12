@@ -1,3 +1,35 @@
+# OpenManager v1.9.67: Perfeccionamiento de Escala, Adaptación Dinámica a Gestos / 3 Botones, Barra Superior Compacta (44dp) y Compatibilidad de Recortes (Notch/Cutout)
+
+### 📐 Adaptación Dinámica de la Barra Inferior a Botones y Gestos del Sistema
+- **Cero Superposición en Navegación Clásica (3 Botones)**:
+  - Se eliminó por completo el problema donde la barra de navegación del sistema (atrás, inicio, recientes) cubría los botones inferiores de OpenManager (`[<] [>] [+] [⇆] [↑]` y la barra de selección múltiple).
+  - La barra inferior ahora calcula e incorpora en tiempo real el valor exacto de `navigationBars().bottom`, elevando los botones a una zona completamente libre y extendiendo el fondo oscuro (`#202020`) de forma continua hasta el borde inferior de la pantalla.
+- **Transición Fluida entre Gestos y 3 Botones**:
+  - Detección inmediata mediante `OnApplyWindowInsetsListener`: si el usuario cambia el estilo de navegación en los ajustes del sistema o rota la pantalla, la interfaz se reconfigura al instante sin necesidad de reiniciar la aplicación.
+  - El ajuste manual «Agregar margen inferior» en Configuración funciona ahora como un incremento personalizado opcional, sin romper la geometría nativa del dispositivo.
+  - Cierre automático de márgenes cuando se despliega el teclado virtual (IME).
+
+### 📏 Optimización y Compactación de la Barra Superior ("Barra de arriba muy grande")
+- **Diseño Compacto MT-Style de 44dp**:
+  - Se redujo la altura de la barra superior principal (`mainToolbar`) de 56dp a 44dp (ahorrando 12dp de espacio vertical muerto y aumentando el área útil para los listados de archivos).
+  - Los botones de navegación (`Atrás` y `Más opciones`) se rediseñaron a 38dp con iconos nítidos centrados.
+  - La tipografía de la ruta (`13.5sp` en negrita) y subtítulo de estadísticas (`10sp`) se calibraron para máxima legibilidad sin desperdiciar altura.
+  - La cabecera del cajón lateral (`layoutDrawerHeader`) adopta también la escala compacta de 44dp, corrigiendo el padding duplicado en capas de personalización OEM.
+
+### 📱 Pantalla Completa, Visores y Diálogos
+- **Visor DOCX / Word**:
+  - Barra de herramientas compacta de 44dp.
+  - Insets de recorte (punch-hole / notch) y barra de navegación aplicados a la vista de lectura web para que los párrafos finales nunca queden tapados.
+- **Visor PDF**:
+  - Barra de herramientas compacta de 44dp.
+  - Ajuste dinámico de elevación del indicador de página flotante (`pageBadge`) sobre la barra de navegación de 3 botones.
+- **Editor de Texto**:
+  - Barra superior de 44dp y tira de estado MT a 26dp, maximizando el espacio de código y protegiendo los bordes horizontales contra notch en orientación horizontal.
+- **Hoja de Opciones de Creación («Crear nuevo»)**:
+  - Insets inferiores aplicados al BottomSheet para garantizar que todas las opciones (Carpeta, Archivo, ZIP y Keystore) sean 100% accesibles.
+
+---
+
 # OpenManager v1.9.66: Sistema de Actualización Inteligente Multi-Versión, Bypass de Rate Limit y Changelog Acumulativo
 
 ### 🚀 Detección Multi-Versión Inteligente (Sin Depender de la Etiqueta "Latest")

@@ -595,8 +595,15 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
-            val statusBarTop = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            binding.appBarLayout.updatePadding(top = statusBarTop)
+            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val cutouts = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+            val statusBarTop = maxOf(statusBars.top, cutouts.top)
+            val insetLeft = maxOf(navBars.left, cutouts.left)
+            val insetRight = maxOf(navBars.right, cutouts.right)
+
+            binding.appBarLayout.updatePadding(left = insetLeft, top = statusBarTop, right = insetRight)
+            binding.editorContentLayout.updatePadding(left = insetLeft, right = insetRight)
             updateInsetsFromWindow(insets)
             insets
         }

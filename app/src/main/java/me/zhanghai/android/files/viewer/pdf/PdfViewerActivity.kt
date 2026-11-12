@@ -132,19 +132,27 @@ class PdfViewerActivity : AppActivity() {
 
     private fun setupWindowInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(binding.rootView) { _, insets ->
-            val statusBarHeight = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top
-            val navBarHeight = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+            val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+            val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+            val cutouts = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
 
-            binding.appBarLayout.setPadding(0, statusBarHeight, 0, 0)
+            val statusBarHeight = maxOf(statusBars.top, cutouts.top)
+            val navBarHeight = navBars.bottom
+            val leftInset = maxOf(navBars.left, cutouts.left)
+            val rightInset = maxOf(navBars.right, cutouts.right)
 
-            val tv = TypedValue()
-            val actionBarHeight = if (theme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
-                TypedValue.complexToDimensionPixelSize(tv.data, resources.displayMetrics)
-            } else {
-                (56 * resources.displayMetrics.density).toInt()
+            binding.appBarLayout.setPadding(leftInset, statusBarHeight, rightInset, 0)
+
+            val actionBarHeight = (44 * resources.displayMetrics.density).toInt()
+            binding.recyclerView.setPadding(leftInset, statusBarHeight + actionBarHeight, rightInset, navBarHeight)
+
+            val badgeMargin = (16 * resources.displayMetrics.density).toInt() + navBarHeight
+            (binding.pageBadge.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+                if (lp.bottomMargin != badgeMargin) {
+                    lp.bottomMargin = badgeMargin
+                    binding.pageBadge.layoutParams = lp
+                }
             }
-
-            binding.recyclerView.setPadding(0, statusBarHeight + actionBarHeight, 0, navBarHeight)
             insets
         }
     }

@@ -39,6 +39,14 @@ class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+            val navBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
+            val density = v.resources.displayMetrics.density
+            val basePaddingBottom = (24 * density).toInt()
+            v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, basePaddingBottom + navBars.bottom)
+            insets
+        }
+
         val tvPath = view.findViewById<TextView>(R.id.tvCreatePath)
         if (pathDisplay.isNotEmpty()) {
             tvPath.text = pathDisplay

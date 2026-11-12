@@ -25,12 +25,13 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#151515"
-        android:fitsSystemWindows="true">
+        android:fitsSystemWindows="false">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
+            android:layout_height="44dp"
+            android:minHeight="44dp"
             android:background="#151515"
             app:navigationIcon="@drawable/arrow_back_icon_white_24dp"
             app:navigationIconTint="@android:color/white"

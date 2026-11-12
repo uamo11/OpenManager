@@ -24,25 +24,26 @@
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/mainToolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="56dp"
+            android:layout_height="44dp"
+            android:minHeight="44dp"
             android:background="#151515"
             app:navigationIcon="@drawable/menu_icon_control_normal_24dp"
             app:navigationIconTint="@android:color/white"
             app:navigationContentDescription="@string/open_navigation_drawer"
             app:contentInsetStartWithNavigation="0dp"
+            app:contentInsetStart="0dp"
             app:contentInsetEnd="0dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="44dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageButton
                     android:id="@+id/btnMainBack"
-                    android:layout_width="44dp"
-                    android:layout_height="44dp"
+                    android:layout_width="38dp"
+                    android:layout_height="38dp"
                     android:layout_gravity="center_vertical"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/arrow_back_icon_white_24dp"
@@ -69,7 +70,7 @@
                         android:layout_height="wrap_content"
                         android:singleLine="true"
                         android:ellipsize="middle"
-                        android:textSize="14.5sp"
+                        android:textSize="13.5sp"
                         android:textStyle="bold"
                         android:textColor="#FFFFFF"
                         android:text="/storage/emulated/0/" />
@@ -81,13 +82,13 @@
                         android:singleLine="true"
                         android:ellipsize="end"
                         android:textSize="10sp"
-                        android:textColor="#909090"
+                        android:textColor="#A0A0A0"
                         android:text="Cargando..." />
                 </LinearLayout>
 
                 <ImageButton
                     android:id="@+id/btnMainMore"
-                    android:layout_width="48dp"
+                    android:layout_width="38dp"
                     android:layout_height="match_parent"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/more_vertical_icon_white_24dp"
@@ -129,16 +130,17 @@
         <LinearLayout
             android:id="@+id/bottomBar"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="wrap_content"
+            android:minHeight="44dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
+            android:gravity="top"
             android:background="#202020">
 
             <!-- Normal Mode: [<] [>] [+] [⇆] [↑] -->
             <LinearLayout
                 android:id="@+id/bottomBarNormal"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="44dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
@@ -197,7 +199,7 @@
             <LinearLayout
                 android:id="@+id/bottomBarSelection"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
+                android:layout_height="44dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:visibility="gone">
@@ -264,14 +266,14 @@
         android:layout_gravity="start"
         android:background="#303030"
         android:orientation="vertical"
-        android:fitsSystemWindows="true">
+        android:fitsSystemWindows="false">
 
         <!-- Drawer Header -->
         <LinearLayout
             android:id="@+id/layoutDrawerHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="56dp"
+            android:minHeight="44dp"
             android:background="#151515"
             android:gravity="center_vertical"
             android:orientation="horizontal"

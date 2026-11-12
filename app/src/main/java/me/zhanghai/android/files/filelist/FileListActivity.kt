@@ -150,6 +150,10 @@ class FileListActivity : AppActivity() {
         setContentView(R.layout.file_list_activity)
         val resId = resources.getIdentifier("status_bar_height", "dimen", "android")
         statusBarHeight = if (resId > 0) resources.getDimensionPixelSize(resId) else (28 * resources.displayMetrics.density).toInt()
+        val navResId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        if (navResId > 0) {
+            systemNavBarBottom = resources.getDimensionPixelSize(navResId)
+        }
         findViewById<View>(R.id.activityRoot)?.updatePadding(top = statusBarHeight)
         findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarHeight)
 
@@ -1296,29 +1300,56 @@ class FileListActivity : AppActivity() {
     }
 
     private var isKeyboardVisible = false
+    private var systemNavBarBottom = 0
 
     private fun setupBottomBarControls() {
         val bottomBar = findViewById<View>(R.id.bottomBar)
         if (bottomBar != null) {
             ViewCompat.setOnApplyWindowInsetsListener(drawerLayout) { _, insets ->
                 val imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime())
+                val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                val cutouts = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+                val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
+
+                val newNavBarBottom = navBars.bottom
+                var needUpdate = false
+                if (systemNavBarBottom != newNavBarBottom) {
+                    systemNavBarBottom = newNavBarBottom
+                    needUpdate = true
+                }
                 if (isKeyboardVisible != imeVisible) {
                     isKeyboardVisible = imeVisible
-                    updateBottomBarMargin()
+                    needUpdate = true
                 }
+
                 val statusBarInset = maxOf(
-                    insets.getInsets(WindowInsetsCompat.Type.statusBars()).top,
-                    insets.getInsets(WindowInsetsCompat.Type.displayCutout()).top,
+                    statusBars.top,
+                    cutouts.top,
                     statusBarHeight
                 )
-                if (statusBarInset > 0) {
-                    findViewById<View>(R.id.activityRoot)?.updatePadding(top = statusBarInset)
-                    findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarInset)
+                val insetLeft = maxOf(navBars.left, cutouts.left)
+                val insetRight = maxOf(navBars.right, cutouts.right)
+
+                findViewById<View>(R.id.activityRoot)?.updatePadding(
+                    left = insetLeft,
+                    top = statusBarInset,
+                    right = insetRight
+                )
+                findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(
+                    left = insetLeft,
+                    top = statusBarInset
+                )
+                findViewById<View>(R.id.drawerScrollView)?.updatePadding(
+                    left = insetLeft,
+                    bottom = newNavBarBottom
+                )
+
+                if (needUpdate) {
+                    updateBottomBarMargin()
                 }
-                val navBarBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
-                findViewById<View>(R.id.drawerScrollView)?.updatePadding(bottom = navBarBottom)
                 insets
             }
+            ViewCompat.requestApplyInsets(drawerLayout)
         }
         updateBottomBarMargin()
         Settings.ADD_BOTTOM_MARGIN.observe(this) { updateBottomBarMargin() }
@@ -1486,19 +1517,25 @@ class FileListActivity : AppActivity() {
     private fun updateBottomBarMargin() {
         val bottomBar = findViewById<View>(R.id.bottomBar) ?: return
         val addMargin = Settings.ADD_BOTTOM_MARGIN.valueCompat
-        val marginDp = if (addMargin && !isKeyboardVisible) {
+        val marginDp = if (addMargin) {
             Settings.BOTTOM_MARGIN_SIZE.valueCompat.toIntOrNull() ?: 12
         } else {
             0
         }
         val density = resources.displayMetrics.density
-        val marginPx = (marginDp * density).toInt()
-        val baseHeightPx = (48 * density).toInt()
+        val customMarginPx = (marginDp * density).toInt()
+        val baseHeightPx = (44 * density).toInt()
+
+        val bottomInsetPx = if (!isKeyboardVisible) {
+            systemNavBarBottom + customMarginPx
+        } else {
+            0
+        }
 
         val lp = bottomBar.layoutParams
-        lp.height = baseHeightPx + marginPx
+        lp.height = baseHeightPx + bottomInsetPx
         bottomBar.layoutParams = lp
-        bottomBar.setPadding(0, 0, 0, marginPx)
+        bottomBar.setPadding(0, 0, 0, bottomInsetPx)
     }
 
     private var lastBackPressTime = 0L
