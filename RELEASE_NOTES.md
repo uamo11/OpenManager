@@ -1,3 +1,117 @@
+# OpenManager v1.9.66: Sistema de Actualización Inteligente Multi-Versión, Bypass de Rate Limit y Changelog Acumulativo
+
+### 🚀 Detección Multi-Versión Inteligente (Sin Depender de la Etiqueta "Latest")
+- **Consulta de Releases Múltiples**:
+  - Se optimizó la consulta a la API de GitHub para recuperar el listado completo de versiones recientes (`/repos/uamo11/OpenManager/releases?per_page=20`) en lugar de limitarse al endpoint singular `/releases/latest`.
+  - El sistema compara semánticamente cada versión devuelta (`isVersionNewer`), seleccionando con precisión matemática la versión más alta y moderna disponible, evitando que versiones intermedias queden ocultas si GitHub no las marcó como "latest".
+  - Filtro automático de pre-lanzamientos y borradores («drafts»).
+
+### 🛡️ Resiliencia Total: Bypass de Rate Limit de GitHub (HTTP 403) con Feed Atom
+- **Tolerancia a Fallos y Mecanismo de Respaldo Zero-Rate-Limit**:
+  - Si la API REST de GitHub devuelve error de límite de peticiones (HTTP 403 Rate Limit Exceeded) o fallo de red, el actualizador cambia instantáneamente y sin intervención del usuario al feed público Atom (`https://github.com/uamo11/OpenManager/releases.atom`).
+  - El feed Atom no tiene límites de peticiones anónimas y se sirve desde la CDN global de GitHub, garantizando que el usuario siempre pueda comprobar y descargar actualizaciones.
+  - Extracción y reconstrucción garantizada de enlaces directos a las APKs oficiales (`OpenManager-{version}-release.apk` y `OpenManager-{version}-debug.apk`).
+
+### 📋 Historial de Cambios Acumulativo (Multi-Release Changelog)
+- **Visualización Completa de Todas las Novedades Intermedias**:
+  - Al actualizar desde versiones más antiguas (por ejemplo, desde v1.9.55 hacia v1.9.66), el diálogo compila y concatena cronológicamente las notas de versión de todas las versiones intermedias.
+  - El usuario puede leer exactamente qué funciones, correcciones y novedades se han agregado en cada entrega desde su versión actual.
+
+### 🎨 Perfeccionamiento Estético del Diálogo de Actualización
+- **Botón de Descarga Destacado y A Ancho Completo**:
+  - El botón principal «Descargar e instalar» se presenta en un contenedor Material prominente a ancho completo con icono y fondo verde de alta visibilidad, impidiendo que el texto se comprima o corte en cualquier tamaño de pantalla.
+  - Botones secundarios «Más tarde» y «Ver en GitHub» dispuestos de manera simétrica en la barra inferior.
+  - Desplazamiento fluido y lectura limpia del registro de cambios.
+
+---
+
+# OpenManager v1.9.65: Lector Nativo de Documentos Word (.docx y .doc), Temas de Lectura, Búsqueda y Zoom
+
+### 📄 Motor de Lectura Nativo de Archivos Word (.docx)
+- **Descompresión y Renderizado Rápido sin Dependencias Externas**:
+  - Implementado motor propio de lectura OOXML (`DocxDocumentEngine.kt`) que procesa `word/document.xml`, relaciones (`_rels`) y recursos multimedia (`word/media/*`).
+  - Soporte completo para párrafos, jerarquías de encabezados (Título 1, Título 2, Título 3), listas numeradas y con viñetas, tablas estructuradas con bordes estilizados, bloques de citas, texto enriquecido (negrita, cursiva, subrayado, tachado, colores RGB y resaltados).
+  - Extracción e incrustación de imágenes del documento (`png`, `jpeg`, `gif`, `bmp`, `webp`) adaptadas al ancho de pantalla.
+  - Compatibilidad de lectura con documentos binarios heredados de Microsoft Word 97-2003 (`.doc`) mediante extractor de texto OLE2.
+
+### 🌓 Temas de Lectura Personalizados y Escalado de Texto
+- **Modos Día, Noche y Sepia**:
+  - Modo Día: fondo blanco con tipografía oscura clásica de alto contraste.
+  - Modo Noche: fondo negro profundo OLED `#121212` con texto gris claro suave `#E0E0E0` para mínima fatiga ocular.
+  - Modo Sepia: fondo cálido `#FBF0D9` con tipografía café `#5F4B32` emulando papel de libro.
+- **Control de Tamaño de Letra (80% a 150%)**:
+  - Ajuste fluido de escala tipográfica con preajustes rápidos (Compacto 85%, Normal 100%, Grande 120%, Enorme 140%) y persistencia en preferencias.
+
+### 🔍 Búsqueda Interactiva, Exportación a PDF y Herramientas
+- **Búsqueda en Tiempo Real con Conteo de Coincidencias**:
+  - Barra superior de búsqueda con resaltado interactivo, navegación anterior/siguiente y contador de coincidencias en vivo (ej. «1 de 4»).
+- **Exportación e Impresión a PDF**:
+  - Integración nativa con el servicio de impresión de Android (`PrintManager`) para exportar o imprimir documentos directamente a PDF.
+- **Copia de Texto y Ficha de Propiedades**:
+  - Acceso directo para copiar todo el contenido al portapapeles y diálogo con estadísticas del documento (palabras, caracteres, párrafos, tablas e imágenes).
+
+---
+
+# OpenManager v1.9.64: Visor Nativo de Archivos PDF con Zoom Vectorial, Temas de Lectura y Navegación Rápida
+
+### 📑 Renderizado Vectorial de Alta Calidad y Gestos Multitáctil
+- **Motor Basado en `PdfRenderer`**:
+  - Renderizado nítido a resolución nativa de cada página con eliminación de pixelación.
+  - Zoom fluido de 1.0x a 5.0x mediante gestos táctiles de pellizco (`ScaleGestureDetector`) y doble toque.
+- **Modos de Visualización Día, Noche y Sepia**:
+  - Inversión cromática de alta fidelidad para documentos PDF en modo Noche y Sepia.
+- **Navegación Rápida y Salto a Página**:
+  - Diálogo de salto numérico directo a cualquier página («Ir a página X de N»).
+  - Desplazamiento vertical continuo y modo inmersivo a pantalla completa.
+  - Impresión y exportación nativa a través del framework de impresión del sistema.
+
+---
+
+# OpenManager v1.9.63: Blindaje de Seguridad Deadman para Particiones Críticas y Resiliencia de Insets
+
+### 🛡️ Protección de Particiones y Detección de Bloques Críticos
+- **Salvaguardas para `/dev/block` y Particiones de Arranque**:
+  - Prevención de modificaciones accidentales en particiones vitales del dispositivo (`boot`, `recovery`, `system`, `vendor`, `super`, etc.).
+  - Inspección segura de cabeceras de partición y bypass de bloqueos SELinux.
+- **Resiliencia de Insets de Teclado**:
+  - Adaptación fluida ante apertura y cierre de teclado virtual en Android 10 a 15 sin parpadeos ni solapamientos.
+
+---
+
+# OpenManager v1.9.62: Extracción y Volcado Seguro de Particiones a Archivos .img
+
+### 💾 Extracción Directa de Particiones a Almacenamiento
+- **Operaciones de Superusuario en `/dev/block/by-name`**:
+  - Corrección de `AccessDeniedException` al copiar bloques de particiones protegidas (como `boot_b`, `boot_a`, `init_boot`).
+  - Enrutamiento por comandos elevados de superusuario (`su dd / cat`) para volcar particiones directamente a archivos `.img` en `/sdcard` o tarjetas SD externas.
+  - Verificación previa de espacio libre disponible antes de iniciar la extracción.
+
+---
+
+# OpenManager v1.9.61: Refinamiento de Botones y Diseño del Diálogo de Actualización
+
+### 🎨 Corrección de Espaciado y Botones en Pantallas Angostas
+- Eliminado el problema donde el botón de actualización se comprimía verticalmente mostrando letras apiladas.
+- Calibración de márgenes, padding y peso tipográfico en diálogos de actualización.
+
+---
+
+# OpenManager v1.9.60: Corrección de Insets de Barra Superior y Rediseño de Acciones
+
+### 📱 Optimización de Barra de Estado y Header Dual-Panel
+- Adaptación precisa al área segura de la barra de estado y cámara frontal (notch / cutout) en modo de panel doble.
+- Organización jerárquica de botones de acción en actualizaciones.
+
+---
+
+# OpenManager v1.9.59: Optimización de Rendimiento de Inicio y Ajustes de Detalles
+
+### ⚡ Corrección de Retardos de Apertura y Formateo
+- Reducción del retardo inicial al listar carpetas voluminosas.
+- Formato limpio y sin truncamiento en el texto del encabezado MT Manager y tamaños de disco.
+
+---
+
 # OpenManager v1.9.58: Control en Ajustes para Mover a la Papelera al Eliminar (OFF por Defecto) y Ocultamiento de la Barra Lateral
 
 ### 🗑️ Supresión de la Papelera al Borrar por Defecto

@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#262626"
+    android:background="@drawable/dialog_card_background"
     android:padding="20dp">
 
     <!-- Header: Icon + Title & File -->
@@ -46,7 +46,7 @@
                 android:textSize="12sp"
                 android:ellipsize="middle"
                 android:singleLine="true"
-                tools:text="OpenManager-v1.9.51-release.apk" />
+                tools:text="OpenManager-v1.9.66-release.apk" />
         </LinearLayout>
     </LinearLayout>
 
@@ -109,15 +109,16 @@
         android:orientation="horizontal"
         android:gravity="end">
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCancelDownload"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?selectableItemBackground"
             android:text="@android:string/cancel"
             android:textColor="#EF5350"
             android:textSize="13sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:cornerRadius="8dp" />
     </LinearLayout>
 
 </LinearLayout>

@@ -162,7 +162,12 @@ jobs:
         cp "$APK_REL" "$FINAL_REL" || cp "$APK_DBG" "$FINAL_REL"
         cp "$APK_DBG" "$FINAL_DBG" || true
         
+        REL_TITLE=$(grep -E "^# OpenManager ${TAG}:" RELEASE_NOTES.md | head -n 1 | sed 's/^# //')
+        if [ -z "$REL_TITLE" ]; then
+          REL_TITLE="OpenManager ${TAG}"
+        fi
+        
         gh release create "$TAG" "$FINAL_REL" "$FINAL_DBG" \
-          --title "OpenManager ${TAG}: Terminal Developer-Grade, Teclado Táctil y Blindaje de Seguridad" \
+          --title "$REL_TITLE" \
           --notes-file RELEASE_NOTES.md \
           --latest

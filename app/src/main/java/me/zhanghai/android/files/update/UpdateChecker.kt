@@ -41,6 +41,7 @@ import me.zhanghai.android.files.filelist.ApkInstallHelper
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.util.startActivitySafe
 import me.zhanghai.android.files.util.valueCompat
+import org.json.JSONArray
 import org.json.JSONObject
 
 data class ReleaseAsset(
@@ -57,12 +58,15 @@ data class ReleaseInfo(
     val htmlUrl: String,
     val assets: List<ReleaseAsset>,
     val targetAsset: ReleaseAsset,
-    val isDebugChannel: Boolean
+    val isDebugChannel: Boolean,
+    val intermediateChangelog: String = ""
 )
 
 object UpdateChecker {
     const val GITHUB_REPO = "uamo11/OpenManager"
+    const val GITHUB_RELEASES_LIST_URL = "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=20"
     const val GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
+    const val GITHUB_RELEASES_ATOM_URL = "https://github.com/$GITHUB_REPO/releases.atom"
     private const val PREF_LAST_CHECK_TIME = "pref_last_update_check_time"
     private const val AUTO_CHECK_COOLDOWN_MS = 2 * 60 * 60 * 1000L // 2 hours
 
@@ -117,7 +121,7 @@ object UpdateChecker {
             val version = tagName.removePrefix("v").removePrefix("V").trim()
             val name = root.optString("name", "OpenManager $tagName")
             val body = root.optString("body", "")
-            val htmlUrl = root.optString("html_url", "https://github.com/$GITHUB_REPO/releases")
+            val htmlUrl = root.optString("html_url", "https://github.com/$GITHUB_REPO/releases/tag/$tagName")
 
             val assetsArray = root.optJSONArray("assets")
             val assets = mutableListOf<ReleaseAsset>()
@@ -132,7 +136,12 @@ object UpdateChecker {
                     }
                 }
             }
-            val targetAsset = selectAssetForDevice(assets, isDebug) ?: return null
+            val targetAsset = selectAssetForDevice(assets, isDebug) ?: run {
+                val channelSuffix = if (isDebug) "debug" else "release"
+                val fallbackName = "OpenManager-$tagName-$channelSuffix.apk"
+                val fallbackUrl = "https://github.com/$GITHUB_REPO/releases/download/$tagName/$fallbackName"
+                ReleaseAsset(fallbackName, 0L, fallbackUrl)
+            }
             ReleaseInfo(
                 tagName = tagName,
                 version = version,
@@ -145,6 +154,210 @@ object UpdateChecker {
             )
         } catch (_: Throwable) {
             parseReleaseJsonFallback(jsonString, isDebug)
+        }
+    }
+
+    fun parseReleaseListJson(
+        jsonString: String,
+        isDebug: Boolean,
+        currentVersion: String = BuildConfig.VERSION_NAME
+    ): ReleaseInfo? {
+        return try {
+            val array = JSONArray(jsonString)
+            val candidates = mutableListOf<ReleaseInfo>()
+            for (i in 0 until array.length()) {
+                val obj = array.optJSONObject(i) ?: continue
+                if (obj.optBoolean("draft", false)) continue
+
+                val tagName = obj.optString("tag_name")
+                if (tagName.isNullOrEmpty()) continue
+                val version = tagName.removePrefix("v").removePrefix("V").trim()
+                val name = obj.optString("name", "OpenManager $tagName")
+                val body = obj.optString("body", "")
+                val htmlUrl = obj.optString("html_url", "https://github.com/$GITHUB_REPO/releases/tag/$tagName")
+
+                val assetsArray = obj.optJSONArray("assets")
+                val assets = mutableListOf<ReleaseAsset>()
+                if (assetsArray != null) {
+                    for (j in 0 until assetsArray.length()) {
+                        val assetObj = assetsArray.optJSONObject(j) ?: continue
+                        val assetName = assetObj.optString("name")
+                        val assetSize = assetObj.optLong("size", 0L)
+                        val downloadUrl = assetObj.optString("browser_download_url")
+                        if (assetName.isNotEmpty() && downloadUrl.isNotEmpty()) {
+                            assets.add(ReleaseAsset(assetName, assetSize, downloadUrl))
+                        }
+                    }
+                }
+                val targetAsset = selectAssetForDevice(assets, isDebug) ?: run {
+                    val channelSuffix = if (isDebug) "debug" else "release"
+                    val fallbackName = "OpenManager-$tagName-$channelSuffix.apk"
+                    val fallbackUrl = "https://github.com/$GITHUB_REPO/releases/download/$tagName/$fallbackName"
+                    ReleaseAsset(fallbackName, 0L, fallbackUrl)
+                }
+                candidates.add(
+                    ReleaseInfo(
+                        tagName = tagName,
+                        version = version,
+                        name = name,
+                        body = body,
+                        htmlUrl = htmlUrl,
+                        assets = assets,
+                        targetAsset = targetAsset,
+                        isDebugChannel = isDebug
+                    )
+                )
+            }
+
+            if (candidates.isEmpty()) return null
+
+            // Find highest version among all releases returned
+            var bestRelease = candidates.first()
+            for (cand in candidates) {
+                if (isVersionNewer(cand.version, bestRelease.version)) {
+                    bestRelease = cand
+                }
+            }
+
+            // Find all releases newer than current version and compile changelog
+            val newerReleases = candidates.filter { isVersionNewer(it.version, currentVersion) }
+                .sortedWith { a, b ->
+                    if (isVersionNewer(a.version, b.version)) -1
+                    else if (isVersionNewer(b.version, a.version)) 1
+                    else 0
+                }
+
+            val intermediateChangelog = if (newerReleases.size > 1) {
+                newerReleases.mapNotNull { rel ->
+                    val text = rel.body.trim()
+                    if (text.isNotEmpty()) {
+                        if (text.startsWith("#")) text else "# OpenManager ${rel.tagName}\n\n$text"
+                    } else null
+                }.joinToString("\n\n---\n\n")
+            } else if (newerReleases.size == 1) {
+                newerReleases.first().body
+            } else {
+                bestRelease.body
+            }
+
+            bestRelease.copy(intermediateChangelog = intermediateChangelog)
+        } catch (_: Throwable) {
+            // Fallback to single release parsing
+            parseReleaseJson(jsonString, isDebug)
+        }
+    }
+
+    fun cleanHtmlToMarkdown(html: String): String {
+        if (html.isBlank()) return ""
+        var text = html
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace("&amp;", "&")
+            .replace("&quot;", "\"")
+            .replace("&#39;", "'")
+            .replace("&apos;", "'")
+            .replace("&nbsp;", " ")
+        text = text.replace(Regex("(?i)<h1[^>]*>"), "\n# ")
+            .replace(Regex("(?i)</h1>"), "\n")
+            .replace(Regex("(?i)<h2[^>]*>"), "\n## ")
+            .replace(Regex("(?i)</h2>"), "\n")
+            .replace(Regex("(?i)<h3[^>]*>"), "\n### ")
+            .replace(Regex("(?i)</h3>"), "\n")
+            .replace(Regex("(?i)<li[^>]*>"), "\n- ")
+            .replace(Regex("(?i)</li>"), "")
+            .replace(Regex("(?i)<p[^>]*>"), "\n")
+            .replace(Regex("(?i)</p>"), "\n")
+            .replace(Regex("(?i)<br\\s*/?>"), "\n")
+            .replace(Regex("(?i)<strong[^>]*>"), "**")
+            .replace(Regex("(?i)</strong>"), "**")
+            .replace(Regex("(?i)<code[^>]*>"), "`")
+            .replace(Regex("(?i)</code>"), "`")
+            .replace(Regex("<[^>]+>"), "")
+            .replace(Regex("\n{3,}"), "\n\n")
+            .trim()
+        return text
+    }
+
+    fun parseReleaseAtomFeed(
+        atomXml: String,
+        isDebug: Boolean,
+        currentVersion: String = BuildConfig.VERSION_NAME
+    ): ReleaseInfo? {
+        return try {
+            val entryRegex = Regex("<entry>([\\s\\S]*?)</entry>")
+            val candidates = mutableListOf<ReleaseInfo>()
+
+            for (match in entryRegex.findAll(atomXml)) {
+                val entryBlock = match.groupValues[1]
+
+                val tagMatch = Regex("<id>[^<]*/([^/<]+)</id>").find(entryBlock)
+                    ?: Regex("<link[^>]*href=\"[^\"]*/releases/tag/([^\"]+)\"").find(entryBlock)
+                    ?: continue
+                val tagName = tagMatch.groupValues[1].trim()
+                if (tagName.isEmpty()) continue
+                val version = tagName.removePrefix("v").removePrefix("V").trim()
+
+                val titleMatch = Regex("<title>([\\s\\S]*?)</title>").find(entryBlock)
+                val name = titleMatch?.groupValues?.get(1)?.trim() ?: "OpenManager $tagName"
+
+                val linkMatch = Regex("<link[^>]*href=\"([^\"]+)\"").find(entryBlock)
+                val htmlUrl = linkMatch?.groupValues?.get(1)?.trim() ?: "https://github.com/$GITHUB_REPO/releases/tag/$tagName"
+
+                val contentMatch = Regex("<content[^>]*>([\\s\\S]*?)</content>").find(entryBlock)
+                val rawHtml = contentMatch?.groupValues?.get(1) ?: ""
+                val cleanedBody = cleanHtmlToMarkdown(rawHtml)
+
+                val channelSuffix = if (isDebug) "debug" else "release"
+                val apkName = "OpenManager-$tagName-$channelSuffix.apk"
+                val downloadUrl = "https://github.com/$GITHUB_REPO/releases/download/$tagName/$apkName"
+                val targetAsset = ReleaseAsset(apkName, 0L, downloadUrl)
+
+                candidates.add(
+                    ReleaseInfo(
+                        tagName = tagName,
+                        version = version,
+                        name = name,
+                        body = cleanedBody,
+                        htmlUrl = htmlUrl,
+                        assets = listOf(targetAsset),
+                        targetAsset = targetAsset,
+                        isDebugChannel = isDebug
+                    )
+                )
+            }
+
+            if (candidates.isEmpty()) return null
+
+            var bestRelease = candidates.first()
+            for (cand in candidates) {
+                if (isVersionNewer(cand.version, bestRelease.version)) {
+                    bestRelease = cand
+                }
+            }
+
+            val newerReleases = candidates.filter { isVersionNewer(it.version, currentVersion) }
+                .sortedWith { a, b ->
+                    if (isVersionNewer(a.version, b.version)) -1
+                    else if (isVersionNewer(b.version, a.version)) 1
+                    else 0
+                }
+
+            val intermediateChangelog = if (newerReleases.size > 1) {
+                newerReleases.mapNotNull { rel ->
+                    val text = rel.body.trim()
+                    if (text.isNotEmpty()) {
+                        if (text.startsWith("#")) text else "# OpenManager ${rel.tagName}\n\n$text"
+                    } else null
+                }.joinToString("\n\n---\n\n")
+            } else if (newerReleases.size == 1) {
+                newerReleases.first().body
+            } else {
+                bestRelease.body
+            }
+
+            bestRelease.copy(intermediateChangelog = intermediateChangelog)
+        } catch (_: Throwable) {
+            null
         }
     }
 
@@ -172,7 +385,12 @@ object UpdateChecker {
             assets.add(ReleaseAsset(aName, aSize, aUrl))
         }
 
-        val targetAsset = selectAssetForDevice(assets, isDebug) ?: return null
+        val targetAsset = selectAssetForDevice(assets, isDebug) ?: run {
+            val channelSuffix = if (isDebug) "debug" else "release"
+            val fallbackName = "OpenManager-$tagName-$channelSuffix.apk"
+            val fallbackUrl = "https://github.com/$GITHUB_REPO/releases/download/$tagName/$fallbackName"
+            ReleaseAsset(fallbackName, 0L, fallbackUrl)
+        }
         return ReleaseInfo(
             tagName = tagName,
             version = version,
@@ -224,27 +442,69 @@ object UpdateChecker {
         throw IOException("Too many redirects ($maxRedirects)")
     }
 
-    suspend fun fetchLatestRelease(context: Context): ReleaseInfo? = withContext(Dispatchers.IO) {
-        val isDebug = isDebugBuild(context)
-        val url = URL(GITHUB_LATEST_RELEASE_URL)
+    private fun executeHttpGet(urlString: String): Pair<Int, String> {
+        val url = URL(urlString)
         val conn = (url.openConnection() as HttpURLConnection).apply {
-            connectTimeout = 10000
-            readTimeout = 15000
-            setRequestProperty("Accept", "application/vnd.github.v3+json")
+            connectTimeout = 12000
+            readTimeout = 18000
+            instanceFollowRedirects = true
+            setRequestProperty("Accept", "application/vnd.github.v3+json, application/atom+xml, */*")
             setRequestProperty("User-Agent", "OpenManager-Android/${BuildConfig.VERSION_NAME}")
         }
-        try {
-            val responseCode = conn.responseCode
-            if (responseCode == 200) {
-                val responseBody = conn.inputStream.bufferedReader().use { it.readText() }
-                parseReleaseJson(responseBody, isDebug)
+        return try {
+            val code = conn.responseCode
+            val body = if (code in 200..299) {
+                conn.inputStream.bufferedReader().use { it.readText() }
             } else {
-                val errorBody = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-                throw IOException("GitHub API HTTP $responseCode: $errorBody")
+                conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
             }
+            Pair(code, body)
         } finally {
             conn.disconnect()
         }
+    }
+
+    suspend fun fetchLatestRelease(context: Context): ReleaseInfo? = withContext(Dispatchers.IO) {
+        val isDebug = isDebugBuild(context)
+        val curVer = BuildConfig.VERSION_NAME
+
+        // 1. Primary: Query GitHub Releases List API (/releases?per_page=20)
+        try {
+            val (code, response) = executeHttpGet(GITHUB_RELEASES_LIST_URL)
+            if (code == 200 && response.isNotBlank()) {
+                val info = parseReleaseListJson(response, isDebug, curVer)
+                if (info != null) return@withContext info
+            }
+        } catch (_: Exception) {
+            // Network or parse issue, continue to fallbacks
+        }
+
+        // 2. Secondary: Zero-rate-limit Atom feed fallback (/releases.atom)
+        // Publicly cached, no 60 req/hr anonymous API rate limit
+        try {
+            val (code, response) = executeHttpGet(GITHUB_RELEASES_ATOM_URL)
+            if (code == 200 && response.isNotBlank()) {
+                val info = parseReleaseAtomFeed(response, isDebug, curVer)
+                if (info != null) return@withContext info
+            }
+        } catch (_: Exception) {
+            // Continue to latest release endpoint
+        }
+
+        // 3. Tertiary: Direct /releases/latest endpoint
+        try {
+            val (code, response) = executeHttpGet(GITHUB_LATEST_RELEASE_URL)
+            if (code == 200 && response.isNotBlank()) {
+                val info = parseReleaseJson(response, isDebug)
+                if (info != null) return@withContext info
+            } else {
+                throw IOException("GitHub API HTTP $code: $response")
+            }
+        } catch (e: Exception) {
+            throw e
+        }
+
+        null
     }
 
     fun checkUpdate(activity: FragmentActivity, isManual: Boolean) {
@@ -328,6 +588,7 @@ object UpdateChecker {
             .setView(view)
             .setCancelable(true)
             .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val tvUpdateTitle = view.findViewById<TextView>(R.id.tvUpdateTitle)
         val tvUpdateChannel = view.findViewById<TextView>(R.id.tvUpdateChannel)
@@ -355,10 +616,17 @@ object UpdateChecker {
         val curVerText = activity.getString(R.string.update_current_version_label, "v" + BuildConfig.VERSION_NAME)
         tvUpdateVersionInfo.text = "$newVerText\n$curVerText"
 
-        val sizeFormatted = formatSize(releaseInfo.targetAsset.size)
+        val sizeFormatted = if (releaseInfo.targetAsset.size > 0) formatSize(releaseInfo.targetAsset.size) else "APK"
         tvUpdateFileInfo.text = activity.getString(R.string.update_target_apk_label, releaseInfo.targetAsset.name, sizeFormatted)
 
-        tvUpdateChangelog.text = if (releaseInfo.body.isNotBlank()) releaseInfo.body else activity.getString(R.string.update_up_to_date_title)
+        val changelogText = if (releaseInfo.intermediateChangelog.isNotBlank()) {
+            releaseInfo.intermediateChangelog
+        } else if (releaseInfo.body.isNotBlank()) {
+            releaseInfo.body
+        } else {
+            activity.getString(R.string.update_up_to_date_title)
+        }
+        tvUpdateChangelog.text = changelogText
 
         btnUpdateLater.setOnClickListener {
             dialog.dismiss()
@@ -384,6 +652,7 @@ object UpdateChecker {
             .setView(view)
             .setCancelable(false)
             .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val tvDownloadFilename = view.findViewById<TextView>(R.id.tvDownloadFilename)
         val pbDownloadProgress = view.findViewById<LinearProgressIndicator>(R.id.pbDownloadProgress)
@@ -393,7 +662,8 @@ object UpdateChecker {
 
         tvDownloadFilename.text = releaseInfo.targetAsset.name
         pbDownloadProgress.progress = 0
-        tvDownloadStats.text = activity.getString(R.string.update_downloading_format, "0 MB", formatSize(releaseInfo.targetAsset.size), 0)
+        val totalExpectedSize = if (releaseInfo.targetAsset.size > 0) formatSize(releaseInfo.targetAsset.size) else "-- MB"
+        tvDownloadStats.text = activity.getString(R.string.update_downloading_format, "0 MB", totalExpectedSize, 0)
         tvDownloadSpeed.text = activity.getString(R.string.update_download_speed_format, "0 MB")
 
         var downloadJob: Job? = null

@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:background="#262626"
+    android:background="@drawable/dialog_card_background"
     android:padding="20dp">
 
     <!-- Header: Icon + Title & Channel Badge -->
@@ -60,7 +60,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="#1F1F1F"
+        android:background="@drawable/version_box_background"
         android:padding="12dp"
         android:layout_marginBottom="12dp">
 
@@ -71,7 +71,7 @@
             android:textColor="#EEEEEE"
             android:textSize="13sp"
             android:lineSpacingExtra="3dp"
-            tools:text="Nueva versión: v1.9.51\nVersión actual: v1.9.50" />
+            tools:text="Nueva versión: v1.9.66\nVersión actual: v1.9.65" />
 
         <TextView
             android:id="@+id/tvUpdateFileInfo"
@@ -81,10 +81,10 @@
             android:textSize="12sp"
             android:fontFamily="monospace"
             android:layout_marginTop="4dp"
-            tools:text="Archivo: OpenManager-v1.9.51-release.apk (34.9 MB)" />
+            tools:text="Archivo: OpenManager-v1.9.66-release.apk (34.9 MB)" />
     </LinearLayout>
 
-    <!-- Changelog Section -->
+    <!-- Changelog Section Header -->
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -94,12 +94,13 @@
         android:textStyle="bold"
         android:layout_marginBottom="6dp" />
 
+    <!-- Changelog Scroll Container -->
     <androidx.core.widget.NestedScrollView
         android:id="@+id/scrollUpdateChangelog"
         android:layout_width="match_parent"
         android:layout_height="180dp"
-        android:background="#1B1B1B"
-        android:padding="10dp"
+        android:background="@drawable/changelog_box_background"
+        android:padding="12dp"
         android:fadeScrollbars="false"
         android:scrollbars="vertical">
 
@@ -107,9 +108,9 @@
             android:id="@+id/tvUpdateChangelog"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="#CCCCCC"
-            android:textSize="12sp"
-            android:lineSpacingExtra="2dp"
+            android:textColor="#E0E0E0"
+            android:textSize="12.5sp"
+            android:lineSpacingExtra="3dp"
             tools:text="Changelog text..." />
     </androidx.core.widget.NestedScrollView>
 
@@ -126,6 +127,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <!-- Prominent primary action button -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnUpdateDownload"
             android:layout_width="match_parent"
@@ -142,38 +144,40 @@
             app:iconPadding="8dp"
             android:layout_marginBottom="8dp" />
 
+        <!-- Secondary actions -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:orientation="horizontal">
+            android:layout_height="44dp"
+            android:orientation="horizontal"
+            android:gravity="center">
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUpdateLater"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:background="?selectableItemBackground"
-                android:gravity="center"
                 android:minWidth="0dp"
-                android:paddingStart="0dp"
-                android:paddingEnd="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:text="@string/update_action_later"
                 android:textColor="#9E9E9E"
-                android:textSize="12.5sp" />
+                android:textSize="13sp"
+                app:cornerRadius="8dp" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnUpdateGitHub"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1.2"
-                android:background="?selectableItemBackground"
-                android:gravity="center"
                 android:minWidth="0dp"
-                android:paddingStart="0dp"
-                android:paddingEnd="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:text="@string/update_action_view_on_github"
                 android:textColor="#64B5F6"
-                android:textSize="12.5sp" />
+                android:textSize="13sp"
+                app:cornerRadius="8dp" />
         </LinearLayout>
     </LinearLayout>
 

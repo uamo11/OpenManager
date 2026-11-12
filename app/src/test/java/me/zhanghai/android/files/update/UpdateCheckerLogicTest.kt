@@ -110,6 +110,91 @@ class UpdateCheckerLogicTest {
     }
 
     @Test
+    fun testParseReleaseListJsonSelectsHighestVersion() {
+        val mockListJson = """
+            [
+              {
+                "tag_name": "v1.9.59",
+                "name": "OpenManager v1.9.59",
+                "body": "Fixed insets and latency",
+                "assets": [
+                  { "name": "OpenManager-v1.9.59-release.apk", "size": 30000000, "browser_download_url": "https://example.com/v1.9.59.apk" }
+                ]
+              },
+              {
+                "tag_name": "v1.9.65",
+                "name": "OpenManager v1.9.65",
+                "body": "Added DOCX reader",
+                "assets": [
+                  { "name": "OpenManager-v1.9.65-release.apk", "size": 31000000, "browser_download_url": "https://example.com/v1.9.65.apk" }
+                ]
+              },
+              {
+                "tag_name": "v1.9.60",
+                "name": "OpenManager v1.9.60",
+                "body": "Fixed update dialog buttons",
+                "assets": [
+                  { "name": "OpenManager-v1.9.60-release.apk", "size": 30500000, "browser_download_url": "https://example.com/v1.9.60.apk" }
+                ]
+              }
+            ]
+        """.trimIndent()
+
+        val parsed = UpdateChecker.parseReleaseListJson(mockListJson, isDebug = false, currentVersion = "1.9.55")
+        assertNotNull(parsed)
+        // Must choose 1.9.65 as highest version regardless of order in list!
+        assertEquals("1.9.65", parsed!!.version)
+        assertEquals("v1.9.65", parsed.tagName)
+        assertEquals("OpenManager-v1.9.65-release.apk", parsed.targetAsset.name)
+
+        // Must aggregate changelog for all intermediate releases
+        assertTrue(parsed.intermediateChangelog.contains("Added DOCX reader"))
+        assertTrue(parsed.intermediateChangelog.contains("Fixed update dialog buttons"))
+        assertTrue(parsed.intermediateChangelog.contains("Fixed insets and latency"))
+    }
+
+    @Test
+    fun testParseReleaseAtomFeed() {
+        val mockAtom = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <id>tag:github.com,2008:Repository/1438677536/v1.9.65</id>
+                <title>OpenManager v1.9.65: DOCX Reader</title>
+                <link rel="alternate" type="text/html" href="https://github.com/uamo11/OpenManager/releases/tag/v1.9.65"/>
+                <content type="html">&lt;h1&gt;Word Reader&lt;/h1&gt;&lt;p&gt;Added DOCX support&lt;/p&gt;</content>
+              </entry>
+              <entry>
+                <id>tag:github.com,2008:Repository/1438677536/v1.9.64</id>
+                <title>OpenManager v1.9.64: PDF Reader</title>
+                <link rel="alternate" type="text/html" href="https://github.com/uamo11/OpenManager/releases/tag/v1.9.64"/>
+                <content type="html">&lt;h1&gt;PDF Reader&lt;/h1&gt;&lt;p&gt;Added PDF viewer&lt;/p&gt;</content>
+              </entry>
+            </feed>
+        """.trimIndent()
+
+        val parsed = UpdateChecker.parseReleaseAtomFeed(mockAtom, isDebug = false, currentVersion = "1.9.60")
+        assertNotNull(parsed)
+        assertEquals("1.9.65", parsed!!.version)
+        assertEquals("v1.9.65", parsed.tagName)
+        assertEquals("OpenManager-v1.9.65-release.apk", parsed.targetAsset.name)
+        assertTrue(parsed.targetAsset.downloadUrl.contains("v1.9.65/OpenManager-v1.9.65-release.apk"))
+        assertTrue(parsed.intermediateChangelog.contains("DOCX support"))
+        assertTrue(parsed.intermediateChangelog.contains("PDF viewer"))
+    }
+
+    @Test
+    fun testCleanHtmlToMarkdown() {
+        val html = "<h1>Title</h1><p>Paragraph with <strong>bold</strong> and <code>code</code></p><ul><li>Item 1</li><li>Item 2</li></ul>"
+        val md = UpdateChecker.cleanHtmlToMarkdown(html)
+        assertTrue(md.contains("# Title"))
+        assertTrue(md.contains("**bold**"))
+        assertTrue(md.contains("`code`"))
+        assertTrue(md.contains("- Item 1"))
+        assertTrue(md.contains("- Item 2"))
+    }
+
+    @Test
     fun testFormatSize() {
         assertEquals("0 B", UpdateChecker.formatSize(0L))
         assertEquals("1.0 KB", UpdateChecker.formatSize(1024L))
@@ -120,7 +205,6 @@ class UpdateCheckerLogicTest {
 
     @Test
     fun testAutoUpdateDefaultIsOff() {
-        // User explicitly specified: "con un botón que venga desactivado por defecto ... en dado caso este off que vendrá x defecto off"
         val defaultAutoCheckUpdates = false
         assertFalse("Auto check updates must default to false (disabled)", defaultAutoCheckUpdates)
     }
