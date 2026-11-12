@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_search"
+        android:icon="@drawable/search_icon_white_24dp"
+        android:title="@string/docx_menu_search"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_text_size"
+        android:icon="@drawable/ic_format_size_24dp"
+        android:title="@string/docx_menu_text_size"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_theme"
+        android:icon="@drawable/ic_night_mode_24dp"
+        android:title="@string/docx_menu_theme"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_copy_text"
+        android:title="@string/docx_menu_copy_text"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_print"
+        android:icon="@drawable/ic_print_24dp"
+        android:title="@string/docx_menu_print"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_info"
+        android:title="@string/docx_menu_info"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_share"
+        android:title="@string/share"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_open_external"
+        android:title="@string/file_item_action_open_with"
+        app:showAsAction="never" />
+
+</menu>

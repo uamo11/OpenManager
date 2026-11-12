@@ -41,6 +41,7 @@ import me.zhanghai.android.files.viewer.hex.HexEditorActivity
 import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import me.zhanghai.android.files.viewer.video.VideoPlayerActivity
 import me.zhanghai.android.files.viewer.pdf.PdfViewerActivity
+import me.zhanghai.android.files.viewer.docx.DocxViewerActivity
 
 class OpenFileAsDialogFragment : AppCompatDialogFragment() {
     private val args by args<Args>()
@@ -212,6 +213,12 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
             // 7. PDF Reader
             ToolItem("pdf_viewer", R.string.open_as_pdf_viewer, R.drawable.file_pdf_icon) {
                 PdfViewerActivity.start(requireContext(), path)
+                dismissOrFinishActivity()
+            },
+
+            // 8. Word / DOCX Reader
+            ToolItem("docx_viewer", R.string.open_as_docx_viewer, R.drawable.file_word_icon) {
+                DocxViewerActivity.start(requireContext(), path)
                 dismissOrFinishActivity()
             },
 

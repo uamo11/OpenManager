@@ -69,6 +69,17 @@ val MimeType.isDex: Boolean
 val MimeType.isArsc: Boolean
     get() = value == "application/vnd.android.arsc"
 
+val MimeType.isDocx: Boolean
+    get() = this in docxMimeTypes
+
+private val docxMimeTypes = setOf(
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document".asMimeType(),
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.template".asMimeType(),
+    "application/msword".asMimeType(),
+    "application/x-msword".asMimeType(),
+    "application/vnd.ms-word".asMimeType()
+)
+
 val MimeType.isSharedLibrary: Boolean
     get() = value == "application/x-sharedlib" || value == "application/x-elf"
 

@@ -89,6 +89,7 @@ import me.zhanghai.android.files.file.isArsc
 import me.zhanghai.android.files.file.isSharedLibrary
 import me.zhanghai.android.files.file.isImage
 import me.zhanghai.android.files.file.isPdf
+import me.zhanghai.android.files.file.isDocx
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.isWritable
 import me.zhanghai.android.files.provider.linux.LinuxPath
@@ -101,6 +102,7 @@ import me.zhanghai.android.files.viewer.sqlite.SqliteViewerActivity
 import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import me.zhanghai.android.files.viewer.video.VideoPlayerActivity
 import me.zhanghai.android.files.viewer.pdf.PdfViewerActivity
+import me.zhanghai.android.files.viewer.docx.DocxViewerActivity
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.filelist.FileSortOptions.By
 import me.zhanghai.android.files.filelist.FileSortOptions.Order
@@ -2220,6 +2222,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         if (file.mimeType.isPdf || fileExtension == "pdf" || fileName.endsWith(".pdf", true)) {
             PdfViewerActivity.start(requireContext(), file.path)
+            return
+        }
+        if (file.mimeType.isDocx || fileExtension == "docx" || fileExtension == "doc" || fileExtension == "dotx" || fileExtension == "dot"
+            || fileName.endsWith(".docx", true) || fileName.endsWith(".doc", true)) {
+            DocxViewerActivity.start(requireContext(), file.path)
             return
         }
         if (file.mimeType.isImage) {
