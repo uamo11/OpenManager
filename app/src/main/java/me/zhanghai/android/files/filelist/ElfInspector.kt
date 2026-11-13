@@ -98,7 +98,29 @@ object ElfInspector {
         "setgid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Change permission group (setgid)"),
         "seteuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Change effective user (seteuid)"),
         "setresuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Modify user permissions (setresuid)"),
+        "setresgid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Modify group permissions (setresgid)"),
+        "setgroups" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Modify supplementary groups (setgroups)"),
+        "setfsuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Change filesystem UID (setfsuid)"),
         "capset" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.CRITICAL, "Modify Linux security capabilities"),
+        "capget" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.MEDIUM, "Query Linux security capabilities (capget)"),
+        "prctl" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Process/capability/seccomp control (prctl)"),
+        "seccomp" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Operate on seccomp state (seccomp)"),
+        "keyctl" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Kernel keyring manipulation (keyctl)"),
+
+        // Kernel Modules, eBPF & Memory/Device Control
+        "init_module" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Load Linux kernel module (init_module)"),
+        "finit_module" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Load Linux kernel module from fd (finit_module)"),
+        "delete_module" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Unload Linux kernel module (delete_module)"),
+        "kexec_load" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Load new kernel for kexec (kexec_load)"),
+        "kexec_file_load" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Load new kernel from fd (kexec_file_load)"),
+        "bpf" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Kernel eBPF syscall (bpf)"),
+        "perf_event_open" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Kernel performance/trace monitoring (perf_event_open)"),
+        "klogctl" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Read/control kernel ring buffer (klogctl)"),
+        "ioctl" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.MEDIUM, "Low-level device/kernel driver I/O control (ioctl)"),
+        "mmap" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.MEDIUM, "Map memory/devices into address space (mmap)"),
+        "mmap64" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.MEDIUM, "Map memory/devices into address space (mmap64)"),
+        "mprotect" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Modify memory page protections, e.g. RWX (mprotect)"),
+        "memfd_create" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Create anonymous in-memory executable file (memfd_create)"),
 
         // System Control & Namespaces
         "reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "System reboot or shutdown (reboot)"),
@@ -189,7 +211,8 @@ object ElfInspector {
             return if (isLittleEndian) lo or (hi shl 32) else (lo shl 32) or hi
         }
 
-        val elfType = readU16(16) // 2 = ET_EXEC, 3 = ET_DYN (PIE)
+        val elfType = readU16(16) // 1 = ET_REL (.ko kernel module), 2 = ET_EXEC, 3 = ET_DYN (PIE)
+        val isKernelModule = elfType == 1
         val isPie = elfType == 3
 
         val machine = readU16(18)
@@ -280,19 +303,28 @@ object ElfInspector {
             }
         }
 
+        if (isKernelModule && detectedSet.add("ELF_TYPE:ET_REL")) {
+            systemCalls.add("Relocatable ELF / Kernel Module (ET_REL)")
+        }
+
         // Check for hardcoded sensitive paths in string literals
         val dangerousPaths = listOf(
             "/system", "/vendor", "/product", "/apex", "/dev/block",
-            "/data/local/tmp", "/data/adb", "/system/bin/su", "su"
+            "/dev/kmem", "/dev/mem", "/proc/kallsyms", "/sys/kernel", "/proc/modules",
+            "/data/local/tmp", "/data/adb",
+            "/system/bin/su", "/system/xbin/su", "/sbin/su", "magisk", "kernelsu", "apatch"
         )
         for (dp in dangerousPaths) {
             if (binaryText.contains(dp) && detectedSet.add("PATH:$dp")) {
-                if (dp.contains("su")) {
+                if (dp.endsWith("/su") || dp == "magisk" || dp == "kernelsu" || dp == "apatch") {
                     rootCalls.add("Root binary reference ($dp)")
                 } else {
-                    systemCalls.add("System path reference ($dp)")
+                    systemCalls.add("System/Kernel path reference ($dp)")
                 }
             }
+        }
+        if (Regex("""\bsu\b""").containsMatchIn(binaryText) && detectedSet.add("PATH:su_word")) {
+            rootCalls.add("Root binary reference (su)")
         }
 
         val totalFindings = deletions.size + rootCalls.size + networkCalls.size + executionCalls.size + ptraceCalls.size + systemCalls.size

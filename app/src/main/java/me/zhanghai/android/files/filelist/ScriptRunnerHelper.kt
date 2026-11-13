@@ -106,7 +106,7 @@ object ScriptRunnerHelper {
             }
 
             val hasRoot = targetsToCheck.any {
-                Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root)\b""").containsMatchIn(it)
+                Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root|insmod|rmmod|modprobe|resetprop|setprop)\b""").containsMatchIn(it)
             }
             if (hasRoot) {
                 rootCalls.add("Line $lineNum: $line")
@@ -121,7 +121,7 @@ object ScriptRunnerHelper {
             }
 
             val hasSystemOrSymlink = targetsToCheck.any {
-                Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+uninstall|\breboot|\bsys_reboot|\bshutdown|\bpoweroff|\bhalt|\bchroot\b|\bpivot_root\b|\bmount\s+.*remount|\bln\s+(-[a-zA-Z0-9_-]+\s+)*.*)""").containsMatchIn(it)
+                Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+(uninstall|install|disable|clear)|\bam\s+(start|force-stop)|\breboot|\bsys_reboot|\bshutdown|\bpoweroff|\bhalt|\bchroot\b|\bpivot_root\b|\bmount\s+.*remount|\b(chmod|chown|mv|cp|tee|eval)\b|\bsed\s+-i|\bbase64\s+-d|>>?\s*(/storage|/sdcard|/data|/system|/vendor|\$)|\bln\s+(-[a-zA-Z0-9_-]+\s+)*.*)""").containsMatchIn(it)
             }
             if (hasSystemOrSymlink) {
                 systemPaths.add("Line $lineNum: $line")
@@ -228,6 +228,7 @@ object ScriptRunnerHelper {
             }
         }
         container.addView(btnTracerPolicy)
+        scroll.addView(container)
 
         val builder = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.om_script_runner_audit_title)
