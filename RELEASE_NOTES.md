@@ -1,3 +1,26 @@
+# OpenManager v1.9.71: Utilidades Visuales de Estabilidad, Auditoría de Scripts/ELF, Gestor de Apps y Visores Endurecidos
+
+### 🛡️ Nuevas Utilidades Visuales y Estabilidad Global
+- **`UiStabilityUtils` y Ciclo de Vida Seguro**:
+  - Se incorporaron helpers reutilizables (`isUiAlive`, `dismissSafely`, `bindToLifecycle`, `showSafeDialog`, `runWithProgressDialog`, `resolveThemeColor` y `applyEdgeToEdgeInsets`) para prevenir fugas de ventana (`WindowLeaked`), fallos al cerrar o rotar pantalla y superposiciones con barras del sistema.
+  - Optimización de memoria y rendimiento general con limpieza automática de caché en `onTrimMemory`, precarga de metadatos en segundo plano, cierre seguro de descriptores (`ZipFile`, `ProviderFtpFile`) y cancelación de trabajos en `ViewHolder`.
+
+### ⚙️ Apps en Ejecución, Gestor de Apps y Diálogo de APK
+- **Apps en Ejecución**:
+  - Corregido el icono del menú lateral, añadidos iconos diferenciados para binarios ELF/SH, medición y ordenamiento por uso de CPU (%) y pestaña/filtro exclusivo para scripts ejecutables (`SH/ELF`).
+  - Rediseño más limpio en títulos, pestañas, barra de RAM y persistencia al descartar el banner de permisos.
+- **Gestor de Apps y Diálogo APK**:
+  - Menú organizado por categorías con acceso rápido a ubicaciones de APK y datos (`/data/data`, `Android/data`) junto a doble confirmación en Deshabilitar/Desinstalar.
+  - Diálogo de APK simplificado sin desplazamiento horizontal: botón único de instalación inteligente (auto-root / Shizuku / sistema) y menú de opciones en 3 puntos.
+
+### 🔍 Auditoría de Seguridad y Visores Endurecidos
+- **Auditoría de Scripts y Binarios ELF**:
+  - Corregido el diálogo de auditoría en blanco y reforzado el detector de scripts y binarios ELF de kernel para mostrar avisos claros y fiables.
+- **Visores y Editores**:
+  - Endurecimiento y mejoras visuales Day/Night e I/O en segundo plano en visores rápidos y dedicados (DEX, Hexadecimal, ARSC, SQLite, PDF, Imágenes, Audio/Vídeo, Editor de texto con Undo por lotes y DOCX sin solapamiento con la barra superior).
+
+---
+
 # OpenManager v1.9.70: Internacionalización Completa (EN/ES), Estabilidad del Editor e Icono Adaptativo Ajustado
 
 ### 🌍 Soporte Multi-Idioma Completo (Inglés por Defecto y Español)
