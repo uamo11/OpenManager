@@ -435,6 +435,13 @@ class InstalledAppsActivity : AppActivity() {
         }
 
         val isRoot = ApkInstallHelper.isRootAvailable()
+        val apkParentDir = File(app.sourceDir).parentFile?.absolutePath ?: app.sourceDir
+        if (apkParentDir.isNotEmpty()) {
+            dialogBinding.tvLocateApkSubtitle.text = apkParentDir
+        }
+        dialogBinding.tvLocateDataSubtitle.text =
+            "/data/data/${app.packageName} • Android/data/${app.packageName}"
+
         if (isRoot) {
             dialogBinding.layoutRootActions.visibility = View.VISIBLE
             dialogBinding.tvToggleEnableTitle.text = getString(
@@ -461,24 +468,22 @@ class InstalledAppsActivity : AppActivity() {
         dialogBinding.btnActionLocateApk.setOnClickListener {
             dialog.dismiss()
             val apkFile = File(app.sourceDir)
-            if (apkFile.exists()) {
-                val intent = FileListActivity.createViewIntent(Paths.get(apkFile.parentFile!!.absolutePath))
-                    .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(intent)
-                finish()
+            val targetDir = apkFile.parentFile?.absolutePath ?: app.sourceDir
+            if (targetDir.isNotEmpty() && (apkFile.exists() || File(targetDir).exists() || isRoot)) {
+                openPathInExplorer(targetDir)
             } else {
-                Toast.makeText(this, "El directorio del APK no es accesible", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.om_app_locate_apk_inaccessible, targetDir.ifEmpty { app.packageName }),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
 
-        // 3. Localizar Datos en el explorador
+        // 3. Localizar Datos en el explorador (/data/data, Android/data, Android/obb)
         dialogBinding.btnActionLocateData.setOnClickListener {
             dialog.dismiss()
-            val dataPath = if (app.dataDir.isNotEmpty()) app.dataDir else "/storage/emulated/0/Android/data/${app.packageName}"
-            val intent = FileListActivity.createViewIntent(Paths.get(dataPath))
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            startActivity(intent)
-            finish()
+            showLocateDataDialog(app)
         }
 
         // 4. Abrir aplicación
@@ -486,7 +491,11 @@ class InstalledAppsActivity : AppActivity() {
             dialog.dismiss()
             val launchIntent = packageManager.getLaunchIntentForPackage(app.packageName)
             if (launchIntent != null) {
-                startActivity(launchIntent)
+                try {
+                    startActivity(launchIntent)
+                } catch (e: Exception) {
+                    Toast.makeText(this, R.string.om_app_no_launchable_ui, Toast.LENGTH_SHORT).show()
+                }
             } else {
                 Toast.makeText(this, R.string.om_app_no_launchable_ui, Toast.LENGTH_SHORT).show()
             }
@@ -519,16 +528,22 @@ class InstalledAppsActivity : AppActivity() {
         // 4e. Descompilar a Java (JADX)
         dialogBinding.btnActionDecompileJava.setOnClickListener {
             dialog.dismiss()
-            ApktoolHelper.decompileJava(this, Paths.get(app.sourceDir))
+            if (app.sourceDir.isNotEmpty()) {
+                ApktoolHelper.decompileJava(this, Paths.get(app.sourceDir))
+            } else {
+                Toast.makeText(this, R.string.om_apps_prepare_apk_error, Toast.LENGTH_SHORT).show()
+            }
         }
 
         // 5. Ajustes de la aplicación
         dialogBinding.btnActionDetails.setOnClickListener {
             dialog.dismiss()
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.parse("package:${app.packageName}")
-            }
-            startActivity(intent)
+            try {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.parse("package:${app.packageName}")
+                }
+                startActivity(intent)
+            } catch (_: Exception) {}
         }
 
         // 6. Copiar información
@@ -570,11 +585,21 @@ class InstalledAppsActivity : AppActivity() {
             }
         }
 
-        // 9. Desinstalar
+        // 9. Desinstalar (doble confirmación)
         dialogBinding.btnActionUninstall.setOnClickListener {
             dialog.dismiss()
-            val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}"))
-            startActivity(intent)
+            confirmTwice(
+                title1 = getString(R.string.om_app_uninstall_confirm1_title, app.label),
+                msg1 = getString(R.string.om_app_uninstall_confirm1_msg, app.label, app.packageName),
+                title2 = getString(R.string.om_app_uninstall_confirm2_title),
+                msg2 = getString(R.string.om_app_uninstall_confirm2_msg, app.label, app.packageName),
+                actionLabel = getString(R.string.om_app_uninstall_btn)
+            ) {
+                try {
+                    val intent = Intent(Intent.ACTION_DELETE, Uri.parse("package:${app.packageName}"))
+                    startActivity(intent)
+                } catch (_: Exception) {}
+            }
         }
 
         // 10. Root: Forzar detención
@@ -614,26 +639,115 @@ class InstalledAppsActivity : AppActivity() {
                 .show()
         }
 
-        // 12. Root: Alternar Habilitar/Inhabilitar
+        // 12. Root: Alternar Habilitar/Inhabilitar (doble confirmación)
         dialogBinding.btnActionToggleEnable.setOnClickListener {
             dialog.dismiss()
             val newEnable = !app.isEnabled
-            val cmdStr = if (newEnable) "pm enable ${app.packageName.escapeShellArg()}" else "pm disable-user ${app.packageName.escapeShellArg()}"
-            lifecycleScope.launch(Dispatchers.IO) {
-                val result = Shell.cmd(cmdStr).exec()
-                withContext(Dispatchers.Main) {
-                    if (result.isSuccess) {
-                        val msgRes = if (newEnable) R.string.om_apps_enabled_toast else R.string.om_apps_disabled_toast
-                        Toast.makeText(this@InstalledAppsActivity, msgRes, Toast.LENGTH_SHORT).show()
-                        loadApps(forceRefresh = true)
-                    } else {
-                        Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_toggle_state_error, Toast.LENGTH_SHORT).show()
+            val title1 = getString(
+                if (newEnable) R.string.om_app_enable_confirm1_title else R.string.om_app_disable_confirm1_title,
+                app.label
+            )
+            val msg1 = getString(
+                if (newEnable) R.string.om_app_enable_confirm1_msg else R.string.om_app_disable_confirm1_msg,
+                app.label,
+                app.packageName
+            )
+            val title2 = getString(
+                if (newEnable) R.string.om_app_enable_confirm2_title else R.string.om_app_disable_confirm2_title
+            )
+            val msg2 = getString(
+                if (newEnable) R.string.om_app_enable_confirm2_msg else R.string.om_app_disable_confirm2_msg,
+                app.label,
+                app.packageName
+            )
+            val actionLabel = getString(
+                if (newEnable) R.string.om_app_enable_btn else R.string.om_app_disable_btn
+            )
+            confirmTwice(title1, msg1, title2, msg2, actionLabel) {
+                val cmdStr = if (newEnable) {
+                    "pm enable ${app.packageName.escapeShellArg()}"
+                } else {
+                    "pm disable-user ${app.packageName.escapeShellArg()}"
+                }
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = Shell.cmd(cmdStr).exec()
+                    withContext(Dispatchers.Main) {
+                        if (result.isSuccess) {
+                            val msgRes = if (newEnable) R.string.om_apps_enabled_toast else R.string.om_apps_disabled_toast
+                            Toast.makeText(this@InstalledAppsActivity, msgRes, Toast.LENGTH_SHORT).show()
+                            loadApps(forceRefresh = true)
+                        } else {
+                            Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_toggle_state_error, Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
         }
 
         dialog.show()
+    }
+
+    private fun openPathInExplorer(path: String) {
+        try {
+            val intent = FileListActivity.createViewIntent(Paths.get(path))
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            startActivity(intent)
+            finish()
+        } catch (e: Exception) {
+            Toast.makeText(
+                this,
+                getString(R.string.om_app_locate_apk_inaccessible, path),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
+    private fun showLocateDataDialog(app: AppModel) {
+        val internalPath = if (app.dataDir.isNotEmpty() && !app.dataDir.startsWith("/data/user/0/")) {
+            app.dataDir
+        } else {
+            "/data/data/${app.packageName}"
+        }
+        val externalPath = "/storage/emulated/0/Android/data/${app.packageName}"
+        val obbPath = "/storage/emulated/0/Android/obb/${app.packageName}"
+
+        val labels = arrayOf(
+            "${getString(R.string.om_app_locate_data_internal)}\n$internalPath",
+            "${getString(R.string.om_app_locate_data_external)}\n$externalPath",
+            "${getString(R.string.om_app_locate_data_obb)}\n$obbPath"
+        )
+        val paths = arrayOf(internalPath, externalPath, obbPath)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_app_locate_data_title)
+            .setItems(labels) { _, which ->
+                openPathInExplorer(paths[which])
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmTwice(
+        title1: String,
+        msg1: String,
+        title2: String,
+        msg2: String,
+        actionLabel: String,
+        onConfirmed: () -> Unit
+    ) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(title1)
+            .setMessage(msg1)
+            .setPositiveButton(R.string.om_app_continue_btn) { _, _ ->
+                MaterialAlertDialogBuilder(this)
+                    .setTitle(title2)
+                    .setMessage(msg2)
+                    .setPositiveButton(actionLabel) { _, _ -> onConfirmed() }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showCopyInfoDialog(app: AppModel) {
