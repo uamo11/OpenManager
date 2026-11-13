@@ -2136,4 +2136,26 @@
     <string name="om_mt_move_left_short">&lt;&lt; Move</string>
     <string name="om_menu_compress_zip">Compress / Add to ZIP...</string>
     <string name="om_menu_invert_selection">Invert selection</string>
+
+    <!-- OpenManager FileListFragment Localization (Batch 2E) -->
+    <string name="om_saf_picker_open_error_format">Could not open file picker: %1$s</string>
+    <string name="om_stats_permission_denied">0 Folders · 0 Files · Permission denied</string>
+    <string name="om_path_access_error_format">Could not access path:\n\n%1$s\n\nReason: %2$s</string>
+    <string name="om_sort_by_name">Name</string>
+    <string name="om_sort_by_type">Type</string>
+    <string name="om_sort_by_size">Size</string>
+    <string name="om_sort_by_date">Date modified</string>
+    <string name="om_sort_invert_order">Reverse order (Asc/Desc)</string>
+    <string name="om_sort_dirs_first">Folders first</string>
+    <string name="om_err_paste_into_archive">Cannot paste into a compressed archive</string>
+    <string name="om_err_copy_into_self_format">Cannot copy folder "%1$s" into itself or its subfolders</string>
+    <string name="om_err_perm_denied_src_ro">Permission denied: source is read-only (Root or Shizuku required)</string>
+    <string name="om_err_move_into_self_format">Cannot move folder "%1$s" into itself or its subfolders</string>
+    <string name="om_err_perm_denied_rename_ro">Permission denied: cannot rename files in this directory (read-only)</string>
+    <string name="om_sec_cannot_create_file_dev">For anti-brick safety, cannot create files in partition paths (/dev)</string>
+    <string name="om_err_perm_denied_create_file_ro">Permission denied: cannot create files in this directory (read-only)</string>
+    <string name="om_sec_cannot_create_dir_dev">For anti-brick safety, cannot create folders in partition paths (/dev)</string>
+    <string name="om_err_perm_denied_create_dir_ro">Permission denied: cannot create folders in this directory (read-only)</string>
+    <string name="om_antisplit_merge_error">Error during AntiSplit merge</string>
+    <string name="om_failure_format">Failure: %1$s</string>
 </resources>

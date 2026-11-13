@@ -2032,4 +2032,26 @@
     <string name="om_mt_move_left_short">&lt;&lt; Mover</string>
     <string name="om_menu_compress_zip">Comprimir / Añadir a ZIP...</string>
     <string name="om_menu_invert_selection">Invertir selección</string>
+
+    <!-- OpenManager FileListFragment Localization (Batch 2E) -->
+    <string name="om_saf_picker_open_error_format">No se pudo abrir el administrador de archivos: %1$s</string>
+    <string name="om_stats_permission_denied">0 Carpetas · 0 Archivos · Permiso denegado</string>
+    <string name="om_path_access_error_format">No se pudo acceder a la ruta:\n\n%1$s\n\nMotivo: %2$s</string>
+    <string name="om_sort_by_name">Nombre</string>
+    <string name="om_sort_by_type">Tipo</string>
+    <string name="om_sort_by_size">Tamaño</string>
+    <string name="om_sort_by_date">Fecha de modificación</string>
+    <string name="om_sort_invert_order">Invertir orden (Asc/Desc)</string>
+    <string name="om_sort_dirs_first">Carpetas primero</string>
+    <string name="om_err_paste_into_archive">No se puede pegar dentro de un archivo comprimido</string>
+    <string name="om_err_copy_into_self_format">No se puede copiar la carpeta "%1$s" dentro de sí misma o de sus subcarpetas</string>
+    <string name="om_err_perm_denied_src_ro">Permiso denegado: origen de solo lectura (se requiere Root o Shizuku)</string>
+    <string name="om_err_move_into_self_format">No se puede mover la carpeta "%1$s" dentro de sí misma o de sus subcarpetas</string>
+    <string name="om_err_perm_denied_rename_ro">Permiso denegado: no se pueden renombrar archivos en este directorio (solo lectura)</string>
+    <string name="om_sec_cannot_create_file_dev">Por seguridad anti-brick, no se pueden crear archivos en las rutas de particiones (/dev)</string>
+    <string name="om_err_perm_denied_create_file_ro">Permiso denegado: no se pueden crear archivos en este directorio (solo lectura)</string>
+    <string name="om_sec_cannot_create_dir_dev">Por seguridad anti-brick, no se pueden crear carpetas en las rutas de particiones (/dev)</string>
+    <string name="om_err_perm_denied_create_dir_ro">Permiso denegado: no se pueden crear carpetas en este directorio (solo lectura)</string>
+    <string name="om_antisplit_merge_error">Error durante la fusión AntiSplit</string>
+    <string name="om_failure_format">Fallo: %1$s</string>
 </resources>

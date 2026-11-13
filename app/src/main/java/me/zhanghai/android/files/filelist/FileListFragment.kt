@@ -318,7 +318,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             try {
                 requestSafPermissionLauncher.launch(null)
             } catch (e2: Exception) {
-                showToast("No se pudo abrir el administrador de archivos: ${e2.message}")
+                showToast(getString(R.string.om_saf_picker_open_error_format, e2.message ?: ""))
             }
         }
     }
@@ -992,7 +992,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.layoutError.fadeToVisibilityUnsafe(isFailureWithoutFiles)
         if (isFailureWithoutFiles && !isAndroidDataOrObbCurrent) {
             val displayPathStr = currentPath.toDisplayPath(trailingSlash = true)
-            val deniedSubtitle = "0 Carpetas · 0 Archivos · Permiso denegado"
+            val deniedSubtitle = getString(R.string.om_stats_permission_denied)
             binding.toolbar.subtitle = deniedSubtitle
             currentStatsSubtitle = deniedSubtitle
             onPathOrStatsChanged?.invoke(currentPath, deniedSubtitle)
@@ -1143,10 +1143,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                         binding.ivErrorIcon.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F44336"))
                         binding.tvErrorTitle.setText(R.string.path_error_title)
                         val cleanMsg = cleanErrorMessage(throwable)
-                        binding.errorText.text = "No se pudo acceder a la ruta:\n\n$displayPathStr\n\nMotivo: $cleanMsg"
+                        binding.errorText.text = getString(R.string.om_path_access_error_format, displayPathStr, cleanMsg)
                         binding.btnGrantSafPermission.visibility = View.GONE
                         binding.btnErrorAction.visibility = View.VISIBLE
-                        binding.btnErrorAction.text = "Reintentar"
+                        binding.btnErrorAction.setText(R.string.retry)
                         binding.btnErrorAction.setIconResource(R.drawable.reset_icon_white_24dp)
                         binding.btnErrorAction.setOnClickListener {
                             viewModel.reload()
@@ -1155,7 +1155,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 }
             } else {
                 me.zhanghai.android.files.app.CrashHandler.logHandledException(throwable, "FileList")
-                showToast("Error: ${cleanErrorMessage(throwable)}")
+                showToast(getString(R.string.om_error_format, cleanErrorMessage(throwable)))
             }
         }
         binding.emptyView.fadeToVisibilityUnsafe(stateful is Success && !hasFiles)
@@ -1336,14 +1336,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             } catch (e: Exception) {
                 me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "CreateDir")
                 withContext(Dispatchers.Main) {
-                    showToast("No se pudo crear la carpeta: ${cleanErrorMessage(e)}")
+                    showToast(getString(R.string.om_create_folder_error_format, cleanErrorMessage(e)))
                 }
             }
         }
     }
 
     private fun cleanErrorMessage(throwable: Throwable?): String {
-        if (throwable == null) return "Error desconocido"
+        if (throwable == null) return getString(R.string.om_crash_unknown_error)
         val msg = throwable.localizedMessage ?: throwable.message ?: ""
         val stripped = msg.replace(Regex("^(java[a-z0-9.]*\\.[A-Za-z0-9]+Exception:?\\s*)"), "").trim()
         return if (stripped.isNotEmpty()) stripped else throwable.javaClass.simpleName
@@ -1363,15 +1363,15 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     fun showSortOptionsDialog() {
         val options = arrayOf(
-            "Nombre",
-            "Tipo",
-            "Tamaño",
-            "Fecha de modificación",
-            "Invertir orden (Asc/Desc)",
-            "Carpetas primero"
+            getString(R.string.om_sort_by_name),
+            getString(R.string.om_sort_by_type),
+            getString(R.string.om_sort_by_size),
+            getString(R.string.om_sort_by_date),
+            getString(R.string.om_sort_invert_order),
+            getString(R.string.om_sort_dirs_first)
         )
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Ordenar")
+            .setTitle(R.string.om_menu_sort)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> viewModel.setSortBy(By.NAME)
@@ -2023,19 +2023,19 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
 
         if (!canWriteTo(targetDirectory)) {
-            val msg = if (targetDirectory.isArchivePath) {
-                "No se puede pegar dentro de un archivo comprimido"
+            val msgRes = if (targetDirectory.isArchivePath) {
+                R.string.om_err_paste_into_archive
             } else {
-                "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)"
+                R.string.om_err_perm_denied_dest_ro
             }
-            showToast(msg)
+            showToast(msgRes)
             return
         }
 
         if (pasteState.copy) {
             for (item in validFiles) {
                 if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
-                    showToast("No se puede copiar la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                    showToast(getString(R.string.om_err_copy_into_self_format, item.name))
                     return
                 }
             }
@@ -2045,16 +2045,16 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         } else {
             val sourceParent = validFiles.firstOrNull()?.path?.parent
             if (sourceParent == targetDirectory) {
-                showToast("El origen y el destino son el mismo directorio")
+                showToast(R.string.om_err_same_src_dest)
                 return
             }
             if (!canWriteTo(sourceParent ?: targetDirectory)) {
-                showToast("Permiso denegado: origen de solo lectura (se requiere Root o Shizuku)")
+                showToast(R.string.om_err_perm_denied_src_ro)
                 return
             }
             for (item in validFiles) {
                 if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
-                    showToast("No se puede mover la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                    showToast(getString(R.string.om_err_move_into_self_format, item.name))
                     return
                 }
             }
@@ -2467,7 +2467,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun proceedRenameFile(file: FileItem, newName: String) {
         if (!canWriteTo(currentPath)) {
-            showToast("Permiso denegado: no se pueden renombrar archivos en este directorio (solo lectura)")
+            showToast(R.string.om_err_perm_denied_rename_ro)
             return
         }
         FileJobService.rename(file.path, newName, requireContext())
@@ -2609,11 +2609,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     override fun createFile(name: String) {
         if (currentPath.toString().startsWith("/dev/block") || currentPath.toString().startsWith("/dev/")) {
-            showToast("Por seguridad anti-brick, no se pueden crear archivos en las rutas de particiones (/dev)")
+            showToast(R.string.om_sec_cannot_create_file_dev)
             return
         }
         if (!canWriteTo(currentPath)) {
-            showToast("Permiso denegado: no se pueden crear archivos en este directorio (solo lectura)")
+            showToast(R.string.om_err_perm_denied_create_file_ro)
             return
         }
         val path = currentPath.resolve(name)
@@ -2626,11 +2626,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     override fun createDirectory(name: String) {
         if (currentPath.toString().startsWith("/dev/block") || currentPath.toString().startsWith("/dev/")) {
-            showToast("Por seguridad anti-brick, no se pueden crear carpetas en las rutas de particiones (/dev)")
+            showToast(R.string.om_sec_cannot_create_dir_dev)
             return
         }
         if (!canWriteTo(currentPath)) {
-            showToast("Permiso denegado: no se pueden crear carpetas en este directorio (solo lectura)")
+            showToast(R.string.om_err_perm_denied_create_dir_ro)
             return
         }
         val path = currentPath.resolve(name)
@@ -2653,23 +2653,23 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (validFiles.isEmpty()) return
 
         if (targetDirectory.toString().startsWith("/dev/block") || targetDirectory.toString().startsWith("/dev/")) {
-            showToast("Por seguridad, no se puede escribir directamente en particiones del sistema")
+            showToast(R.string.om_sec_cannot_write_sys_part)
             return
         }
 
         if (!canWriteTo(targetDirectory)) {
-            val msg = if (targetDirectory.isArchivePath) {
-                "No se puede copiar dentro de un archivo comprimido"
+            val msgRes = if (targetDirectory.isArchivePath) {
+                R.string.om_err_copy_into_archive
             } else {
-                "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)"
+                R.string.om_err_perm_denied_dest_ro
             }
-            showToast(msg)
+            showToast(msgRes)
             return
         }
 
         for (item in validFiles) {
             if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
-                showToast("No se puede copiar la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                showToast(getString(R.string.om_err_copy_into_self_format, item.name))
                 return
             }
         }
@@ -2683,33 +2683,33 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (validFiles.isEmpty()) return
 
         if (validFiles.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
-            showToast("Por seguridad, las particiones no se pueden mover ni cortar (solo copiar)")
+            showToast(R.string.om_sec_cannot_move_partitions)
             return
         }
 
         if (targetDirectory.toString().startsWith("/dev/block") || targetDirectory.toString().startsWith("/dev/")) {
-            showToast("Por seguridad, no se puede mover hacia particiones del sistema")
+            showToast(R.string.om_sec_cannot_move_to_sys_part)
             return
         }
 
         if (currentPath == targetDirectory) {
-            showToast("El origen y el destino son el mismo directorio")
+            showToast(R.string.om_err_same_src_dest)
             return
         }
 
         if (!canWriteTo(currentPath) || !canWriteTo(targetDirectory)) {
-            val msg = if (targetDirectory.isArchivePath) {
-                "No se pueden mover archivos dentro de un archivo comprimido"
+            val msgRes = if (targetDirectory.isArchivePath) {
+                R.string.om_err_move_into_archive
             } else {
-                "Permiso denegado: no se pueden mover archivos en directorios de solo lectura (se requiere Root o Shizuku)"
+                R.string.om_err_perm_denied_move_ro
             }
-            showToast(msg)
+            showToast(msgRes)
             return
         }
 
         for (item in validFiles) {
             if (item.attributes.isDirectory && (targetDirectory == item.path || targetDirectory.startsWith(item.path))) {
-                showToast("No se puede mover la carpeta \"${item.name}\" dentro de sí misma o de sus subcarpetas")
+                showToast(getString(R.string.om_err_move_into_self_format, item.name))
                 return
             }
         }
@@ -2722,11 +2722,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val validFiles = viewModel.selectedFiles.filterNot { it.isParentDirectoryItem }
         if (validFiles.isEmpty()) return
         if (validFiles.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
-            showToast("Por seguridad, las particiones del sistema no se pueden eliminar")
+            showToast(R.string.om_sec_cannot_delete_partitions)
             return
         }
         if (!canWriteTo(currentPath)) {
-            showToast("Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)")
+            showToast(R.string.om_err_perm_denied_dir_ro)
             return
         }
         confirmDeleteFiles(fileItemSetOf(validFiles))
@@ -3042,14 +3042,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                         }
                         snackbar.show()
                     } else {
-                        Toast.makeText(activity, "Error durante la fusión AntiSplit", Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, R.string.om_antisplit_merge_error, Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    Toast.makeText(activity, "Fallo: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, activity.getString(R.string.om_failure_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             } finally {
                 tempDir.deleteRecursively()
