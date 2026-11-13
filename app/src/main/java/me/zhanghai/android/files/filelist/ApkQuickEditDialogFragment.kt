@@ -69,7 +69,7 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(requireContext(), "Error al cargar icono: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.om_apk_edit_icon_load_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -173,7 +173,7 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     if (!isAdded) return@withContext
-                    Toast.makeText(context, "Error al acceder al archivo APK: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, getString(R.string.om_apk_edit_access_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                     try { dismissAllowingStateLoss() } catch (ignored: Exception) {}
                 }
                 return@launch
@@ -205,7 +205,7 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                 withContext(Dispatchers.Main) {
                     progressBar.isVisible = false
                     if (!isAdded) return@withContext
-                    Toast.makeText(context, "Error al analizar manifiesto del APK: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, getString(R.string.om_apk_edit_manifest_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                     try { dismissAllowingStateLoss() } catch (ignored: Exception) {}
                 }
             } finally {

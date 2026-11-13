@@ -301,7 +301,7 @@ object KeystoreGeneratorHelper {
                 // Try next type
             }
         }
-        throw IllegalArgumentException("No se pudo leer el archivo KeyStore con la contraseña proporcionada.")
+        throw IllegalArgumentException("Could not read KeyStore file with the provided password.")
     }
 
     fun formatFingerprint(data: ByteArray, algorithm: String): String {

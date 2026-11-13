@@ -289,7 +289,7 @@ object MtPermissionsHelper {
         onApplied: ((PermissionInfo) -> Unit)? = null
     ) {
         if (path.isArchivePath) {
-            Toast.makeText(context, "Los permisos dentro de un archivo comprimido son de sólo lectura", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.om_perm_archive_readonly, Toast.LENGTH_SHORT).show()
             return
         }
         if (DeadManProtectionManager.isDfrootProtectionActive(context) &&

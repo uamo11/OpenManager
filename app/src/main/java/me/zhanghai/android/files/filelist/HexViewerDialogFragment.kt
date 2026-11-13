@@ -67,13 +67,13 @@ class HexViewerDialogFragment : AppCompatDialogFragment() {
                         val buffer = ByteArray(32 * 1024) // up to 32KB
                         val read = stream.read(buffer)
                         if (read <= 0) {
-                            "00000000  (Archivo vacío)"
+                            getString(R.string.om_hex_empty_file_line)
                         } else {
                             formatHexDump(buffer, read)
                         }
                     }
                 } catch (e: Exception) {
-                    "Error al leer archivo: ${e.message}"
+                    getString(R.string.om_file_read_error_format, e.message ?: "")
                 }
             }
             binding.progressBar.visibility = View.GONE

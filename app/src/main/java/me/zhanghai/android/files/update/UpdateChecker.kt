@@ -626,7 +626,7 @@ object UpdateChecker {
                     if (isManual) {
                         MaterialAlertDialogBuilder(activity)
                             .setTitle(R.string.update_check_error_title)
-                            .setMessage(activity.getString(R.string.update_check_error_message, "Información no disponible"))
+                            .setMessage(activity.getString(R.string.update_check_error_message, activity.getString(R.string.om_update_info_unavailable)))
                             .setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true) }
                             .setNegativeButton(android.R.string.cancel, null)
                             .show()

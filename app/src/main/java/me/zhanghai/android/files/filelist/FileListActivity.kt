@@ -1395,7 +1395,7 @@ class FileListActivity : AppActivity() {
         }
         btnSelectionClose.setOnLongClickListener {
             activeFragment.selectAllFiles()
-            Toast.makeText(this, "Todos los archivos seleccionados", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_all_files_selected, Toast.LENGTH_SHORT).show()
             true
         }
 

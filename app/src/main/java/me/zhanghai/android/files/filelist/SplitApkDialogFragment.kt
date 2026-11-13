@@ -115,7 +115,7 @@ class SplitApkDialogFragment : AppCompatDialogFragment() {
             if (localArchive == null || !localArchive.exists()) {
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    Toast.makeText(activity, "Error al acceder al archivo dividido", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, R.string.om_split_apk_access_error, Toast.LENGTH_SHORT).show()
                 }
                 return@launch
             }
@@ -153,7 +153,7 @@ class SplitApkDialogFragment : AppCompatDialogFragment() {
                     }
                     snackbar.show()
                 } else {
-                    Toast.makeText(activity, "Error durante la fusión AntiSplit", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, R.string.om_antisplit_merge_error, Toast.LENGTH_LONG).show()
                 }
             }
         }

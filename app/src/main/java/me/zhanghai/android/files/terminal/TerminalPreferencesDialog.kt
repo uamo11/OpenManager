@@ -132,7 +132,7 @@ class TerminalPreferencesDialog : DialogFragment() {
                     onSettingsChanged?.invoke()
                 }
             } else {
-                Toast.makeText(ctx, "Paquete de expansión ya instalado y activo", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, R.string.om_termex_already_installed, Toast.LENGTH_SHORT).show()
             }
         }
 

@@ -62,7 +62,7 @@ class ToastDialogCleanDialogFragment : AppCompatDialogFragment() {
                 val cleanDialogs = cbCleanDialogs.isChecked
 
                 if (!cleanToasts && !cleanDialogs) {
-                    Toast.makeText(context, "Selecciona al menos una opción para limpiar", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.om_toast_clean_select_one, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 

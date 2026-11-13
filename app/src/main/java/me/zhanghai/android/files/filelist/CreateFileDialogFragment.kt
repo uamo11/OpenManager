@@ -29,7 +29,7 @@ class CreateFileDialogFragment : FileNameDialogFragment() {
             setStartIconDrawable(R.drawable.file_icon_white_24dp)
             setStartIconTintList(ColorStateList.valueOf(0xFF42A5F5.toInt()))
             hint = "Nombre del archivo"
-            helperText = "Toca una extensión abajo para añadirla rápidamente"
+            helperText = getString(R.string.om_create_file_ext_helper)
         }
         setupExtensionChips()
         return dialog

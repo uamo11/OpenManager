@@ -135,7 +135,7 @@ class ToastDialogInjectDialogFragment : AppCompatDialogFragment() {
                     val title = etDialogTitle.text?.toString()?.trim().orEmpty()
                     val msg = etDialogMessage.text?.toString()?.trim().orEmpty()
                     if (title.isEmpty()) {
-                        tilDialogTitle.error = "Ingresa el título"
+                        tilDialogTitle.error = getString(R.string.om_toast_inject_enter_title)
                         return@setOnClickListener
                     }
                     if (msg.isEmpty()) {

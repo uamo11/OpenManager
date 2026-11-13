@@ -199,7 +199,7 @@ class ScriptExecutionService : Service() {
         val statusText = if (isKept) {
             "$pidStr • Activo en 2ndo plano (WakeLock) • Toca para abrir terminal"
         } else {
-            "$pidStr • En ejecución • Toca para abrir terminal"
+            getString(R.string.om_script_notif_running_format, pidStr)
         }
 
         val subText = when {

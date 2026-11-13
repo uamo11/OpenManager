@@ -130,7 +130,7 @@ object BinaryTracerEngine {
                 timestamp = System.currentTimeMillis(),
                 type = if (info.category == SyscallCategory.DELETION_FS) TraceEventType.DELETION_ATTEMPT else TraceEventType.SECURITY_AUDIT,
                 target = "${info.name} [Syscall #$syscallNr]",
-                details = "[PID $pid] Riesgo ${info.risk.levelName}: ${info.description} | Args: $rawArgs",
+                details = "[PID $pid] Risk ${info.risk.levelName}: ${info.description} | Args: $rawArgs",
                 count = 1L,
                 decision = if (info.category == SyscallCategory.DELETION_FS) DeletionDecision.ALLOWED else null
             )

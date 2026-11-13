@@ -88,7 +88,7 @@ object MtFileMenuHelper {
                     ""
                 }
                 if (isDirectory) {
-                    if (dateStr.isNotEmpty()) "Carpeta • $dateStr" else "Carpeta"
+                    if (dateStr.isNotEmpty()) context.getString(R.string.om_mt_folder_date_format, dateStr) else context.getString(R.string.om_mt_folder)
                 } else {
                     val sizeStr = file.attributes.fileSize.formatHumanReadable(context)
                     if (dateStr.isNotEmpty()) "$sizeStr • $dateStr" else sizeStr

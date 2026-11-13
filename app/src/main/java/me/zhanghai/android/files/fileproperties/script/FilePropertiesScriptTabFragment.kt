@@ -109,7 +109,7 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
                 val auditSummary = if (auditReport.totalFindings > 0) {
                     "⚠️ ${auditReport.totalFindings} riesgos detectados  🔍"
                 } else {
-                    "🛡️ Script verificado (Limpio)  🔍"
+                    getString(R.string.om_script_verified_clean)
                 }
                 addItemView(R.string.script_audit_title, auditSummary) {
                     activity?.let { act ->
@@ -175,7 +175,7 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
-                            showToast("Error al convertir a LF: ${e.message}")
+                            showToast(getString(R.string.om_script_convert_lf_error_format, e.message ?: ""))
                         }
                     }
                 }

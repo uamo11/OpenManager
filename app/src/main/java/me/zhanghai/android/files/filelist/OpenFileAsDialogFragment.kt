@@ -260,7 +260,7 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
             ToolItem("apks_functions", R.string.open_as_apks_functions, R.drawable.ic_open_as_apks) {
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.open_as_apks_functions)
-                    .setMessage("Paquete o conjunto APKS: ${path.fileName}\nOpciones: Convertir a APK estándar o instalar.")
+                    .setMessage(getString(R.string.om_open_apks_msg_format, path.fileName.toString()))
                     .setPositiveButton("Convertir APKS") { _, _ -> }
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
@@ -288,7 +288,7 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
             ToolItem("plugin_viewer", R.string.open_as_plugin_viewer, R.drawable.ic_open_as_plugin) {
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.open_as_plugin_viewer)
-                    .setMessage("Plugin OpenManager / MT-Plugin: ${path.fileName}\nIntegración de extensiones y herramientas del sistema.")
+                    .setMessage(getString(R.string.om_open_plugin_msg_format, path.fileName.toString()))
                     .setPositiveButton(android.R.string.ok, null)
                     .show()
             },

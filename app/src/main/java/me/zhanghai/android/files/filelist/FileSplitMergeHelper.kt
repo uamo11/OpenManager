@@ -171,7 +171,7 @@ object FileSplitMergeHelper {
                 withContext(Dispatchers.Main) {
                     if (!activity.isFinishing && !activity.isDestroyed) {
                         try { progress.dismiss() } catch (ignored: Exception) {}
-                        Toast.makeText(activity, "Error al dividir archivo: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, activity.getString(R.string.om_split_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                     }
                 }
             } finally {
@@ -341,7 +341,7 @@ object FileSplitMergeHelper {
                 withContext(Dispatchers.Main) {
                     if (!activity.isFinishing && !activity.isDestroyed) {
                         try { progress.dismiss() } catch (ignored: Exception) {}
-                        Toast.makeText(activity, "Error al unir archivos: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, activity.getString(R.string.om_merge_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                     }
                 }
             }

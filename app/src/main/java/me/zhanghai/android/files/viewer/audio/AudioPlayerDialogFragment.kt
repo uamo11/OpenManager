@@ -226,14 +226,14 @@ class AudioPlayerDialogFragment : AppCompatDialogFragment() {
                 }
             }
             player.setOnErrorListener { _, what, extra ->
-                Toast.makeText(context, "Error al reproducir audio ($what, $extra)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.om_audio_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
                 dismissAllowingStateLoss()
                 true
             }
             player.prepareAsync()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "No se pudo abrir el audio: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.om_audio_open_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             dismissAllowingStateLoss()
         }
     }

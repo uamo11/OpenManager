@@ -273,7 +273,7 @@ object AppDetailsViewerHelper {
                 v.setOnClickListener {
                     val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                     clipboard?.setPrimaryClip(ClipData.newPlainText("Component", item.name))
-                    Toast.makeText(activity, "Copiado: ${item.name}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, activity.getString(R.string.om_copied_item_format, item.name), Toast.LENGTH_SHORT).show()
                 }
             }
         }

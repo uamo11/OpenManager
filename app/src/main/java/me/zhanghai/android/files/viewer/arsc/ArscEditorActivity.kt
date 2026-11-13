@@ -186,7 +186,7 @@ class ArscEditorActivity : AppActivity() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this@ArscEditorActivity, "Error al leer ARSC: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@ArscEditorActivity, getString(R.string.om_arsc_read_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -372,7 +372,7 @@ class ArscEditorActivity : AppActivity() {
             val item = items[position]
             with(holder.binding) {
                 tvIndex.text = "#${item.index}"
-                tvStringValue.text = if (item.value.isEmpty()) "<vacío>" else item.value
+                tvStringValue.text = if (item.value.isEmpty()) getString(R.string.om_arsc_empty_value) else item.value
                 if (item.isModified) {
                     tvOriginalValue.visibility = View.VISIBLE
                     tvOriginalValue.text = "Original: ${item.originalValue}"

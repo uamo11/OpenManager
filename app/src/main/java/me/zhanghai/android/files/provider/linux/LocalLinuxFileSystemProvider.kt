@@ -152,7 +152,7 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
         link as? LinuxPath ?: throw ProviderMismatchException(link.toString())
         val linkStr = link.toString()
         if (linkStr.startsWith("/dev/block") || linkStr.startsWith("/dev/")) {
-            throw AccessDeniedException(linkStr, null, "Por seguridad anti-brick, no se pueden crear enlaces simbólicos en rutas de particiones del sistema")
+            throw AccessDeniedException(linkStr, null, "For anti-brick safety, symbolic links cannot be created in system partition paths")
         }
         val targetBytes = when (target) {
             is LinuxPath -> target.toByteString()

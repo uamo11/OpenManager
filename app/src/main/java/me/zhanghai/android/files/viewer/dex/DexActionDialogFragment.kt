@@ -68,7 +68,7 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
         }
 
         val sizeStr = if (fileSize > 0) String.format("%.2f MB", fileSize / (1024.0 * 1024.0)) else ""
-        binding.dexFileDetails.text = "$version  •  $sizeStr  •  $classCount clases  •  $methodCount métodos"
+        binding.dexFileDetails.text = getString(R.string.om_dex_action_details_format, version, sizeStr, classCount, methodCount)
 
         val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(binding.root)
@@ -160,7 +160,7 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
                 JadxDecompilerEngine.decompileToZip(prepared, outZip) { current, total, clsName ->
                     if (current % 15 == 0 || current == total) {
                         lifecycleScope.launch(Dispatchers.Main) {
-                            progressDialog.setMessage("Descompilando clase $current/$total\n$clsName")
+                            progressDialog.setMessage(context.getString(R.string.om_dex_decompile_class_format, current, total, clsName))
                         }
                     }
                 }
@@ -177,7 +177,7 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     progressDialog.dismiss()
-                    Toast.makeText(context, "Error al descompilar: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.om_dex_decompile_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }

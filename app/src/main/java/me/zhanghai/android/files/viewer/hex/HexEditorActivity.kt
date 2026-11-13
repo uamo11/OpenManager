@@ -361,8 +361,8 @@ class HexEditorActivity : AppActivity() {
         val count = buffer.replaceAllHex(targetBytes, replaceBytes)
         adapter.updateBuffer(buffer)
         selectOffset(currentOffset)
-        showToast("Reemplazos realizados: $count")
-        binding.tvSearchStatus.text = "Reemplazos: $count"
+        showToast(getString(R.string.om_hex_replacements_done_format, count))
+        binding.tvSearchStatus.text = getString(R.string.om_hex_replacements_count_format, count)
     }
 
     private fun closeSearch() {

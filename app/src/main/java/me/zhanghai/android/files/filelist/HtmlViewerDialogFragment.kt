@@ -47,7 +47,7 @@ class HtmlViewerDialogFragment : AppCompatDialogFragment() {
             }
             webView.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
         } catch (e: Exception) {
-            webView.loadData("<h3>Error al cargar: ${e.message}</h3>", "text/html", "UTF-8")
+            webView.loadData(getString(R.string.om_html_load_error_format, e.message ?: ""), "text/html", "UTF-8")
         }
 
         return MaterialAlertDialogBuilder(context, theme)

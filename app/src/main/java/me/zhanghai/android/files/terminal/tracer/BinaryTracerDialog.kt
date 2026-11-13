@@ -71,7 +71,7 @@ class BinaryTracerDialog : DialogFragment() {
         val layoutEvents = view.findViewById<LinearLayout>(R.id.layoutTracerEvents)
 
         // Script Path Label
-        tvScriptPath.text = if (!scriptPath.isNullOrEmpty()) scriptPath else "Terminal / Sesión interactiva"
+        tvScriptPath.text = if (!scriptPath.isNullOrEmpty()) scriptPath else getString(R.string.om_tracer_interactive_session)
 
         // Tracer Enabled Toggle
         val isEnabled = ScriptTracerPreferences.isTracerEnabled(ctx, scriptPath)
@@ -228,7 +228,7 @@ class BinaryTracerDialog : DialogFragment() {
             btnClear?.setOnClickListener {
                 BinaryTracerEngine.clear()
                 refreshMetricsAndEvents()
-                Toast.makeText(ctx, "Registro limpiado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, R.string.om_tracer_log_cleared, Toast.LENGTH_SHORT).show()
             }
         }
 

@@ -123,7 +123,7 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                     Compatible con Keystore / APK Signature Scheme v1/v2/v3.$ksDetails
                     """.trimIndent()
                 } catch (e: Exception) {
-                    "Error al calcular firma: ${e.message}"
+                    getString(R.string.om_sig_calc_error_format, e.message ?: "")
                 }
             }
             infoTextView.text = details
@@ -136,7 +136,7 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                 val clipboard = context.getSystemService<ClipboardManager>()
                 val clip = ClipData.newPlainText("signature", infoTextView.text)
                 clipboard?.setPrimaryClip(clip)
-                showToast("Información copiada al portapapeles")
+                showToast(R.string.om_copied_to_clipboard)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
