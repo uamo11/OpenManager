@@ -21,11 +21,17 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import android.widget.VideoView
+import androidx.lifecycle.lifecycleScope
 import java8.nio.file.Path
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.extraPath
 import java.io.File
 import java.io.FileOutputStream
@@ -137,7 +143,11 @@ class VideoPlayerActivity : AppActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {
                 isUserTracking = false
                 sb?.let {
-                    videoView.seekTo(it.progress)
+                    try {
+                        videoView.seekTo(it.progress)
+                    } catch (e: Exception) {
+                        // Ignore seek before player is prepared
+                    }
                 }
                 scheduleControlsAutoHide()
             }
@@ -147,44 +157,62 @@ class VideoPlayerActivity : AppActivity() {
     }
 
     private fun initVideo(path: Path) {
-        try {
-            val videoFile: File
-            if (path.isLinuxPath) {
-                videoFile = path.toFile()
-            } else {
-                val temp = File(cacheDir, "video_preview_${System.currentTimeMillis()}.${path.fileName.toString().substringAfterLast('.', "tmp")}")
-                path.newInputStream().use { input ->
-                    FileOutputStream(temp).use { output ->
-                        input.copyTo(output)
+        lifecycleScope.launch {
+            try {
+                val videoFile: File = if (!path.isArchivePath && path.isLinuxPath) {
+                    path.toFile()
+                } else {
+                    withContext(Dispatchers.IO) {
+                        val ext = path.fileName.toString().substringAfterLast('.', "tmp")
+                        val temp = File(cacheDir, "video_preview_${System.currentTimeMillis()}.$ext")
+                        path.newInputStream().use { input ->
+                            FileOutputStream(temp).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        temp
                     }
                 }
-                tempFile = temp
-                videoFile = temp
-            }
+                if (!isUiAlive) {
+                    if (path.isArchivePath || !path.isLinuxPath) {
+                        videoFile.delete()
+                    }
+                    return@launch
+                }
+                if (path.isArchivePath || !path.isLinuxPath) {
+                    tempFile = videoFile
+                }
 
-            videoView.setVideoPath(videoFile.absolutePath)
-            videoView.setOnPreparedListener { mp ->
-                val duration = mp.duration
-                seekBarVideo.max = duration
-                tvVideoDuration.text = formatTime(duration)
-                videoView.start()
-                ivVideoPlayPause.setImageResource(R.drawable.ic_pause_24dp)
-                handler.post(progressRunnable)
-                scheduleControlsAutoHide()
+                videoView.setVideoPath(videoFile.absolutePath)
+                videoView.setOnPreparedListener { mp ->
+                    if (!isUiAlive) return@setOnPreparedListener
+                    val duration = mp.duration
+                    seekBarVideo.max = duration
+                    tvVideoDuration.text = formatTime(duration)
+                    videoView.start()
+                    ivVideoPlayPause.setImageResource(R.drawable.ic_pause_24dp)
+                    handler.post(progressRunnable)
+                    scheduleControlsAutoHide()
+                }
+                videoView.setOnCompletionListener {
+                    ivVideoPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
+                    showControls()
+                }
+                videoView.setOnErrorListener { _, what, extra ->
+                    if (isUiAlive) {
+                        Toast.makeText(this@VideoPlayerActivity, getString(R.string.om_video_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                    true
+                }
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                e.printStackTrace()
+                if (isUiAlive) {
+                    Toast.makeText(this@VideoPlayerActivity, getString(R.string.om_video_load_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                    finish()
+                }
             }
-            videoView.setOnCompletionListener {
-                ivVideoPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
-                showControls()
-            }
-            videoView.setOnErrorListener { _, what, extra ->
-                Toast.makeText(this, getString(R.string.om_video_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
-                finish()
-                true
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(this, getString(R.string.om_video_load_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
-            finish()
         }
     }
 

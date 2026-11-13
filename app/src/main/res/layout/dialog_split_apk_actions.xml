@@ -42,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:ellipsize="middle"
                 android:singleLine="true"
-                android:textColor="#FFFFFF"
+                android:textColor="?android:attr/textColorPrimary"
                 android:textSize="17sp"
                 android:textStyle="bold" />
 
@@ -51,7 +51,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:textColor="#B0BEC5"
+                android:textColor="?android:attr/textColorSecondary"
                 android:textSize="13sp" />
         </LinearLayout>
     </LinearLayout>

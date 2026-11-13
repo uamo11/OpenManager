@@ -25,8 +25,8 @@ import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.putArgs
-import me.zhanghai.android.files.util.show
 import me.zhanghai.android.files.util.showToast
 
 class HexViewerDialogFragment : AppCompatDialogFragment() {
@@ -59,25 +59,34 @@ class HexViewerDialogFragment : AppCompatDialogFragment() {
     }
 
     private fun loadHexData() {
+        val appContext = requireContext().applicationContext
         lifecycleScope.launch {
             binding.progressBar.visibility = View.VISIBLE
             val hexString = withContext(Dispatchers.IO) {
                 try {
                     args.path.newInputStream().use { stream ->
-                        val buffer = ByteArray(32 * 1024) // up to 32KB
-                        val read = stream.read(buffer)
-                        if (read <= 0) {
-                            getString(R.string.om_hex_empty_file_line)
+                        val maxBytes = 32 * 1024
+                        val buffer = ByteArray(maxBytes)
+                        var totalRead = 0
+                        while (totalRead < maxBytes) {
+                            val r = stream.read(buffer, totalRead, maxBytes - totalRead)
+                            if (r <= 0) break
+                            totalRead += r
+                        }
+                        if (totalRead <= 0) {
+                            appContext.getString(R.string.om_hex_empty_file_line)
                         } else {
-                            formatHexDump(buffer, read)
+                            formatHexDump(buffer, totalRead)
                         }
                     }
                 } catch (e: Exception) {
-                    getString(R.string.om_file_read_error_format, e.message ?: "")
+                    appContext.getString(R.string.om_file_read_error_format, e.message ?: "")
                 }
             }
-            binding.progressBar.visibility = View.GONE
-            binding.hexText.text = hexString
+            if (isUiAlive) {
+                binding.progressBar.visibility = View.GONE
+                binding.hexText.text = hexString
+            }
         }
     }
 

@@ -10,6 +10,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.Closeable
@@ -28,6 +31,8 @@ class PdfDocumentEngine private constructor(
     private val mutex = Mutex()
     @Volatile
     private var isClosed = false
+    @Volatile
+    private var resourcesClosed = false
 
     val pageCount: Int
         get() = if (isClosed) 0 else renderer.pageCount
@@ -100,9 +105,9 @@ class PdfDocumentEngine private constructor(
         }
     }
 
-    override fun close() {
-        if (isClosed) return
-        isClosed = true
+    private fun closeNativeResources() {
+        if (resourcesClosed) return
+        resourcesClosed = true
         try {
             renderer.close()
         } catch (e: Exception) {
@@ -115,14 +120,46 @@ class PdfDocumentEngine private constructor(
         }
     }
 
+    override fun close() {
+        if (isClosed) return
+        isClosed = true
+        if (mutex.tryLock()) {
+            try {
+                closeNativeResources()
+            } finally {
+                mutex.unlock()
+            }
+        } else {
+            CoroutineScope(Dispatchers.IO).launch {
+                mutex.withLock {
+                    closeNativeResources()
+                }
+            }
+        }
+    }
+
     companion object {
         fun open(file: File): Result<PdfDocumentEngine> = runCatching {
             val pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
-            PdfDocumentEngine(pfd)
+            try {
+                PdfDocumentEngine(pfd)
+            } catch (e: Throwable) {
+                try {
+                    pfd.close()
+                } catch (_: Exception) {}
+                throw e
+            }
         }
 
         fun open(pfd: ParcelFileDescriptor): Result<PdfDocumentEngine> = runCatching {
-            PdfDocumentEngine(pfd)
+            try {
+                PdfDocumentEngine(pfd)
+            } catch (e: Throwable) {
+                try {
+                    pfd.close()
+                } catch (_: Exception) {}
+                throw e
+            }
         }
     }
 }

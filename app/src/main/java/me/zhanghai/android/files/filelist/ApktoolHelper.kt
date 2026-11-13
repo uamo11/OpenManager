@@ -35,10 +35,16 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.applyCardWindowSizing
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.showSafeDialog
+import java.lang.ref.WeakReference
 
 object ApktoolHelper {
 
-    private var activeProgressDialog: AppCompatDialog? = null
+    private var activeProgressDialog: WeakReference<AppCompatDialog>? = null
 
     fun isApktoolProject(dirPath: Path): Boolean {
         return try {
@@ -210,26 +216,25 @@ object ApktoolHelper {
         activity: Activity,
         onSuccess: ((Path) -> Unit)? = null
     ) {
-        if (activeProgressDialog?.isShowing == true) {
+        if (activeProgressDialog?.get()?.isShowing == true) {
             return
         }
 
         val appCompatActivity = activity as? AppCompatActivity ?: return
-        val dialog = AppCompatDialog(activity)
-        activeProgressDialog = dialog
-        dialog.supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
-        val view = LayoutInflater.from(activity).inflate(R.layout.dialog_apktool_progress, null)
+        if (!appCompatActivity.isUiAlive) return
+        val dialog = AppCompatDialog(appCompatActivity)
+        dialog.applyCardWindowSizing(0.92f, 450)
+        val view = LayoutInflater.from(appCompatActivity).inflate(R.layout.dialog_apktool_progress, null)
         dialog.setContentView(view)
 
         dialog.setCancelable(false)
-        dialog.window?.apply {
-            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-            val displayMetrics = activity.resources.displayMetrics
-            val targetWidth = (displayMetrics.widthPixels * 0.92).toInt().coerceAtMost(
-                (450 * displayMetrics.density).toInt()
-            )
-            setLayout(targetWidth, ViewGroup.LayoutParams.WRAP_CONTENT)
+        dialog.bindToLifecycle(appCompatActivity)
+        dialog.setOnDismissListener {
+            if (activeProgressDialog?.get() === dialog) {
+                activeProgressDialog = null
+            }
         }
+        activeProgressDialog = WeakReference(dialog)
 
         val ivIcon = view.findViewById<ImageView>(R.id.ivApktoolIcon)
         val tvTitle = view.findViewById<TextView>(R.id.tvApktoolTitle)
@@ -241,22 +246,22 @@ object ApktoolHelper {
         val btnHide = view.findViewById<Button>(R.id.btnHideApktool)
 
         btnHide.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             activeProgressDialog = null
             Toast.makeText(
-                activity,
-                activity.getString(R.string.apktool_running_toast),
+                appCompatActivity,
+                appCompatActivity.getString(R.string.apktool_running_toast),
                 Toast.LENGTH_LONG
             ).show()
         }
 
         btnCancel.setOnClickListener {
-            ApktoolExecutionService.cancelCurrentTask(activity)
-            dialog.dismiss()
+            ApktoolExecutionService.cancelCurrentTask(appCompatActivity)
+            dialog.dismissSafely()
             activeProgressDialog = null
             Toast.makeText(
-                activity,
-                activity.getString(R.string.apktool_cancelled_toast),
+                appCompatActivity,
+                appCompatActivity.getString(R.string.apktool_cancelled_toast),
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -264,10 +269,8 @@ object ApktoolHelper {
         appCompatActivity.lifecycleScope.launch {
             ApktoolExecutionService.taskState.collectLatest { state ->
                 if (state == null) {
-                    if (dialog.isShowing) {
-                        dialog.dismiss()
-                        activeProgressDialog = null
-                    }
+                    dialog.dismissSafely()
+                    activeProgressDialog = null
                     return@collectLatest
                 }
 
@@ -305,8 +308,9 @@ object ApktoolHelper {
                 }
 
                 if (!state.isRunning) {
-                    dialog.dismiss()
+                    dialog.dismissSafely()
                     activeProgressDialog = null
+                    if (!appCompatActivity.isUiAlive) return@collectLatest
 
                     if (state.isCompleted) {
                         Toast.makeText(
@@ -334,16 +338,16 @@ object ApktoolHelper {
                             ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK -> activity.getString(R.string.om_apktool_recompile_error_title)
                             else -> activity.getString(R.string.apktool_error_title)
                         }
-                        MaterialAlertDialogBuilder(activity)
-                            .setTitle(errorDialogTitle)
-                            .setMessage(errMsg)
-                            .setPositiveButton(android.R.string.ok, null)
-                            .setNeutralButton(R.string.copy) { _, _ ->
-                                val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                        appCompatActivity.showSafeDialog {
+                            setTitle(errorDialogTitle)
+                            setMessage(errMsg)
+                            setPositiveButton(android.R.string.ok, null)
+                            setNeutralButton(R.string.copy) { _, _ ->
+                                val clipboard = appCompatActivity.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                                 clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Apktool Error", errMsg))
-                                Toast.makeText(activity, R.string.om_error_copied_clipboard, Toast.LENGTH_SHORT).show()
+                                Toast.makeText(appCompatActivity, R.string.om_error_copied_clipboard, Toast.LENGTH_SHORT).show()
                             }
-                            .show()
+                        }
                     }
                 }
             }

@@ -20,7 +20,9 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.DefaultOnImageEventListener
 import java8.nio.file.Path
 import java8.nio.file.attribute.BasicFileAttributes
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.coil.fadeIn
@@ -56,25 +58,30 @@ class ImageViewerAdapter(
         val binding = holder.binding
         binding.image.setOnPhotoTapListener { view, _, _ -> listener(view) }
         binding.largeImage.setOnClickListener(listener)
-        loadImage(binding, path)
+        loadImage(holder, binding, path)
     }
 
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
 
+        holder.loadJob?.cancel()
+        holder.loadJob = null
         val binding = holder.binding
         binding.image.dispose()
         binding.largeImage.recycle()
     }
 
-    private fun loadImage(binding: ImageViewerItemBinding, path: Path) {
+    private fun loadImage(holder: ViewHolder, binding: ImageViewerItemBinding, path: Path) {
+        holder.loadJob?.cancel()
         binding.progress.fadeInUnsafe(true)
         binding.errorText.fadeOutUnsafe()
         binding.image.isVisible = false
         binding.largeImage.isVisible = false
-        lifecycleOwner.lifecycleScope.launch {
+        holder.loadJob = lifecycleOwner.lifecycleScope.launch {
             val imageInfo = try {
                 withContext(Dispatchers.IO) { path.loadImageInfo() }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 e.printStackTrace()
                 showError(binding, e)
@@ -146,7 +153,7 @@ class ImageViewerAdapter(
                 return false
             }
             // 4 bytes per pixel for ARGB_8888.
-            if (width * height * 4 > MAX_BITMAP_SIZE) {
+            if (width.toLong() * height.toLong() * 4L > MAX_BITMAP_SIZE) {
                 return true
             }
             if (width > 2048 || height > 2048) {
@@ -183,7 +190,9 @@ class ImageViewerAdapter(
         private const val MAX_BITMAP_SIZE = 100 * 1024 * 1024
     }
 
-    class ViewHolder(val binding: ImageViewerItemBinding) : RecyclerView.ViewHolder(binding.root)
+    class ViewHolder(val binding: ImageViewerItemBinding) : RecyclerView.ViewHolder(binding.root) {
+        var loadJob: Job? = null
+    }
 
     private class ImageInfo(
         val attributes: BasicFileAttributes,

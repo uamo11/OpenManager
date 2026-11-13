@@ -33,6 +33,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
+import me.zhanghai.android.files.ui.showSafeDialog
 import java.io.File
 import java.util.Locale
 
@@ -169,19 +172,22 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
                 country = editCountry.text.toString().trim()
             )
 
+            val hostActivity = activity as? FragmentActivity ?: return@setOnClickListener
+            val listener = onKeyGeneratedListener
             dialog.dismiss()
-            performGeneration(config)
+            performGeneration(hostActivity, config, listener)
         }
     }
 
-    private fun performGeneration(config: KeystoreGeneratorHelper.Config) {
-        val progressDialog = MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.keystore_generator_title)
-            .setMessage(R.string.keystore_generating)
-            .setCancelable(false)
-            .show()
-
-        lifecycleScope.launch {
+    private fun performGeneration(
+        hostActivity: FragmentActivity,
+        config: KeystoreGeneratorHelper.Config,
+        listener: ((KeystoreGeneratorHelper.Result) -> Unit)?
+    ) {
+        hostActivity.runWithProgressDialog(
+            title = hostActivity.getString(R.string.keystore_generator_title),
+            initialMessage = hostActivity.getString(R.string.keystore_generating)
+        ) {
             val result = withContext(Dispatchers.IO) {
                 try {
                     KeystoreGeneratorHelper.generateKeystore(config)
@@ -190,21 +196,21 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
                 }
             }
 
-            progressDialog.dismiss()
+            if (!hostActivity.isUiAlive) return@runWithProgressDialog
 
             if (result is Pair<*, *>) {
                 val exception = result.second as? Exception
                 exception?.let { me.zhanghai.android.files.app.CrashHandler.logHandledException(it, "KeystoreGen") }
-                MaterialAlertDialogBuilder(requireContext())
-                    .setTitle(R.string.keystore_error_title)
-                    .setMessage(getString(R.string.om_keystore_gen_error_format, exception?.localizedMessage ?: ""))
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
-                return@launch
+                hostActivity.showSafeDialog {
+                    setTitle(R.string.keystore_error_title)
+                    setMessage(hostActivity.getString(R.string.om_keystore_gen_error_format, exception?.localizedMessage ?: ""))
+                    setPositiveButton(android.R.string.ok, null)
+                }
+                return@runWithProgressDialog
             }
 
             val genResult = result as KeystoreGeneratorHelper.Result
-            onKeyGeneratedListener?.invoke(genResult)
+            listener?.invoke(genResult)
 
             val createdPaths = mutableListOf<String>()
             genResult.jksFile?.let { createdPaths.add("JKS / PKCS12: ${it.absolutePath}") }
@@ -227,16 +233,16 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
                 ${genResult.sha1Fingerprint}
             """.trimIndent()
 
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(R.string.keystore_success_title)
-                .setMessage(message)
-                .setPositiveButton(android.R.string.ok, null)
-                .setNeutralButton("Copiar SHA-256") { _, _ ->
-                    val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("SHA-256", genResult.sha256Fingerprint))
-                    Toast.makeText(requireContext(), "Huella SHA-256 copiada al portapapeles", Toast.LENGTH_SHORT).show()
+            hostActivity.showSafeDialog {
+                setTitle(R.string.keystore_success_title)
+                setMessage(message)
+                setPositiveButton(android.R.string.ok, null)
+                setNeutralButton("Copiar SHA-256") { _, _ ->
+                    val clipboard = hostActivity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                    clipboard?.setPrimaryClip(ClipData.newPlainText("SHA-256", genResult.sha256Fingerprint))
+                    Toast.makeText(hostActivity, "Huella SHA-256 copiada al portapapeles", Toast.LENGTH_SHORT).show()
                 }
-                .show()
+            }
         }
     }
 

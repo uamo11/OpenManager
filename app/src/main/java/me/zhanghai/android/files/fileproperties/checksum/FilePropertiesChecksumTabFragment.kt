@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.fileproperties.checksum
 
+import android.text.TextWatcher
 import androidx.core.widget.doAfterTextChanged
 import java8.nio.file.Path
 import kotlinx.parcelize.Parcelize
@@ -24,11 +25,20 @@ class FilePropertiesChecksumTabFragment : FilePropertiesTabFragment() {
     private val args by args<Args>()
 
     private val viewModel by viewModels { { FilePropertiesChecksumTabViewModel(args.path) } }
+    private var isViewModelObserved = false
 
     override fun onResume() {
         super.onResume()
 
-        viewModel.checksumInfoLiveData.observe(viewLifecycleOwner) { onChecksumInfoChanged(it) }
+        if (!isViewModelObserved) {
+            isViewModelObserved = true
+            viewModel.checksumInfoLiveData.observe(viewLifecycleOwner) { onChecksumInfoChanged(it) }
+        }
+    }
+
+    override fun onDestroyView() {
+        isViewModelObserved = false
+        super.onDestroyView()
     }
 
     override fun refresh() {
@@ -49,8 +59,11 @@ class FilePropertiesChecksumTabFragment : FilePropertiesTabFragment() {
                 linearLayout.context.layoutInflater, linearLayout, true
             )
                 .also { it.root.tag = it }
-        binding.compareEdit.doAfterTextChanged { editable ->
-            val text = editable!!.toString().trim()
+        (binding.compareEdit.tag as? TextWatcher)?.let {
+            binding.compareEdit.removeTextChangedListener(it)
+        }
+        val watcher = binding.compareEdit.doAfterTextChanged { editable ->
+            val text = editable?.toString()?.trim().orEmpty()
             if (text.isEmpty()) {
                 binding.compareLayout.helperText = null
                 binding.compareLayout.error = null
@@ -81,6 +94,7 @@ class FilePropertiesChecksumTabFragment : FilePropertiesTabFragment() {
             binding.compareLayout.error =
                 getString(R.string.file_properties_checksum_compare_no_match)
         }
+        binding.compareEdit.tag = watcher
     }
 
     companion object {

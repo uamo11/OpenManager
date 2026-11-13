@@ -27,6 +27,10 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.showSafeDialog
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.putArgs
@@ -66,20 +70,22 @@ class ToastDialogCleanDialogFragment : AppCompatDialogFragment() {
                     return@setOnClickListener
                 }
 
-                val progressDialog = MaterialAlertDialogBuilder(context)
+                val hostActivity = activity ?: return@setOnClickListener
+                val progressDialog = MaterialAlertDialogBuilder(hostActivity)
                     .setTitle(R.string.toast_dialog_clean_title)
                     .setMessage(R.string.toast_dialog_clean_progress)
                     .setCancelable(false)
                     .create()
+                    .bindToLifecycle(hostActivity)
                 progressDialog.show()
 
-                lifecycleScope.launch(Dispatchers.IO) {
+                hostActivity.lifecycleScope.launch(Dispatchers.IO) {
                     var tempInFile: File? = null
                     try {
                         val inputApk: File = if (file.path.isLinuxPath) {
                             file.path.toFile()
                         } else {
-                            val tmp = File(context.cacheDir, "clean_in_${System.currentTimeMillis()}_${file.name}")
+                            val tmp = File(hostActivity.cacheDir, "clean_in_${System.currentTimeMillis()}_${file.name}")
                             file.path.newInputStream().use { inp ->
                                 FileOutputStream(tmp).use { out -> inp.copyTo(out) }
                             }
@@ -89,9 +95,9 @@ class ToastDialogCleanDialogFragment : AppCompatDialogFragment() {
 
                         val baseName = file.name.removeSuffix(".apk")
                         val parentDir = if (file.path.isLinuxPath) {
-                            file.path.toFile().parentFile ?: context.cacheDir
+                            file.path.toFile().parentFile ?: hostActivity.cacheDir
                         } else {
-                            context.cacheDir
+                            hostActivity.cacheDir
                         }
 
                         var outputApk = File(parentDir, "${baseName}_cleaned.apk")
@@ -107,20 +113,25 @@ class ToastDialogCleanDialogFragment : AppCompatDialogFragment() {
                         )
 
                         val result = ToastDialogInjectorEngine.cleanToastsAndDialogs(
-                            context,
+                            hostActivity,
                             inputApk,
                             outputApk,
                             options
                         ) { p ->
-                            lifecycleScope.launch(Dispatchers.Main) { progressDialog.setMessage(p) }
+                            hostActivity.lifecycleScope.launch(Dispatchers.Main.immediate) {
+                                if (hostActivity.isUiAlive && progressDialog.isShowing) {
+                                    progressDialog.setMessage(p)
+                                }
+                            }
                         }
 
                         withContext(Dispatchers.Main) {
-                            progressDialog.dismiss()
-                            alertDialog.dismiss()
-                            (activity as? FileListActivity)?.activeFragment?.reload()
+                            progressDialog.dismissSafely()
+                            alertDialog.dismissSafely()
+                            if (!hostActivity.isUiAlive) return@withContext
+                            (hostActivity as? FileListActivity)?.activeFragment?.reload()
 
-                            val message = context.getString(
+                            val message = hostActivity.getString(
                                 R.string.toast_dialog_clean_success,
                                 result.toastsRemoved,
                                 result.dialogsRemoved,
@@ -128,30 +139,32 @@ class ToastDialogCleanDialogFragment : AppCompatDialogFragment() {
                                 outputApk.name
                             )
 
-                            val rootLayout = activity?.findViewById<View>(android.R.id.content)
+                            val rootLayout = hostActivity.findViewById<View>(android.R.id.content)
                             if (rootLayout != null) {
                                 val snackbar = Snackbar.make(rootLayout, message, Snackbar.LENGTH_INDEFINITE)
                                 snackbar.setAction(R.string.install) {
-                                    (activity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
+                                    (hostActivity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
                                 }
                                 snackbar.show()
                             } else {
-                                MaterialAlertDialogBuilder(context)
-                                    .setTitle(R.string.toast_dialog_clean_title)
-                                    .setMessage(message)
-                                    .setPositiveButton(android.R.string.ok, null)
-                                    .show()
+                                hostActivity.showSafeDialog {
+                                    setTitle(R.string.toast_dialog_clean_title)
+                                    setMessage(message)
+                                    setPositiveButton(android.R.string.ok, null)
+                                }
                             }
                         }
                     } catch (e: Exception) {
                         e.printStackTrace()
                         withContext(Dispatchers.Main) {
-                            progressDialog.dismiss()
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.toast_dialog_error, e.message ?: e.javaClass.simpleName),
-                                Toast.LENGTH_LONG
-                            ).show()
+                            progressDialog.dismissSafely()
+                            if (hostActivity.isUiAlive) {
+                                Toast.makeText(
+                                    hostActivity,
+                                    hostActivity.getString(R.string.toast_dialog_error, e.message ?: e.javaClass.simpleName),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     } finally {
                         tempInFile?.delete()

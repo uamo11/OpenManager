@@ -22,17 +22,22 @@ import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
+import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import java8.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.extraPath
 import java.io.File
 import java.io.FileOutputStream
@@ -54,6 +59,7 @@ class SqliteViewerActivity : AppActivity() {
     private var currentPage: Int = 1
     private var totalRows: Int = 0
     private val pageSize: Int = 100
+    private var initJob: Job? = null
     private var loadJob: Job? = null
 
     private data class TablePageData(
@@ -77,6 +83,8 @@ class SqliteViewerActivity : AppActivity() {
         btnPrevPage = findViewById(R.id.btnPrevPage)
         btnNextPage = findViewById(R.id.btnNextPage)
         tvPageInfo = findViewById(R.id.tvPageInfo)
+        toolbar.applyEdgeToEdgeInsets(applyTop = true, applyHorizontal = true)
+        findViewById<View>(R.id.layoutPagination).applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
 
         toolbar.setNavigationOnClickListener { finish() }
 
@@ -113,10 +121,11 @@ class SqliteViewerActivity : AppActivity() {
         pbLoading.visibility = View.VISIBLE
         tvEmpty.visibility = View.GONE
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        initJob?.cancel()
+        initJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val dbFile: File
-                if (path.isLinuxPath) {
+                if (!path.isArchivePath && path.isLinuxPath) {
                     dbFile = path.toFile()
                 } else {
                     val temp = File(cacheDir, "sqlite_${System.currentTimeMillis()}.db")
@@ -130,10 +139,19 @@ class SqliteViewerActivity : AppActivity() {
                 }
 
                 val openedDb = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
+                if (!isActive || isDestroyed || isFinishing) {
+                    try {
+                        openedDb.close()
+                    } catch (_: Exception) {}
+                    tempFile?.delete()
+                    tempFile = null
+                    return@launch
+                }
                 db = openedDb
                 val tables = queryTables(openedDb)
 
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     pbLoading.visibility = View.GONE
                     if (tables.isEmpty()) {
                         tvEmpty.text = getString(R.string.om_sqlite_no_tables)
@@ -141,7 +159,23 @@ class SqliteViewerActivity : AppActivity() {
                         return@withContext
                     }
 
-                    val adapter = ArrayAdapter(this@SqliteViewerActivity, android.R.layout.simple_spinner_dropdown_item, tables)
+                    val adapter = object : ArrayAdapter<String>(
+                        this@SqliteViewerActivity,
+                        android.R.layout.simple_spinner_dropdown_item,
+                        tables
+                    ) {
+                        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                            return super.getView(position, convertView, parent).apply {
+                                (this as? TextView)?.setTextColor(Color.WHITE)
+                            }
+                        }
+
+                        override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
+                            return super.getDropDownView(position, convertView, parent).apply {
+                                (this as? TextView)?.setTextColor(Color.WHITE)
+                            }
+                        }
+                    }
                     spnTables.adapter = adapter
                     spnTables.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
                         override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -154,13 +188,18 @@ class SqliteViewerActivity : AppActivity() {
                     }
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     pbLoading.visibility = View.GONE
                     Toast.makeText(this@SqliteViewerActivity, getString(R.string.om_sqlite_open_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
+        }
+        initJob?.invokeOnCompletion {
+            if (isDestroyed) closeAndCleanupDb()
         }
     }
 
@@ -182,7 +221,8 @@ class SqliteViewerActivity : AppActivity() {
         val database = db ?: return
         if (currentTable.isEmpty()) return
 
-        loadJob?.cancel()
+        val previousJob = loadJob
+        previousJob?.cancel()
 
         tableData.removeAllViews()
         pbLoading.visibility = View.VISIBLE
@@ -192,6 +232,8 @@ class SqliteViewerActivity : AppActivity() {
         val pageToQuery = currentPage
 
         loadJob = lifecycleScope.launch(Dispatchers.IO) {
+            previousJob?.join()
+            if (!isActive || !database.isOpen) return@launch
             try {
                 val escapedTable = escapeSqlIdentifier(tableToQuery)
                 var rowCount = 0
@@ -215,7 +257,7 @@ class SqliteViewerActivity : AppActivity() {
 
                 cursor.use { c ->
                     colNames.addAll(c.columnNames)
-                    while (c.moveToNext()) {
+                    while (isActive && c.moveToNext()) {
                         val row = mutableListOf<String>()
                         for (i in 0 until c.columnCount) {
                             val value = try {
@@ -228,20 +270,27 @@ class SqliteViewerActivity : AppActivity() {
                         rowsData.add(row)
                     }
                 }
+                if (!isActive) return@launch
 
                 val totalPages = ((rowCount + pageSize - 1) / pageSize).coerceAtLeast(1)
                 val pageData = TablePageData(colNames, rowsData, rowCount, pageToQuery, totalPages)
 
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     renderTableData(pageData)
                 }
             } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     pbLoading.visibility = View.GONE
                     Toast.makeText(this@SqliteViewerActivity, getString(R.string.om_sqlite_query_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+        loadJob?.invokeOnCompletion {
+            if (isDestroyed) closeAndCleanupDb()
         }
     }
 
@@ -300,9 +349,8 @@ class SqliteViewerActivity : AppActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        loadJob?.cancel()
+    @Synchronized
+    private fun closeAndCleanupDb() {
         try {
             db?.close()
         } catch (e: Exception) {
@@ -311,6 +359,15 @@ class SqliteViewerActivity : AppActivity() {
         db = null
         tempFile?.delete()
         tempFile = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        initJob?.cancel()
+        loadJob?.cancel()
+        if ((initJob?.isActive != true) && (loadJob?.isActive != true)) {
+            closeAndCleanupDb()
+        }
     }
 
     companion object {

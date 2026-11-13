@@ -180,9 +180,11 @@ class ProviderFtpFile(
             e.printStackTrace()
             return null
         }
-        return directoryStream.map {
-            ProviderFtpFile(path.resolve(it), relativePath.resolve(it), user)
-        }.sorted()
+        return directoryStream.use { stream ->
+            stream.map {
+                ProviderFtpFile(path.resolve(it), relativePath.resolve(it), user)
+            }.sorted()
+        }
     }
 
     @Throws(IOException::class)

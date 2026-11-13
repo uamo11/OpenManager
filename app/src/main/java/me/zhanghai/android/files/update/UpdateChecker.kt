@@ -39,6 +39,10 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.filelist.ApkInstallHelper
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.showSafeDialog
 import me.zhanghai.android.files.util.startActivitySafe
 import me.zhanghai.android.files.util.valueCompat
 import org.json.JSONArray
@@ -611,7 +615,10 @@ object UpdateChecker {
                 .setMessage(R.string.update_checking_message)
                 .setCancelable(true)
                 .create()
-            loadingDialog.show()
+                .bindToLifecycle(activity)
+            if (activity.isUiAlive) {
+                loadingDialog.show()
+            }
         }
 
         activity.lifecycleScope.launch {
@@ -619,17 +626,17 @@ object UpdateChecker {
                 val releaseInfo = fetchLatestRelease(activity)
                 prefs.edit().putLong(PREF_LAST_CHECK_TIME, now).apply()
 
-                if (activity.isFinishing || activity.isDestroyed) return@launch
-                loadingDialog?.dismiss()
+                loadingDialog?.dismissSafely()
+                if (!activity.isUiAlive) return@launch
 
                 if (releaseInfo == null) {
                     if (isManual) {
-                        MaterialAlertDialogBuilder(activity)
-                            .setTitle(R.string.update_check_error_title)
-                            .setMessage(activity.getString(R.string.update_check_error_message, activity.getString(R.string.om_update_info_unavailable)))
-                            .setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true) }
-                            .setNegativeButton(android.R.string.cancel, null)
-                            .show()
+                        activity.showSafeDialog {
+                            setTitle(R.string.update_check_error_title)
+                            setMessage(activity.getString(R.string.update_check_error_message, activity.getString(R.string.om_update_info_unavailable)))
+                            setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true) }
+                            setNegativeButton(android.R.string.cancel, null)
+                        }
                     }
                     return@launch
                 }
@@ -738,6 +745,7 @@ object UpdateChecker {
             .setView(view)
             .setCancelable(false)
             .create()
+            .bindToLifecycle(activity)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
         val tvDownloadFilename = view.findViewById<TextView>(R.id.tvDownloadFilename)
@@ -841,8 +849,8 @@ object UpdateChecker {
                     }
                 }
 
-                if (activity.isFinishing || activity.isDestroyed) return@launch
-                dialog.dismiss()
+                dialog.dismissSafely()
+                if (!activity.isUiAlive) return@launch
 
                 Toast.makeText(activity, activity.getString(R.string.update_download_success_title), Toast.LENGTH_SHORT).show()
 
@@ -850,18 +858,19 @@ object UpdateChecker {
                     launchApkInstallation(activity, installedFile)
                 }
             } catch (e: CancellationException) {
+                dialog.dismissSafely()
                 tempFile?.delete()
             } catch (e: Exception) {
                 tempFile?.delete()
-                if (activity.isFinishing || activity.isDestroyed) return@launch
-                dialog.dismiss()
+                dialog.dismissSafely()
+                if (!activity.isUiAlive) return@launch
                 val errorMsg = e.localizedMessage ?: e.message ?: e.toString()
-                MaterialAlertDialogBuilder(activity)
-                    .setTitle(R.string.update_download_failed_title)
-                    .setMessage(activity.getString(R.string.update_download_failed_message, errorMsg))
-                    .setPositiveButton(R.string.retry) { _, _ -> downloadAndInstall(activity, releaseInfo) }
-                    .setNegativeButton(android.R.string.cancel, null)
-                    .show()
+                activity.showSafeDialog {
+                    setTitle(R.string.update_download_failed_title)
+                    setMessage(activity.getString(R.string.update_download_failed_message, errorMsg))
+                    setPositiveButton(R.string.retry) { _, _ -> downloadAndInstall(activity, releaseInfo) }
+                    setNegativeButton(android.R.string.cancel, null)
+                }
             }
         }
     }

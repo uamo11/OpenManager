@@ -25,13 +25,19 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.FragmentManager
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Path
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.WriteWith
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
 import me.zhanghai.android.files.util.args
@@ -174,67 +180,94 @@ class AudioPlayerDialogFragment : AppCompatDialogFragment() {
             override fun onStopTrackingTouch(sb: SeekBar?) {
                 isUserTracking = false
                 sb?.let {
-                    mediaPlayer?.seekTo(it.progress)
+                    try {
+                        mediaPlayer?.seekTo(it.progress)
+                    } catch (e: Exception) {
+                        // Ignore seek before player is prepared
+                    }
                 }
             }
         })
 
-        initMediaPlayer()
-
-        return MaterialAlertDialogBuilder(context)
+        val dialog = MaterialAlertDialogBuilder(context)
             .setView(view)
             .create()
+        initMediaPlayer(view)
+        return dialog
     }
 
-    private fun initMediaPlayer() {
+    private fun initMediaPlayer(rootView: View) {
         val path = args.path
-        val context = requireContext()
+        val appContext = requireContext().applicationContext
         val player = MediaPlayer()
         mediaPlayer = player
 
-        try {
-            val audioFile: File
-            if (path.isLinuxPath) {
-                audioFile = path.toFile()
-            } else {
-                val temp = File(context.cacheDir, "audio_preview_${System.currentTimeMillis()}.${path.fileName.toString().substringAfterLast('.', "tmp")}")
-                path.newInputStream().use { input ->
-                    FileOutputStream(temp).use { output ->
-                        input.copyTo(output)
+        lifecycleScope.launch {
+            try {
+                val audioFile: File = if (!path.isArchivePath && path.isLinuxPath) {
+                    path.toFile()
+                } else {
+                    withContext(Dispatchers.IO) {
+                        val ext = path.fileName.toString().substringAfterLast('.', "tmp")
+                        val temp = File(appContext.cacheDir, "audio_preview_${System.currentTimeMillis()}.$ext")
+                        path.newInputStream().use { input ->
+                            FileOutputStream(temp).use { output ->
+                                input.copyTo(output)
+                            }
+                        }
+                        temp
                     }
                 }
-                tempFile = temp
-                audioFile = temp
-            }
+                if (!isUiAlive) {
+                    if (path.isArchivePath || !path.isLinuxPath) {
+                        audioFile.delete()
+                    }
+                    releasePlayer()
+                    return@launch
+                }
+                if (path.isArchivePath || !path.isLinuxPath) {
+                    tempFile = audioFile
+                }
 
-            player.setDataSource(audioFile.absolutePath)
-            player.setOnPreparedListener { mp ->
-                val duration = mp.duration
-                seekBar.max = duration
-                tvDuration.text = formatTime(duration)
-                mp.start()
-                isPlaying = true
-                ivPlayPause.setImageResource(R.drawable.ic_pause_24dp)
-                handler.post(progressRunnable)
-            }
-            player.setOnCompletionListener {
-                if (!isLooping) {
-                    isPlaying = false
-                    ivPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
-                    seekBar.progress = 0
-                    tvElapsed.text = formatTime(0)
+                player.setDataSource(audioFile.absolutePath)
+                player.setOnPreparedListener { mp ->
+                    if (!isUiAlive) return@setOnPreparedListener
+                    val duration = mp.duration
+                    seekBar.max = duration
+                    tvDuration.text = formatTime(duration)
+                    mp.start()
+                    isPlaying = true
+                    ivPlayPause.setImageResource(R.drawable.ic_pause_24dp)
+                    handler.post(progressRunnable)
+                }
+                player.setOnCompletionListener {
+                    if (!isLooping) {
+                        isPlaying = false
+                        ivPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
+                        seekBar.progress = 0
+                        tvElapsed.text = formatTime(0)
+                    }
+                }
+                player.setOnErrorListener { _, what, extra ->
+                    if (isUiAlive) {
+                        Toast.makeText(appContext, getString(R.string.om_audio_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
+                        rootView.post {
+                            if (isAdded) dismissAllowingStateLoss()
+                        }
+                    }
+                    true
+                }
+                player.prepareAsync()
+            } catch (e: Exception) {
+                if (e is kotlinx.coroutines.CancellationException) throw e
+                e.printStackTrace()
+                if (isUiAlive) {
+                    Toast.makeText(appContext, getString(R.string.om_audio_open_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                    rootView.post {
+                        if (isAdded) dismissAllowingStateLoss()
+                    }
                 }
             }
-            player.setOnErrorListener { _, what, extra ->
-                Toast.makeText(context, getString(R.string.om_audio_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
-                dismissAllowingStateLoss()
-                true
-            }
-            player.prepareAsync()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Toast.makeText(context, getString(R.string.om_audio_open_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
-            dismissAllowingStateLoss()
         }
     }
 

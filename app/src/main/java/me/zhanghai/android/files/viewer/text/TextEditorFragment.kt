@@ -483,18 +483,21 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun requestSyntaxHighlight() {
         highlightJob?.cancel()
+        if (view == null) return
         if (!TextEditorSettings.isSyntaxHighlighting(requireContext())) {
             FastSyntaxScanner.clearSpans(binding.textEdit.text)
             return
         }
-        highlightJob = lifecycleScope.launch {
+        highlightJob = viewLifecycleOwner.lifecycleScope.launch {
             delay(250) // Debounce typing
             val text = binding.textEdit.text
             if (text != null && text.isNotEmpty() && currentLanguage != SyntaxLanguage.PLAIN_TEXT) {
                 val tokens = withContext(Dispatchers.Default) {
                     FastSyntaxScanner.scan(text, currentLanguage, currentTheme)
                 }
-                FastSyntaxScanner.applyTokens(text, tokens)
+                if (view != null) {
+                    FastSyntaxScanner.applyTokens(text, tokens)
+                }
             }
         }
     }
@@ -592,8 +595,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun pasteClipboardText() {
         val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        val item = cm?.primaryClip?.getItemAt(0)
-        val text = item?.text?.toString()
+        val clip = cm?.primaryClip
+        if (clip == null || clip.itemCount == 0) return
+        val item = clip.getItemAt(0)
+        val text = item?.coerceToText(requireContext())?.toString()
         if (!text.isNullOrEmpty()) {
             binding.textEdit.insertSymbol(text)
         }

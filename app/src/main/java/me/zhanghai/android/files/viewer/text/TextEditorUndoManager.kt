@@ -23,8 +23,13 @@ class TextEditorUndoManager(
         var afterText: CharSequence
     )
 
-    private val undoStack = ArrayDeque<EditItem>()
-    private val redoStack = ArrayDeque<EditItem>()
+    private sealed interface UndoEntry {
+        class Single(val item: EditItem) : UndoEntry
+        class Batch(val steps: List<EditItem>) : UndoEntry
+    }
+
+    private val undoStack = ArrayDeque<UndoEntry>()
+    private val redoStack = ArrayDeque<UndoEntry>()
 
     var isEnabled = true
 
@@ -32,7 +37,7 @@ class TextEditorUndoManager(
         private set
 
     private var batchDepth = 0
-    private var currentBatchItem: EditItem? = null
+    private val currentBatchSteps = mutableListOf<EditItem>()
 
     private var tempBeforeText: CharSequence = ""
     private var tempStart = 0
@@ -48,16 +53,14 @@ class TextEditorUndoManager(
     fun endBatchEdit() {
         if (batchDepth > 0) {
             batchDepth--
-            if (batchDepth == 0) {
-                currentBatchItem?.let {
-                    undoStack.addLast(it)
-                    if (undoStack.size > MAX_HISTORY) {
-                        undoStack.removeFirst()
-                    }
-                    currentBatchItem = null
-                    redoStack.clear()
-                    notifyStatusChanged()
+            if (batchDepth == 0 && currentBatchSteps.isNotEmpty()) {
+                undoStack.addLast(UndoEntry.Batch(currentBatchSteps.toList()))
+                if (undoStack.size > MAX_HISTORY) {
+                    undoStack.removeFirst()
                 }
+                currentBatchSteps.clear()
+                redoStack.clear()
+                notifyStatusChanged()
             }
         }
     }
@@ -83,20 +86,11 @@ class TextEditorUndoManager(
         if (tempBeforeText == afterText) return
 
         if (batchDepth > 0) {
-            val batch = currentBatchItem
-            if (batch == null) {
-                currentBatchItem = EditItem(start, tempBeforeText, afterText)
-            } else {
-                // Compound batch edit: merge bounds
-                val minStart = min(batch.start, start)
-                batch.start = minStart
-                batch.beforeText = batch.beforeText.toString() + tempBeforeText.toString()
-                batch.afterText = batch.afterText.toString() + afterText
-            }
+            currentBatchSteps.add(EditItem(start, tempBeforeText, afterText))
             return
         }
 
-        val last = undoStack.peekLast()
+        val last = (undoStack.peekLast() as? UndoEntry.Single)?.item
         var merged = false
         if (last != null) {
             // Typing consecutive single characters
@@ -119,7 +113,7 @@ class TextEditorUndoManager(
         }
 
         if (!merged) {
-            undoStack.addLast(EditItem(start, tempBeforeText, afterText))
+            undoStack.addLast(UndoEntry.Single(EditItem(start, tempBeforeText, afterText)))
             if (undoStack.size > MAX_HISTORY) {
                 undoStack.removeFirst()
             }
@@ -131,18 +125,37 @@ class TextEditorUndoManager(
 
     override fun afterTextChanged(s: Editable) {}
 
+    private fun applyUndoStep(editable: Editable, step: EditItem): Int {
+        val replaceStart = min(step.start, editable.length)
+        val replaceEnd = min(step.start + step.afterText.length, editable.length)
+        editable.replace(replaceStart, replaceEnd, step.beforeText)
+        return (step.start + step.beforeText.length).coerceIn(0, editable.length)
+    }
+
+    private fun applyRedoStep(editable: Editable, step: EditItem): Int {
+        val replaceStart = min(step.start, editable.length)
+        val replaceEnd = min(step.start + step.beforeText.length, editable.length)
+        editable.replace(replaceStart, replaceEnd, step.afterText)
+        return (step.start + step.afterText.length).coerceIn(0, editable.length)
+    }
+
     fun undo() {
         if (undoStack.isEmpty()) return
-        val edit = undoStack.removeLast()
+        val entry = undoStack.removeLast()
         isUndoingOrRedoing = true
         try {
             val editable = editText.text ?: return
-            val replaceEnd = min(edit.start + edit.afterText.length, editable.length)
-            val replaceStart = min(edit.start, editable.length)
-            editable.replace(replaceStart, replaceEnd, edit.beforeText)
-            val newCursor = (edit.start + edit.beforeText.length).coerceIn(0, editable.length)
-            editText.setSelection(newCursor)
-            redoStack.addLast(edit)
+            var newCursor = editText.selectionStart
+            when (entry) {
+                is UndoEntry.Single -> newCursor = applyUndoStep(editable, entry.item)
+                is UndoEntry.Batch -> {
+                    for (step in entry.steps.asReversed()) {
+                        newCursor = applyUndoStep(editable, step)
+                    }
+                }
+            }
+            editText.setSelection(newCursor.coerceIn(0, editable.length))
+            redoStack.addLast(entry)
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
@@ -153,16 +166,21 @@ class TextEditorUndoManager(
 
     fun redo() {
         if (redoStack.isEmpty()) return
-        val edit = redoStack.removeLast()
+        val entry = redoStack.removeLast()
         isUndoingOrRedoing = true
         try {
             val editable = editText.text ?: return
-            val replaceEnd = min(edit.start + edit.beforeText.length, editable.length)
-            val replaceStart = min(edit.start, editable.length)
-            editable.replace(replaceStart, replaceEnd, edit.afterText)
-            val newCursor = (edit.start + edit.afterText.length).coerceIn(0, editable.length)
-            editText.setSelection(newCursor)
-            undoStack.addLast(edit)
+            var newCursor = editText.selectionStart
+            when (entry) {
+                is UndoEntry.Single -> newCursor = applyRedoStep(editable, entry.item)
+                is UndoEntry.Batch -> {
+                    for (step in entry.steps) {
+                        newCursor = applyRedoStep(editable, step)
+                    }
+                }
+            }
+            editText.setSelection(newCursor.coerceIn(0, editable.length))
+            undoStack.addLast(entry)
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {
@@ -174,7 +192,7 @@ class TextEditorUndoManager(
     fun clear() {
         undoStack.clear()
         redoStack.clear()
-        currentBatchItem = null
+        currentBatchSteps.clear()
         batchDepth = 0
         notifyStatusChanged()
     }

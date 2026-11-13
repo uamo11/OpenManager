@@ -213,7 +213,11 @@ object FileTextSearchEngine {
             wholeWord -> "\\b" + Pattern.quote(query) + "\\b"
             else -> Pattern.quote(query)
         }
-        val pattern = Pattern.compile(patternString, flags)
+        val pattern = try {
+            Pattern.compile(patternString, flags)
+        } catch (_: Exception) {
+            return@withContext BatchReplaceResult(0, 0)
+        }
 
         for (fileMatch in fileMatches) {
             if (selectedFilesOnly && !fileMatch.isFileSelected) {

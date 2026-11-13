@@ -294,7 +294,8 @@ object DuplicateFinderEngine {
                         true
                     } else {
                         // Fallback root deletion if needed
-                        val cmd = "rm -f \"${item.file.absolutePath}\""
+                        val escapedPath = me.zhanghai.android.files.util.escapeShellArg(item.file.absolutePath)
+                        val cmd = "rm -f $escapedPath"
                         val res = com.topjohnwu.superuser.Shell.cmd(cmd).exec()
                         res.isSuccess
                     }

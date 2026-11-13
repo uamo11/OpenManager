@@ -21,8 +21,10 @@ import androidx.annotation.StringRes
 import androidx.core.view.forEach
 import androidx.fragment.app.Fragment
 import androidx.viewbinding.ViewBinding
+import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.FilePropertiesTabFragmentBinding
 import me.zhanghai.android.files.databinding.FilePropertiesTabItemBinding
+import me.zhanghai.android.files.ui.resolveThemeColor
 import me.zhanghai.android.files.util.Failure
 import me.zhanghai.android.files.util.Loading
 import me.zhanghai.android.files.util.Stateful
@@ -106,18 +108,28 @@ abstract class FilePropertiesTabFragment : Fragment() {
                         .also { it.root.tag = it }
             itemBinding.hintText.text = hint
             itemBinding.text.text = text
+            val ctx = linearLayout.context
             if (onClickListener != null) {
-                itemBinding.text.setTextColor(Color.parseColor("#64B5F6"))
+                itemBinding.text.setTextColor(
+                    ctx.resolveThemeColor(
+                        androidx.appcompat.R.attr.colorPrimary,
+                        Color.parseColor("#64B5F6")
+                    )
+                )
                 val listener = View.OnClickListener(onClickListener)
                 itemBinding.rowContainer.setOnClickListener(listener)
                 itemBinding.text.setOnClickListener(listener)
             } else {
-                itemBinding.text.setTextColor(Color.parseColor("#E0E0E0"))
+                itemBinding.text.setTextColor(
+                    ctx.resolveThemeColor(
+                        android.R.attr.textColorPrimary,
+                        Color.parseColor("#E0E0E0")
+                    )
+                )
                 val copyListener = View.OnClickListener {
-                    val ctx = linearLayout.context
                     val cb = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                     cb?.setPrimaryClip(ClipData.newPlainText(hint, text))
-                    Toast.makeText(ctx, "$hint copiado", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "$hint ${ctx.getString(R.string.om_copied_to_clipboard)}", Toast.LENGTH_SHORT).show()
                 }
                 itemBinding.rowContainer.setOnClickListener(copyListener)
                 itemBinding.text.setOnClickListener(copyListener)

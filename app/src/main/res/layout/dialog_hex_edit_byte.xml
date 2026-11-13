@@ -60,7 +60,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="monospace"
             android:singleLine="true"
-            android:textColor="#FFFFFF"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="14sp" />
     </com.google.android.material.textfield.TextInputLayout>
 

@@ -38,8 +38,11 @@ import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.util.getPackageArchiveInfoCompat
 import me.zhanghai.android.files.file.FileItem
-import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.putArgs
@@ -243,20 +246,22 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
 
                 val autoSign = cbAutoSign.isChecked
 
-                val savingDialog = MaterialAlertDialogBuilder(context)
+                val hostActivity = activity ?: return@setOnClickListener
+                val savingDialog = MaterialAlertDialogBuilder(hostActivity)
                     .setTitle(R.string.apk_quick_edit)
                     .setMessage(R.string.apk_quick_edit_saving)
                     .setCancelable(false)
                     .create()
+                    .bindToLifecycle(hostActivity)
                 savingDialog.show()
 
-                lifecycleScope.launch(Dispatchers.IO) {
+                hostActivity.lifecycleScope.launch(Dispatchers.IO) {
                     var tempInputFile: File? = null
                     try {
                         val inputApk: File = if (file.path.isLinuxPath) {
                             file.path.toFile()
                         } else {
-                            val tmp = File(context.cacheDir, "qe_in_${System.currentTimeMillis()}_${file.name}")
+                            val tmp = File(hostActivity.cacheDir, "qe_in_${System.currentTimeMillis()}_${file.name}")
                             file.path.newInputStream().use { inp ->
                                 FileOutputStream(tmp).use { out -> inp.copyTo(out) }
                             }
@@ -266,9 +271,9 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
 
                         val baseName = file.name.removeSuffix(".apk")
                         val parentDir = if (file.path.isLinuxPath) {
-                            file.path.toFile().parentFile ?: context.cacheDir
+                            file.path.toFile().parentFile ?: hostActivity.cacheDir
                         } else {
-                            context.cacheDir
+                            hostActivity.cacheDir
                         }
 
                         var outputApk = File(parentDir, "${baseName}_edited.apk")
@@ -294,32 +299,35 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                         )
 
                         ApkQuickEditEngine.applyQuickEdit(inputApk, outputApk, options) { progress ->
-                            lifecycleScope.launch(Dispatchers.Main) {
-                                savingDialog.setMessage(progress)
+                            hostActivity.lifecycleScope.launch(Dispatchers.Main.immediate) {
+                                if (hostActivity.isUiAlive && savingDialog.isShowing) {
+                                    savingDialog.setMessage(progress)
+                                }
                             }
                         }
 
                         withContext(Dispatchers.Main) {
-                            try { if (savingDialog.isShowing) savingDialog.dismiss() } catch (ignored: Exception) {}
-                            try { alertDialog.dismiss() } catch (ignored: Exception) {}
+                            savingDialog.dismissSafely()
+                            alertDialog.dismissSafely()
+                            if (!hostActivity.isUiAlive) return@withContext
 
-                            (activity as? FileListActivity)?.activeFragment?.reload()
+                            (hostActivity as? FileListActivity)?.activeFragment?.reload()
 
-                            val rootLayout = activity?.findViewById<View>(android.R.id.content)
+                            val rootLayout = hostActivity.findViewById<View>(android.R.id.content)
                             if (rootLayout != null) {
                                 val snackbar = Snackbar.make(
                                     rootLayout,
-                                    context.getString(R.string.apk_quick_edit_success, outputApk.name),
+                                    hostActivity.getString(R.string.apk_quick_edit_success, outputApk.name),
                                     Snackbar.LENGTH_LONG
                                 )
                                 snackbar.setAction(R.string.install) {
-                                    (activity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
+                                    (hostActivity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
                                 }
                                 snackbar.show()
                             } else {
                                 Toast.makeText(
-                                    context,
-                                    context.getString(R.string.apk_quick_edit_success, outputApk.name),
+                                    hostActivity,
+                                    hostActivity.getString(R.string.apk_quick_edit_success, outputApk.name),
                                     Toast.LENGTH_LONG
                                 ).show()
                             }
@@ -328,12 +336,14 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                         e.printStackTrace()
                         me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "ApkQuickEdit")
                         withContext(Dispatchers.Main) {
-                            try { if (savingDialog.isShowing) savingDialog.dismiss() } catch (ignored: Exception) {}
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.apk_quick_edit_error, e.message ?: e.javaClass.simpleName),
-                                Toast.LENGTH_LONG
-                            ).show()
+                            savingDialog.dismissSafely()
+                            if (hostActivity.isUiAlive) {
+                                Toast.makeText(
+                                    hostActivity,
+                                    hostActivity.getString(R.string.apk_quick_edit_error, e.message ?: e.javaClass.simpleName),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     } finally {
                         tempInputFile?.delete()

@@ -3,9 +3,9 @@ package me.zhanghai.android.files.filelist
 import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipboardManager
+import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Bundle
-import android.view.View
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -20,12 +20,14 @@ import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.WriteWith
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.resolveThemeColor
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
 import me.zhanghai.android.files.util.args
-import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.util.dpToDimensionPixelSize
 import me.zhanghai.android.files.util.putArgs
-import me.zhanghai.android.files.util.show
 import me.zhanghai.android.files.util.showToast
 import java.security.MessageDigest
 
@@ -34,9 +36,11 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val context = requireContext()
+        val padH = context.dpToDimensionPixelSize(24)
+        val padV = context.dpToDimensionPixelSize(12)
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(48, 24, 48, 16)
+            setPadding(padH, padV, padH, padV)
         }
         val scroll = ScrollView(context).apply {
             addView(container)
@@ -44,17 +48,19 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
 
         val infoTextView = TextView(context).apply {
             textSize = 13f
-            setTextColor(0xFFFFFFFF.toInt())
+            setTextColor(context.resolveThemeColor(android.R.attr.textColorPrimary, Color.WHITE))
+            setTextIsSelectable(true)
             try {
                 val monoTypeface = Typeface.createFromAsset(context.assets, "Mono.ttf")
                 typeface = monoTypeface
             } catch (e: Exception) {
                 typeface = Typeface.MONOSPACE
             }
-            text = "Calculando firmas y certificados..."
+            text = getString(R.string.loading)
         }
         container.addView(infoTextView)
 
+        val appContext = context.applicationContext
         lifecycleScope.launch {
             val details = withContext(Dispatchers.IO) {
                 try {
@@ -80,8 +86,9 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                     val fn = args.path.fileName.toString().lowercase()
                     val ksDetails = StringBuilder()
                     if (fn.endsWith(".jks") || fn.endsWith(".keystore") || fn.endsWith(".bks") || fn.endsWith(".p12")) {
+                        var tempFile: java.io.File? = null
                         try {
-                            val tempFile = java.io.File.createTempFile("inspect_ks", ".tmp", context.cacheDir)
+                            tempFile = java.io.File.createTempFile("inspect_ks", ".tmp", appContext.cacheDir)
                             args.path.newInputStream().use { ins ->
                                 tempFile.outputStream().use { outs -> ins.copyTo(outs) }
                             }
@@ -92,7 +99,6 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                                     break
                                 } catch (_: Exception) {}
                             }
-                            tempFile.delete()
                             if (!certInfos.isNullOrEmpty()) {
                                 ksDetails.append("\n\n[Certificados en KeyStore (${certInfos.size})]\n")
                                 for (info in certInfos) {
@@ -102,7 +108,10 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                                     ksDetails.append("  Cert SHA-256: ${info.sha256}\n")
                                 }
                             }
-                        } catch (_: Exception) {}
+                        } catch (_: Exception) {
+                        } finally {
+                            tempFile?.delete()
+                        }
                     }
 
                     """
@@ -123,10 +132,12 @@ class SignatureViewerDialogFragment : AppCompatDialogFragment() {
                     Compatible con Keystore / APK Signature Scheme v1/v2/v3.$ksDetails
                     """.trimIndent()
                 } catch (e: Exception) {
-                    getString(R.string.om_sig_calc_error_format, e.message ?: "")
+                    appContext.getString(R.string.om_sig_calc_error_format, e.message ?: "")
                 }
             }
-            infoTextView.text = details
+            if (isUiAlive) {
+                infoTextView.text = details
+            }
         }
 
         return MaterialAlertDialogBuilder(context, theme)

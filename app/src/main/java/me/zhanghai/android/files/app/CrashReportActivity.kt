@@ -14,14 +14,15 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.OnBackPressedCallback
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.ActivityCrashReportBinding
+import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
 import java.io.File
 import kotlin.system.exitProcess
 
-class CrashReportActivity : AppCompatActivity() {
+class CrashReportActivity : AppActivity() {
 
     private lateinit var binding: ActivityCrashReportBinding
 
@@ -29,6 +30,13 @@ class CrashReportActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCrashReportBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.toolbar.applyEdgeToEdgeInsets(applyTop = true, applyHorizontal = true)
+        binding.bottomActionsBar.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                closeApp()
+            }
+        })
 
         val logPath = intent.getStringExtra(EXTRA_LOG_PATH)
         val errorMessage = intent.getStringExtra(EXTRA_ERROR_MESSAGE)
@@ -125,11 +133,6 @@ class CrashReportActivity : AppCompatActivity() {
         finishAffinity()
         Process.killProcess(Process.myPid())
         exitProcess(0)
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        closeApp()
     }
 
     companion object {

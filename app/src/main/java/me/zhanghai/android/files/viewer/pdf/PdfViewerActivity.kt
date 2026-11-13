@@ -48,6 +48,7 @@ import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.size
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.util.createSendStreamIntent
 import me.zhanghai.android.files.util.createViewIntent
@@ -238,6 +239,10 @@ class PdfViewerActivity : AppActivity() {
                 }
 
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) {
+                        engineResult.onSuccess { it.close() }
+                        return@withContext
+                    }
                     binding.progressLoading.visibility = View.GONE
                     engineResult.onSuccess { engine ->
                         onEngineLoaded(engine)
@@ -248,6 +253,7 @@ class PdfViewerActivity : AppActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     binding.progressLoading.visibility = View.GONE
                     showError(e)
                 }

@@ -21,6 +21,7 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.filelist.ScriptRunnerHelper
 import me.zhanghai.android.files.filelist.name
 import me.zhanghai.android.files.fileproperties.FilePropertiesTabFragment
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
 import me.zhanghai.android.files.util.Stateful
@@ -35,10 +36,19 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
     private val args by args<Args>()
 
     private val viewModel by viewModels { { FilePropertiesScriptTabViewModel(args.path) } }
+    private var isViewModelObserved = false
 
     override fun onResume() {
         super.onResume()
-        viewModel.scriptInfoLiveData.observe(viewLifecycleOwner) { onScriptInfoChanged(it) }
+        if (!isViewModelObserved) {
+            isViewModelObserved = true
+            viewModel.scriptInfoLiveData.observe(viewLifecycleOwner) { onScriptInfoChanged(it) }
+        }
+    }
+
+    override fun onDestroyView() {
+        isViewModelObserved = false
+        super.onDestroyView()
     }
 
     override fun refresh() {
@@ -119,6 +129,7 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
                                 String(bytes, StandardCharsets.UTF_8)
                             }.getOrDefault("")
                             withContext(Dispatchers.Main) {
+                                if (!isUiAlive || !act.isUiAlive) return@withContext
                                 ScriptRunnerHelper.showScriptAuditDetailsDialog(
                                     act,
                                     args.path,

@@ -22,6 +22,7 @@ import android.util.TypedValue
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
@@ -173,12 +174,17 @@ class DocxViewerActivity : AppActivity() {
 
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                    val url = request.url.toString()
-                    if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("mailto:")) {
-                        promptOpenLink(url)
+                    val uri = request.url
+                    val scheme = uri.scheme?.lowercase()
+                    if (scheme == "http" || scheme == "https" || scheme == "mailto") {
+                        promptOpenLink(uri.toString())
                         return true
                     }
-                    return false
+                    if (scheme == "about") {
+                        return false
+                    }
+                    // Block javascript:, file:, content:, data:, etc.
+                    return true
                 }
             }
 
@@ -626,17 +632,22 @@ class DocxViewerActivity : AppActivity() {
         }
         val file = localFile ?: tempFile
         if (file != null && file.exists()) {
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                this,
-                "${packageName}.file_provider",
-                file
-            )
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    "${packageName}.file_provider",
+                    file
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivitySafe(Intent.createChooser(intent, getString(R.string.share)))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, R.string.docx_error_open, Toast.LENGTH_SHORT).show()
             }
-            startActivitySafe(Intent.createChooser(intent, getString(R.string.share)))
         }
     }
 
@@ -656,22 +667,32 @@ class DocxViewerActivity : AppActivity() {
         }
         val file = localFile ?: tempFile
         if (file != null && file.exists()) {
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                this,
-                "${packageName}.file_provider",
-                file
-            )
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            try {
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    this,
+                    "${packageName}.file_provider",
+                    file
+                )
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivitySafe(Intent.createChooser(intent, getString(R.string.file_item_action_open_with)))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, R.string.docx_error_open, Toast.LENGTH_SHORT).show()
             }
-            startActivitySafe(Intent.createChooser(intent, getString(R.string.file_item_action_open_with)))
         }
     }
 
     override fun onDestroy() {
+        binding.webView.apply {
+            stopLoading()
+            (parent as? ViewGroup)?.removeView(this)
+            removeAllViews()
+            destroy()
+        }
         super.onDestroy()
-        binding.webView.destroy()
         tempFile?.delete()
         tempFile = null
     }

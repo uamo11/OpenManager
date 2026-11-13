@@ -12,12 +12,11 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.FragmentActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
@@ -25,6 +24,8 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.fileSize
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.putArgs
@@ -60,8 +61,11 @@ class SplitApkDialogFragment : AppCompatDialogFragment() {
             .create()
 
         btnAntiSplit.setOnClickListener {
+            val hostActivity = activity as? FragmentActivity
             dialog.dismiss()
-            performAntiSplit(file)
+            if (hostActivity != null) {
+                performAntiSplit(hostActivity, file)
+            }
         }
 
         btnInstall.setOnClickListener {
@@ -88,73 +92,71 @@ class SplitApkDialogFragment : AppCompatDialogFragment() {
         return dialog
     }
 
-    private fun performAntiSplit(file: FileItem) {
-        val activity = requireActivity()
+    private fun performAntiSplit(activity: FragmentActivity, file: FileItem) {
         val path = file.path
-        val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.antisplit_title)
-            .setMessage(getString(R.string.antisplit_merging_progress))
-            .setCancelable(false)
-            .show()
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            val localArchive = if (!path.isLinuxPath) {
-                val tempFile = File(activity.cacheDir, "split_in_${System.currentTimeMillis()}.zip")
-                try {
-                    path.newInputStream().use { ins ->
-                        FileOutputStream(tempFile).use { outs -> ins.copyTo(outs) }
+        activity.runWithProgressDialog(
+            title = activity.getString(R.string.antisplit_title),
+            initialMessage = activity.getString(R.string.antisplit_merging_progress)
+        ) { updateMessage ->
+            var outputApk: File? = null
+            val success = withContext(Dispatchers.IO) {
+                val localArchive = if (!path.isLinuxPath) {
+                    val tempFile = File(activity.cacheDir, "split_in_${System.currentTimeMillis()}.zip")
+                    try {
+                        path.newInputStream().use { ins ->
+                            FileOutputStream(tempFile).use { outs -> ins.copyTo(outs) }
+                        }
+                        tempFile
+                    } catch (e: Exception) {
+                        null
                     }
-                    tempFile
-                } catch (e: Exception) {
-                    null
-                }
-            } else {
-                File(path.toString())
-            }
-
-            if (localArchive == null || !localArchive.exists()) {
-                withContext(Dispatchers.Main) {
-                    progressDialog.dismiss()
-                    Toast.makeText(activity, R.string.om_split_apk_access_error, Toast.LENGTH_SHORT).show()
-                }
-                return@launch
-            }
-
-            val parentDir = localArchive.parentFile ?: activity.cacheDir
-            val baseName = file.name.substringBeforeLast('.')
-            val outputApk = File(parentDir, "${baseName}_merged.apk")
-
-            val success = AntiSplitEngine.mergeArchive(
-                context = activity,
-                archiveFile = localArchive,
-                outputFile = outputApk,
-                logger = { msg ->
-                    activity.runOnUiThread {
-                        progressDialog.setMessage(msg)
-                    }
-                }
-            )
-
-            if (!path.isLinuxPath && localArchive.absolutePath.contains(activity.cacheDir.absolutePath)) {
-                localArchive.delete()
-            }
-
-            withContext(Dispatchers.Main) {
-                progressDialog.dismiss()
-                if (success && outputApk.exists() && outputApk.length() > 0) {
-                    (activity as? FileListActivity)?.activeFragment?.reload()
-                    val snackbar = Snackbar.make(
-                        activity.findViewById(android.R.id.content),
-                        getString(R.string.antisplit_success, outputApk.name),
-                        Snackbar.LENGTH_LONG
-                    )
-                    snackbar.setAction(R.string.install) {
-                        (activity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
-                    }
-                    snackbar.show()
                 } else {
-                    Toast.makeText(activity, R.string.om_antisplit_merge_error, Toast.LENGTH_LONG).show()
+                    File(path.toString())
                 }
+
+                if (localArchive == null || !localArchive.exists()) {
+                    return@withContext null
+                }
+
+                val parentDir = localArchive.parentFile ?: activity.cacheDir
+                val baseName = file.name.substringBeforeLast('.')
+                val out = File(parentDir, "${baseName}_merged.apk")
+                outputApk = out
+
+                val merged = AntiSplitEngine.mergeArchive(
+                    context = activity,
+                    archiveFile = localArchive,
+                    outputFile = out,
+                    logger = { msg -> updateMessage(msg) }
+                )
+
+                if (!path.isLinuxPath && localArchive.absolutePath.contains(activity.cacheDir.absolutePath)) {
+                    localArchive.delete()
+                }
+                merged
+            }
+
+            if (!activity.isUiAlive) return@runWithProgressDialog
+
+            if (success == null) {
+                Toast.makeText(activity, R.string.om_split_apk_access_error, Toast.LENGTH_SHORT).show()
+                return@runWithProgressDialog
+            }
+
+            val finalApk = outputApk
+            if (success && finalApk != null && finalApk.exists() && finalApk.length() > 0) {
+                (activity as? FileListActivity)?.activeFragment?.reload()
+                val snackbar = Snackbar.make(
+                    activity.findViewById(android.R.id.content),
+                    activity.getString(R.string.antisplit_success, finalApk.name),
+                    Snackbar.LENGTH_LONG
+                )
+                snackbar.setAction(R.string.install) {
+                    (activity as? FileListActivity)?.activeFragment?.installApkFile(finalApk)
+                }
+                snackbar.show()
+            } else {
+                Toast.makeText(activity, R.string.om_antisplit_merge_error, Toast.LENGTH_LONG).show()
             }
         }
     }

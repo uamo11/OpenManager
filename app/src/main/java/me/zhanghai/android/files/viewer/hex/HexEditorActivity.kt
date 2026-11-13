@@ -36,6 +36,8 @@ import me.zhanghai.android.files.databinding.DialogHexInsertBinding
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
+import me.zhanghai.android.files.ui.showSafeDialog
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.util.showToast
 import java.nio.charset.Charset
@@ -63,6 +65,8 @@ class HexEditorActivity : AppActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityHexEditorBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.toolbar.applyEdgeToEdgeInsets(applyTop = true, applyHorizontal = true)
+        binding.bottomInspectorPanel.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
 
         path = intent.extraPath ?: run {
             finish()
@@ -495,7 +499,8 @@ class HexEditorActivity : AppActivity() {
             .setView(dialogBinding.root)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val off = parseOffset(dialogBinding.etOffset.text.toString()) ?: currentOffset
-                val count = dialogBinding.etCount.text.toString().toIntOrNull() ?: 1
+                val rawCount = dialogBinding.etCount.text.toString().toIntOrNull() ?: 1
+                val count = rawCount.coerceIn(1, 65536)
                 val fillByte = parseByte(dialogBinding.etFillByte.text.toString()) ?: 0
 
                 val newBytes = ByteArray(count) { fillByte }
@@ -523,7 +528,7 @@ class HexEditorActivity : AppActivity() {
             .setMessage(getString(R.string.om_hex_delete_from_offset_format, String.format("0x%08X", currentOffset)))
             .setView(input)
             .setPositiveButton(R.string.delete) { _, _ ->
-                val count = input.text.toString().toIntOrNull() ?: 1
+                val count = (input.text.toString().toIntOrNull() ?: 1).coerceAtLeast(1)
                 buffer.deleteBytes(currentOffset, count)
                 adapter.updateBuffer(buffer)
                 selectOffset(currentOffset)
@@ -539,7 +544,8 @@ class HexEditorActivity : AppActivity() {
         }
         val dialogBinding = DialogHexFillBinding.inflate(layoutInflater)
         dialogBinding.etStartOffset.setText(String.format("0x%X", currentOffset))
-        dialogBinding.etEndOffset.setText(String.format("0x%X", (currentOffset + 15).coerceAtMost(buffer.size - 1)))
+        val endDefault = if (buffer.size > 0) (currentOffset + 15).coerceAtMost(buffer.size - 1) else 0
+        dialogBinding.etEndOffset.setText(String.format("0x%X", endDefault))
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.hex_editor_fill_range)
@@ -577,14 +583,14 @@ class HexEditorActivity : AppActivity() {
                 .append("SHA-256:\n").append(sha256)
                 .toString()
 
-            MaterialAlertDialogBuilder(this@HexEditorActivity)
-                .setTitle(R.string.hex_editor_file_info)
-                .setMessage(msg)
-                .setPositiveButton(R.string.om_hex_copy_hashes) { _, _ ->
+            showSafeDialog {
+                setTitle(R.string.hex_editor_file_info)
+                setMessage(msg)
+                setPositiveButton(R.string.om_hex_copy_hashes) { _, _ ->
                     copyToClipboard(msg)
                 }
-                .setNegativeButton(R.string.close, null)
-                .show()
+                setNegativeButton(R.string.close, null)
+            }
         }
     }
 
@@ -705,7 +711,11 @@ class HexEditorActivity : AppActivity() {
                 true
             }
             R.id.action_edit -> {
-                showEditByteDialog(currentOffset)
+                if (isReadOnly) {
+                    showToast(R.string.hex_editor_readonly)
+                } else {
+                    showEditByteDialog(currentOffset)
+                }
                 true
             }
             R.id.action_insert -> {

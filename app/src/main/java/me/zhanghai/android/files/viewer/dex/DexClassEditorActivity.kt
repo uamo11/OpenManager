@@ -31,6 +31,8 @@ import me.zhanghai.android.files.databinding.ActivityDexClassEditorBinding
 import me.zhanghai.android.files.databinding.ItemDexMemberBinding
 import me.zhanghai.android.files.provider.common.newOutputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.copyText
 import me.zhanghai.android.files.util.extraPath
 import java.io.File
@@ -57,6 +59,13 @@ class DexClassEditorActivity : AppActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityDexClassEditorBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.appBarLayout.applyEdgeToEdgeInsets(applyTop = true, applyHorizontal = true)
+        binding.rvMethods.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.rvFields.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.layoutClassDetails.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.layoutSmaliActions.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.layoutJavaActions.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.etJavaCode.keyListener = null
 
         val dexPathStr = intent.getStringExtra(EXTRA_DEX_PATH)
         classDescriptor = intent.getStringExtra(EXTRA_CLASS_DESCRIPTOR) ?: ""
@@ -83,8 +92,8 @@ class DexClassEditorActivity : AppActivity() {
         setupButtons()
         loadClassData()
 
-        if (initialTab == 4) {
-            binding.tabLayout.getTabAt(4)?.select()
+        if (initialTab in 1..4) {
+            binding.tabLayout.getTabAt(initialTab)?.select()
         }
     }
 
@@ -175,7 +184,31 @@ class DexClassEditorActivity : AppActivity() {
                 binding.tabLayout.getTabAt(2)?.text = "${getString(R.string.dex_tab_fields)} (${fields.size})"
 
                 binding.tvDetailDescriptor.text = classDescriptor
-                binding.tvDetailSourceFile.text = "${binding.toolbar.title}.java"
+                var parsedSuper: String? = null
+                val parsedInterfaces = mutableListOf<String>()
+                var parsedFlags: String? = null
+                var parsedSource: String? = null
+                for (rawLine in smaliText.lineSequence().take(40)) {
+                    val line = rawLine.trim()
+                    when {
+                        line.startsWith(".class ") -> {
+                            parsedFlags = line.removePrefix(".class ").substringBeforeLast(' ', "").trim().ifEmpty { "default" }
+                        }
+                        line.startsWith(".super ") -> {
+                            parsedSuper = line.removePrefix(".super ").trim()
+                        }
+                        line.startsWith(".implements ") -> {
+                            parsedInterfaces.add(line.removePrefix(".implements ").trim())
+                        }
+                        line.startsWith(".source ") -> {
+                            parsedSource = line.removePrefix(".source ").trim().trim('"')
+                        }
+                    }
+                }
+                binding.tvDetailSuperclass.text = parsedSuper ?: "java.lang.Object"
+                binding.tvDetailInterfaces.text = if (parsedInterfaces.isNotEmpty()) parsedInterfaces.joinToString("\n") else "—"
+                binding.tvDetailAccessFlags.text = parsedFlags ?: "default"
+                binding.tvDetailSourceFile.text = parsedSource ?: "${binding.toolbar.title}.java"
 
                 binding.progressBar.visibility = View.GONE
             }
@@ -214,11 +247,19 @@ class DexClassEditorActivity : AppActivity() {
         val parentDir = dexFile.parentFile ?: cacheDir
         val outFile = File(parentDir, fileName)
 
-        try {
-            outFile.writeText(code, Charsets.UTF_8)
-            Toast.makeText(this, getString(R.string.om_dex_saved_as_format, outFile.name), Toast.LENGTH_LONG).show()
-        } catch (e: Exception) {
-            Toast.makeText(this, getString(R.string.om_dex_save_file_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    outFile.writeText(code, Charsets.UTF_8)
+                    outFile.name
+                }
+            }
+            if (!isUiAlive) return@launch
+            result.onSuccess { name ->
+                Toast.makeText(this@DexClassEditorActivity, getString(R.string.om_dex_saved_as_format, name), Toast.LENGTH_LONG).show()
+            }.onFailure { e ->
+                Toast.makeText(this@DexClassEditorActivity, getString(R.string.om_dex_save_file_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
+            }
         }
     }
 

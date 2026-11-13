@@ -102,7 +102,8 @@
     <LinearLayout
         android:id="@+id/layoutPagination"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="wrap_content"
+        android:minHeight="48dp"
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="#282828"
@@ -114,6 +115,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:text="@string/om_action_previous"
             android:textColor="#2196F3"
             android:textSize="12sp" />
@@ -133,6 +135,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:text="@string/om_action_next"
             android:textColor="#2196F3"
             android:textSize="12sp" />

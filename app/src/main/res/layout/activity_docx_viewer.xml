@@ -3,21 +3,14 @@
   ~ Copyright (c) 2026 OpenManager
   ~ All Rights Reserved.
   -->
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/rootView"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
-
-    <!-- WebView Content -->
-    <WebView
-        android:id="@+id/webView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#121212"
-        android:overScrollMode="never" />
+    android:background="#121212"
+    android:orientation="vertical">
 
     <!-- Top AppBar Container (Toolbar + SearchBar) -->
     <com.google.android.material.appbar.AppBarLayout
@@ -114,48 +107,63 @@
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Loading Spinner -->
-    <ProgressBar
-        android:id="@+id/progressLoading"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="visible" />
-
-    <!-- Error Layout -->
-    <LinearLayout
-        android:id="@+id/errorLayout"
+    <!-- Document Area -->
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp"
-        android:visibility="gone">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
-        <ImageView
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginBottom="16dp"
-            android:src="@drawable/file_word_icon" />
+        <!-- WebView Content -->
+        <WebView
+            android:id="@+id/webView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#121212"
+            android:overScrollMode="never" />
 
-        <TextView
-            android:id="@+id/tvErrorMessage"
+        <!-- Loading Spinner -->
+        <ProgressBar
+            android:id="@+id/progressLoading"
+            style="?android:attr/progressBarStyleLarge"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="visible" />
+
+        <!-- Error Layout -->
+        <LinearLayout
+            android:id="@+id/errorLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:gravity="center"
-            android:text="@string/docx_error_open"
-            android:textColor="#E0E0E0"
-            android:textSize="15sp" />
+            android:orientation="vertical"
+            android:padding="32dp"
+            android:visibility="gone">
 
-        <Button
-            android:id="@+id/btnOpenExternal"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/file_item_action_open_with"
-            app:backgroundTint="#2E7D32" />
-    </LinearLayout>
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginBottom="16dp"
+                android:src="@drawable/file_word_icon" />
 
-</FrameLayout>
+            <TextView
+                android:id="@+id/tvErrorMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/docx_error_open"
+                android:textColor="#E0E0E0"
+                android:textSize="15sp" />
+
+            <Button
+                android:id="@+id/btnOpenExternal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="@string/file_item_action_open_with"
+                app:backgroundTint="#2E7D32" />
+        </LinearLayout>
+    </FrameLayout>
+
+</LinearLayout>

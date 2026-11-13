@@ -29,7 +29,7 @@ class FtpServerTileService : TileService() {
     }
 
     private fun onFtpServerStateChanged(state: FtpServerService.State) {
-        val tile = qsTile
+        val tile = qsTile ?: return
         when (state) {
             FtpServerService.State.STARTING,
             FtpServerService.State.RUNNING -> tile.state = Tile.STATE_ACTIVE

@@ -12,6 +12,7 @@
     android:orientation="vertical">
 
     <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
@@ -56,7 +57,7 @@
                     <EditText
                         android:id="@+id/etSmaliCode"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:background="@null"
                         android:fontFamily="monospace"
                         android:gravity="top|start"
@@ -70,6 +71,7 @@
             </ScrollView>
 
             <LinearLayout
+                android:id="@+id/layoutSmaliActions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -144,7 +146,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:fontFamily="monospace"
-                    android:textColor="#FFFFFF"
+                    android:textColor="?android:attr/textColorPrimary"
                     android:textSize="13sp"
                     tools:text="Lcom/example/MainActivity;" />
 
@@ -163,7 +165,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:fontFamily="monospace"
-                    android:textColor="#CCCCCC"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     tools:text="Landroidx/appcompat/app/AppCompatActivity;" />
 
@@ -182,7 +184,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:fontFamily="monospace"
-                    android:textColor="#CCCCCC"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     tools:text="android.view.View$OnClickListener" />
 
@@ -200,7 +202,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:textColor="#CCCCCC"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     tools:text="public" />
 
@@ -218,7 +220,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:textColor="#CCCCCC"
+                    android:textColor="?android:attr/textColorSecondary"
                     android:textSize="13sp"
                     tools:text="MainActivity.java" />
             </LinearLayout>
@@ -247,7 +249,7 @@
                     <EditText
                         android:id="@+id/etJavaCode"
                         android:layout_width="wrap_content"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:background="@null"
                         android:fontFamily="monospace"
                         android:gravity="top|start"
@@ -256,13 +258,14 @@
                         android:textSize="12.5sp"
                         android:inputType="textMultiLine|textNoSuggestions"
                         android:imeOptions="flagNoExtractUi"
-                        android:focusable="true"
+                        android:focusable="false"
                         android:textIsSelectable="true"
                         tools:text="public class MainActivity {\n}" />
                 </HorizontalScrollView>
             </ScrollView>
 
             <LinearLayout
+                android:id="@+id/layoutJavaActions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"

@@ -29,6 +29,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
@@ -37,6 +38,9 @@ import me.zhanghai.android.files.compat.longVersionCodeCompat
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.fileSize
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
+import me.zhanghai.android.files.ui.showSafeDialog
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.getPackageArchiveInfoCompat
@@ -360,8 +364,11 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             listener.installApkWithRoot(file)
                         }
                         getString(R.string.om_apk_install_shizuku) -> {
+                            val hostActivity = activity as? FragmentActivity
                             dialog.dismiss()
-                            installApkWithShizuku(file)
+                            if (hostActivity != null) {
+                                installApkWithShizuku(hostActivity, file)
+                            }
                         }
                         getString(R.string.apk_quick_edit) -> {
                             val hostActivity = requireActivity()
@@ -477,26 +484,21 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         return dialog
     }
 
-    private fun installApkWithShizuku(file: FileItem) {
-        val context = requireContext()
-        val progressDialog = MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.om_apk_shizuku_installing_title)
-            .setMessage(R.string.om_apk_shizuku_installing_msg)
-            .setCancelable(false)
-            .create()
-        progressDialog.show()
-
-        lifecycleScope.launch {
-            val (success, message) = ApkInstallHelper.installWithShizuku(context, file)
-            progressDialog.dismiss()
+    private fun installApkWithShizuku(hostActivity: FragmentActivity, file: FileItem) {
+        hostActivity.runWithProgressDialog(
+            title = hostActivity.getString(R.string.om_apk_shizuku_installing_title),
+            initialMessage = hostActivity.getString(R.string.om_apk_shizuku_installing_msg)
+        ) {
+            val (success, message) = ApkInstallHelper.installWithShizuku(hostActivity, file)
+            if (!hostActivity.isUiAlive) return@runWithProgressDialog
             if (success) {
-                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                Toast.makeText(hostActivity, message, Toast.LENGTH_LONG).show()
             } else {
-                MaterialAlertDialogBuilder(context)
-                    .setTitle("Fallo al instalar con Shizuku")
-                    .setMessage(message)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .show()
+                hostActivity.showSafeDialog {
+                    setTitle("Fallo al instalar con Shizuku")
+                    setMessage(message)
+                    setPositiveButton(android.R.string.ok, null)
+                }
             }
         }
     }

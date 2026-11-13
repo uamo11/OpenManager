@@ -42,7 +42,7 @@
             android:fontFamily="monospace"
             android:maxLines="2"
             android:ellipsize="end"
-            android:textColor="#EEEEEE"
+            android:textColor="?android:attr/textColorPrimary"
             android:textSize="13sp"
             tools:text="https://api.github.com/repos" />
 

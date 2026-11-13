@@ -13,9 +13,11 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import androidx.annotation.Dimension
 import androidx.appcompat.graphics.drawable.AnimatedStateListDrawableCompat
+import me.zhanghai.android.files.util.asColor
 import me.zhanghai.android.files.util.dpToDimension
 import me.zhanghai.android.files.util.dpToDimensionPixelOffset
 import me.zhanghai.android.files.util.shortAnimTime
+import me.zhanghai.android.files.util.withModulatedAlpha
 
 object CheckableItemBackground {
     // We need an <animated-selector> (AnimatedStateListDrawable) with an item drawable referencing
@@ -36,7 +38,11 @@ object CheckableItemBackground {
             setExitFadeDuration(shortAnimTime)
             val checkedDrawable = GradientDrawable().apply {
                 cornerRadius = context.dpToDimension(cornerSizeDp)
-                setColor(Color.argb(0x55, 0x21, 0x96, 0xF3)) // blue selection filter
+                val primaryColor = context.resolveThemeColor(
+                    androidx.appcompat.R.attr.colorPrimary,
+                    Color.rgb(0x21, 0x96, 0xF3)
+                )
+                setColor(primaryColor.asColor().withModulatedAlpha(0.24f).value)
                 setStroke(2 * context.dpToDimensionPixelOffset(insetDp), Color.TRANSPARENT)
             }
             addState(intArrayOf(android.R.attr.state_checked), checkedDrawable)

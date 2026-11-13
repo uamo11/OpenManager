@@ -33,6 +33,9 @@ import me.zhanghai.android.files.databinding.ItemArscResourceBinding
 import me.zhanghai.android.files.databinding.ItemArscStringBinding
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.resolveThemeColor
 import me.zhanghai.android.files.util.extraPath
 import java.io.ByteArrayOutputStream
 
@@ -64,6 +67,10 @@ class ArscEditorActivity : AppActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityArscEditorBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.toolbar.applyEdgeToEdgeInsets(applyTop = true, applyHorizontal = true)
+        binding.rvStrings.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.rvResources.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        binding.rvPackages.applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
 
         path = intent.extraPath ?: run {
             finish()
@@ -248,7 +255,7 @@ class ArscEditorActivity : AppActivity() {
             setSelection(item.value.length)
             setPadding(40, 30, 40, 30)
             textSize = 14f
-            setTextColor(android.graphics.Color.WHITE)
+            setTextColor(resolveThemeColor(android.R.attr.textColorPrimary, android.graphics.Color.WHITE))
         }
 
         MaterialAlertDialogBuilder(context)
@@ -282,11 +289,22 @@ class ArscEditorActivity : AppActivity() {
 
         binding.progressBar.visibility = View.VISIBLE
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        lifecycleScope.launch {
             try {
-                val newBytes = ArscEngine.rebuildWithModifiedStrings(bytes, allStrings.map { it.value })
+                val stringValues = allStrings.map { it.value }
+                val newBytes = withContext(Dispatchers.IO) {
+                    ArscEngine.rebuildWithModifiedStrings(bytes, stringValues)
+                }
+                if (!isUiAlive) {
+                    onComplete?.invoke(false)
+                    return@launch
+                }
 
                 FileJobService.write(path, newBytes, this@ArscEditorActivity) { success ->
+                    if (!isUiAlive) {
+                        onComplete?.invoke(success)
+                        return@write
+                    }
                     binding.progressBar.visibility = View.GONE
                     if (success) {
                         originalBytes = newBytes
@@ -305,11 +323,13 @@ class ArscEditorActivity : AppActivity() {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this@ArscEditorActivity, getString(R.string.arsc_save_failed, e.message), Toast.LENGTH_LONG).show()
+                if (!isUiAlive) {
                     onComplete?.invoke(false)
+                    return@launch
                 }
+                binding.progressBar.visibility = View.GONE
+                Toast.makeText(this@ArscEditorActivity, getString(R.string.arsc_save_failed, e.message), Toast.LENGTH_LONG).show()
+                onComplete?.invoke(false)
             }
         }
     }
