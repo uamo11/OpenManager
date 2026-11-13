@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.system.Os
 import android.system.OsConstants
 import java8.nio.file.Path
+import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.toByteString
 import me.zhanghai.android.files.provider.linux.syscall.Syscall
