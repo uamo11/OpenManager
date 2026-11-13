@@ -198,27 +198,40 @@ object RunningAppsLoader {
             }
         } catch (_: Throwable) {}
 
-        // Ensure at least ~180ms elapsed between CPU snapshots for meaningful delta
+        // Ensure at least ~250ms elapsed between CPU snapshots for meaningful delta
         val elapsed = System.currentTimeMillis() - startMs
-        if (cpuTotalT0 > 0L && elapsed < 180L) {
-            try { Thread.sleep(180L - elapsed) } catch (_: Throwable) {}
+        if (elapsed < 250L) {
+            try { Thread.sleep(250L - elapsed) } catch (_: Throwable) {}
         }
+        val actualElapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(1L)
         val cpuTotalT1 = readTotalCpuJiffies()
         val procJiffiesT1 = readAllProcJiffies()
-        val totalDelta = (cpuTotalT1 - cpuTotalT0).coerceAtLeast(1L)
+        val totalDelta = if (cpuTotalT0 > 0L && cpuTotalT1 > cpuTotalT0) {
+            cpuTotalT1 - cpuTotalT0
+        } else {
+            // Fallback when /proc/stat is SELinux-restricted on Android 8+:
+            // USER_HZ is 100 jiffies/sec per CPU core.
+            val cores = Runtime.getRuntime().availableProcessors().coerceAtLeast(1)
+            ((actualElapsedMs / 1000.0) * 100.0 * cores).toLong().coerceAtLeast(1L)
+        }
 
-        // Optional fallback CPU% from ps -A -o PID,PCPU when /proc/[pid]/stat is restricted
-        val psCpuMap = if (procJiffiesT1.isEmpty() || hasElevatedAccess()) readPsCpuPercentages() else emptyMap()
+        // Optional fallback CPU% from ps -A -o PID,PCPU
+        val psCpuMap = readPsCpuPercentages()
 
         // Enrich processes with CPU% and executable type (SH / ELF64 / ELF32)
         val exeTargetMap = if (isRootGranted()) readProcExeTargetsBatch() else emptyMap()
         for ((pid, model) in processMap) {
             val j0 = procJiffiesT0[pid]
             val j1 = procJiffiesT1[pid]
-            val procCpu = if (cpuTotalT0 > 0L && j0 != null && j1 != null && j1 >= j0) {
+            val deltaCpu = if (j0 != null && j1 != null && j1 >= j0) {
                 ((j1 - j0).toFloat() / totalDelta.toFloat() * 100f).coerceIn(0f, 100f)
             } else {
-                psCpuMap[pid] ?: model.cpuPercent
+                null
+            }
+            val procCpu = when {
+                deltaCpu != null && deltaCpu > 0f -> deltaCpu
+                psCpuMap.containsKey(pid) -> psCpuMap[pid] ?: 0f
+                else -> deltaCpu ?: model.cpuPercent
             }
 
             val (execType, elfArch) = detectExecutableType(
@@ -570,7 +583,14 @@ object RunningAppsLoader {
                     val res = ShizukuShell.exec("ps -A -o PID,PCPU")
                     if (res.isSuccess) res.out.lines() else emptyList()
                 }
-                else -> emptyList()
+                else -> {
+                    try {
+                        val p = Runtime.getRuntime().exec(arrayOf("ps", "-A", "-o", "PID,PCPU"))
+                        p.inputStream.bufferedReader().use { it.readLines() }
+                    } catch (_: Throwable) {
+                        emptyList()
+                    }
+                }
             }
             for (line in lines.drop(1)) {
                 val tokens = line.trim().split(Regex("\\s+"))

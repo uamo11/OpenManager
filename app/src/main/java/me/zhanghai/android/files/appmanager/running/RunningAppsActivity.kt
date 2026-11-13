@@ -68,6 +68,9 @@ class RunningAppsActivity : AppActivity() {
         binding = ActivityRunningAppsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        isBannerDismissed = getSharedPreferences("running_apps_prefs", MODE_PRIVATE)
+            .getBoolean("hide_permission_banner", false)
+
         // 1. Consistent dark status bar
         window.statusBarColor = Color.parseColor("#1F1F1F")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -163,6 +166,10 @@ class RunningAppsActivity : AppActivity() {
         }
         binding.btnDismissBanner.setOnClickListener {
             isBannerDismissed = true
+            getSharedPreferences("running_apps_prefs", MODE_PRIVATE)
+                .edit()
+                .putBoolean("hide_permission_banner", true)
+                .apply()
             binding.cardPermissionBanner.visibility = View.GONE
         }
         binding.tvElevationBadge.setOnClickListener {
@@ -204,10 +211,10 @@ class RunningAppsActivity : AppActivity() {
         updateElevationUi()
         if (RunningAppsLoader.hasElevatedAccess()) return
 
-        // Proactively offer or check root if available, otherwise check Shizuku
+        // Silently check root if su is available; only auto-prompt Shizuku if banner wasn't dismissed
         if (LibSuFileServiceLauncher.isSuAvailable()) {
             requestRootPrivileges(interactive = false)
-        } else if (ShizukuManager.isAvailable() && !ShizukuManager.hasPermission()) {
+        } else if (!isBannerDismissed && ShizukuManager.isAvailable() && !ShizukuManager.hasPermission()) {
             requestShizukuPrivileges()
         }
     }
