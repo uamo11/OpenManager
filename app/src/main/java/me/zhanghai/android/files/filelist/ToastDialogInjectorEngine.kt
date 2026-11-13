@@ -140,13 +140,13 @@ object ToastDialogInjectorEngine {
         val activities = findActivities(inputApk)
         val targetClass = options.targetActivity?.takeIf { it.isNotBlank() }
             ?: activities.firstOrNull()
-            ?: throw IllegalStateException("No se encontraron actividades en el APK")
+            ?: throw IllegalStateException("No activities found in APK")
 
         val targetDescriptor = "L${targetClass.replace('.', '/')};"
         val workDir = File(context.cacheDir, "inject_toast_${System.currentTimeMillis()}").apply { mkdirs() }
 
         try {
-            onProgress?.invoke("Extrayendo archivos DEX...")
+            onProgress?.invoke("Extracting DEX files...")
             val dexFiles = extractDexFiles(inputApk, workDir)
 
             var targetDexEntry: String? = null
@@ -162,16 +162,16 @@ object ToastDialogInjectorEngine {
             }
 
             if (targetDexFile == null || targetDexEntry == null) {
-                throw IllegalStateException("No se pudo localizar la actividad $targetClass en los archivos DEX")
+                throw IllegalStateException("Could not locate activity $targetClass in DEX files")
             }
 
-            onProgress?.invoke("Desensamblando $targetClass...")
+            onProgress?.invoke("Disassembling $targetClass...")
             val originalSmali = DexEngine.disassembleClass(targetDexFile, targetDescriptor)
             if (originalSmali.startsWith("# Error")) {
-                throw IllegalStateException("Error al desensamblar $targetClass: $originalSmali")
+                throw IllegalStateException("Error disassembling $targetClass: $originalSmali")
             }
 
-            onProgress?.invoke("Inyectando llamada a Toast...")
+            onProgress?.invoke("Injecting Toast call...")
             val escapedMsg = escapeSmaliString(options.message)
             val durationConst = if (options.durationLong) "0x1" else "0x0"
 
@@ -195,7 +195,7 @@ object ToastDialogInjectorEngine {
                 toastMethodSmali
             )
 
-            onProgress?.invoke("Reensamblando DEX...")
+            onProgress?.invoke("Reassembling DEX...")
             val (success, errorMsg) = DexEngine.assembleClassSmali(
                 context,
                 targetDexFile,
@@ -203,17 +203,17 @@ object ToastDialogInjectorEngine {
                 targetDescriptor
             )
             if (!success) {
-                throw IllegalStateException("Error al reensamblar clase: $errorMsg")
+                throw IllegalStateException("Error reassembling class: $errorMsg")
             }
 
-            onProgress?.invoke("Empaquetando APK...")
+            onProgress?.invoke("Packaging APK...")
             val unsignedTemp = File(workDir, "unsigned.apk")
             ApkModule.loadApkFile(inputApk).use { module ->
                 module.add(FileInputSource(targetDexFile, targetDexEntry))
                 module.writeApk(unsignedTemp)
             }
 
-            onProgress?.invoke("Firmando APK...")
+            onProgress?.invoke("Signing APK...")
             ApkSignerHelper.signFileDirect(unsignedTemp, outputApk)
             return outputApk
         } finally {
@@ -232,13 +232,13 @@ object ToastDialogInjectorEngine {
         val activities = findActivities(inputApk)
         val targetClass = options.targetActivity?.takeIf { it.isNotBlank() }
             ?: activities.firstOrNull()
-            ?: throw IllegalStateException("No se encontraron actividades en el APK")
+            ?: throw IllegalStateException("No activities found in APK")
 
         val targetDescriptor = "L${targetClass.replace('.', '/')};"
         val workDir = File(context.cacheDir, "inject_dialog_${System.currentTimeMillis()}").apply { mkdirs() }
 
         try {
-            onProgress?.invoke("Extrayendo archivos DEX...")
+            onProgress?.invoke("Extracting DEX files...")
             val dexFiles = extractDexFiles(inputApk, workDir)
 
             var targetDexEntry: String? = null
@@ -254,16 +254,16 @@ object ToastDialogInjectorEngine {
             }
 
             if (targetDexFile == null || targetDexEntry == null) {
-                throw IllegalStateException("No se pudo localizar la actividad $targetClass en los archivos DEX")
+                throw IllegalStateException("Could not locate activity $targetClass in DEX files")
             }
 
-            onProgress?.invoke("Desensamblando $targetClass...")
+            onProgress?.invoke("Disassembling $targetClass...")
             val originalSmali = DexEngine.disassembleClass(targetDexFile, targetDescriptor)
             if (originalSmali.startsWith("# Error")) {
-                throw IllegalStateException("Error al desensamblar $targetClass: $originalSmali")
+                throw IllegalStateException("Error disassembling $targetClass: $originalSmali")
             }
 
-            onProgress?.invoke("Inyectando AlertDialog...")
+            onProgress?.invoke("Injecting AlertDialog...")
             val escapedTitle = escapeSmaliString(options.title)
             val fullMessage = if (!options.positiveUrl.isNullOrBlank()) {
                 "${options.message}\n\n${options.positiveUrl}"
@@ -317,7 +317,7 @@ $negativeBlock
                 dialogMethodSmali
             )
 
-            onProgress?.invoke("Reensamblando DEX...")
+            onProgress?.invoke("Reassembling DEX...")
             val (success, errorMsg) = DexEngine.assembleClassSmali(
                 context,
                 targetDexFile,
@@ -325,17 +325,17 @@ $negativeBlock
                 targetDescriptor
             )
             if (!success) {
-                throw IllegalStateException("Error al reensamblar clase: $errorMsg")
+                throw IllegalStateException("Error reassembling class: $errorMsg")
             }
 
-            onProgress?.invoke("Empaquetando APK...")
+            onProgress?.invoke("Packaging APK...")
             val unsignedTemp = File(workDir, "unsigned.apk")
             ApkModule.loadApkFile(inputApk).use { module ->
                 module.add(FileInputSource(targetDexFile, targetDexEntry))
                 module.writeApk(unsignedTemp)
             }
 
-            onProgress?.invoke("Firmando APK...")
+            onProgress?.invoke("Signing APK...")
             ApkSignerHelper.signFileDirect(unsignedTemp, outputApk)
             return outputApk
         } finally {
@@ -549,10 +549,10 @@ $invokeInstruction
             }
 
             if (modifiedDexEntries.isEmpty()) {
-                throw IllegalStateException("No se encontraron llamadas activas a Toasts o Diálogos para neutralizar")
+                throw IllegalStateException("No active Toast or Dialog calls found to neutralize")
             }
 
-            onProgress?.invoke("Empaquetando APK limpio...")
+            onProgress?.invoke("Packaging clean APK...")
             val unsignedTemp = File(workDir, "unsigned.apk")
             ApkModule.loadApkFile(inputApk).use { module ->
                 for ((entryName, dexFile) in modifiedDexEntries) {

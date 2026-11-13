@@ -47,7 +47,7 @@ object ApkQuickEditEngine {
     fun loadQuickEditInfo(apkFile: File): QuickEditInfo {
         ApkModule.loadApkFile(apkFile).use { module ->
             val manifest = module.androidManifest
-                ?: throw IllegalStateException("No se pudo cargar el AndroidManifest.xml del APK")
+                ?: throw IllegalStateException("Could not load AndroidManifest.xml from APK")
 
             var appName = manifest.applicationLabelString ?: ""
             if (appName.isEmpty()) {
@@ -151,7 +151,7 @@ object ApkQuickEditEngine {
 
                 // Replace launcher icon if new bytes are provided
                 options.newIconBytes?.let { iconBytes ->
-                    onProgress?.invoke("Actualizando iconos de la aplicación...")
+                    onProgress?.invoke("Updating application icons...")
                     val iconResId = try { manifest.iconResourceId } catch (e: Exception) { 0 }
                     if (iconResId != 0) {
                         try {

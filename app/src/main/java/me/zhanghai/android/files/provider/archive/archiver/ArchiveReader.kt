@@ -317,7 +317,7 @@ object ArchiveReader {
                     ArchiveSecurityPreferences.recordCve2026_14164Blocked()
                     throw me.zhanghai.android.files.provider.archive.ArchiveSecurityException(
                         file,
-                        "Formato RAR5 bloqueado por protección activa contra la vulnerabilidad crítica CVE-2026-14164 (doble liberación en libarchive). Puedes activarlo bajo tu propio riesgo en Ajustes.",
+                        "RAR5 format blocked by active protection against critical vulnerability CVE-2026-14164 (double-free in libarchive). You can enable it at your own risk in Settings.",
                         "CVE-2026-14164"
                     )
                 }
@@ -329,7 +329,7 @@ object ArchiveReader {
                     ArchiveSecurityPreferences.recordCve2026_14164Blocked()
                     throw me.zhanghai.android.files.provider.archive.ArchiveSecurityException(
                         file,
-                        "Archivo RAR5 bloqueado por validación de seguridad: ${validation.reason}. Prevenida vulnerabilidad crítica CVE-2026-14164 (Double-Free en memoria nativa).",
+                        "RAR5 file blocked by security validation: ${validation.reason}. Prevented critical vulnerability CVE-2026-14164 (Double-Free in native memory).",
                         "CVE-2026-14164"
                     )
                 }

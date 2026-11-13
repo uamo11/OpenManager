@@ -26,7 +26,7 @@ object AxmlEngine {
 
     fun parseStrings(bytes: ByteArray): Pair<List<AxmlStringItem>, IntRange> {
         if (!AxmlDecoder.isAxml(bytes)) {
-            throw IllegalArgumentException("No es un archivo AXML binario válido")
+            throw IllegalArgumentException("Not a valid binary AXML file")
         }
 
         val bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
@@ -139,7 +139,7 @@ object AxmlEngine {
     fun rebuildWithModifiedStrings(originalBytes: ByteArray, modifiedStrings: List<String>): ByteArray {
         val (_, poolRange) = parseStrings(originalBytes)
         if (poolRange.isEmpty()) {
-            throw IllegalStateException("No se encontró StringPool en el archivo AXML")
+            throw IllegalStateException("StringPool not found in AXML file")
         }
 
         val poolStart = poolRange.first

@@ -138,7 +138,7 @@ object DexEngine {
         return try {
             val dexBacked: DexBackedDexFile = me.zhanghai.android.files.filelist.ApktoolEngine.loadDexSafely(dexFile)
             val classDef = dexBacked.classes.find { it.type == classDescriptor }
-                ?: return "# Error: Clase no encontrada: $classDescriptor"
+                ?: return "# Error: Class not found: $classDescriptor"
 
             val options = BaksmaliOptions()
             options.deodex = false
@@ -151,7 +151,7 @@ object DexEngine {
             sw.toString()
         } catch (e: Exception) {
             e.printStackTrace()
-            "# Error al desensamblar Smali: ${e.message}\n"
+            "# Error disassembling Smali: ${e.message}\n"
         }
     }
 
@@ -213,13 +213,13 @@ object DexEngine {
 
             val success = Smali.assemble(options, listOf(smaliFile.absolutePath))
             if (!success || !outDexFile.exists() || outDexFile.length() == 0L) {
-                return Pair(false, "Error de compilación de sintaxis Smali")
+                return Pair(false, "Smali syntax compilation error")
             }
 
             // Load new class from outDexFile
             val compiledDex: DexBackedDexFile = DexFileFactory.loadDexFile(outDexFile, defaultOpcodes)
             val newClassDef = compiledDex.classes.firstOrNull()
-                ?: return Pair(false, "No se encontró definición de clase en el Smali compilado")
+                ?: return Pair(false, "No class definition found in compiled Smali")
 
             // Load original dex and replace the target class
             val originalDexBacked: DexBackedDexFile = DexFileFactory.loadDexFile(originalDex, defaultOpcodes)
@@ -250,13 +250,13 @@ object DexEngine {
             if (tempTarget.exists() && tempTarget.length() > 0) {
                 tempTarget.copyTo(originalDex, overwrite = true)
                 tempTarget.delete()
-                Pair(true, "Clase guardada y DEX actualizado correctamente")
+                Pair(true, "Class saved and DEX updated successfully")
             } else {
-                Pair(false, "Error al escribir el archivo DEX final")
+                Pair(false, "Error writing final DEX file")
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Pair(false, "Excepción durante el ensamblado: ${e.message}")
+            Pair(false, "Exception during assembly: ${e.message}")
         } finally {
             workDir.deleteRecursively()
         }

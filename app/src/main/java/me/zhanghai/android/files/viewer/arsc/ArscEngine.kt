@@ -47,7 +47,7 @@ object ArscEngine {
 
     fun parse(bytes: ByteArray): ArscModel {
         if (bytes.size < 12) {
-            throw IllegalArgumentException("El archivo es demasiado pequeño para ser un archivo ARSC válido.")
+            throw IllegalArgumentException("File is too small to be a valid ARSC file.")
         }
 
         val bb = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
@@ -56,7 +56,7 @@ object ArscEngine {
         val tableSize = bb.int
 
         if (type != RES_TABLE_TYPE) {
-            throw IllegalArgumentException("Cabecera ARSC inválida (tipo: 0x${type.toString(16)})")
+            throw IllegalArgumentException("Invalid ARSC header (type: 0x${type.toString(16)})")
         }
 
         // Global String Pool
@@ -73,7 +73,7 @@ object ArscEngine {
         val stylesStart = bb.int
 
         if (poolType != RES_STRING_POOL_TYPE) {
-            throw IllegalArgumentException("StringPool inválido en ARSC (tipo: 0x${poolType.toString(16)})")
+            throw IllegalArgumentException("Invalid StringPool in ARSC (type: 0x${poolType.toString(16)})")
         }
 
         val isUtf8 = (flags and UTF8_FLAG) != 0

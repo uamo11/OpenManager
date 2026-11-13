@@ -51,11 +51,11 @@ object AntiSplitEngine {
         val tempDir = File(context.cacheDir, "antisplit_" + UUID.randomUUID())
         try {
             if (!tempDir.exists() && !tempDir.mkdirs()) {
-                logger?.invoke("Error: no se pudo crear el directorio temporal")
+                logger?.invoke("Error: could not create temporary directory")
                 return@withContext false
             }
 
-            logger?.invoke("Extrayendo partes de la aplicación...")
+            logger?.invoke("Extracting application parts...")
             var extractedCount = 0
             ZipFile(archiveFile).use { zip ->
                 val entries = zip.entries()
@@ -75,15 +75,15 @@ object AntiSplitEngine {
             }
 
             if (extractedCount == 0) {
-                logger?.invoke("Error: no se encontraron archivos .apk dentro del paquete")
+                logger?.invoke("Error: no .apk files found inside package")
                 return@withContext false
             }
 
-            logger?.invoke("Se encontraron $extractedCount partes. Iniciando fusión...")
+            logger?.invoke("Found $extractedCount parts. Starting merge...")
             return@withContext mergeDirectory(tempDir, outputFile, options, logger)
         } catch (e: Exception) {
             e.printStackTrace()
-            logger?.invoke("Fallo en AntiSplit: ${e.message}")
+            logger?.invoke("AntiSplit failed: ${e.message}")
             return@withContext false
         } finally {
             deleteRecursively(tempDir)
@@ -103,11 +103,11 @@ object AntiSplitEngine {
         val tempDir = File(context.cacheDir, "antisplit_" + UUID.randomUUID())
         try {
             if (!tempDir.exists() && !tempDir.mkdirs()) {
-                logger?.invoke("Error: no se pudo crear el directorio temporal")
+                logger?.invoke("Error: could not create temporary directory")
                 return@withContext false
             }
 
-            logger?.invoke("Copiando partes para fusión...")
+            logger?.invoke("Copying parts for merge...")
             for (file in apkFiles) {
                 if (file.exists() && file.isFile && file.name.endsWith(".apk", ignoreCase = true)) {
                     val target = File(tempDir, file.name)
@@ -142,11 +142,11 @@ object AntiSplitEngine {
         val tempDir = File(context.cacheDir, "antisplit_" + UUID.randomUUID())
         try {
             if (!tempDir.exists() && !tempDir.mkdirs()) {
-                logger?.invoke("Error: no se pudo crear el directorio temporal")
+                logger?.invoke("Error: could not create temporary directory")
                 return@withContext false
             }
 
-            logger?.invoke("Extrayendo archivos base y complementos...")
+            logger?.invoke("Extracting base files and splits...")
             val baseFile = File(app.sourceDir)
             if (baseFile.canRead()) {
                 val targetBase = File(tempDir, "base.apk")
@@ -195,11 +195,11 @@ object AntiSplitEngine {
     ): Boolean {
         val apks = tempDir.listFiles { _, name -> name.endsWith(".apk", ignoreCase = true) }
         if (apks.isNullOrEmpty()) {
-            logger?.invoke("No se encontraron APKs válidas para fusionar")
+            logger?.invoke("No valid APKs found to merge")
             return false
         }
 
-        logger?.invoke("Analizando ${apks.size} módulos...")
+        logger?.invoke("Analyzing ${apks.size} modules...")
         val unsignedApk = File(tempDir, "temp_merged_unsigned.apk")
 
         try {
@@ -218,10 +218,10 @@ object AntiSplitEngine {
 
                 bundle.loadApkDirectory(tempDir, false)
 
-                logger?.invoke("Fusionando recursos, dex y librerías...")
+                logger?.invoke("Merging resources, dex and libraries...")
                 val mergedModule: ApkModule = bundle.mergeModules(false)
 
-                logger?.invoke("Saneando AndroidManifest...")
+                logger?.invoke("Sanitizing AndroidManifest...")
                 sanitizeManifest(mergedModule)
 
                 try {
@@ -231,17 +231,17 @@ object AntiSplitEngine {
                 mergedModule.refreshTable()
                 mergedModule.refreshManifest()
 
-                logger?.invoke("Generando archivo APK consolidado...")
+                logger?.invoke("Generating consolidated APK file...")
                 mergedModule.writeApk(unsignedApk)
             }
 
             if (!unsignedApk.exists() || unsignedApk.length() == 0L) {
-                logger?.invoke("Error: el archivo APK generado está vacío")
+                logger?.invoke("Error: generated APK file is empty")
                 return false
             }
 
             if (options.autoSign) {
-                logger?.invoke("Firmando digitalmente (V1 + V2 + V3)...")
+                logger?.invoke("Signing digitally (V1 + V2 + V3)...")
                 val parent = outputFile.parentFile
                 if (parent != null && !parent.exists()) parent.mkdirs()
                 ApkSignerHelper.signFileDirect(unsignedApk, outputFile, options.signingScheme)
@@ -251,11 +251,11 @@ object AntiSplitEngine {
                 unsignedApk.copyTo(outputFile, overwrite = true)
             }
 
-            logger?.invoke("Fusión completada con éxito.")
+            logger?.invoke("Merge completed successfully.")
             return outputFile.exists() && outputFile.length() > 0L
         } catch (e: Exception) {
             e.printStackTrace()
-            logger?.invoke("Excepción durante la fusión: ${e.message}")
+            logger?.invoke("Exception during merge: ${e.message}")
             return false
         }
     }

@@ -289,8 +289,8 @@ object DocxDocumentEngine {
                 "br" -> {
                     val type = child.getAttr("type")
                     if (type.equals("page", true)) {
-                        rHtml.append("<div class=\"doc-page-break\"><hr/><span class=\"page-break-tag\">Salto de página</span></div>")
-                        rText.append("\n--- [Salto de página] ---\n")
+                        rHtml.append("<div class=\"doc-page-break\"><hr/><span class=\"page-break-tag\">Page break</span></div>")
+                        rText.append("\n--- [Page break] ---\n")
                     } else {
                         rHtml.append("<br/>")
                         rText.append("\n")
@@ -541,8 +541,8 @@ object DocxDocumentEngine {
 
         val htmlBody = StringBuilder().apply {
             append("<div class=\"legacy-doc-banner\">")
-            append("<strong>Documento de Word heredado (.doc)</strong><br/>")
-            append("Este archivo utiliza el formato binario anterior a Word 2007. Se muestra a continuación el contenido textual extraído.")
+            append("<strong>Legacy Word Document (.doc)</strong><br/>")
+            append("This file uses the binary format prior to Word 2007. Extracted text content is shown below.")
             append("</div>\n")
             for (p in filteredParagraphs) {
                 append("<p>").append(escapeHtml(p)).append("</p>\n")
