@@ -297,10 +297,11 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
 
         btnInstall.setOnClickListener {
+            val hostActivity = activity as? FragmentActivity
             dialog.dismiss()
             when {
                 isRootAvailable -> listener.installApkWithRoot(file)
-                isShizukuAvailable -> installApkWithShizuku(file)
+                isShizukuAvailable && hostActivity != null -> installApkWithShizuku(hostActivity, file)
                 else -> listener.installApk(file)
             }
         }
@@ -420,10 +421,11 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             decompileApkToJava(file)
                         }
                         getString(R.string.om_apk_decompile_apktool) -> {
+                            val hostActivity = requireActivity()
                             dialog.dismiss()
-                            ApktoolHelper.decompileApk(requireActivity(), file.path) { targetDir ->
+                            ApktoolHelper.decompileApk(hostActivity, file.path) { targetDir ->
                                 if (targetDir != null) {
-                                    (activity as? FileListActivity)?.activeFragment?.reload()
+                                    (hostActivity as? FileListActivity)?.activeFragment?.reload()
                                 }
                             }
                         }
@@ -438,22 +440,24 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             ToastDialogCleanDialogFragment.show(file, hostActivity)
                         }
                         getString(R.string.apk_sign) -> {
+                            val hostActivity = requireActivity()
                             dialog.dismiss()
-                            ApkSignerHelper.showSignDialog(requireActivity(), file.path) { targetPath ->
+                            ApkSignerHelper.showSignDialog(hostActivity, file.path) { targetPath ->
                                 if (targetPath != null) {
-                                    (activity as? FileListActivity)?.activeFragment?.reload()
+                                    (hostActivity as? FileListActivity)?.activeFragment?.reload()
                                 }
                             }
                         }
                         getString(R.string.om_apk_generate_keystore) -> {
+                            val hostActivity = requireActivity()
                             dialog.dismiss()
                             val parentDir = try {
                                 file.path.parent?.toFile()?.absolutePath ?: "/storage/emulated/0/Download"
                             } catch (_: Exception) {
                                 "/storage/emulated/0/Download"
                             }
-                            KeystoreGeneratorDialogFragment.show(requireActivity(), parentDir) {
-                                (activity as? FileListActivity)?.activeFragment?.reload()
+                            KeystoreGeneratorDialogFragment.show(hostActivity, parentDir) {
+                                (hostActivity as? FileListActivity)?.activeFragment?.reload()
                             }
                         }
                         getString(R.string.om_tool_verify_sig) -> {

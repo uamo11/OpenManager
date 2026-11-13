@@ -294,7 +294,7 @@ object DuplicateFinderEngine {
                         true
                     } else {
                         // Fallback root deletion if needed
-                        val escapedPath = me.zhanghai.android.files.util.escapeShellArg(item.file.absolutePath)
+                        val escapedPath = escapeShellArg(item.file.absolutePath)
                         val cmd = "rm -f $escapedPath"
                         val res = com.topjohnwu.superuser.Shell.cmd(cmd).exec()
                         res.isSuccess
@@ -310,4 +310,7 @@ object DuplicateFinderEngine {
         }
         Pair(deletedCount, freedBytes)
     }
+
+    private fun escapeShellArg(arg: String): String =
+        "'" + arg.replace("'", "'\"'\"'") + "'"
 }
