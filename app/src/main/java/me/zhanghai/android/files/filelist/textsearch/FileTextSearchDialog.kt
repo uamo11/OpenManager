@@ -200,15 +200,15 @@ class FileTextSearchDialog : DialogFragment() {
             layoutResults.visibility = View.VISIBLE
 
             if (result.fileMatches.isEmpty()) {
-                tvResultsSummary.text = "¡No se encontraron coincidencias!"
-                tvResultsSub.text = "Se escanearon ${result.totalFilesSearched} archivos con la consulta '$query'."
+                tvResultsSummary.text = getString(R.string.om_search_no_matches)
+                tvResultsSub.text = getString(R.string.om_search_no_matches_sub_format, result.totalFilesSearched, query)
                 btnReplaceSelected.isEnabled = false
                 btnReplaceSelected.alpha = 0.5f
                 btnReplaceAll.isEnabled = false
                 btnReplaceAll.alpha = 0.5f
             } else {
-                tvResultsSummary.text = "${result.totalMatches} coincidencias en ${result.fileMatches.size} archivos"
-                tvResultsSub.text = "Consulta: '$query' (${result.totalFilesSearched} archivos escaneados)"
+                tvResultsSummary.text = getString(R.string.om_search_matches_summary_format, result.totalMatches, result.fileMatches.size)
+                tvResultsSub.text = getString(R.string.om_search_matches_sub_format, query, result.totalFilesSearched)
 
                 adapter = TextSearchRecyclerAdapter(
                     fileMatches = result.fileMatches,
@@ -232,7 +232,7 @@ class FileTextSearchDialog : DialogFragment() {
             }
             startActivity(intent)
         } catch (e: Throwable) {
-            Toast.makeText(requireContext(), "No se pudo abrir el archivo: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.om_search_open_file_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -245,21 +245,21 @@ class FileTextSearchDialog : DialogFragment() {
         if (selectedCount > 0) {
             btnReplaceSelected.isEnabled = true
             btnReplaceSelected.alpha = 1.0f
-            btnReplaceSelected.text = "Reemplazar en $selectedCount sel."
+            btnReplaceSelected.text = getString(R.string.om_search_replace_sel_count_format, selectedCount)
         } else {
             btnReplaceSelected.isEnabled = false
             btnReplaceSelected.alpha = 0.5f
-            btnReplaceSelected.text = "Reemplazar en seleccionados"
+            btnReplaceSelected.text = getString(R.string.om_search_replace_sel)
         }
 
         if (totalFiles > 0) {
             btnReplaceAll.isEnabled = true
             btnReplaceAll.alpha = 1.0f
-            btnReplaceAll.text = "Reemplazar en todos ($totalFiles)"
+            btnReplaceAll.text = getString(R.string.om_search_replace_all_count_format, totalFiles)
         } else {
             btnReplaceAll.isEnabled = false
             btnReplaceAll.alpha = 0.5f
-            btnReplaceAll.text = "Reemplazar en todos"
+            btnReplaceAll.text = getString(R.string.om_search_replace_all)
         }
     }
 
@@ -275,24 +275,21 @@ class FileTextSearchDialog : DialogFragment() {
         }
 
         if (filesToProcess.isEmpty()) {
-            Toast.makeText(requireContext(), "No hay archivos seleccionados", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), R.string.om_search_no_files_selected, Toast.LENGTH_SHORT).show()
             return
         }
 
         val totalMatches = filesToProcess.sumOf { it.matchCount }
         val targetScope = if (selectedFilesOnly) {
-            "${filesToProcess.size} archivo(s) seleccionado(s)"
+            getString(R.string.om_search_scope_sel_format, filesToProcess.size)
         } else {
-            "TODOS los ${filesToProcess.size} archivo(s)"
+            getString(R.string.om_search_scope_all_format, filesToProcess.size)
         }
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Confirmar Reemplazo")
-            .setMessage(
-                "¿Deseas reemplazar '$query' por '$replacement' en $targetScope?\n\n" +
-                "Total de ocurrencias a reemplazar: $totalMatches"
-            )
-            .setPositiveButton("Reemplazar") { _, _ ->
+            .setTitle(R.string.om_search_confirm_replace_title)
+            .setMessage(getString(R.string.om_search_confirm_replace_msg_format, query, replacement, targetScope, totalMatches))
+            .setPositiveButton(R.string.om_search_btn_replace) { _, _ ->
                 executeReplacement(filesToProcess, query, replacement, selectedFilesOnly)
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -318,7 +315,7 @@ class FileTextSearchDialog : DialogFragment() {
 
             Toast.makeText(
                 requireContext(),
-                "¡Reemplazo exitoso!\nModificados ${replaceResult.filesModified} archivos (${replaceResult.totalReplacements} reemplazos)",
+                getString(R.string.om_search_replace_success_format, replaceResult.filesModified, replaceResult.totalReplacements),
                 Toast.LENGTH_LONG
             ).show()
 

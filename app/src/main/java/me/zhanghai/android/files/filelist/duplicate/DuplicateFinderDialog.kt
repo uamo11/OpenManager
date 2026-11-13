@@ -181,13 +181,13 @@ class DuplicateFinderDialog : DialogFragment() {
             layoutResults.visibility = View.VISIBLE
 
             if (result.groups.isEmpty()) {
-                tvResultsSummary.text = "¡No se encontraron archivos duplicados!"
-                tvResultsSub.text = "Se escanearon ${result.totalFilesScanned} archivos en total."
+                tvResultsSummary.text = getString(R.string.om_dup_none_found)
+                tvResultsSub.text = getString(R.string.om_dup_none_sub_format, result.totalFilesScanned)
                 btnDeleteDuplicates.isEnabled = false
                 btnDeleteDuplicates.alpha = 0.5f
             } else {
-                tvResultsSummary.text = "${result.totalDuplicateFilesCount} duplicados encontrados (${result.formattedTotalWastedBytes} recuperables)"
-                tvResultsSub.text = "Se mantendrá 1 copia intacta de cada grupo."
+                tvResultsSummary.text = getString(R.string.om_dup_found_summary_format, result.totalDuplicateFilesCount, result.formattedTotalWastedBytes)
+                tvResultsSub.text = getString(R.string.om_dup_found_sub)
                 btnDeleteDuplicates.isEnabled = true
                 btnDeleteDuplicates.alpha = 1.0f
 
@@ -214,11 +214,11 @@ class DuplicateFinderDialog : DialogFragment() {
             }
         }
         if (markedCount > 0) {
-            btnDeleteDuplicates.text = "Eliminar $markedCount Duplicados (${formatBytes(markedBytes)})"
+            btnDeleteDuplicates.text = getString(R.string.om_dup_delete_count_format, markedCount, formatBytes(markedBytes))
             btnDeleteDuplicates.isEnabled = true
             btnDeleteDuplicates.alpha = 1.0f
         } else {
-            btnDeleteDuplicates.text = "Selecciona duplicados a eliminar"
+            btnDeleteDuplicates.text = getString(R.string.om_dup_select_to_delete)
             btnDeleteDuplicates.isEnabled = false
             btnDeleteDuplicates.alpha = 0.5f
         }
@@ -239,14 +239,14 @@ class DuplicateFinderDialog : DialogFragment() {
         if (toDelete.isEmpty()) return
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Confirmar eliminación")
-            .setMessage("¿Estás seguro de que deseas eliminar permanentemente ${toDelete.size} archivo(s) duplicado(s)?\n\nSe liberarán ${formatBytes(totalBytes)} de almacenamiento.")
-            .setPositiveButton("Eliminar") { _, _ ->
+            .setTitle(R.string.om_dup_confirm_delete_title)
+            .setMessage(getString(R.string.om_dup_confirm_delete_msg_format, toDelete.size, formatBytes(totalBytes)))
+            .setPositiveButton(R.string.delete) { _, _ ->
                 lifecycleScope.launch {
                     val (deleted, freed) = DuplicateFinderEngine.deleteMarkedDuplicates(toDelete, requireContext())
                     Toast.makeText(
                         requireContext(),
-                        "Eliminados $deleted archivo(s). Liberados: ${formatBytes(freed)}",
+                        getString(R.string.om_dup_deleted_toast_format, deleted, formatBytes(freed)),
                         Toast.LENGTH_LONG
                     ).show()
                     onDuplicatesDeleted?.invoke()

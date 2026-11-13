@@ -76,7 +76,7 @@ object ApktoolHelper {
         onComplete: ((Path?) -> Unit)? = null
     ) {
         if (ApktoolExecutionService.isRunning()) {
-            Toast.makeText(activity, "Ya hay una tarea de Apktool en ejecución", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_apktool_already_running, Toast.LENGTH_SHORT).show()
             showProgressDialog(activity)
             return
         }
@@ -84,7 +84,7 @@ object ApktoolHelper {
         val apkFile = try {
             getLocalFileForPath(activity, apkPath, "apktool_")
         } catch (e: Exception) {
-            Toast.makeText(activity, "Error al preparar archivo APK: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, activity.getString(R.string.om_install_prepare_apk_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
             return
         }
 
@@ -115,7 +115,7 @@ object ApktoolHelper {
         onComplete: ((Path?) -> Unit)? = null
     ) {
         if (ApktoolExecutionService.isRunning()) {
-            Toast.makeText(activity, "Ya hay una tarea de Apktool en ejecución", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_apktool_already_running, Toast.LENGTH_SHORT).show()
             showProgressDialog(activity)
             return
         }
@@ -123,7 +123,7 @@ object ApktoolHelper {
         val apkFile = try {
             getLocalFileForPath(activity, apkPath, "jadx_")
         } catch (e: Exception) {
-            Toast.makeText(activity, "Error al preparar archivo APK: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, activity.getString(R.string.om_install_prepare_apk_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
             return
         }
 
@@ -154,7 +154,7 @@ object ApktoolHelper {
         onComplete: ((Path?) -> Unit)? = null
     ) {
         if (ApktoolExecutionService.isRunning()) {
-            Toast.makeText(activity, "Ya hay una tarea de Apktool en ejecución", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_apktool_already_running, Toast.LENGTH_SHORT).show()
             showProgressDialog(activity)
             return
         }
@@ -162,7 +162,7 @@ object ApktoolHelper {
         val projectFile = if (projectDir.isLinuxPath) {
             projectDir.toFile()
         } else {
-            Toast.makeText(activity, "La carpeta del proyecto debe residir en el almacenamiento accesible", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, R.string.om_apktool_project_local_only, Toast.LENGTH_LONG).show()
             return
         }
 
@@ -330,18 +330,18 @@ object ApktoolHelper {
                     } else if (!state.isCancelled && state.errorMessage != null) {
                         val errMsg = state.errorMessage
                         val errorDialogTitle = when (state.taskType) {
-                            ApktoolExecutionService.TASK_TYPE_DECOMPILE_JAVA -> "Error en Descompilador Java (JADX)"
-                            ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK -> "Error al Recompilar APK"
+                            ApktoolExecutionService.TASK_TYPE_DECOMPILE_JAVA -> activity.getString(R.string.om_apktool_jadx_error_title)
+                            ApktoolExecutionService.TASK_TYPE_RECOMPILE_APK -> activity.getString(R.string.om_apktool_recompile_error_title)
                             else -> activity.getString(R.string.apktool_error_title)
                         }
                         MaterialAlertDialogBuilder(activity)
                             .setTitle(errorDialogTitle)
                             .setMessage(errMsg)
                             .setPositiveButton(android.R.string.ok, null)
-                            .setNeutralButton("Copiar") { _, _ ->
+                            .setNeutralButton(R.string.copy) { _, _ ->
                                 val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                                 clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Apktool Error", errMsg))
-                                Toast.makeText(activity, "Error copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(activity, R.string.om_error_copied_clipboard, Toast.LENGTH_SHORT).show()
                             }
                             .show()
                     }
@@ -378,7 +378,7 @@ object ApktoolHelper {
         // 1. Descompilar APK (Apktool)
         view.findViewById<LinearLayout>(R.id.itemDecompileApk).setOnClickListener {
             dialog.dismiss()
-            pickApkInDirectory(activity, currentPath, "Selecciona el APK a descompilar") { selectedApk ->
+            pickApkInDirectory(activity, currentPath, activity.getString(R.string.om_apktool_pick_decompile)) { selectedApk ->
                 decompileApk(activity, selectedApk)
             }
         }
@@ -386,7 +386,7 @@ object ApktoolHelper {
         // 1b. Descompilar APK a Java (JADX)
         view.findViewById<LinearLayout>(R.id.itemDecompileJava).setOnClickListener {
             dialog.dismiss()
-            pickApkInDirectory(activity, currentPath, "Selecciona el APK a descompilar a Java") { selectedApk ->
+            pickApkInDirectory(activity, currentPath, activity.getString(R.string.om_apktool_pick_java)) { selectedApk ->
                 decompileJava(activity, selectedApk)
             }
         }
@@ -397,7 +397,7 @@ object ApktoolHelper {
             if (isApktoolProject(currentPath)) {
                 recompileApk(activity, currentPath)
             } else {
-                pickProjectInDirectory(activity, currentPath, "Selecciona la carpeta de proyecto a recompilar") { selectedProject ->
+                pickProjectInDirectory(activity, currentPath, activity.getString(R.string.om_apktool_pick_recompile)) { selectedProject ->
                     recompileApk(activity, selectedProject)
                 }
             }
@@ -406,7 +406,7 @@ object ApktoolHelper {
         // 3. Firmar APK
         view.findViewById<LinearLayout>(R.id.itemSignApk).setOnClickListener {
             dialog.dismiss()
-            pickApkInDirectory(activity, currentPath, "Selecciona el APK a firmar") { selectedApk ->
+            pickApkInDirectory(activity, currentPath, activity.getString(R.string.om_apktool_pick_sign)) { selectedApk ->
                 ApkSignerHelper.showSignDialog(activity, selectedApk) {
                     (activity as? FileListActivity)?.activeFragment?.reload()
                 }
@@ -416,7 +416,7 @@ object ApktoolHelper {
         // 4. Verificar firma
         view.findViewById<LinearLayout>(R.id.itemVerifySignature).setOnClickListener {
             dialog.dismiss()
-            pickApkInDirectory(activity, currentPath, "Selecciona el APK para verificar firma") { selectedApk ->
+            pickApkInDirectory(activity, currentPath, activity.getString(R.string.om_apktool_pick_verify)) { selectedApk ->
                 ApkSignerHelper.showVerifySignatureDialog(activity, selectedApk)
             }
         }
@@ -452,7 +452,7 @@ object ApktoolHelper {
         }
 
         if (apkList.isEmpty()) {
-            Toast.makeText(activity, "No se encontraron archivos .apk en este directorio:\n${directory.fileName}", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, activity.getString(R.string.om_apktool_no_apks_format, directory.fileName.toString()), Toast.LENGTH_LONG).show()
             return
         }
 
@@ -477,7 +477,7 @@ object ApktoolHelper {
             .setAdapter(adapter) { _, which ->
                 onPicked(apkList[which])
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -503,7 +503,7 @@ object ApktoolHelper {
         }
 
         if (projList.isEmpty()) {
-            Toast.makeText(activity, "No se encontraron carpetas de proyecto Apktool en:\n${directory.fileName}", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, activity.getString(R.string.om_apktool_no_projects_format, directory.fileName.toString()), Toast.LENGTH_LONG).show()
             return
         }
 
@@ -529,7 +529,7 @@ object ApktoolHelper {
             .setAdapter(adapter) { _, which ->
                 onPicked(projList[which])
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 }

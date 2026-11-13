@@ -7,6 +7,8 @@ package me.zhanghai.android.files.fileproperties.checksum
 
 import android.os.AsyncTask
 import java8.nio.file.Path
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.app.application
 import me.zhanghai.android.files.fileproperties.PathObserverLiveData
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.util.Failure
@@ -31,7 +33,7 @@ class ChecksumInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ChecksumI
         value = Loading(value?.value)
         val pathStr = path.toString()
         if (pathStr == "/dev/zero" || pathStr == "/dev/urandom" || pathStr == "/dev/random" || pathStr.startsWith("/dev/pts/")) {
-            value = Failure(valueCompat.value, UnsupportedOperationException("No se admiten sumas de verificación en dispositivos de flujo continuo ($pathStr)"))
+            value = Failure(valueCompat.value, UnsupportedOperationException(application.getString(R.string.om_checksum_stream_unsupported_format, pathStr)))
             return
         }
         future = (AsyncTask.THREAD_POOL_EXECUTOR as ExecutorService).submit<Unit> {

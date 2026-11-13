@@ -53,7 +53,7 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
 
         // 1. Script Identity & Status
         binding.tvAuditTitle.text = getString(R.string.script_audit_title) + " - " + scriptName
-        binding.tvAuditScriptPath.text = path.ifEmpty { "Sesión de terminal interactiva" }
+        binding.tvAuditScriptPath.text = path.ifEmpty { getString(R.string.om_audit_interactive_session) }
 
         val isRunning = ScriptExecutionManager.isRunning()
         if (isRunning) {
@@ -79,16 +79,16 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                     val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(java8.nio.file.Paths.get(path))
                     report = elfReport.toScriptAuditReport()
                     scriptContent = buildString {
-                        appendLine("/* REPORTE DE AUDITORÍA DE BINARIO ELF COMPILADO EN C/C++ */")
-                        appendLine("Arquitectura: ${elfReport.machineArch}")
-                        appendLine("Bitness: ${if (elfReport.is64Bit) "64-bit" else "32-bit"}")
-                        appendLine("PIE (Position Independent Executable): ${if (elfReport.isPie) "Sí (Requerido Android 5.0+)" else "No (Fijo - Posible fallo)"}")
-                        appendLine("Linker / Intérprete: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dinámico" else "Estático"}")
-                        appendLine("Compatibilidad ABI Dispositivo: ${if (elfReport.isAbiCompatible) "Compatible" else "Incompatible"}")
+                        appendLine(getString(R.string.om_audit_elf_header))
+                        appendLine(getString(R.string.om_audit_elf_arch_format, elfReport.machineArch))
+                        appendLine(getString(R.string.om_audit_elf_bitness_format, if (elfReport.is64Bit) "64-bit" else "32-bit"))
+                        appendLine("PIE (Position Independent Executable): ${getString(if (elfReport.isPie) R.string.om_audit_elf_pie_yes else R.string.om_audit_elf_pie_no)}")
+                        appendLine(getString(R.string.om_audit_elf_linker_format, elfReport.interpreter ?: getString(if (elfReport.isDynamic) R.string.om_audit_elf_dynamic else R.string.om_audit_elf_static)))
+                        appendLine(getString(R.string.om_audit_elf_abi_format, getString(if (elfReport.isAbiCompatible) R.string.om_audit_elf_compatible else R.string.om_audit_elf_incompatible)))
                         appendLine()
-                        appendLine("/* SYSCALLS Y SÍMBOLOS DETECTADOS (${elfReport.totalFindings}) */")
+                        appendLine(getString(R.string.om_audit_elf_syscalls_header_format, elfReport.totalFindings))
                         for (f in elfReport.findings) {
-                            appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Riesgo: ${f.risk.levelName})")
+                            appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} ${getString(R.string.om_audit_elf_risk_suffix_format, f.risk.levelName)}")
                         }
                     }
                 } else {
@@ -100,10 +100,17 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                     staticAuditFindings = report.totalFindings
                     binding.cardStaticAudit.visibility = View.VISIBLE
                     if (report.totalFindings > 0) {
-                        binding.tvStaticAuditBadge.text = "${report.totalFindings} RIESGOS"
+                        binding.tvStaticAuditBadge.text = getString(R.string.om_audit_risks_badge_format, report.totalFindings)
                         binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#EF5350"))
                         binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#371B1B"))
-                        staticAuditSummary = "Total: ${report.totalFindings} riesgos (${report.deletions.size} borrados, ${report.rootCalls.size} root, ${report.networkCalls.size} red, ${report.systemPaths.size} sistema)"
+                        staticAuditSummary = getString(
+                            R.string.om_audit_summary_format,
+                            report.totalFindings,
+                            report.deletions.size,
+                            report.rootCalls.size,
+                            report.networkCalls.size,
+                            report.systemPaths.size
+                        )
                         binding.tvStaticAuditDesc.text = getString(
                             R.string.script_audit_static_findings_desc,
                             report.totalFindings,
@@ -135,7 +142,7 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                                 }
                                 if (items.size > 4) {
                                     val tvMore = TextView(context).apply {
-                                        text = "   ... y ${items.size - 4} más (ver en código)"
+                                        text = getString(R.string.om_audit_more_in_code_format, items.size - 4)
                                         textSize = 10f
                                         setTextColor(Color.parseColor("#90A4AE"))
                                     }
@@ -149,12 +156,12 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                         addCat(R.string.script_audit_static_category_network, report.networkCalls, "#80D8FF", "🌐")
                         addCat(R.string.script_audit_static_category_system, report.systemPaths, "#B388FF", "📁")
                     } else {
-                        binding.tvStaticAuditBadge.text = "LIMPIO"
+                        binding.tvStaticAuditBadge.text = getString(R.string.om_audit_clean_badge)
                         binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#81C784"))
                         binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
-                        binding.tvStaticAuditDesc.text = if (isElf) "Binario ELF verificado sin llamadas sensibles detectadas" else getString(R.string.script_audit_static_clean_desc)
+                        binding.tvStaticAuditDesc.text = if (isElf) getString(R.string.om_audit_elf_clean_desc) else getString(R.string.script_audit_static_clean_desc)
                         binding.layoutStaticAuditCategories.removeAllViews()
-                        staticAuditSummary = "Limpio (Sin operaciones de riesgo)"
+                        staticAuditSummary = getString(R.string.om_audit_clean_summary)
                     }
 
                     binding.btnViewAuditCode.setOnClickListener {
@@ -204,41 +211,41 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
         fun refreshAuditData() {
             val stats = BinaryTracerEngine.getStats()
             binding.tvStatDeletionsVal.text = stats.totalDeletions.toString()
-            binding.tvStatDeletionsSub.text = "${stats.blockedDeletions} bloq • ${stats.allowedDeletions} perm"
+            binding.tvStatDeletionsSub.text = getString(R.string.om_audit_del_sub_format, stats.blockedDeletions, stats.allowedDeletions)
 
             binding.tvStatSyscallsVal.text = stats.totalSyscalls.toString()
-            binding.tvStatSyscallsSub.text = if (stats.totalSyscalls > 0) "Monitoreadas" else "Sin ráfagas"
+            binding.tvStatSyscallsSub.text = getString(if (stats.totalSyscalls > 0) R.string.om_audit_syscalls_monitored else R.string.om_audit_syscalls_none)
 
             binding.tvStatKernelVal.text = stats.totalKernelReads.toString()
-            binding.tvStatKernelSub.text = "Consultas /proc"
+            binding.tvStatKernelSub.text = getString(R.string.om_audit_proc_queries)
 
             val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
-            binding.tvStatDeadManVal.text = if (deadManActive) "ACTIVO" else "DESACT."
+            binding.tvStatDeadManVal.text = getString(if (deadManActive) R.string.om_audit_status_active else R.string.om_audit_status_disabled)
             binding.tvStatDeadManVal.setTextColor(if (deadManActive) Color.parseColor("#81C784") else Color.parseColor("#E57373"))
 
             // Update Live Syscall Transparency Card
             val isProcRunning = ScriptExecutionManager.isRunning()
             if (isProcRunning) {
-                binding.tvLiveSyscallStatusBadge.text = "MONITOREANDO"
+                binding.tvLiveSyscallStatusBadge.text = getString(R.string.om_audit_badge_monitoring)
                 binding.tvLiveSyscallStatusBadge.setTextColor(Color.parseColor("#4CAF50"))
                 binding.tvLiveSyscallStatusBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
             } else {
-                binding.tvLiveSyscallStatusBadge.text = if (stats.totalSyscalls > 0) "FINALIZADO" else "EN ESPERA"
+                binding.tvLiveSyscallStatusBadge.text = getString(if (stats.totalSyscalls > 0) R.string.om_audit_badge_finished else R.string.om_audit_badge_waiting)
                 binding.tvLiveSyscallStatusBadge.setTextColor(Color.parseColor("#B0BEC5"))
                 binding.tvLiveSyscallStatusBadge.setBackgroundColor(Color.parseColor("#37474F"))
             }
 
             val active = stats.activeSyscall
             if (active != null) {
-                binding.tvActiveSyscallText.text = "Syscall actual: ${active.name} (#${active.number}) · PID: ${active.pid} [${active.category.displayName}]"
+                binding.tvActiveSyscallText.text = getString(R.string.om_audit_active_syscall_format, active.name, active.number, active.pid, active.category.displayName)
                 binding.tvActiveSyscallText.setTextColor(Color.parseColor(active.risk.colorHex))
             } else {
-                binding.tvActiveSyscallText.text = if (isProcRunning) "Syscall actual: Espacio de usuario / Reposo" else "Syscall actual: Sin proceso activo"
+                binding.tvActiveSyscallText.text = getString(if (isProcRunning) R.string.om_audit_active_syscall_idle else R.string.om_audit_active_syscall_none)
                 binding.tvActiveSyscallText.setTextColor(Color.parseColor("#CFD8DC"))
             }
 
-            binding.tvIoReadCalls.text = "Lecturas (syscr): ${stats.ioReadSyscalls}"
-            binding.tvIoWriteCalls.text = "Escrituras (syscw): ${stats.ioWriteSyscalls}"
+            binding.tvIoReadCalls.text = getString(R.string.om_audit_io_read_format, stats.ioReadSyscalls)
+            binding.tvIoWriteCalls.text = getString(R.string.om_audit_io_write_format, stats.ioWriteSyscalls)
 
             val counters = BinaryTracerEngine.getSyscallCounters()
             binding.layoutSyscallBreakdown.removeAllViews()
@@ -247,7 +254,7 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                 for ((sysName, count) in sortedSyscalls) {
                     val info = SyscallResolver.resolveByName(sysName)
                     val tvRow = TextView(context).apply {
-                        text = "  ${info.category.icon} ${info.name}: $count llamadas (${info.risk.levelName})"
+                        text = getString(R.string.om_audit_syscall_row_format, info.category.icon, info.name, count, info.risk.levelName)
                         textSize = 10f
                         setTypeface(Typeface.MONOSPACE)
                         setTextColor(Color.parseColor(info.risk.colorHex))
@@ -257,7 +264,7 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                 }
             } else {
                 val tvNone = TextView(context).apply {
-                    text = "  (Sin syscalls registradas aún)"
+                    text = getString(R.string.om_audit_no_syscalls_yet)
                     textSize = 10f
                     setTextColor(Color.parseColor("#78909C"))
                 }
@@ -301,16 +308,16 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                         gravity = Gravity.CENTER_VERTICAL
                     }
 
-                    val (typeIcon, typeTitle, typeColor) = when (event.type) {
-                        TraceEventType.DELETION_ATTEMPT -> Triple("🗑️", "Intento de Borrado", "#EF5350")
-                        TraceEventType.SYSCALL_BURST -> Triple("⚡", "Syscalls Masivas", "#64B5F6")
-                        TraceEventType.KERNEL_PROBE -> Triple("🔍", "Lectura de Kernel", "#FFB74D")
-                        TraceEventType.SECURITY_AUDIT -> Triple("🛡️", "Auditoría de Seguridad", "#81C784")
-                        TraceEventType.PROCESS_SPAWN -> Triple("⚙️", "Proceso / Subshell", "#BA68C8")
+                    val (typeIcon, typeTitleRes, typeColor) = when (event.type) {
+                        TraceEventType.DELETION_ATTEMPT -> Triple("🗑️", R.string.om_audit_ev_deletion, "#EF5350")
+                        TraceEventType.SYSCALL_BURST -> Triple("⚡", R.string.om_audit_ev_syscall, "#64B5F6")
+                        TraceEventType.KERNEL_PROBE -> Triple("🔍", R.string.om_audit_ev_kernel, "#FFB74D")
+                        TraceEventType.SECURITY_AUDIT -> Triple("🛡️", R.string.om_audit_ev_security, "#81C784")
+                        TraceEventType.PROCESS_SPAWN -> Triple("⚙️", R.string.om_audit_ev_process, "#BA68C8")
                     }
 
                     val tvType = TextView(context).apply {
-                        text = "$typeIcon $typeTitle"
+                        text = "$typeIcon ${getString(typeTitleRes)}"
                         textSize = 12f
                         setTypeface(null, Typeface.BOLD)
                         setTextColor(Color.parseColor(typeColor))
@@ -350,14 +357,14 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                     // Decision Badge for deletions
                     val dec = event.decision
                     if (event.type == TraceEventType.DELETION_ATTEMPT && dec != null) {
-                        val (badgeText, badgeBg, badgeFg) = when (dec) {
-                            DeletionDecision.BLOCKED -> Triple("BLOQUEADO", "#B71C1C", "#FFCDD2")
-                            DeletionDecision.ALLOWED -> Triple("PERMITIDO", "#1B5E20", "#C8E6C9")
-                            DeletionDecision.PENDING -> Triple("PENDIENTE", "#E65100", "#FFE0B2")
+                        val (badgeRes, badgeBg, badgeFg) = when (dec) {
+                            DeletionDecision.BLOCKED -> Triple(R.string.om_audit_dec_blocked, "#B71C1C", "#FFCDD2")
+                            DeletionDecision.ALLOWED -> Triple(R.string.om_audit_dec_allowed, "#1B5E20", "#C8E6C9")
+                            DeletionDecision.PENDING -> Triple(R.string.om_audit_dec_pending, "#E65100", "#FFE0B2")
                         }
 
                         val tvBadge = TextView(context).apply {
-                            text = badgeText
+                            text = getString(badgeRes)
                             textSize = 10f
                             setTypeface(null, Typeface.BOLD)
                             setTextColor(Color.parseColor(badgeFg))

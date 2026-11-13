@@ -7,6 +7,8 @@ package me.zhanghai.android.files.fileproperties.script
 
 import android.os.AsyncTask
 import java8.nio.file.Path
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.app.application
 import me.zhanghai.android.files.fileproperties.PathObserverLiveData
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
@@ -43,13 +45,17 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
         val isElf = me.zhanghai.android.files.filelist.ScriptRunnerHelper.isElfBinary(path)
         if (isElf) {
             val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(path)
-            val scriptType = "Binario ELF Compilado (${elfReport.machineArch})"
-            val interpreter = elfReport.interpreter ?: if (elfReport.isDynamic) "ELF Dinámico" else "ELF Estático"
-            val lineEndingDesc = if (elfReport.isPie) "Formato Nativo PIE (Compatible Android 5.0+)" else "Formato Fijo Non-PIE ⚠️"
+            val scriptType = application.getString(R.string.om_script_elf_compiled_format, elfReport.machineArch)
+            val interpreter = elfReport.interpreter ?: application.getString(
+                if (elfReport.isDynamic) R.string.om_prop_elf_dynamic else R.string.om_prop_elf_static
+            )
+            val lineEndingDesc = application.getString(
+                if (elfReport.isPie) R.string.om_script_elf_pie_ok else R.string.om_script_elf_non_pie
+            )
             val recommendedEnvironment = when {
-                !elfReport.isAbiCompatible -> "Incompatible con ABI del dispositivo"
-                elfReport.rootCalls.isNotEmpty() -> "Entorno Root (Superusuario)"
-                else -> "Nativo / Termex"
+                !elfReport.isAbiCompatible -> application.getString(R.string.om_script_env_abi_incompatible)
+                elfReport.rootCalls.isNotEmpty() -> application.getString(R.string.om_script_env_root)
+                else -> application.getString(R.string.om_script_env_native)
             }
             return ScriptInfo(
                 scriptType = scriptType,
@@ -60,8 +66,8 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
                 lineCount = elfReport.findings.size,
                 wordCount = elfReport.totalFindings,
                 charCount = runCatching { java8.nio.file.Files.size(path) }.getOrDefault(0L),
-                charset = "ELF Binario (${if (elfReport.is64Bit) "64-bit" else "32-bit"})",
-                posixPermissions = "Binario Nativo Ejecutable",
+                charset = application.getString(R.string.om_script_elf_charset_format, if (elfReport.is64Bit) "64-bit" else "32-bit"),
+                posixPermissions = application.getString(R.string.om_script_native_executable),
                 isExecutable = true,
                 recommendedEnvironment = recommendedEnvironment,
                 auditReport = elfReport.toScriptAuditReport()
@@ -153,13 +159,15 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
             else -> ScriptInfo.LineEnding.LF
         }
 
-        val lineEndingDesc = when (lineEnding) {
-            ScriptInfo.LineEnding.LF -> "Unix (LF) · Formato correcto para Linux/Android"
-            ScriptInfo.LineEnding.CRLF -> "Windows (CRLF) ⚠️ Puede fallar en Android (Tocar para convertir a LF)"
-            ScriptInfo.LineEnding.CR -> "Classic Mac (CR) ⚠️ Formato no estándar"
-            ScriptInfo.LineEnding.MIXED -> "Mixto (LF + CRLF) ⚠️ Se recomienda normalizar a LF"
-            ScriptInfo.LineEnding.EMPTY -> "Archivo vacío"
-        }
+        val lineEndingDesc = application.getString(
+            when (lineEnding) {
+                ScriptInfo.LineEnding.LF -> R.string.om_script_le_lf
+                ScriptInfo.LineEnding.CRLF -> R.string.om_script_le_crlf
+                ScriptInfo.LineEnding.CR -> R.string.om_script_le_cr
+                ScriptInfo.LineEnding.MIXED -> R.string.om_script_le_mixed
+                ScriptInfo.LineEnding.EMPTY -> R.string.om_script_le_empty
+            }
+        )
 
         val fileName = try { path.fileName.toString().lowercase() } catch (_: Throwable) { "" }
         val ext = fileName.substringAfterLast('.', "")
@@ -184,30 +192,32 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
             else -> "/system/bin/sh"
         }
 
-        val scriptType = when {
-            shebang?.contains("bash", ignoreCase = true) == true || ext == "bash" ->
-                "Script Bash (Bourne-Again SHell)"
-            shebang?.contains("zsh", ignoreCase = true) == true || ext == "zsh" ->
-                "Script Zsh (Z Shell)"
-            shebang?.contains("python", ignoreCase = true) == true || ext in listOf("py", "pyw") ->
-                "Script Python"
-            shebang?.contains("node", ignoreCase = true) == true || ext in listOf("js", "mjs") ->
-                "Script Node.js / JavaScript"
-            shebang?.contains("lua", ignoreCase = true) == true || ext == "lua" ->
-                "Script Lua"
-            shebang?.contains("ruby", ignoreCase = true) == true || ext == "rb" ->
-                "Script Ruby"
-            shebang?.contains("perl", ignoreCase = true) == true || ext == "pl" ->
-                "Script Perl"
-            shebang?.contains("php", ignoreCase = true) == true || ext == "php" ->
-                "Script PHP"
-            ext == "rc" ->
-                "Script de Inicio (Android Init RC)"
-            ext in listOf("bat", "cmd") ->
-                "Script de Lote Windows (Batch)"
-            else ->
-                "Script Shell POSIX (/system/bin/sh)"
-        }
+        val scriptType = application.getString(
+            when {
+                shebang?.contains("bash", ignoreCase = true) == true || ext == "bash" ->
+                    R.string.om_script_type_bash
+                shebang?.contains("zsh", ignoreCase = true) == true || ext == "zsh" ->
+                    R.string.om_script_type_zsh
+                shebang?.contains("python", ignoreCase = true) == true || ext in listOf("py", "pyw") ->
+                    R.string.om_script_type_python
+                shebang?.contains("node", ignoreCase = true) == true || ext in listOf("js", "mjs") ->
+                    R.string.om_script_type_node
+                shebang?.contains("lua", ignoreCase = true) == true || ext == "lua" ->
+                    R.string.om_script_type_lua
+                shebang?.contains("ruby", ignoreCase = true) == true || ext == "rb" ->
+                    R.string.om_script_type_ruby
+                shebang?.contains("perl", ignoreCase = true) == true || ext == "pl" ->
+                    R.string.om_script_type_perl
+                shebang?.contains("php", ignoreCase = true) == true || ext == "php" ->
+                    R.string.om_script_type_php
+                ext == "rc" ->
+                    R.string.om_script_type_rc
+                ext in listOf("bat", "cmd") ->
+                    R.string.om_script_type_batch
+                else ->
+                    R.string.om_script_type_posix
+            }
+        )
 
         var posixModeStr: String? = null
         var isExecutable = false
@@ -236,21 +246,23 @@ class ScriptInfoLiveData(path: Path) : PathObserverLiveData<Stateful<ScriptInfo>
 
         val permissionsFormatted = when {
             posixModeStr != null -> {
-                val execTag = if (isExecutable) " [Ejecutable]" else " [No ejecutable]"
+                val execTag = application.getString(if (isExecutable) R.string.om_script_perm_exec_tag else R.string.om_script_perm_nonexec_tag)
                 "$posixModeStr$execTag"
             }
-            isExecutable -> "Ejecutable (Permiso +x detectado)"
-            else -> "Lectura y escritura (Sin permiso de ejecución)"
+            isExecutable -> application.getString(R.string.om_script_perm_exec)
+            else -> application.getString(R.string.om_script_perm_rw)
         }
 
-        val recommendedEnvironment = when {
-            shebang?.contains("su", ignoreCase = true) == true || path.toString().startsWith("/data/adb") ->
-                "Entorno Root (Superusuario)"
-            ext in listOf("py", "pyw", "js", "lua", "rb", "pl") ->
-                "Entorno de extensión Termex / Chroot"
-            else ->
-                "Shell nativo de Android (/system/bin/sh)"
-        }
+        val recommendedEnvironment = application.getString(
+            when {
+                shebang?.contains("su", ignoreCase = true) == true || path.toString().startsWith("/data/adb") ->
+                    R.string.om_script_env_root
+                ext in listOf("py", "pyw", "js", "lua", "rb", "pl") ->
+                    R.string.om_script_env_termex
+                else ->
+                    R.string.om_script_env_android_sh
+            }
+        )
 
         val auditReport = try {
             path.newInputStream().use { stream ->

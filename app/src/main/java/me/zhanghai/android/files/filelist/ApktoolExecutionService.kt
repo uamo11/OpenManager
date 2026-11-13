@@ -98,7 +98,7 @@ class ApktoolExecutionService : Service() {
             packageName = packageName,
             inputPath = inputPathStr,
             outputPath = outputPathStr,
-            status = "Iniciando operación...",
+            status = getString(R.string.om_apktool_starting_op),
             detail = "",
             progress = 0,
             isIndeterminate = true,
@@ -110,7 +110,7 @@ class ApktoolExecutionService : Service() {
 
         val initialNotification = buildProgressNotification(
             title = "$displayTitle: $packageName",
-            text = "Iniciando operación...",
+            text = getString(R.string.om_apktool_starting_op),
             progress = 0,
             indeterminate = true,
             outputPath = outputPathStr
@@ -153,10 +153,10 @@ class ApktoolExecutionService : Service() {
                 val detail = rootCause.localizedMessage ?: rootCause.message ?: t.localizedMessage ?: t.message
                 val simpleName = rootCause.javaClass.simpleName
                 val userFriendlyHint = when {
-                    rootCause is java.lang.UnsupportedOperationException -> "Operación no soportada por el sistema o formato incompatible"
-                    rootCause is java.io.FileNotFoundException -> "Archivo o directorio no encontrado"
-                    rootCause is java.util.zip.ZipException -> "Archivo APK corrupto o protegido con compresión incompatible"
-                    rootCause is java.lang.OutOfMemoryError -> "Memoria insuficiente para procesar la aplicación"
+                    rootCause is java.lang.UnsupportedOperationException -> getString(R.string.om_apktool_err_unsupported)
+                    rootCause is java.io.FileNotFoundException -> getString(R.string.om_apktool_err_not_found)
+                    rootCause is java.util.zip.ZipException -> getString(R.string.om_apktool_err_zip)
+                    rootCause is java.lang.OutOfMemoryError -> getString(R.string.om_apktool_err_oom)
                     else -> null
                 }
                 errorMsg = if (userFriendlyHint != null) {
@@ -204,8 +204,8 @@ class ApktoolExecutionService : Service() {
                 } else {
                     _taskState.value = _taskState.value?.copy(
                         isRunning = false,
-                        errorMessage = errorMsg ?: "Error en la ejecución de Apktool",
-                        status = "Error al completar la tarea"
+                        errorMessage = errorMsg ?: getString(R.string.om_apktool_err_generic),
+                        status = getString(R.string.om_apktool_err_status)
                     )
                     NotificationManagerCompat.from(this@ApktoolExecutionService).cancel(NotificationIds.APKTOOL)
                 }
@@ -242,7 +242,7 @@ class ApktoolExecutionService : Service() {
         val inputFile = File(inputApkPathStr)
         val outputDir = File(outputDirStr)
 
-        updateNotificationAndState("Inicializando motor JADX...", "", -1, true)
+        updateNotificationAndState(getString(R.string.om_apktool_jadx_init), "", -1, true)
 
         JadxDecompilerEngine.decompileToDirectory(
             inputFile = inputFile,
@@ -253,7 +253,7 @@ class ApktoolExecutionService : Service() {
                 val simpleName = currentClass.substringAfterLast('.')
                 if (current % 10 == 0 || current == total) {
                     updateNotificationAndState(
-                        "Descompilando clases Java ($pct%)",
+                        getString(R.string.om_apktool_jadx_progress_format, pct),
                         "$current/$total: $simpleName.java",
                         pct,
                         false
@@ -369,8 +369,8 @@ class ApktoolExecutionService : Service() {
         val completedNotification = NotificationCompat.Builder(this, "apktool_operations")
             .setColor(ContextCompat.getColor(this, R.color.color_primary))
             .setSmallIcon(R.drawable.ic_apktool_notification)
-            .setContentTitle("$title completado")
-            .setContentText("Guardado en: $outputPath")
+            .setContentTitle(getString(R.string.om_apktool_notif_completed_format, title))
+            .setContentText(getString(R.string.om_apktool_notif_saved_format, outputPath))
             .setContentIntent(pClick)
             .setAutoCancel(true)
             .setOngoing(false)
