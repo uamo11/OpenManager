@@ -95,21 +95,21 @@ object ScriptRunnerHelper {
                 Regex("""\b(rm|rmdir|unlink|truncate|shred|wipe|toybox\s+rm|busybox\s+rm)\b""").containsMatchIn(it)
             }
             if (hasDeletion) {
-                deletions.add("Línea $lineNum: $line")
+                deletions.add("Line $lineNum: $line")
             }
 
             val hasBlockOrFormat = targetsToCheck.any {
                 Regex("""\bdd\s+.*of=|\b(mkfs|mke2fs|fdisk|sfdisk|blkdiscard|wipefs|make_ext4fs)\b""").containsMatchIn(it)
             }
             if (hasBlockOrFormat) {
-                deletions.add("Línea $lineNum (formateo/bloque): $line")
+                deletions.add("Line $lineNum (format/block): $line")
             }
 
             val hasRoot = targetsToCheck.any {
                 Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root)\b""").containsMatchIn(it)
             }
             if (hasRoot) {
-                rootCalls.add("Línea $lineNum: $line")
+                rootCalls.add("Line $lineNum: $line")
             }
 
             val hasNetwork = targetsToCheck.any {
@@ -117,14 +117,14 @@ object ScriptRunnerHelper {
                     it.contains("/dev/tcp") || it.contains("/dev/udp")
             }
             if (hasNetwork) {
-                networkCalls.add("Línea $lineNum: $line")
+                networkCalls.add("Line $lineNum: $line")
             }
 
             val hasSystemOrSymlink = targetsToCheck.any {
                 Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+uninstall|\breboot|\bsys_reboot|\bshutdown|\bpoweroff|\bhalt|\bchroot\b|\bpivot_root\b|\bmount\s+.*remount|\bln\s+(-[a-zA-Z0-9_-]+\s+)*.*)""").containsMatchIn(it)
             }
             if (hasSystemOrSymlink) {
-                systemPaths.add("Línea $lineNum: $line")
+                systemPaths.add("Line $lineNum: $line")
             }
         }
 
@@ -150,9 +150,9 @@ object ScriptRunnerHelper {
             textSize = 15f
             setTextColor(Color.WHITE)
             text = if (report.totalFindings == 0) {
-                "✅ Este script no contiene llamadas de red, eliminaciones forzadas ni accesos a particiones de sistema."
+                activity.getString(R.string.om_script_runner_audit_safe)
             } else {
-                "⚠️ Se han detectado ${report.totalFindings} operaciones que requieren atención antes de ejecutar:"
+                activity.getString(R.string.om_script_runner_audit_attention_format, report.totalFindings)
             }
         }
         container.addView(tvSummary)
@@ -189,13 +189,13 @@ object ScriptRunnerHelper {
             }
         }
 
-        addSection("🗑️ Eliminaciones / Modificaciones (${report.deletions.size})", report.deletions, "#FF8A80")
-        addSection("⚡ Acceso de Superusuario / Root (${report.rootCalls.size})", report.rootCalls, "#FFD54F")
-        addSection("🌐 Conexiones de Red / Descargas (${report.networkCalls.size})", report.networkCalls, "#80D8FF")
-        addSection("📁 Rutas Críticas de Sistema (${report.systemPaths.size})", report.systemPaths, "#B388FF")
+        addSection(activity.getString(R.string.om_script_runner_section_deletions_format, report.deletions.size), report.deletions, "#FF8A80")
+        addSection(activity.getString(R.string.om_script_runner_section_root_format, report.rootCalls.size), report.rootCalls, "#FFD54F")
+        addSection(activity.getString(R.string.om_script_runner_section_network_format, report.networkCalls.size), report.networkCalls, "#80D8FF")
+        addSection(activity.getString(R.string.om_script_runner_section_system_format, report.systemPaths.size), report.systemPaths, "#B388FF")
 
         val btnViewCode = Button(activity).apply {
-            text = "Ver Código Completo con Líneas Advertidas"
+            text = activity.getString(R.string.om_script_runner_view_full_code)
             setTextColor(Color.parseColor("#64B5F6"))
             setBackgroundColor(Color.TRANSPARENT)
             val lp = LinearLayout.LayoutParams(
@@ -211,7 +211,7 @@ object ScriptRunnerHelper {
         container.addView(btnViewCode)
 
         val btnTracerPolicy = Button(activity).apply {
-            text = "Políticas de Rastreo y Telemetría"
+            text = activity.getString(R.string.om_script_runner_tracer_policy)
             setTextColor(Color.parseColor("#FFB74D"))
             setBackgroundColor(Color.TRANSPARENT)
             val lp = LinearLayout.LayoutParams(
@@ -230,12 +230,12 @@ object ScriptRunnerHelper {
         container.addView(btnTracerPolicy)
 
         val builder = MaterialAlertDialogBuilder(activity)
-            .setTitle("Auditoría de Seguridad")
+            .setTitle(R.string.om_script_runner_audit_title)
             .setView(scroll)
             .setPositiveButton(android.R.string.ok, null)
 
         if (onExecuteDirect != null) {
-            builder.setNeutralButton("Ejecutar Script") { _, _ ->
+            builder.setNeutralButton(R.string.om_script_runner_run_script) { _, _ ->
                 onExecuteDirect()
             }
         }
@@ -261,7 +261,7 @@ object ScriptRunnerHelper {
         report?.let { r ->
             val allFindings = r.deletions + r.rootCalls + r.networkCalls + r.systemPaths
             for (f in allFindings) {
-                val match = Regex("""Línea\s+(\d+)""").find(f)
+                val match = Regex("""(?:Line|Línea)\s+(\d+)""").find(f)
                 match?.groupValues?.get(1)?.toIntOrNull()?.let { flaggedLines.add(it) }
             }
         }
@@ -294,7 +294,7 @@ object ScriptRunnerHelper {
         container.addView(tvCode)
 
         val btnCopy = Button(activity).apply {
-            text = "Copiar Código al Portapapeles"
+            text = activity.getString(R.string.om_script_runner_copy_code)
             setTextColor(Color.parseColor("#64B5F6"))
             setBackgroundColor(Color.TRANSPARENT)
             val lp = LinearLayout.LayoutParams(
@@ -306,13 +306,13 @@ object ScriptRunnerHelper {
             setOnClickListener {
                 val cm = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 cm?.setPrimaryClip(ClipData.newPlainText("Script Content", content))
-                Toast.makeText(activity, "Código copiado al portapapeles", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, R.string.om_script_runner_code_copied, Toast.LENGTH_SHORT).show()
             }
         }
         container.addView(btnCopy)
         scroll.addView(container)
 
-        val displayTitle = title + if (flaggedLines.isNotEmpty()) " (${flaggedLines.size} líneas advertidas)" else ""
+        val displayTitle = title + if (flaggedLines.isNotEmpty()) activity.getString(R.string.om_script_runner_flagged_lines_suffix_format, flaggedLines.size) else ""
         MaterialAlertDialogBuilder(activity)
             .setTitle(displayTitle)
             .setView(scroll)
@@ -337,22 +337,24 @@ object ScriptRunnerHelper {
         onProceed: () -> Unit
     ) {
         val summaryItems = mutableListOf<String>()
-        if (report.deletions.isNotEmpty()) summaryItems.add("🗑️ Borrado de archivos / directorios (${report.deletions.size})")
-        if (report.rootCalls.isNotEmpty()) summaryItems.add("⚡ Comandos de Superusuario (${report.rootCalls.size})")
-        if (report.networkCalls.isNotEmpty()) summaryItems.add("🌐 Conexiones de red externas (${report.networkCalls.size})")
-        if (report.systemPaths.isNotEmpty()) summaryItems.add("📁 Accesos a particiones de sistema (${report.systemPaths.size})")
+        if (report.deletions.isNotEmpty()) summaryItems.add(activity.getString(R.string.om_script_runner_pre_deletions_format, report.deletions.size))
+        if (report.rootCalls.isNotEmpty()) summaryItems.add(activity.getString(R.string.om_script_runner_pre_root_format, report.rootCalls.size))
+        if (report.networkCalls.isNotEmpty()) summaryItems.add(activity.getString(R.string.om_script_runner_pre_network_format, report.networkCalls.size))
+        if (report.systemPaths.isNotEmpty()) summaryItems.add(activity.getString(R.string.om_script_runner_pre_system_format, report.systemPaths.size))
 
-        val message = "Se han detectado ${report.totalFindings} operaciones de riesgo en este script antes de su ejecución:\n\n" +
-            summaryItems.joinToString("\n") +
-            "\n\n¿Deseas auditar las líneas de código o continuar con la ejecución?"
+        val message = activity.getString(
+            R.string.om_script_runner_pre_message_format,
+            report.totalFindings,
+            summaryItems.joinToString("\n")
+        )
 
         MaterialAlertDialogBuilder(activity)
-            .setTitle("⚠️ Auditoría de Seguridad Previa")
+            .setTitle(R.string.om_script_runner_pre_title)
             .setMessage(message)
-            .setPositiveButton("Ejecutar") { _, _ ->
+            .setPositiveButton(R.string.om_script_runner_execute) { _, _ ->
                 onProceed()
             }
-            .setNegativeButton("Auditar Líneas") { _, _ ->
+            .setNegativeButton(R.string.om_script_runner_audit_lines) { _, _ ->
                 showScriptAuditDetailsDialog(activity, path, report, scriptContent, onExecuteDirect = onProceed)
             }
             .setNeutralButton(android.R.string.cancel, null)
@@ -538,18 +540,18 @@ object ScriptRunnerHelper {
 
         ivIcon.setImageResource(R.drawable.file_sh_icon)
         tvTitle.text = fileName
-        tvSubtitle.text = if (isElf) "Binario Ejecutable ELF" else "Script Ejecutable (/system/bin/sh)"
+        tvSubtitle.text = activity.getString(if (isElf) R.string.om_script_runner_subtitle_elf else R.string.om_script_runner_subtitle_sh)
 
         fun copyText(label: String, value: CharSequence?) {
             val str = value?.toString() ?: return
             if (str.isNotBlank() && str != "-") {
                 val cb = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 cb?.setPrimaryClip(ClipData.newPlainText(label, str))
-                Toast.makeText(activity, "$label copiado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, activity.getString(R.string.om_script_runner_copied_label_format, label), Toast.LENGTH_SHORT).show()
             }
         }
 
-        tvTitle.setOnClickListener { copyText("Nombre", tvTitle.text) }
+        tvTitle.setOnClickListener { copyText(activity.getString(R.string.om_script_runner_label_name), tvTitle.text) }
 
         val density = activity.resources.displayMetrics.density
         fun addRow(
@@ -606,7 +608,7 @@ object ScriptRunnerHelper {
         } catch (_: Throwable) {
             path.toString()
         }
-        addRow("Ruta", fullPathStr, singleLineMiddle = true)
+        addRow(activity.getString(R.string.om_script_runner_label_path), fullPathStr, singleLineMiddle = true)
 
         val localFile = try {
             if (path.isLinuxPath) path.toFile() else File(path.toString())
@@ -624,7 +626,7 @@ object ScriptRunnerHelper {
         } catch (_: Throwable) {
             "$byteSize B"
         }
-        val (_, tvSizeVal) = addRow("Tamaño", formattedSize)
+        val (_, tvSizeVal) = addRow(activity.getString(R.string.om_script_runner_label_size), formattedSize)
 
         val lastModMillis = try {
             fileItem?.attributes?.lastModifiedTime()?.toMillis()
@@ -638,12 +640,12 @@ object ScriptRunnerHelper {
         } else {
             "-"
         }
-        addRow("Modificado", dateStr)
+        addRow(activity.getString(R.string.om_script_runner_label_modified), dateStr)
 
         // Interactive Permissions Row ("Permisos: 777 (rwxrwxrwx)")
         val permInfo = MtPermissionsHelper.getPermissions(activity, path, fileItem)
         addRow(
-            label = "Permisos",
+            label = activity.getString(R.string.om_script_runner_label_permissions),
             initialValue = "${permInfo.displayString}  ✎",
             valueColor = Color.parseColor("#64B5F6"),
             boldValue = true
@@ -663,46 +665,60 @@ object ScriptRunnerHelper {
             } else {
                 permInfo.ownerDisplay
             }
-            addRow("Propietario", ownerGroup)
+            addRow(activity.getString(R.string.om_script_runner_label_owner), ownerGroup)
         }
 
-        val (_, tvInterpreter) = addRow("Intérprete", if (isElf) "ELF Nativo" else "/system/bin/sh")
-        val (rowLineEnding, tvLineEnding) = addRow("Formato línea", if (isElf) "Binario" else "Analizando...")
-        val (rowLines, tvLines) = addRow("Contenido", if (isElf) "Ejecutable compilado" else "Analizando...")
-        val (rowAudit, tvAudit) = addRow("Auditoría", if (isElf) "Analizando seguridad ELF..." else "Analizando seguridad...", valueColor = Color.parseColor("#90CAF9"), boldValue = true)
+        val (_, tvInterpreter) = addRow(
+            activity.getString(R.string.om_script_runner_label_interpreter),
+            if (isElf) activity.getString(R.string.om_script_runner_interpreter_elf) else "/system/bin/sh"
+        )
+        val (rowLineEnding, tvLineEnding) = addRow(
+            activity.getString(R.string.om_script_runner_label_line_format),
+            activity.getString(if (isElf) R.string.om_script_runner_value_binary else R.string.om_script_runner_value_analyzing)
+        )
+        val (rowLines, tvLines) = addRow(
+            activity.getString(R.string.om_script_runner_label_content),
+            activity.getString(if (isElf) R.string.om_script_runner_value_compiled_exec else R.string.om_script_runner_value_analyzing)
+        )
+        val (rowAudit, tvAudit) = addRow(
+            activity.getString(R.string.om_script_runner_label_audit),
+            activity.getString(if (isElf) R.string.om_script_runner_audit_analyzing_elf else R.string.om_script_runner_audit_analyzing_script),
+            valueColor = Color.parseColor("#90CAF9"),
+            boldValue = true
+        )
         if (isElf) {
             rowLineEnding.visibility = View.GONE
             CoroutineScope(Dispatchers.IO).launch {
                 val elfReport = ElfInspector.inspect(path)
                 val scriptReport = elfReport.toScriptAuditReport()
                 val summaryText = buildString {
-                    appendLine("/* REPORTE DE AUDITORÍA DE BINARIO ELF COMPILADO EN C/C++ */")
-                    appendLine("Arquitectura: ${elfReport.machineArch}")
+                    appendLine("/* C/C++ COMPILED ELF BINARY AUDIT REPORT */")
+                    appendLine("Architecture: ${elfReport.machineArch}")
                     appendLine("Bitness: ${if (elfReport.is64Bit) "64-bit" else "32-bit"}")
                     appendLine("Endianness: ${if (elfReport.isLittleEndian) "Little-Endian (LSB)" else "Big-Endian (MSB)"}")
-                    appendLine("PIE (Position Independent): ${if (elfReport.isPie) "Sí (Compatible Android 5.0+)" else "No (Fijo - Posible fallo en Android)"}")
-                    appendLine("Linker / Intérprete: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dinámico" else "Estático"}")
-                    appendLine("Compatibilidad ABI: ${if (elfReport.isAbiCompatible) "Compatible con este dispositivo" else "Incompatible"}")
+                    appendLine("PIE (Position Independent): ${if (elfReport.isPie) "Yes (Android 5.0+ Compatible)" else "No (Fixed - May fail on Android)"}")
+                    appendLine("Linker / Interpreter: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dynamic" else "Static"}")
+                    appendLine("ABI Compatibility: ${if (elfReport.isAbiCompatible) "Compatible with this device" else "Incompatible"}")
                     appendLine()
-                    appendLine("/* SYSCALLS Y SÍMBOLOS DETECTADOS (${elfReport.totalFindings}) */")
+                    appendLine("/* DETECTED SYSCALLS & SYMBOLS (${elfReport.totalFindings}) */")
                     for (f in elfReport.findings) {
-                        appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Riesgo: ${f.risk.levelName})")
+                        appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Risk: ${f.risk.levelName})")
                     }
                 }
                 withContext(Dispatchers.Main) {
                     currentAuditReport = scriptReport
                     currentScriptText = summaryText
 
-                    tvInterpreter.text = elfReport.interpreter ?: if (elfReport.isDynamic) "ELF Dinámico" else "ELF Estático"
-                    tvSubtitle.text = "Binario ELF (${elfReport.machineArch})"
+                    tvInterpreter.text = elfReport.interpreter ?: activity.getString(if (elfReport.isDynamic) R.string.om_script_runner_elf_dynamic else R.string.om_script_runner_elf_static)
+                    tvSubtitle.text = activity.getString(R.string.om_script_runner_elf_subtitle_format, elfReport.machineArch)
                     tvLines.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
                     rowLines.visibility = View.VISIBLE
 
                     if (elfReport.totalFindings == 0) {
-                        tvAudit.text = "🛡️ Binario Seguro (0 riesgos)  ℹ"
+                        tvAudit.text = activity.getString(R.string.om_script_runner_elf_safe)
                         tvAudit.setTextColor(Color.parseColor("#81C784"))
                     } else {
-                        tvAudit.text = "⚠️ ${elfReport.totalFindings} riesgos detectados  ℹ"
+                        tvAudit.text = activity.getString(R.string.om_script_runner_elf_risks_format, elfReport.totalFindings)
                         tvAudit.setTextColor(Color.parseColor("#FFB74D"))
                     }
 
@@ -763,13 +779,13 @@ object ScriptRunnerHelper {
                         tvInterpreter.text = shebang
                         tvSubtitle.text = "Script (${shebang!!.removePrefix("#!").trim()})"
                     }
-                    tvLines.text = "$lineCount líneas · UTF-8"
+                    tvLines.text = activity.getString(R.string.om_script_runner_lines_utf8_format, lineCount)
 
                     if (auditReport.totalFindings == 0) {
-                        tvAudit.text = "🛡️ Script Seguro (0 avisos)  ℹ"
+                        tvAudit.text = activity.getString(R.string.om_script_runner_script_safe)
                         tvAudit.setTextColor(Color.parseColor("#81C784"))
                     } else {
-                        tvAudit.text = "⚠️ ${auditReport.totalFindings} avisos detectados  ℹ"
+                        tvAudit.text = activity.getString(R.string.om_script_runner_script_warnings_format, auditReport.totalFindings)
                         tvAudit.setTextColor(Color.parseColor("#FFB74D"))
                     }
                     val auditClick = View.OnClickListener {
@@ -782,7 +798,7 @@ object ScriptRunnerHelper {
                     tvAudit.setOnClickListener(auditClick)
 
                     if (hasCrlf) {
-                        tvLineEnding.text = "CRLF (Windows) · Tocar para convertir a LF"
+                        tvLineEnding.text = activity.getString(R.string.om_script_runner_crlf_tap_convert)
                         tvLineEnding.setTextColor(Color.parseColor("#FFB74D"))
                         val convertClick = View.OnClickListener {
                             CoroutineScope(Dispatchers.IO).launch {
@@ -1008,14 +1024,14 @@ object ScriptRunnerHelper {
                     .replace("\r", "\n")
                     .toByteArray(StandardCharsets.UTF_8)
                 Files.write(path, converted)
-                Toast.makeText(activity, "Formato CRLF convertido automáticamente a Unix (LF)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, R.string.om_script_runner_crlf_auto_converted, Toast.LENGTH_SHORT).show()
             }
         } catch (_: Throwable) {}
     }
 
     private fun executeScriptOrBinary(activity: Activity, path: Path) {
         if (path.isArchivePath) {
-            Toast.makeText(activity, "No se puede ejecutar directamente un script dentro de un archivo comprimido. Extráelo primero.", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, R.string.om_script_runner_archive_cannot_run, Toast.LENGTH_LONG).show()
             return
         }
         val fileSize = runCatching {
@@ -1112,7 +1128,7 @@ object ScriptRunnerHelper {
         val isTermex = (env == "termex")
         val isBashUsable = isTermex && TerminalExpansionManager.isBashAvailable(activity)
         if (isTermex && !isBashUsable) {
-            Toast.makeText(activity, "Expansión Termex no disponible, usando shell del sistema", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_script_runner_termex_unavailable, Toast.LENGTH_SHORT).show()
         }
 
         if (isElf) {

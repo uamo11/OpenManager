@@ -54,63 +54,63 @@ object ElfInspector {
 
     private val SENSITIVE_SYMBOLS: Map<String, Triple<SyscallCategory, SyscallRisk, String>> = mapOf(
         // Deletions
-        "unlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Eliminación de archivos (unlink)"),
-        "unlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Eliminación de archivos (unlinkat)"),
-        "rmdir" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Eliminación de directorios (rmdir)"),
-        "remove" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Borrado de archivo/directorio (remove)"),
+        "unlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "File deletion (unlink)"),
+        "unlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "File deletion (unlinkat)"),
+        "rmdir" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "Directory deletion (rmdir)"),
+        "remove" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.CRITICAL, "File/directory deletion (remove)"),
 
         // Symlinks & Path Evasion
-        "symlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.HIGH, "Creación de enlace simbólico (symlink)"),
-        "symlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.HIGH, "Creación de enlace simbólico relativo (symlinkat)"),
-        "readlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.MEDIUM, "Lectura de enlace simbólico (readlink)"),
-        "readlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.MEDIUM, "Lectura de enlace simbólico relativo (readlinkat)"),
+        "symlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.HIGH, "Symbolic link creation (symlink)"),
+        "symlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.HIGH, "Relative symbolic link creation (symlinkat)"),
+        "readlink" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.MEDIUM, "Symbolic link read (readlink)"),
+        "readlinkat" to Triple(SyscallCategory.DELETION_FS, SyscallRisk.MEDIUM, "Relative symbolic link read (readlinkat)"),
 
         // Execution
-        "system" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Ejecución de comando en shell del sistema (system)"),
-        "popen" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Apertura de tubería de proceso (popen)"),
-        "execve" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Sustitución de proceso por nuevo ejecutable (execve)"),
-        "execv" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Ejecución de binario (execv)"),
-        "execl" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Ejecución de binario con lista de argumentos (execl)"),
-        "execvp" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Búsqueda y ejecución en PATH (execvp)"),
-        "posix_spawn" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Creación de nuevo proceso (posix_spawn)"),
-        "fork" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.MEDIUM, "Duplicación de proceso hijo (fork)"),
+        "system" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "System shell command execution (system)"),
+        "popen" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Open process pipe (popen)"),
+        "execve" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Replace process with new executable (execve)"),
+        "execv" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Binary execution (execv)"),
+        "execl" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Binary execution with argument list (execl)"),
+        "execvp" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "PATH lookup and execution (execvp)"),
+        "posix_spawn" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.HIGH, "Spawn new process (posix_spawn)"),
+        "fork" to Triple(SyscallCategory.PROCESS_EXEC, SyscallRisk.MEDIUM, "Fork child process (fork)"),
 
         // Debugging & Injection
-        "ptrace" to Triple(SyscallCategory.DEBUG_PTRACE, SyscallRisk.CRITICAL, "Trazado, control e inyección en procesos (ptrace)"),
-        "process_vm_readv" to Triple(SyscallCategory.DEBUG_PTRACE, SyscallRisk.HIGH, "Lectura de memoria de proceso remoto"),
-        "process_vm_writev" to Triple(SyscallCategory.DEBUG_PTRACE, SyscallRisk.CRITICAL, "Inyección/escritura en memoria de proceso remoto"),
+        "ptrace" to Triple(SyscallCategory.DEBUG_PTRACE, SyscallRisk.CRITICAL, "Process tracing, control, and injection (ptrace)"),
+        "process_vm_readv" to Triple(SyscallCategory.DEBUG_PTRACE, SyscallRisk.HIGH, "Read remote process memory"),
+        "process_vm_writev" to Triple(SyscallCategory.DEBUG_PTRACE, SyscallRisk.CRITICAL, "Inject/write into remote process memory"),
 
         // Network
-        "socket" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Creación de sockets de red"),
-        "connect" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Conexión a servidores/hosts remotos"),
-        "bind" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Enlace de puertos locales"),
-        "listen" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Apertura de socket en modo escucha"),
-        "sendto" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Transmisión de datos UDP/RAW por red"),
-        "recvfrom" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Recepción de datos por red"),
+        "socket" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Create network sockets"),
+        "connect" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Connect to remote servers/hosts"),
+        "bind" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Bind local ports"),
+        "listen" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Open listening socket"),
+        "sendto" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Transmit UDP/RAW network data"),
+        "recvfrom" to Triple(SyscallCategory.NETWORK, SyscallRisk.MEDIUM, "Receive network data"),
 
         // Signals & Termination
-        "kill" to Triple(SyscallCategory.SIGNALING, SyscallRisk.HIGH, "Envío de señales de terminación a procesos (kill)"),
-        "tkill" to Triple(SyscallCategory.SIGNALING, SyscallRisk.HIGH, "Envío de señales a hilos específicos (tkill)"),
-        "tgkill" to Triple(SyscallCategory.SIGNALING, SyscallRisk.HIGH, "Envío de señales a grupos de hilos (tgkill)"),
+        "kill" to Triple(SyscallCategory.SIGNALING, SyscallRisk.HIGH, "Send termination signals to processes (kill)"),
+        "tkill" to Triple(SyscallCategory.SIGNALING, SyscallRisk.HIGH, "Send signals to specific threads (tkill)"),
+        "tgkill" to Triple(SyscallCategory.SIGNALING, SyscallRisk.HIGH, "Send signals to thread groups (tgkill)"),
 
         // Privilege & Identity
-        "setuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Cambio de usuario efectivo/real (posible root)"),
-        "setgid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Cambio de grupo de permisos (setgid)"),
-        "seteuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Cambio de usuario efectivo (seteuid)"),
-        "setresuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Modificación de permisos de usuario (setresuid)"),
-        "capset" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.CRITICAL, "Modificación de capacidades de seguridad Linux"),
+        "setuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Change effective/real user (potential root)"),
+        "setgid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Change permission group (setgid)"),
+        "seteuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Change effective user (seteuid)"),
+        "setresuid" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.HIGH, "Modify user permissions (setresuid)"),
+        "capset" to Triple(SyscallCategory.PRIVILEGE, SyscallRisk.CRITICAL, "Modify Linux security capabilities"),
 
         // System Control & Namespaces
-        "reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Reinicio o apagado del sistema (reboot)"),
-        "sys_reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Syscall de reinicio directo del kernel (sys_reboot)"),
-        "mount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Montaje de sistemas de archivos (mount)"),
-        "umount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Desmontaje de sistemas de archivos (umount)"),
-        "umount2" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Desmontaje forzado de archivos/particiones (umount2)"),
-        "chroot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Cambio de directorio raíz (chroot)"),
-        "pivot_root" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Pivote de sistema de archivos raíz (pivot_root)"),
-        "setns" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Cambio de namespace de procesos (setns)"),
-        "unshare" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Desvinculación de namespaces del sistema (unshare)"),
-        "swapon" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Activación de partición swap")
+        "reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "System reboot or shutdown (reboot)"),
+        "sys_reboot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Direct kernel reboot syscall (sys_reboot)"),
+        "mount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Mount filesystems (mount)"),
+        "umount" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Unmount filesystems (umount)"),
+        "umount2" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Force unmount filesystems/partitions (umount2)"),
+        "chroot" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Change root directory (chroot)"),
+        "pivot_root" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.CRITICAL, "Pivot root filesystem (pivot_root)"),
+        "setns" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Switch process namespace (setns)"),
+        "unshare" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Disassociate system namespaces (unshare)"),
+        "swapon" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Enable swap partition")
     )
 
     fun isElf(path: Path): Boolean {
@@ -199,7 +199,7 @@ object ElfInspector {
             62 -> "x86_64 (64-bit)" to supportedAbis.contains("x86_64")
             183 -> "AArch64 (arm64-v8a 64-bit)" to supportedAbis.contains("arm64-v8a")
             243 -> "RISC-V (64-bit)" to supportedAbis.any { it.contains("riscv") }
-            else -> "Máquina ELF #$machine" to true
+            else -> "ELF Machine #$machine" to true
         }
 
         // Program header parsing for PT_INTERP (type 3)
@@ -288,9 +288,9 @@ object ElfInspector {
         for (dp in dangerousPaths) {
             if (binaryText.contains(dp) && detectedSet.add("PATH:$dp")) {
                 if (dp.contains("su")) {
-                    rootCalls.add("Referencia binario root ($dp)")
+                    rootCalls.add("Root binary reference ($dp)")
                 } else {
-                    systemCalls.add("Referencia a ruta del sistema ($dp)")
+                    systemCalls.add("System path reference ($dp)")
                 }
             }
         }
