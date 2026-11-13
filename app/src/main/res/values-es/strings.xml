@@ -2396,7 +2396,6 @@
     <string name="om_audit_del_sub_format">%1$d bloq • %2$d perm</string>
     <string name="om_audit_syscalls_monitored">Monitoreadas</string>
     <string name="om_audit_syscalls_none">Sin ráfagas</string>
-    <string name="om_audit_proc_queries">Consultas /proc</string>
     <string name="om_audit_status_active">ACTIVO</string>
     <string name="om_audit_status_disabled">DESACT.</string>
     <string name="om_audit_badge_monitoring">MONITOREANDO</string>
@@ -2528,7 +2527,6 @@
     <string name="om_open_plugin_msg_format">Plugin OpenManager / MT-Plugin: %1$s\nIntegración de extensiones y herramientas del sistema.</string>
     <string name="om_sig_calc_error_format">Error al calcular firma: %1$s</string>
     <string name="om_split_apk_access_error">Error al acceder al archivo dividido</string>
-    <string name="om_antisplit_merge_error">Error durante la fusión AntiSplit</string>
     <string name="om_toast_clean_select_one">Selecciona al menos una opción para limpiar</string>
     <string name="om_toast_inject_enter_title">Ingresa el título</string>
     <string name="om_perm_archive_readonly">Los permisos dentro de un archivo comprimido son de sólo lectura</string>

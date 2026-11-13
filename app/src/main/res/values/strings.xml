@@ -2500,7 +2500,6 @@
     <string name="om_audit_del_sub_format">%1$d blocked • %2$d allowed</string>
     <string name="om_audit_syscalls_monitored">Monitored</string>
     <string name="om_audit_syscalls_none">No bursts</string>
-    <string name="om_audit_proc_queries">/proc queries</string>
     <string name="om_audit_status_active">ACTIVE</string>
     <string name="om_audit_status_disabled">DISABLED</string>
     <string name="om_audit_badge_monitoring">MONITORING</string>
@@ -2632,7 +2631,6 @@
     <string name="om_open_plugin_msg_format">OpenManager / MT-Plugin: %1$s\nSystem tools and extensions integration.</string>
     <string name="om_sig_calc_error_format">Error calculating signature: %1$s</string>
     <string name="om_split_apk_access_error">Error accessing split file</string>
-    <string name="om_antisplit_merge_error">Error during AntiSplit merge</string>
     <string name="om_toast_clean_select_one">Select at least one option to clean</string>
     <string name="om_toast_inject_enter_title">Enter the title</string>
     <string name="om_perm_archive_readonly">Permissions inside a compressed archive are read-only</string>
