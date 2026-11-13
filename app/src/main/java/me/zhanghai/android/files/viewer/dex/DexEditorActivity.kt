@@ -153,7 +153,7 @@ class DexEditorActivity : AppActivity() {
 
                     binding.tabLayout.getTabAt(0)?.text = "${getString(R.string.dex_tab_classes)} (${classes.size})"
                     binding.tabLayout.getTabAt(1)?.text = "${getString(R.string.dex_tab_strings)} (${strings.size})"
-                    binding.toolbar.subtitle = "${classes.size} clases  •  ${strings.size} cadenas"
+                    binding.toolbar.subtitle = getString(R.string.om_dex_subtitle_format, classes.size, strings.size)
 
                     binding.progressBar.visibility = View.GONE
                     filterContent()
@@ -162,7 +162,7 @@ class DexEditorActivity : AppActivity() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     binding.progressBar.visibility = View.GONE
-                    Toast.makeText(this@DexEditorActivity, "Error al cargar DEX: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@DexEditorActivity, getString(R.string.om_dex_load_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
             }
         }
@@ -305,13 +305,13 @@ class DexEditorActivity : AppActivity() {
     private fun exportAllJavaSources() {
         val dex = localDexFile ?: return
         if (!dex.exists()) {
-            Toast.makeText(this, "El archivo DEX no existe", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_dex_not_exists, Toast.LENGTH_SHORT).show()
             return
         }
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dex_export_java_sources)
-            .setMessage("¿Deseas descompilar y exportar todas las clases (${allClasses.size}) a código fuente Java (.zip) usando JADX?")
+            .setMessage(getString(R.string.om_dex_export_confirm_format, allClasses.size))
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val baseName = path.fileName.toString().removeSuffix(".dex").removeSuffix(".apk")
                 val parentDir = if (path.isLinuxPath) path.toFile().parentFile ?: cacheDir else cacheDir
@@ -320,7 +320,7 @@ class DexEditorActivity : AppActivity() {
                 binding.progressBar.visibility = View.VISIBLE
                 val progressDialog = MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.dex_decompile_progress)
-                    .setMessage("Iniciando descompilación JADX...")
+                    .setMessage(R.string.om_dex_decompile_starting)
                     .setCancelable(false)
                     .create()
                 progressDialog.show()
@@ -330,7 +330,7 @@ class DexEditorActivity : AppActivity() {
                         JadxDecompilerEngine.decompileToZip(dex, outZip) { current, total, clsName ->
                             if (current % 15 == 0 || current == total) {
                                 lifecycleScope.launch(Dispatchers.Main) {
-                                    progressDialog.setMessage("Descompilando clase $current/$total\n$clsName")
+                                    progressDialog.setMessage(getString(R.string.om_dex_decompile_class_format, current, total, clsName))
                                 }
                             }
                         }
@@ -349,7 +349,7 @@ class DexEditorActivity : AppActivity() {
                         withContext(Dispatchers.Main) {
                             progressDialog.dismiss()
                             binding.progressBar.visibility = View.GONE
-                            Toast.makeText(this@DexEditorActivity, "Error al descompilar: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@DexEditorActivity, getString(R.string.om_dex_decompile_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -360,11 +360,11 @@ class DexEditorActivity : AppActivity() {
 
     private fun saveDex() {
         val dex = localDexFile ?: run {
-            Toast.makeText(this, "No hay archivo cargado", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_dex_no_file_loaded, Toast.LENGTH_SHORT).show()
             return
         }
         if (!dex.exists()) {
-            Toast.makeText(this, "El archivo DEX no existe", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_dex_not_exists, Toast.LENGTH_SHORT).show()
             return
         }
         if (!path.isLinuxPath) {
@@ -377,14 +377,14 @@ class DexEditorActivity : AppActivity() {
                         if (success) {
                             Toast.makeText(this@DexEditorActivity, R.string.dex_save_success, Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(this@DexEditorActivity, "Error al escribir en destino", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@DexEditorActivity, R.string.om_dex_write_dest_error, Toast.LENGTH_LONG).show()
                         }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                     withContext(Dispatchers.Main) {
                         binding.progressBar.visibility = View.GONE
-                        Toast.makeText(this@DexEditorActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        Toast.makeText(this@DexEditorActivity, getString(R.string.om_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                     }
                 }
             }
@@ -425,7 +425,7 @@ class DexEditorActivity : AppActivity() {
 
                 val superName = formatType(item.superclass)
                 val superStr = if (superName.isNotEmpty() && superName != "java.lang.Object") "extends $superName  •  " else ""
-                tvClassDetails.text = "$superStr${item.methodCount} métodos  •  ${item.fieldCount} campos"
+                tvClassDetails.text = getString(R.string.om_dex_class_details_format, superStr, item.methodCount, item.fieldCount)
 
                 root.setOnClickListener { onClick(item) }
                 root.setOnLongClickListener {

@@ -122,27 +122,27 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
             val keyPass = if (samePass) storePass else editKeyPass.text.toString()
 
             if (dirPath.isEmpty()) {
-                Toast.makeText(context, "Ingresa un directorio de destino válido", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_keystore_invalid_dir, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (fileName.isEmpty()) {
-                Toast.makeText(context, "Ingresa el nombre del archivo", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_keystore_invalid_filename, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (!cbFormatJks.isChecked && !cbFormatBks.isChecked && !cbFormatAosp.isChecked) {
-                Toast.makeText(context, "Selecciona al menos un formato de clave", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_keystore_select_format, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (alias.isEmpty()) {
-                Toast.makeText(context, "Ingresa el alias de la clave", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_keystore_invalid_alias, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (storePass.length < 6) {
-                Toast.makeText(context, "La contraseña del KeyStore debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_keystore_pass_min_len, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (!samePass && keyPass.length < 6) {
-                Toast.makeText(context, "La contraseña de la clave debe tener al menos 6 caracteres", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_keystore_keypass_min_len, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -197,7 +197,7 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
                 exception?.let { me.zhanghai.android.files.app.CrashHandler.logHandledException(it, "KeystoreGen") }
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.keystore_error_title)
-                    .setMessage("No se pudo generar la clave:\n${exception?.localizedMessage}")
+                    .setMessage(getString(R.string.om_keystore_gen_error_format, exception?.localizedMessage ?: ""))
                     .setPositiveButton(android.R.string.ok, null)
                     .show()
                 return@launch

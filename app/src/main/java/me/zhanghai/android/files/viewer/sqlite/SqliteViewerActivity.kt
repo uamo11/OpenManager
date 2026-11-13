@@ -82,13 +82,13 @@ class SqliteViewerActivity : AppActivity() {
 
         val path = intent.extraPath
         if (path == null) {
-            Toast.makeText(this, "Ruta no válida", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_sqlite_invalid_path, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
         toolbar.title = path.fileName.toString()
-        toolbar.subtitle = "Base de datos SQLite"
+        toolbar.subtitle = getString(R.string.om_sqlite_subtitle)
 
         btnPrevPage.setOnClickListener {
             if (currentPage > 1) {
@@ -136,7 +136,7 @@ class SqliteViewerActivity : AppActivity() {
                 withContext(Dispatchers.Main) {
                     pbLoading.visibility = View.GONE
                     if (tables.isEmpty()) {
-                        tvEmpty.text = "No se encontraron tablas en la base de datos"
+                        tvEmpty.text = getString(R.string.om_sqlite_no_tables)
                         tvEmpty.visibility = View.VISIBLE
                         return@withContext
                     }
@@ -157,7 +157,7 @@ class SqliteViewerActivity : AppActivity() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     pbLoading.visibility = View.GONE
-                    Toast.makeText(this@SqliteViewerActivity, "Error al abrir SQLite: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this@SqliteViewerActivity, getString(R.string.om_sqlite_open_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                     finish()
                 }
             }
@@ -239,7 +239,7 @@ class SqliteViewerActivity : AppActivity() {
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     pbLoading.visibility = View.GONE
-                    Toast.makeText(this@SqliteViewerActivity, "Error al consultar tabla: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@SqliteViewerActivity, getString(R.string.om_sqlite_query_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -247,8 +247,8 @@ class SqliteViewerActivity : AppActivity() {
 
     private fun renderTableData(data: TablePageData) {
         totalRows = data.totalRows
-        tvTableInfo.text = "${data.totalRows} filas, ${data.columnNames.size} cols"
-        tvPageInfo.text = "Pág. ${data.page} / ${data.totalPages}"
+        tvTableInfo.text = getString(R.string.om_sqlite_table_info_format, data.totalRows, data.columnNames.size)
+        tvPageInfo.text = getString(R.string.om_sqlite_page_info_format, data.page, data.totalPages)
         btnPrevPage.isEnabled = data.page > 1
         btnNextPage.isEnabled = data.page < data.totalPages
 

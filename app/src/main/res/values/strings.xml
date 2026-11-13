@@ -2550,4 +2550,68 @@
     <string name="om_dup_deleted_toast_format">Deleted %1$d file(s). Freed: %2$s</string>
 
     <string name="om_checksum_stream_unsupported_format">Checksums are not supported on continuous stream devices (%1$s)</string>
+    <!-- Batch 2j-2: Terminal, Termex, DexEditor, DexClassEditor, Sqlite, KeystoreGen, FontViewer -->
+    <string name="om_term_zoom_reset_format">Zoom reset (%1$dsp)</string>
+    <string name="om_term_finished_code_format">[Finished (code %1$d)]</string>
+    <string name="om_term_mode_system">System (sh)</string>
+    <string name="om_term_running_subtitle_format">%1$s • Running…</string>
+    <string name="om_term_output_copied">Terminal output copied to clipboard</string>
+    <string name="om_term_no_text_copy">No text on screen to copy</string>
+    <string name="om_term_copy_all_screen">Copy entire screen</string>
+    <string name="om_term_clear_screen">Clear screen (clear)</string>
+    <string name="om_term_switch_root">Switch to Root (su)</string>
+    <string name="om_term_new_clean_session">New clean session</string>
+    <string name="om_term_new_session_started">New session started</string>
+    <string name="om_term_process_terminated">Process terminated</string>
+
+    <string name="om_termex_installer_error_format">Error starting installer: %1$s</string>
+    <string name="om_termex_dialog_desc">The Terminal Expansion Pack provides a full Linux environment with GNU Bash 5.x, coreutils, advanced pipelines, and support for complex scripts.\n\nIt is currently not installed on this device.</string>
+    <string name="om_termex_install_local_format">📦 Install detected APK (%1$s - %2$sMB)</string>
+    <string name="om_termex_download_install">⬇️ Download and install automatically</string>
+    <string name="om_termex_pick_apk">📂 Select APK from storage</string>
+    <string name="om_termex_dialog_title">Terminal Expansion (Termex)</string>
+    <string name="om_termex_pick_chooser">Select Termex APK</string>
+    <string name="om_termex_place_apk_hint">Place termex_v3008_arm64.apk in your Downloads folder</string>
+    <string name="om_termex_connecting">Connecting to server…</string>
+    <string name="om_termex_downloading_title">Downloading Expansion Pack</string>
+    <string name="om_termex_download_failed_format">Could not download automatically: %1$s.\nYou can place termex_v3008_arm64.apk in /sdcard/Download.</string>
+    <string name="om_termex_network_error">Network error</string>
+
+    <string name="om_dex_subtitle_format">%1$d classes  •  %2$d strings</string>
+    <string name="om_dex_load_error_format">Error loading DEX: %1$s</string>
+    <string name="om_dex_not_exists">DEX file does not exist</string>
+    <string name="om_dex_export_confirm_format">Do you want to decompile and export all classes (%1$d) to Java source code (.zip) using JADX?</string>
+    <string name="om_dex_decompile_starting">Starting JADX decompilation…</string>
+    <string name="om_dex_decompile_class_format">Decompiling class %1$d/%2$d\n%3$s</string>
+    <string name="om_dex_decompile_error_format">Error decompiling: %1$s</string>
+    <string name="om_dex_no_file_loaded">No file loaded</string>
+    <string name="om_dex_write_dest_error">Error writing to destination</string>
+    <string name="om_dex_class_details_format">%1$s%2$d methods  •  %3$d fields</string>
+    <string name="om_dex_no_valid_java">No valid Java code to export</string>
+    <string name="om_dex_saved_as_format">Saved as %1$s</string>
+    <string name="om_dex_save_file_error_format">Error saving file: %1$s</string>
+    <string name="om_dex_save_warning_title">Warning while saving</string>
+    <string name="om_dex_save_warning_msg_format">Smali code compiled, but could not sync back to the original file:\n\n%1$s</string>
+
+    <string name="om_sqlite_invalid_path">Invalid path</string>
+    <string name="om_sqlite_subtitle">SQLite Database</string>
+    <string name="om_sqlite_no_tables">No tables found in the database</string>
+    <string name="om_sqlite_open_error_format">Error opening SQLite: %1$s</string>
+    <string name="om_sqlite_query_error_format">Error querying table: %1$s</string>
+    <string name="om_sqlite_table_info_format">%1$d rows, %2$d cols</string>
+    <string name="om_sqlite_page_info_format">Page %1$d / %2$d</string>
+
+    <string name="om_keystore_invalid_dir">Enter a valid destination directory</string>
+    <string name="om_keystore_invalid_filename">Enter the file name</string>
+    <string name="om_keystore_select_format">Select at least one key format</string>
+    <string name="om_keystore_invalid_alias">Enter the key alias</string>
+    <string name="om_keystore_pass_min_len">KeyStore password must be at least 6 characters</string>
+    <string name="om_keystore_keypass_min_len">Key password must be at least 6 characters</string>
+    <string name="om_keystore_gen_error_format">Could not generate key:\n%1$s</string>
+
+    <string name="om_font_sample_paragraph">Sample paragraph (16sp):</string>
+    <string name="om_font_sample_upper">Uppercase Alphabet (20sp):</string>
+    <string name="om_font_sample_lower">Lowercase Alphabet (20sp):</string>
+    <string name="om_font_sample_numbers">Numbers &amp; Symbols (22sp):</string>
+    <string name="om_font_sample_headline">Headline Size (28sp):</string>
 </resources>

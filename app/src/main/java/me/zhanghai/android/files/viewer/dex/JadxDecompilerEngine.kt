@@ -257,7 +257,7 @@ object JadxDecompilerEngine {
             }
             val impl = method.implementation
             if (impl != null) {
-                sb.append("        // Registros: ").append(impl.registerCount).append("\n")
+                sb.append("        // Registers: ").append(impl.registerCount).append("\n")
                 for (insn in impl.instructions.take(80)) {
                     sb.append("        // ").append(insn.opcode.name).append("\n")
                 }
@@ -329,9 +329,9 @@ object JadxDecompilerEngine {
                     }
                 } catch (_: Throwable) {}
             }
-            "// No se encontró la clase '$targetName' en ${inputFile.name}\n"
+            "// Class '$targetName' not found in ${inputFile.name}\n"
         } catch (e: Throwable) {
-            "// Excepción durante la descompilación: ${e.message ?: e.javaClass.simpleName}\n"
+            "// Exception during decompilation: ${e.message ?: e.javaClass.simpleName}\n"
         } finally {
             if (tempDir != inputFile.parentFile) {
                 try { tempDir.deleteRecursively() } catch (_: Throwable) {}
@@ -364,7 +364,7 @@ object JadxDecompilerEngine {
             decompileClass(outDexFile, classDescriptor.ifEmpty { "Temp" })
         } catch (e: Throwable) {
             e.printStackTrace()
-            "// Error al convertir Smali a Java: ${e.message}"
+            "// Error converting Smali to Java: ${e.message}"
         } finally {
             workDir.deleteRecursively()
         }
@@ -448,7 +448,7 @@ object JadxDecompilerEngine {
                     val code = try {
                         decompileClassDefFallback(classDef)
                     } catch (t: Throwable) {
-                        "// Error al descompilar clase $fullName: ${t.message}\n"
+                        "// Error decompiling class $fullName: ${t.message}\n"
                     }
                     zos.write(code.toByteArray(StandardCharsets.UTF_8))
                     zos.closeEntry()
@@ -553,7 +553,7 @@ object JadxDecompilerEngine {
                     val code = decompileClassDefFallback(classDef)
                     targetFile.writeText(code, StandardCharsets.UTF_8)
                 } catch (t: Throwable) {
-                    targetFile.writeText("// Error al descompilar clase $fullName: ${t.message}\n", StandardCharsets.UTF_8)
+                    targetFile.writeText("// Error decompiling class $fullName: ${t.message}\n", StandardCharsets.UTF_8)
                 }
             }
         } finally {

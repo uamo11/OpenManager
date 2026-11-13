@@ -197,7 +197,7 @@ class TerminalActivity : AppActivity() {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             TerminalSettings.setFontSize(this, TerminalSettings.DEFAULT_FONT_SIZE_SP)
             applyPreferences()
-            Toast.makeText(this, "Zoom restablecido (${TerminalSettings.DEFAULT_FONT_SIZE_SP}sp)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.om_term_zoom_reset_format, TerminalSettings.DEFAULT_FONT_SIZE_SP), Toast.LENGTH_SHORT).show()
         }
 
         btnCopyScreen?.setOnClickListener {
@@ -361,7 +361,7 @@ class TerminalActivity : AppActivity() {
 
             override fun onSessionFinished(finishedSession: TerminalSession) {
                 runOnUiThread {
-                    toolbar.subtitle = "[Terminado (código ${finishedSession.exitStatus})]"
+                    toolbar.subtitle = getString(R.string.om_term_finished_code_format, finishedSession.exitStatus)
                     updateHudState(
                         isRoot = ScriptExecutionManager.isRoot,
                         isTermex = ScriptExecutionManager.isTermex,
@@ -496,9 +496,9 @@ class TerminalActivity : AppActivity() {
             terminalView.setTerminalViewClient(viewClient)
             terminalView.attachSession(existingSession)
 
-            val mode = if (ScriptExecutionManager.isRoot) "Root (#)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else "Sistema (sh)"
+            val mode = if (ScriptExecutionManager.isRoot) "Root (#)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else getString(R.string.om_term_mode_system)
             toolbar.title = ScriptExecutionManager.activeScriptName
-            toolbar.subtitle = if (existingSession.isRunning) "$mode • En ejecución..." else "[Terminado (código ${existingSession.exitStatus})]"
+            toolbar.subtitle = if (existingSession.isRunning) getString(R.string.om_term_running_subtitle_format, mode) else getString(R.string.om_term_finished_code_format, existingSession.exitStatus)
             updateHudState(
                 isRoot = ScriptExecutionManager.isRoot,
                 isTermex = ScriptExecutionManager.isTermex,
@@ -574,9 +574,9 @@ class TerminalActivity : AppActivity() {
         terminalView.setTerminalViewClient(viewClient)
         terminalView.attachSession(session)
 
-        val mode = if (config.isRoot) "Root (#)" else if (config.isTermex) "Termex (bash)" else "Sistema (sh)"
+        val mode = if (config.isRoot) "Root (#)" else if (config.isTermex) "Termex (bash)" else getString(R.string.om_term_mode_system)
         toolbar.title = scriptName
-        toolbar.subtitle = "$mode • Ejecutando..."
+        toolbar.subtitle = getString(R.string.om_term_running_subtitle_format, mode)
         updateHudState(
             isRoot = config.isRoot,
             isTermex = config.isTermex,
@@ -594,9 +594,9 @@ class TerminalActivity : AppActivity() {
         if (!transcript.isNullOrEmpty()) {
             val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             cm?.setPrimaryClip(ClipData.newPlainText("Terminal Output", transcript))
-            Toast.makeText(this, "Salida de terminal copiada al portapapeles", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_term_output_copied, Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "No hay texto en pantalla para copiar", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_term_no_text_copy, Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -613,10 +613,10 @@ class TerminalActivity : AppActivity() {
             add(Menu.NONE, 10, 3, R.string.script_menu_keep_background)
             add(Menu.NONE, 11, 4, R.string.script_menu_terminate)
             add(Menu.NONE, 5, 5, R.string.terminal_paste)
-            add(Menu.NONE, 6, 5, "Copiar toda la pantalla")
-            add(Menu.NONE, 7, 6, "Limpiar pantalla (clear)")
-            add(Menu.NONE, 8, 7, "Cambiar a Root (su)")
-            add(Menu.NONE, 9, 8, "Nueva sesión limpia")
+            add(Menu.NONE, 6, 5, R.string.om_term_copy_all_screen)
+            add(Menu.NONE, 7, 6, R.string.om_term_clear_screen)
+            add(Menu.NONE, 8, 7, R.string.om_term_switch_root)
+            add(Menu.NONE, 9, 8, R.string.om_term_new_clean_session)
             add(Menu.NONE, 3, 9, R.string.terminal_reset)
             add(Menu.NONE, 4, 10, R.string.terminal_preferences)
             add(Menu.NONE, 2, 11, R.string.terminal_close)
@@ -664,7 +664,7 @@ class TerminalActivity : AppActivity() {
                 }
                 9 -> {
                     startTerminalSession()
-                    Toast.makeText(this, "Nueva sesión iniciada", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_term_new_session_started, Toast.LENGTH_SHORT).show()
                     true
                 }
                 10 -> {
@@ -675,7 +675,7 @@ class TerminalActivity : AppActivity() {
                 }
                 11 -> {
                     ScriptExecutionManager.terminateShell(this)
-                    Toast.makeText(this, "Proceso terminado", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_term_process_terminated, Toast.LENGTH_SHORT).show()
                     finish()
                     true
                 }

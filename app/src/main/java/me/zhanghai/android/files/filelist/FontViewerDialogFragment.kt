@@ -78,11 +78,11 @@ class FontViewerDialogFragment : AppCompatDialogFragment() {
             container.addView(sampleView)
         }
 
-        addSample("Párrafo de muestra (16sp):", getString(R.string.open_as_font_sample_es), 16f)
-        addSample("Alfabeto Mayúsculas (20sp):", "A B C D E F G H I J K L M N Ñ O P Q R S T U V W X Y Z", 20f)
-        addSample("Alfabeto Minúsculas (20sp):", "a b c d e f g h i j k l m n ñ o p q r s t u v w x y z", 20f)
-        addSample("Números y Símbolos (22sp):", "0 1 2 3 4 5 6 7 8 9 ! @ # $ % & * ( ) _ +", 22f)
-        addSample("Tamaño Titular (28sp):", "OpenManager Font Viewer", 28f)
+        addSample(getString(R.string.om_font_sample_paragraph), getString(R.string.open_as_font_sample_es), 16f)
+        addSample(getString(R.string.om_font_sample_upper), "A B C D E F G H I J K L M N Ñ O P Q R S T U V W X Y Z", 20f)
+        addSample(getString(R.string.om_font_sample_lower), "a b c d e f g h i j k l m n ñ o p q r s t u v w x y z", 20f)
+        addSample(getString(R.string.om_font_sample_numbers), "0 1 2 3 4 5 6 7 8 9 ! @ # $ % & * ( ) _ +", 22f)
+        addSample(getString(R.string.om_font_sample_headline), "OpenManager Font Viewer", 28f)
 
         return MaterialAlertDialogBuilder(context, theme)
             .setTitle("${getString(R.string.open_as_font_title)}: ${args.path.fileName}")

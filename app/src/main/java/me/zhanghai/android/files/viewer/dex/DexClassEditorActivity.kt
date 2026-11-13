@@ -205,8 +205,8 @@ class DexClassEditorActivity : AppActivity() {
 
     private fun exportJavaFile() {
         val code = cachedJavaCode ?: binding.etJavaCode.text.toString()
-        if (code.isBlank() || code.startsWith("// [JADX] No se encontró")) {
-            Toast.makeText(this, "No hay código Java válido para exportar", Toast.LENGTH_SHORT).show()
+        if (code.isBlank() || code.startsWith("// [JADX] Class not found") || code.startsWith("// [JADX] No se encontró")) {
+            Toast.makeText(this, R.string.om_dex_no_valid_java, Toast.LENGTH_SHORT).show()
             return
         }
         val simpleName = binding.toolbar.title.toString()
@@ -216,9 +216,9 @@ class DexClassEditorActivity : AppActivity() {
 
         try {
             outFile.writeText(code, Charsets.UTF_8)
-            Toast.makeText(this, "Guardado como ${outFile.name}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.om_dex_saved_as_format, outFile.name), Toast.LENGTH_LONG).show()
         } catch (e: Exception) {
-            Toast.makeText(this, "Error al guardar archivo: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.om_dex_save_file_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -256,8 +256,8 @@ class DexClassEditorActivity : AppActivity() {
                 binding.progressBar.visibility = View.GONE
                 if (writeBackError != null) {
                     MaterialAlertDialogBuilder(this@DexClassEditorActivity)
-                        .setTitle("Advertencia al guardar")
-                        .setMessage("El código Smali se compiló pero no se pudo sincronizar en el archivo original:\n\n$writeBackError")
+                        .setTitle(R.string.om_dex_save_warning_title)
+                        .setMessage(getString(R.string.om_dex_save_warning_msg_format, writeBackError))
                         .setPositiveButton(android.R.string.ok, null)
                         .show()
                 } else if (success) {

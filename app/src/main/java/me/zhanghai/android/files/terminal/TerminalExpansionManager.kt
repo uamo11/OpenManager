@@ -581,7 +581,7 @@ object TerminalExpansionManager {
             true
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(activity, "Error al iniciar instalador: ${e.message}", Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, activity.getString(R.string.om_termex_installer_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
             false
         }
     }
@@ -604,7 +604,7 @@ object TerminalExpansionManager {
         }
 
         val tvDesc = TextView(activity).apply {
-            text = "El Paquete de Expansión de Terminal proporciona un entorno Linux completo con GNU Bash 5.x, utilidades coreutils, tuberías avanzadas y soporte para scripts complejos.\n\nActualmente no se encuentra instalado en este dispositivo."
+            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_dialog_desc)
             setTextColor(Color.parseColor("#CCCCCC"))
             textSize = 13.5f
         }
@@ -613,7 +613,7 @@ object TerminalExpansionManager {
         if (localApk != null) {
             val mb = String.format("%.1f", localApk.length() / (1024.0 * 1024.0))
             val btnLocal = Button(activity).apply {
-                text = "📦 Instalar APK detectado (${localApk.name} - ${mb}MB)"
+                text = activity.getString(me.zhanghai.android.files.R.string.om_termex_install_local_format, localApk.name, mb)
                 setBackgroundColor(Color.parseColor("#2E7D32"))
                 setTextColor(Color.WHITE)
                 val mTop = (16 * density).toInt()
@@ -628,7 +628,7 @@ object TerminalExpansionManager {
         }
 
         val btnDownload = Button(activity).apply {
-            text = "⬇️ Descargar e instalar automáticamente"
+            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_download_install)
             setBackgroundColor(Color.parseColor("#1565C0"))
             setTextColor(Color.WHITE)
             val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -638,7 +638,7 @@ object TerminalExpansionManager {
         layout.addView(btnDownload)
 
         val btnPick = Button(activity).apply {
-            text = "📂 Seleccionar APK del almacenamiento"
+            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_pick_apk)
             setBackgroundColor(Color.parseColor("#424242"))
             setTextColor(Color.WHITE)
             val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -648,7 +648,7 @@ object TerminalExpansionManager {
         layout.addView(btnPick)
 
         val dialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Expansión de Terminal (Termex)")
+            .setTitle(me.zhanghai.android.files.R.string.om_termex_dialog_title)
             .setView(layout)
             .setNegativeButton(android.R.string.cancel, null)
             .create()
@@ -665,9 +665,9 @@ object TerminalExpansionManager {
                     type = "application/vnd.android.package-archive"
                     addCategory(Intent.CATEGORY_OPENABLE)
                 }
-                activity.startActivity(Intent.createChooser(intent, "Seleccionar APK de Termex"))
+                activity.startActivity(Intent.createChooser(intent, activity.getString(me.zhanghai.android.files.R.string.om_termex_pick_chooser)))
             } catch (_: Exception) {
-                Toast.makeText(activity, "Coloque termex_v3008_arm64.apk en su carpeta Descargas", Toast.LENGTH_LONG).show()
+                Toast.makeText(activity, me.zhanghai.android.files.R.string.om_termex_place_apk_hint, Toast.LENGTH_LONG).show()
             }
         }
 
@@ -687,7 +687,7 @@ object TerminalExpansionManager {
         }
 
         val tvStatus = TextView(activity).apply {
-            text = "Conectando al servidor..."
+            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_connecting)
             textSize = 14f
             setTextColor(Color.parseColor("#E0E0E0"))
         }
@@ -702,7 +702,7 @@ object TerminalExpansionManager {
         progressLayout.addView(progressBar)
 
         val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Descargando Paquete de Expansión")
+            .setTitle(me.zhanghai.android.files.R.string.om_termex_downloading_title)
             .setView(progressLayout)
             .setCancelable(false)
             .setNegativeButton(android.R.string.cancel) { d, _ ->
@@ -797,7 +797,7 @@ object TerminalExpansionManager {
                 } else if (!isCancelled) {
                     Toast.makeText(
                         activity,
-                        "No se pudo descargar automáticamente: ${errorMsg ?: "Error de red"}.\nPuede colocar termex_v3008_arm64.apk en /sdcard/Download.",
+                        activity.getString(me.zhanghai.android.files.R.string.om_termex_download_failed_format, errorMsg ?: activity.getString(me.zhanghai.android.files.R.string.om_termex_network_error)),
                         Toast.LENGTH_LONG
                     ).show()
                 }
