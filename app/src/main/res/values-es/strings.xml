@@ -2054,4 +2054,29 @@
     <string name="om_err_perm_denied_create_dir_ro">Permiso denegado: no se pueden crear carpetas en este directorio (solo lectura)</string>
     <string name="om_antisplit_merge_error">Error durante la fusión AntiSplit</string>
     <string name="om_failure_format">Fallo: %1$s</string>
+
+    <!-- OpenManager Encrypt/Decrypt Localization (Batch 2F) -->
+    <string name="om_enc_password_hint">Contraseña</string>
+    <string name="om_enc_confirm_password_hint">Confirmar contraseña</string>
+    <string name="om_enc_delete_original">Eliminar archivo original después de cifrar</string>
+    <string name="om_enc_aes_msg_format">Cifrar "%1$s" con AES-256</string>
+    <string name="om_enc_btn">Cifrar</string>
+    <string name="om_enc_empty_password">La contraseña no puede estar vacía</string>
+    <string name="om_enc_password_mismatch">Las contraseñas no coinciden</string>
+    <string name="om_dec_delete_encrypted">Eliminar archivo cifrado después de descifrar</string>
+    <string name="om_dec_msg_format">Descifrar "%1$s"</string>
+    <string name="om_dec_btn">Descifrar</string>
+    <string name="om_dec_enter_password">Introduce la contraseña</string>
+    <string name="om_enc_progress_title">Cifrando archivo</string>
+    <string name="om_enc_progress_msg_format">Cifrando %1$s con AES-256...</string>
+    <string name="om_enc_success_format">Archivo cifrado:\n%1$s</string>
+    <string name="om_enc_error_title">Error al cifrar</string>
+    <string name="om_dec_progress_title">Descifrando archivo</string>
+    <string name="om_dec_progress_msg_format">Descifrando %1$s...</string>
+    <string name="om_dec_unsupported_format">Formato no compatible o archivo no cifrado por OpenManager</string>
+    <string name="om_dec_corrupt_salt">Archivo corrupto: no se pudo leer la sal</string>
+    <string name="om_dec_corrupt_iv">Archivo corrupto: no se pudo leer el vector de inicialización</string>
+    <string name="om_dec_wrong_password">Contraseña incorrecta</string>
+    <string name="om_dec_success_format">Archivo descifrado:\n%1$s</string>
+    <string name="om_dec_error_title">Error al descifrar</string>
 </resources>

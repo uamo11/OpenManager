@@ -25,6 +25,7 @@ import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
+import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.provider.common.deleteIfExists
 import me.zhanghai.android.files.provider.common.newInputStream
@@ -50,15 +51,15 @@ object FileEncryptDecryptHelper {
         }
 
         val etPassword = EditText(context).apply {
-            hint = "Contraseña"
+            setHint(R.string.om_enc_password_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         val etConfirm = EditText(context).apply {
-            hint = "Confirmar contraseña"
+            setHint(R.string.om_enc_confirm_password_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         val cbDeleteOriginal = CheckBox(context).apply {
-            text = "Eliminar archivo original después de cifrar"
+            setText(R.string.om_enc_delete_original)
             isChecked = false
         }
 
@@ -67,23 +68,23 @@ object FileEncryptDecryptHelper {
         layout.addView(cbDeleteOriginal)
 
         MaterialAlertDialogBuilder(context)
-            .setTitle("Cifrar archivo")
-            .setMessage("Cifrar '${file.name}' con AES-256")
+            .setTitle(R.string.om_tool_encrypt)
+            .setMessage(context.getString(R.string.om_enc_aes_msg_format, file.name))
             .setView(layout)
-            .setPositiveButton("Cifrar") { _, _ ->
+            .setPositiveButton(R.string.om_enc_btn) { _, _ ->
                 val pwd = etPassword.text.toString()
                 val confirm = etConfirm.text.toString()
                 if (pwd.isEmpty()) {
-                    Toast.makeText(context, "La contraseña no puede estar vacía", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.om_enc_empty_password, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 if (pwd != confirm) {
-                    Toast.makeText(context, "Las contraseñas no coinciden", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.om_enc_password_mismatch, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 encrypt(activity, file.path, pwd, cbDeleteOriginal.isChecked, onDone)
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -97,11 +98,11 @@ object FileEncryptDecryptHelper {
         }
 
         val etPassword = EditText(context).apply {
-            hint = "Contraseña"
+            setHint(R.string.om_enc_password_hint)
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
         val cbDeleteEnc = CheckBox(context).apply {
-            text = "Eliminar archivo cifrado después de descifrar"
+            setText(R.string.om_dec_delete_encrypted)
             isChecked = false
         }
 
@@ -109,18 +110,18 @@ object FileEncryptDecryptHelper {
         layout.addView(cbDeleteEnc)
 
         MaterialAlertDialogBuilder(context)
-            .setTitle("Descifrar archivo")
-            .setMessage("Descifrar '${file.name}'")
+            .setTitle(R.string.om_tool_decrypt)
+            .setMessage(context.getString(R.string.om_dec_msg_format, file.name))
             .setView(layout)
-            .setPositiveButton("Descifrar") { _, _ ->
+            .setPositiveButton(R.string.om_dec_btn) { _, _ ->
                 val pwd = etPassword.text.toString()
                 if (pwd.isEmpty()) {
-                    Toast.makeText(context, "Introduce la contraseña", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.om_dec_enter_password, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 decrypt(activity, file.path, pwd, cbDeleteEnc.isChecked, onDone)
             }
-            .setNegativeButton("Cancelar", null)
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -136,8 +137,8 @@ object FileEncryptDecryptHelper {
         val targetPath = (sourcePath.parent ?: Paths.get("/storage/emulated/0/Download")).resolve(targetName)
 
         val progress = MaterialAlertDialogBuilder(activity)
-            .setTitle("Cifrando archivo")
-            .setMessage("Cifrando $fileName con AES-256...")
+            .setTitle(R.string.om_enc_progress_title)
+            .setMessage(activity.getString(R.string.om_enc_progress_msg_format, fileName))
             .setCancelable(false)
             .show()
 
@@ -193,13 +194,13 @@ object FileEncryptDecryptHelper {
                 if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
                 try { progress.dismiss() } catch (ignored: Exception) {}
                 if (success) {
-                    Toast.makeText(activity, "Archivo cifrado:\n$targetName", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, activity.getString(R.string.om_enc_success_format, targetName), Toast.LENGTH_LONG).show()
                     onDone()
                 } else {
                     MaterialAlertDialogBuilder(activity)
-                        .setTitle("Error al cifrar")
-                        .setMessage(errorMsg ?: "Error desconocido")
-                        .setPositiveButton("Aceptar", null)
+                        .setTitle(R.string.om_enc_error_title)
+                        .setMessage(errorMsg ?: activity.getString(R.string.om_crash_unknown_error))
+                        .setPositiveButton(android.R.string.ok, null)
                         .show()
                 }
             }
@@ -222,8 +223,8 @@ object FileEncryptDecryptHelper {
         val targetPath = (sourcePath.parent ?: Paths.get("/storage/emulated/0/Download")).resolve(targetName)
 
         val progress = MaterialAlertDialogBuilder(activity)
-            .setTitle("Descifrando archivo")
-            .setMessage("Descifrando $fileName...")
+            .setTitle(R.string.om_dec_progress_title)
+            .setMessage(activity.getString(R.string.om_dec_progress_msg_format, fileName))
             .setCancelable(false)
             .show()
 
@@ -235,16 +236,16 @@ object FileEncryptDecryptHelper {
                 sourcePath.newInputStream().use { inStream ->
                     val magic = ByteArray(MAGIC_HEADER.size)
                     if (!inStream.readFully(magic) || !magic.contentEquals(MAGIC_HEADER)) {
-                        throw IllegalArgumentException("Formato no compatible o archivo no cifrado por OpenManager")
+                        throw IllegalArgumentException(activity.getString(R.string.om_dec_unsupported_format))
                     }
 
                     val salt = ByteArray(16)
                     if (!inStream.readFully(salt)) {
-                        throw IllegalArgumentException("Archivo corrupto: no se pudo leer la sal")
+                        throw IllegalArgumentException(activity.getString(R.string.om_dec_corrupt_salt))
                     }
                     val iv = ByteArray(16)
                     if (!inStream.readFully(iv)) {
-                        throw IllegalArgumentException("Archivo corrupto: no se pudo leer el vector de inicialización")
+                        throw IllegalArgumentException(activity.getString(R.string.om_dec_corrupt_iv))
                     }
 
                     val keySpec = PBEKeySpec(password.toCharArray(), salt, ITERATIONS, KEY_LENGTH)
@@ -282,7 +283,7 @@ object FileEncryptDecryptHelper {
             } catch (e: Exception) {
                 e.printStackTrace()
                 errorMsg = if (isWrongPassword || e is javax.crypto.BadPaddingException) {
-                    "Contraseña incorrecta"
+                    activity.getString(R.string.om_dec_wrong_password)
                 } else {
                     e.localizedMessage ?: e.javaClass.simpleName
                 }
@@ -295,13 +296,13 @@ object FileEncryptDecryptHelper {
                 if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
                 try { progress.dismiss() } catch (ignored: Exception) {}
                 if (success) {
-                    Toast.makeText(activity, "Archivo descifrado:\n$targetName", Toast.LENGTH_LONG).show()
+                    Toast.makeText(activity, activity.getString(R.string.om_dec_success_format, targetName), Toast.LENGTH_LONG).show()
                     onDone()
                 } else {
                     MaterialAlertDialogBuilder(activity)
-                        .setTitle("Error al descifrar")
-                        .setMessage(errorMsg ?: "Error desconocido")
-                        .setPositiveButton("Aceptar", null)
+                        .setTitle(R.string.om_dec_error_title)
+                        .setMessage(errorMsg ?: activity.getString(R.string.om_crash_unknown_error))
+                        .setPositiveButton(android.R.string.ok, null)
                         .show()
                 }
             }

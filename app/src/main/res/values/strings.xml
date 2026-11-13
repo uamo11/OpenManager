@@ -2158,4 +2158,29 @@
     <string name="om_err_perm_denied_create_dir_ro">Permission denied: cannot create folders in this directory (read-only)</string>
     <string name="om_antisplit_merge_error">Error during AntiSplit merge</string>
     <string name="om_failure_format">Failure: %1$s</string>
+
+    <!-- OpenManager Encrypt/Decrypt Localization (Batch 2F) -->
+    <string name="om_enc_password_hint">Password</string>
+    <string name="om_enc_confirm_password_hint">Confirm password</string>
+    <string name="om_enc_delete_original">Delete original file after encrypting</string>
+    <string name="om_enc_aes_msg_format">Encrypt "%1$s" with AES-256</string>
+    <string name="om_enc_btn">Encrypt</string>
+    <string name="om_enc_empty_password">Password cannot be empty</string>
+    <string name="om_enc_password_mismatch">Passwords do not match</string>
+    <string name="om_dec_delete_encrypted">Delete encrypted file after decrypting</string>
+    <string name="om_dec_msg_format">Decrypt "%1$s"</string>
+    <string name="om_dec_btn">Decrypt</string>
+    <string name="om_dec_enter_password">Enter the password</string>
+    <string name="om_enc_progress_title">Encrypting file</string>
+    <string name="om_enc_progress_msg_format">Encrypting %1$s with AES-256...</string>
+    <string name="om_enc_success_format">Encrypted file:\n%1$s</string>
+    <string name="om_enc_error_title">Encryption error</string>
+    <string name="om_dec_progress_title">Decrypting file</string>
+    <string name="om_dec_progress_msg_format">Decrypting %1$s...</string>
+    <string name="om_dec_unsupported_format">Unsupported format or file not encrypted by OpenManager</string>
+    <string name="om_dec_corrupt_salt">Corrupt file: could not read salt</string>
+    <string name="om_dec_corrupt_iv">Corrupt file: could not read initialization vector</string>
+    <string name="om_dec_wrong_password">Incorrect password</string>
+    <string name="om_dec_success_format">Decrypted file:\n%1$s</string>
+    <string name="om_dec_error_title">Decryption error</string>
 </resources>
