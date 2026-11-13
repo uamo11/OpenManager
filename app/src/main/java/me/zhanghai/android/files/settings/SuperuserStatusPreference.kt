@@ -218,7 +218,7 @@ class SuperuserStatusPreference : Preference {
                     hasShizuku && status.type != SuperuserDetector.SuperuserType.NONE -> "${status.type.displayName} + Shizuku"
                     status.type != SuperuserDetector.SuperuserType.NONE -> status.type.displayName
                     status.hasDfRoot -> "DFRoot (Jailbreak)"
-                    else -> "Superusuario"
+                    else -> context.getString(R.string.om_su_superuser_label)
                 }
                 tvManagerHeader.text = headerText
 
@@ -266,7 +266,7 @@ class SuperuserStatusPreference : Preference {
                 tvStatus.text = "Working"
                 tvStatus.setTextColor(0xFFFFFFFF.toInt())
 
-                tvJailbreakTag.text = "[Permiso de Ejecución]"
+                tvJailbreakTag.text = context.getString(R.string.om_su_exec_perm_tag)
                 tvJailbreakTag.visibility = View.VISIBLE
                 ivDfRootMini.visibility = View.GONE
                 ivShizukuMini.visibility = View.GONE
@@ -293,12 +293,12 @@ class SuperuserStatusPreference : Preference {
                 tvManagerHeader.visibility = View.VISIBLE
                 tvManagerHeader.setBackgroundResource(R.drawable.bg_superuser_card_gray)
                 tvManagerHeader.setTextColor(0xFF94A3B8.toInt())
-                tvManagerHeader.text = "${status.type.displayName} Detectado"
+                tvManagerHeader.text = context.getString(R.string.om_su_detected_format, status.type.displayName)
 
                 tvStatus.text = "No Root"
                 tvStatus.setTextColor(0xFFE2E8F0.toInt())
 
-                tvJailbreakTag.text = "[No Autorizado]"
+                tvJailbreakTag.text = context.getString(R.string.om_su_unauthorized_tag)
                 tvJailbreakTag.visibility = View.VISIBLE
                 ivDfRootMini.visibility = View.GONE
                 ivShizukuMini.visibility = View.GONE
@@ -314,12 +314,12 @@ class SuperuserStatusPreference : Preference {
                 tvManagerHeader.visibility = View.VISIBLE
                 tvManagerHeader.setBackgroundResource(R.drawable.bg_superuser_header_badge_green)
                 tvManagerHeader.setTextColor(0xFF38BDF8.toInt())
-                tvManagerHeader.text = "Shizuku Detectado"
+                tvManagerHeader.text = context.getString(R.string.om_su_shizuku_detected)
 
                 tvStatus.text = "No Root"
                 tvStatus.setTextColor(0xFFE2E8F0.toInt())
 
-                tvJailbreakTag.text = "[Pedir permiso de ejecución]"
+                tvJailbreakTag.text = context.getString(R.string.om_su_request_exec_perm_tag)
                 tvJailbreakTag.visibility = View.VISIBLE
                 ivDfRootMini.visibility = View.GONE
                 ivShizukuMini.visibility = View.GONE
@@ -360,75 +360,75 @@ class SuperuserStatusPreference : Preference {
         val hasShizuku = status.isShizukuReady
 
         val dialogTitle = when {
-            hasRoot && status.hasDfRoot && hasShizuku -> "${status.type.displayName} + DFRoot + Shizuku Activo"
-            hasRoot && status.hasDfRoot -> "${status.type.displayName} (Jailbreak Root Activo)"
-            hasRoot && hasShizuku -> "${status.type.displayName} + Shizuku Activo"
-            hasRoot && status.type != SuperuserDetector.SuperuserType.NONE -> "${status.type.displayName} (Superusuario Activo)"
-            hasRoot -> "Superusuario Activo"
-            hasShizuku -> "Shizuku (Permiso de Ejecución Activo)"
-            status.isShizukuAvailable -> "Shizuku Detectado (Sin Autorizar)"
-            else -> "Estado de Superusuario: No Root"
+            hasRoot && status.hasDfRoot && hasShizuku -> context.getString(R.string.om_su_dlg_title_all_active_format, status.type.displayName)
+            hasRoot && status.hasDfRoot -> context.getString(R.string.om_su_dlg_title_jailbreak_format, status.type.displayName)
+            hasRoot && hasShizuku -> context.getString(R.string.om_su_dlg_title_root_shizuku_format, status.type.displayName)
+            hasRoot && status.type != SuperuserDetector.SuperuserType.NONE -> context.getString(R.string.om_su_dlg_title_type_active_format, status.type.displayName)
+            hasRoot -> context.getString(R.string.om_su_dlg_title_active)
+            hasShizuku -> context.getString(R.string.om_su_dlg_title_shizuku_active)
+            status.isShizukuAvailable -> context.getString(R.string.om_su_dlg_title_shizuku_unauth)
+            else -> context.getString(R.string.om_su_dlg_title_no_root)
         }
 
         val message = buildString {
             if (hasRoot) {
-                append("• Estado: Working\n")
-                append("• Gestor principal: ${status.type.displayName}\n")
+                append(context.getString(R.string.om_su_line_status_working)).append("\n")
+                append(context.getString(R.string.om_su_line_manager_format, status.type.displayName)).append("\n")
                 if (status.hasDfRoot) {
-                    append("• DFRoot Jailbreak: Activo [Jailbreak Root]\n")
+                    append(context.getString(R.string.om_su_line_dfroot_active)).append("\n")
                 }
-                append("• Privilegios Root: Concedido (UID 0)\n")
+                append(context.getString(R.string.om_su_line_root_granted)).append("\n")
                 if (status.suVersion != null) {
-                    append("• Versión de SU: ${status.suVersion}\n")
+                    append(context.getString(R.string.om_su_line_su_ver_format, status.suVersion)).append("\n")
                 }
                 if (status.detectedBinaryPath != null) {
-                    append("• Driver / Binario: ${status.detectedBinaryPath}\n")
+                    append(context.getString(R.string.om_su_line_driver_format, status.detectedBinaryPath)).append("\n")
                 }
                 if (hasShizuku) {
                     val mode = if (status.shizukuUid == 0) "Root (UID 0)" else "ADB Shell (UID 2000)"
-                    append("• Shizuku: Conectado y Autorizado\n")
-                    append("  - Modo servidor: $mode\n")
-                    if (status.shizukuVersion > 0) append("  - Versión API: ${status.shizukuVersion}\n")
-                    append("  - Permiso de ejecución: Activo\n")
+                    append(context.getString(R.string.om_su_line_shizuku_connected)).append("\n")
+                    append(context.getString(R.string.om_su_line_shizuku_mode_format, mode)).append("\n")
+                    if (status.shizukuVersion > 0) append(context.getString(R.string.om_su_line_api_ver_format, status.shizukuVersion)).append("\n")
+                    append(context.getString(R.string.om_su_line_exec_perm_active)).append("\n")
                 } else if (status.isShizukuAvailable) {
-                    append("• Shizuku: Servicio detectado (Sin autorizar)\n")
+                    append(context.getString(R.string.om_su_line_shizuku_unauth)).append("\n")
                 }
             } else if (hasShizuku) {
-                append("• Estado: Working (Elevación vía Shizuku Binder API)\n")
+                append(context.getString(R.string.om_su_line_status_shizuku)).append("\n")
                 val mode = if (status.shizukuUid == 0) "Root (UID 0)" else "ADB Shell (UID 2000)"
-                append("• Modo de ejecución: $mode\n")
+                append(context.getString(R.string.om_su_line_exec_mode_format, mode)).append("\n")
                 if (status.shizukuVersion > 0) {
-                    append("• Versión API Shizuku: ${status.shizukuVersion}\n")
+                    append(context.getString(R.string.om_su_line_shizuku_api_ver_format, status.shizukuVersion)).append("\n")
                 }
-                append("• Permiso de ejecución: Concedido y Activo\n")
-                append("• Privilegios Root directo: No concedido\n")
-                append("• OpenManager puede ejecutar comandos privilegiados, gestionar procesos, extraer/instalar APKs y acceder a rutas protegidas sin root mediante Shizuku.\n")
+                append(context.getString(R.string.om_su_line_exec_perm_granted)).append("\n")
+                append(context.getString(R.string.om_su_line_root_not_granted)).append("\n")
+                append(context.getString(R.string.om_su_line_shizuku_desc)).append("\n")
             } else if (status.isShizukuAvailable && !status.isShizukuReady) {
-                append("• Estado: No Root\n")
-                append("• Servidor Shizuku: Detectado en ejecución en el sistema\n")
-                append("• Permiso de ejecución: No autorizado todavía\n\n")
-                append("¿Deseas solicitar el permiso de ejecución de Shizuku ahora para gestionar procesos y acceder al sistema?")
+                append(context.getString(R.string.om_su_line_status_no_root)).append("\n")
+                append(context.getString(R.string.om_su_line_shizuku_running)).append("\n")
+                append(context.getString(R.string.om_su_line_exec_perm_not_auth)).append("\n\n")
+                append(context.getString(R.string.om_su_line_shizuku_prompt))
             } else {
-                append("• Estado: No Root\n")
+                append(context.getString(R.string.om_su_line_status_no_root)).append("\n")
                 if (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) {
-                    append("• Gestor instalado en el sistema: ${status.type.displayName}\n")
+                    append(context.getString(R.string.om_su_line_installed_mgr_format, status.type.displayName)).append("\n")
                     if (!status.isRootEnabledInSettings) {
-                        append("• Nota: La solicitud de root está desactivada en los Ajustes de OpenManager.\n")
+                        append(context.getString(R.string.om_su_line_note_disabled)).append("\n")
                     } else {
-                        append("• Nota: La app del gestor está presente, pero el dispositivo no tiene acceso root o OpenManager no tiene permisos concedidos.\n")
+                        append(context.getString(R.string.om_su_line_note_no_perm)).append("\n")
                     }
                 } else if (status.hasDfRoot) {
-                    append("• Herramienta instalada: DFRoot (Sin acceso root activo)\n")
+                    append(context.getString(R.string.om_su_line_dfroot_inactive)).append("\n")
                 } else {
-                    append("• No se detectó ningún gestor de superusuario activo en el sistema.\n")
+                    append(context.getString(R.string.om_su_line_no_mgr_detected)).append("\n")
                 }
-                append("• Privilegios Root: No concedido\n")
-                append("• Shizuku: Servicio no detectado en ejecución\n")
-                append("• La aplicación opera en modo estándar seguro sin elevación de privilegios.\n")
+                append(context.getString(R.string.om_su_line_root_not_granted)).append("\n")
+                append(context.getString(R.string.om_su_line_shizuku_not_running)).append("\n")
+                append(context.getString(R.string.om_su_line_standard_mode)).append("\n")
             }
 
             if (status.managerPackage != null) {
-                append("• Paquete del gestor: ${status.managerPackage}\n")
+                append(context.getString(R.string.om_su_line_mgr_pkg_format, status.managerPackage)).append("\n")
             }
         }
 
@@ -448,24 +448,24 @@ class SuperuserStatusPreference : Preference {
 
         // Request Shizuku permission button if available but not ready
         if (!hasShizuku && status.isShizukuAvailable && act != null) {
-            builder.setPositiveButton("Pedir permiso Shizuku") { _, _ ->
+            builder.setPositiveButton(R.string.om_su_btn_request_shizuku) { _, _ ->
                 ShizukuManager.requestPermission(act) { granted ->
                     refresh()
                 }
             }
-            builder.setNegativeButton("Cerrar", null)
+            builder.setNegativeButton(R.string.close, null)
         }
 
         if (status.managerPackage != null) {
             val pm = context.packageManager
             val launchIntent = pm.getLaunchIntentForPackage(status.managerPackage)
             if (launchIntent != null) {
-                builder.setNeutralButton("Abrir ${status.type.displayName}") { _, _ ->
+                builder.setNeutralButton(context.getString(R.string.om_su_btn_open_mgr_format, status.type.displayName)) { _, _ ->
                     context.startActivity(launchIntent)
                 }
             }
         } else if (status.isShizukuAvailable || ShizukuManager.isInstalled(context)) {
-            builder.setNeutralButton("Abrir Shizuku") { _, _ ->
+            builder.setNeutralButton(R.string.om_su_btn_open_shizuku) { _, _ ->
                 ShizukuManager.openShizukuApp(context)
             }
         }
