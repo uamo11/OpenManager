@@ -178,16 +178,19 @@ class RunningAppsActivity : AppActivity() {
             isRoot -> {
                 binding.tvElevationBadge.text = "🛡️ " + getString(R.string.running_apps_elevation_root)
                 binding.tvElevationBadge.setTextColor(Color.parseColor("#00E676"))
+                binding.tvElevationBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#1B3B2B"))
                 binding.cardPermissionBanner.visibility = View.GONE
             }
             isShizuku -> {
                 binding.tvElevationBadge.text = "⚡ " + getString(R.string.running_apps_elevation_shizuku)
                 binding.tvElevationBadge.setTextColor(Color.parseColor("#40C4FF"))
+                binding.tvElevationBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#132D3F"))
                 binding.cardPermissionBanner.visibility = View.GONE
             }
             else -> {
                 binding.tvElevationBadge.text = "⚠️ " + getString(R.string.running_apps_elevation_unprivileged)
                 binding.tvElevationBadge.setTextColor(Color.parseColor("#FFB300"))
+                binding.tvElevationBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#33291A"))
                 if (!isBannerDismissed) {
                     binding.cardPermissionBanner.visibility = View.VISIBLE
                 } else {

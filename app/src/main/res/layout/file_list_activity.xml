@@ -690,7 +690,7 @@
                             android:layout_width="22dp"
                             android:layout_height="22dp"
                             android:layout_gravity="center"
-                            android:src="@drawable/ic_running_apps" />
+                            android:src="@drawable/ic_running_apps_white_24dp" />
                     </FrameLayout>
 
                     <TextView

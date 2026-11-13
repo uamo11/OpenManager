@@ -377,7 +377,8 @@ object RunningAppsLoader {
 
             val cleanName = name.trimStart('[').trimEnd(']')
             val basePkg = cleanName.substringBefore(':')
-            val pkgInfo = installedMap[basePkg] ?: (if (user.startsWith("u0_a")) {
+            val looksLikeAppProcess = cleanName.contains('.') || cleanName.startsWith("app_process")
+            val pkgInfo = installedMap[basePkg] ?: (if (looksLikeAppProcess && user.startsWith("u0_a")) {
                 val uidNum = user.removePrefix("u0_a").toIntOrNull()?.let { 10000 + it }
                 if (uidNum != null) uidPackageMap[uidNum]?.let { installedMap[it] } else null
             } else null)
@@ -465,7 +466,8 @@ object RunningAppsLoader {
 
         val effectiveName = if (cmdline.isNotEmpty()) cmdline.split(' ')[0] else name
         val basePkg = effectiveName.substringBefore(':')
-        val pkgInfo = installedMap[basePkg] ?: uidPackageMap[uid]?.let { installedMap[it] }
+        val looksLikeAppProcess = effectiveName.contains('.') || effectiveName.startsWith("app_process")
+        val pkgInfo = installedMap[basePkg] ?: if (looksLikeAppProcess) uidPackageMap[uid]?.let { installedMap[it] } else null
         val appInfo = pkgInfo?.applicationInfo
 
         val isSystem = if (appInfo != null) {
