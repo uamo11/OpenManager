@@ -18,7 +18,7 @@
 
   <link rel="icon" type="image/png" sizes="64x64" href="icons/om-icon-64.png">
   <link rel="apple-touch-icon" sizes="512x512" href="launcher_icon.png">
-  <link rel="stylesheet" href="style.css?v=20261112_09">
+  <link rel="stylesheet" href="style.css?v=20261112_10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -131,11 +131,15 @@
       <div class="tech-pills">
         <span class="tech-pill">
           <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.523 15.3414c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.551 0 .9993.4482.9993.9993.0001.5511-.4483.9997-.9993.9997m-11.046 0c-.5511 0-.9993-.4486-.9993-.9997s.4482-.9993.9993-.9993c.5511 0 .9993.4482.9993.9993 0 .5511-.4482.9997-.9993.9997m11.4045-6.02l1.9973-3.4592a.416.416 0 00-.1521-.5676.416.416 0 00-.5676.1521l-2.0223 3.503C15.5902 8.4116 13.8533 8.0833 12 8.0833s-3.5902.3283-5.1368.8664L4.8409 5.4467a.4161.4161 0 00-.5677-.1521.4157.4157 0 00-.1521.5676l1.9973 3.4592C2.6889 11.1867.3432 14.6589 0 18.761h24c-.3432-4.1021-2.6889-7.5743-6.1185-9.4396"/></svg>
-          Android 5.0+ (API 21–35)
+          Android 6.0–16 (API 23–36)
+        </span>
+        <span class="tech-pill">
+          <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+          125–145 MB RAM • 30 MB APK
         </span>
         <span class="tech-pill">
           <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 24H0V0h24L12 12Z"/></svg>
-          Kotlin 2.0
+          Kotlin + Java + C/C++ JNI
         </span>
         <span class="tech-pill">
           <img src="icons/magisk.png" alt="Root" class="pill-img" width="14" height="14">
@@ -143,7 +147,7 @@
         </span>
         <span class="tech-pill highlight-pill-shizuku">
           <img src="icons/shizuku.png" alt="Shizuku" class="pill-img" width="14" height="14">
-          Shizuku Nativo
+          Shizuku 13.1.5 Nativo
         </span>
         <span class="tech-pill highlight-pill-dfroot">
           <img src="icons/dfroot.png" alt="DFROOT" class="pill-img" width="14" height="14">
@@ -151,7 +155,7 @@
         </span>
         <span class="tech-pill">
           <svg class="pill-svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-          Cero Telemetría
+          Android TV &amp; Samsung DeX
         </span>
       </div>
     </div>
@@ -165,16 +169,16 @@
         <div class="metric-label" data-i18n="metric_1">Código Abierto (GPLv3)</div>
       </div>
       <div class="metric-item">
-        <div class="metric-number">39+</div>
-        <div class="metric-label" data-i18n="metric_2">Lenguajes con Sintaxis</div>
+        <div class="metric-number">125–145 MB</div>
+        <div class="metric-label" data-i18n="metric_2">Consumo Real de RAM</div>
       </div>
       <div class="metric-item">
-        <div class="metric-number">0 $</div>
-        <div class="metric-label" data-i18n="metric_3">Sin Suscripciones VIP</div>
+        <div class="metric-number">30 MB</div>
+        <div class="metric-label" data-i18n="metric_3">APK Release (v1.9.69)</div>
       </div>
       <div class="metric-item">
-        <div class="metric-number">V1–V3</div>
-        <div class="metric-label" data-i18n="metric_4">Firma Digital & AntiSplit</div>
+        <div class="metric-number">5 Hashes</div>
+        <div class="metric-label" data-i18n="metric_4">CRC32, MD5, SHA-1/256/512</div>
       </div>
     </div>
   </section>
@@ -464,6 +468,74 @@
     </div>
   </section>
 
+  <!-- Technical Specs & Hidden Gems Section -->
+  <section id="ficha-tecnica" class="section">
+    <div class="container">
+      <div class="section-header text-center">
+        <h2 class="section-title" data-i18n="specs_title">Ficha Técnica &amp; Funciones Avanzadas</h2>
+        <p class="section-subtitle" data-i18n="specs_subtitle">Datos reales medidos en v1.9.69 release (dumpsys meminfo en equipo físico) y utilidades integradas.</p>
+      </div>
+
+      <div class="carousel-shell">
+        <button type="button" class="carousel-arrow carousel-prev" aria-label="Anterior">&#10094;</button>
+        <div class="specs-grid">
+          <article class="spec-card">
+            <div class="spec-head">
+              <span class="spec-badge spec-green" data-i18n="spec_1_badge">RAM Real</span>
+              <h3 data-i18n="spec_1_title">Consumo Medido (v1.9.69)</h3>
+            </div>
+            <ul class="spec-list">
+              <li data-i18n="spec_1_li1"><strong>Uso normal (explorador):</strong> ~125–145 MB PSS</li>
+              <li data-i18n="spec_1_li2"><strong>Java Heap:</strong> ~13.1–13.8 MB · <strong>Native:</strong> ~14.3–24.9 MB</li>
+              <li data-i18n="spec_1_li3"><strong>Gráficos EGL/GL:</strong> ~50.7 MB (baja a 0 MB en 2.º plano)</li>
+              <li data-i18n="spec_1_li4"><strong>Pico Gestor de Apps:</strong> ~364 MB temporal, baja a ~191.5 MB</li>
+            </ul>
+          </article>
+
+          <article class="spec-card">
+            <div class="spec-head">
+              <span class="spec-badge spec-blue" data-i18n="spec_2_badge">Arquitectura</span>
+              <h3 data-i18n="spec_2_title">Compatibilidad &amp; Compilación</h3>
+            </div>
+            <ul class="spec-list">
+              <li data-i18n="spec_2_li1"><strong>Versión:</strong> 1.9.69 (versionCode 109) · <strong>APK:</strong> 30 MB</li>
+              <li data-i18n="spec_2_li2"><strong>Android:</strong> 6.0 (API 23) hasta Android 16 (targetSdk 36)</li>
+              <li data-i18n="spec_2_li3"><strong>Formatos:</strong> Móvil, Tablet, Android TV (Leanback) y Samsung DeX</li>
+              <li data-i18n="spec_2_li4"><strong>Motor:</strong> Kotlin + Java (JDK 11) + C/C++ (CMake/JNI) + RTL</li>
+            </ul>
+          </article>
+
+          <article class="spec-card">
+            <div class="spec-head">
+              <span class="spec-badge spec-purple" data-i18n="spec_3_badge">Visores &amp; Datos</span>
+              <h3 data-i18n="spec_3_title">Visores &amp; Utilidades Ocultas</h3>
+            </div>
+            <ul class="spec-list">
+              <li data-i18n="spec_3_li1"><strong>Documentos &amp; BD:</strong> Visor SQLite, PDF, DOCX y metadatos EXIF</li>
+              <li data-i18n="spec_3_li2"><strong>Multimedia HD:</strong> Zoom subsampling, SVG, GIF, audio y video</li>
+              <li data-i18n="spec_3_li3"><strong>Búsqueda avanzada:</strong> Archivos duplicados y texto dentro de archivos</li>
+              <li data-i18n="spec_3_li4"><strong>5 Hashes + Archivos:</strong> CRC32, MD5, SHA-1, 256, 512 y libarchive</li>
+            </ul>
+          </article>
+
+          <article class="spec-card">
+            <div class="spec-head">
+              <span class="spec-badge spec-amber" data-i18n="spec_4_badge">Red &amp; Sistema</span>
+              <h3 data-i18n="spec_4_title">Red Segura, JADX &amp; Privilegios</h3>
+            </div>
+            <ul class="spec-list">
+              <li data-i18n="spec_4_li1"><strong>Modding:</strong> JADX 1.4.7, smali-dexlib2, baksmali, ARSC, HEX y apksig</li>
+              <li data-i18n="spec_4_li2"><strong>Servidor FTP:</strong> mina-core parcheado frente a CVE-2024-52046</li>
+              <li data-i18n="spec_4_li3"><strong>Clientes LAN/Nube:</strong> SFTP (SSHJ), SMB (jCIFS-NG/SMBJ) y WebDAV</li>
+              <li data-i18n="spec_4_li4"><strong>Privilegios:</strong> Shizuku 13.1.5, Root (libsu), SELinux y monitor RAM</li>
+            </ul>
+          </article>
+        </div>
+        <button type="button" class="carousel-arrow carousel-next" aria-label="Siguiente">&#10095;</button>
+      </div>
+    </div>
+  </section>
+
   <!-- Compilation Section with One-Click Copy -->
   <section id="compilacion" class="section bg-alt">
     <div class="container">
@@ -564,6 +636,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=20261112_09"></script>
+  <script src="app.js?v=20261112_10"></script>
 </body>
 </html>
