@@ -1,3 +1,23 @@
+# OpenManager v1.9.70: Internacionalización Completa (EN/ES), Estabilidad del Editor e Icono Adaptativo Ajustado
+
+### 🌍 Soporte Multi-Idioma Completo (Inglés por Defecto y Español)
+- **Migración Integral de Interfaz y Motores**:
+  - Se migraron todos los layouts XML, menús, diálogos, visores y helpers a recursos localizables (`932` claves `om_*` sincronizadas entre `values/strings.xml` en inglés y `values-es/strings.xml` en español).
+  - Motores internos y analizadores (`SyscallResolver`, `ElfInspector`, `SuperuserDetector`, `ScriptRunnerHelper`, `AxmlEngine`, `ArscEngine`, entre otros) traducidos al inglés manteniendo compatibilidad completa con pruebas JVM.
+  - Añadido `README_en.md` junto al selector de idioma integrado (`LocalePreference` y soporte por aplicación en Android 13+).
+
+### 🛡️ Estabilidad y Corrección de Errores
+- **Editor de Texto (`TextEditorFragment`)**:
+  - Corregido el crash `UninitializedPropertyAccessException: lateinit property argsFile has not been initialized` al inicializar y validar `extraPath` en `onCreate()` antes de registrar `launchWhenStarted`.
+- **Verificación Interactiva**:
+  - Probado en dispositivo/emulador con navegación entre pantallas, apertura de editor e inyección de 200 eventos (`monkey`) sin cierres inesperados.
+
+### 🎨 Ajuste Visual del Icono de Escritorio
+- **Margen Seguro en Icono Adaptativo**:
+  - Aumentado el `android:inset` de `launcher_icon_foreground_inset.xml` de `14%` a `22%` para evitar que el zoom y máscara de launchers modernos recorten los bordes del icono en el escritorio.
+
+---
+
 # OpenManager v1.9.69: Renovación Visual de Iconos (Sin Fondo Blanco y Diseño Variado por Pantalla)
 
 ### 🎨 Nuevos Iconos de Alta Definición con Fondo Transparente
