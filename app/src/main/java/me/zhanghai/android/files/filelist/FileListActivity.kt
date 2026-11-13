@@ -200,7 +200,7 @@ class FileListActivity : AppActivity() {
                     val fullPath = activeFragment.currentPath.toDisplayPath(trailingSlash = true)
                     val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                     clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("path", fullPath))
-                    android.widget.Toast.makeText(this, "Ruta copiada: $fullPath", android.widget.Toast.LENGTH_SHORT).show()
+                    android.widget.Toast.makeText(this, getString(R.string.om_path_copied_format, fullPath), android.widget.Toast.LENGTH_SHORT).show()
                     true
                 } catch (e: Exception) {
                     false
@@ -636,11 +636,11 @@ class FileListActivity : AppActivity() {
                         val intent = Intent(AndroidSettings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
                         startActivity(intent)
                     } catch (e2: Exception) {
-                        showToast("No se pudo abrir la pantalla de ajustes de archivos")
+                        showToast(R.string.om_all_files_settings_error)
                     }
                 }
             }
-            .setNegativeButton("Cancelar") { dialog, _ ->
+            .setNegativeButton(android.R.string.cancel) { dialog, _ ->
                 dialog.dismiss()
                 allFilesDialog = null
             }
@@ -1099,7 +1099,7 @@ class FileListActivity : AppActivity() {
     }
 
     private fun showCustomStorageOptions(storage: Storage) {
-        val options = arrayOf("Editar", "Eliminar")
+        val options = arrayOf(getString(R.string.edit), getString(R.string.delete))
         MaterialAlertDialogBuilder(this)
             .setTitle(storage.getName(this))
             .setItems(options) { _, which ->
@@ -1121,9 +1121,9 @@ class FileListActivity : AppActivity() {
                 val rootPercent = if (rootTotal > 0) ((rootUsed * 100) / rootTotal).toInt() else 100
                 val rootUsedStr = Formatter.formatFileSize(this@FileListActivity, rootUsed)
                 val rootAvailStr = Formatter.formatFileSize(this@FileListActivity, rootAvail)
-                rootPercent to "$rootUsedStr usado, $rootAvailStr disponible ($rootPercent%)"
+                rootPercent to getString(R.string.om_storage_used_avail_format, rootUsedStr, rootAvailStr, rootPercent)
             } catch (e: Exception) {
-                100 to "/ (Raíz del sistema)"
+                100 to getString(R.string.om_nav_root_subtitle)
             }
 
             val emulatedData = try {
@@ -1134,7 +1134,7 @@ class FileListActivity : AppActivity() {
                 val emulatedPercent = if (emulatedTotal > 0) ((emulatedUsed * 100) / emulatedTotal).toInt() else 80
                 val emulatedUsedStr = Formatter.formatFileSize(this@FileListActivity, emulatedUsed)
                 val emulatedAvailStr = Formatter.formatFileSize(this@FileListActivity, emulatedAvail)
-                emulatedPercent to "$emulatedUsedStr usado, $emulatedAvailStr disponible ($emulatedPercent%)"
+                emulatedPercent to getString(R.string.om_storage_used_avail_format, emulatedUsedStr, emulatedAvailStr, emulatedPercent)
             } catch (e: Exception) {
                 80 to "/storage/emulated/0"
             }
@@ -1251,7 +1251,7 @@ class FileListActivity : AppActivity() {
                     true
                 }
                 R.id.mt_menu_set_as_home -> {
-                    showToast("Ruta fijada como inicio")
+                    showToast(R.string.om_path_set_as_home)
                     true
                 }
                 R.id.mt_menu_swap_windows -> {
@@ -1404,16 +1404,16 @@ class FileListActivity : AppActivity() {
             if (selected.isNotEmpty()) {
                 val opposite = getOppositeFragment(activeFragment)
                 if (opposite.currentPath.toString().startsWith("/dev/block") || opposite.currentPath.toString().startsWith("/dev/")) {
-                    Toast.makeText(this, "Por seguridad, no se puede escribir directamente en particiones del sistema", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_sec_cannot_write_sys_part, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (!activeFragment.canWriteTo(opposite.currentPath)) {
-                    val msg = if (opposite.currentPath.isArchivePath) {
-                        "No se puede copiar dentro de un archivo comprimido"
+                    val msgRes = if (opposite.currentPath.isArchivePath) {
+                        R.string.om_err_copy_into_archive
                     } else {
-                        "Permiso denegado: el destino es de solo lectura (se requiere Root o Shizuku)"
+                        R.string.om_err_perm_denied_dest_ro
                     }
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 activeFragment.copyFilesTo(selected, opposite.currentPath)
@@ -1424,25 +1424,25 @@ class FileListActivity : AppActivity() {
             val selected = activeFragment.selectedFiles
             if (selected.isNotEmpty()) {
                 if (selected.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
-                    Toast.makeText(this, "Por seguridad, las particiones no se pueden mover ni cortar (solo copiar)", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_sec_cannot_move_partitions, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 val opposite = getOppositeFragment(activeFragment)
                 if (activeFragment.currentPath == opposite.currentPath) {
-                    Toast.makeText(this, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_err_same_src_dest, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (opposite.currentPath.toString().startsWith("/dev/block") || opposite.currentPath.toString().startsWith("/dev/")) {
-                    Toast.makeText(this, "Por seguridad, no se puede mover hacia particiones del sistema", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_sec_cannot_move_to_sys_part, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
-                    val msg = if (opposite.currentPath.isArchivePath) {
-                        "No se pueden mover archivos dentro de un archivo comprimido"
+                    val msgRes = if (opposite.currentPath.isArchivePath) {
+                        R.string.om_err_move_into_archive
                     } else {
-                        "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)"
+                        R.string.om_err_perm_denied_move_ro
                     }
-                    Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 activeFragment.moveFilesTo(selected, opposite.currentPath)
@@ -1452,11 +1452,11 @@ class FileListActivity : AppActivity() {
         btnDeleteSelection.setOnClickListener {
             if (activeFragment.selectedFiles.isNotEmpty()) {
                 if (activeFragment.selectedFiles.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
-                    Toast.makeText(this, "Por seguridad, las particiones del sistema no se pueden eliminar", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_sec_cannot_delete_partitions, Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
-                    Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_err_perm_denied_dir_ro, Toast.LENGTH_SHORT).show()
                 } else {
                     activeFragment.deleteSelectedFiles()
                 }
@@ -1471,26 +1471,30 @@ class FileListActivity : AppActivity() {
     private fun updateSelectionButtons(count: Int) {
         val isPanelA = (activePanelIndex == 0)
         val isArchive = activeFragment.currentPath.isArchivePath
-        val copyVerb = if (isArchive) "Extraer" else "Copiar"
+        val copyVerb = getString(if (isArchive) R.string.om_verb_extract else R.string.om_verb_copy)
 
         if (isArchive) {
             btnCopyOpposite.setImageResource(R.drawable.extract_icon_white_24dp)
         } else {
             btnCopyOpposite.setImageResource(R.drawable.copy_icon_white_24dp)
         }
-        val copyTarget = if (isPanelA) "al panel derecho" else "al panel izquierdo"
-        val copyDesc = "$copyVerb $copyTarget"
+        val copyDesc = getString(
+            if (isPanelA) R.string.om_verb_to_right_panel_format else R.string.om_verb_to_left_panel_format,
+            copyVerb
+        )
         btnCopyOpposite.contentDescription = copyDesc
         TooltipCompat.setTooltipText(btnCopyOpposite, copyDesc)
 
         if (isPanelA) {
             btnMoveOpposite.setImageResource(R.drawable.move_icon_white_24dp)
-            btnMoveOpposite.contentDescription = "Mover al panel derecho"
-            TooltipCompat.setTooltipText(btnMoveOpposite, "Mover al panel derecho")
+            val moveRight = getString(R.string.om_move_to_right_panel)
+            btnMoveOpposite.contentDescription = moveRight
+            TooltipCompat.setTooltipText(btnMoveOpposite, moveRight)
         } else {
             btnMoveOpposite.setImageResource(R.drawable.move_left_icon_white_24dp)
-            btnMoveOpposite.contentDescription = "Mover al panel izquierdo"
-            TooltipCompat.setTooltipText(btnMoveOpposite, "Mover al panel izquierdo")
+            val moveLeft = getString(R.string.om_move_to_left_panel)
+            btnMoveOpposite.contentDescription = moveLeft
+            TooltipCompat.setTooltipText(btnMoveOpposite, moveLeft)
         }
 
         val isReadOnly = !activeFragment.canWriteTo(activeFragment.currentPath)
@@ -1501,16 +1505,16 @@ class FileListActivity : AppActivity() {
         btnMoveOpposite.alpha = if (moveDisabled) 0.35f else 1.0f
         btnMoveOpposite.isEnabled = !moveDisabled
 
-        TooltipCompat.setTooltipText(btnSelectionClose, "Cancelar selección")
-        TooltipCompat.setTooltipText(btnDeleteSelection, "Eliminar seleccionados")
-        TooltipCompat.setTooltipText(btnMoreSelection, "Más opciones")
+        TooltipCompat.setTooltipText(btnSelectionClose, getString(R.string.om_action_cancel_selection))
+        TooltipCompat.setTooltipText(btnDeleteSelection, getString(R.string.om_action_delete_selected))
+        TooltipCompat.setTooltipText(btnMoreSelection, getString(R.string.om_more_options))
 
         val totalSelectable = activeFragment.selectableItemCount
         val disk = getDiskStats()
         tvStatsSubtitle.text = if (disk.isNotEmpty()) {
-            "Seleccionados: $count / $totalSelectable  $disk"
+            getString(R.string.om_selected_stats_disk_format, count, totalSelectable, disk)
         } else {
-            "Seleccionados: $count / $totalSelectable"
+            getString(R.string.om_selected_stats_format, count, totalSelectable)
         }
     }
 
@@ -1747,17 +1751,17 @@ class FileListActivity : AppActivity() {
 
             val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
             buttonBar.addView(createChip(
-                "Copiar",
+                getString(R.string.om_action_copy),
                 iconRes = R.drawable.copy_icon_control_normal_24dp,
                 iconTint = android.graphics.Color.parseColor("#B0BEC5"),
                 chipTextColor = android.graphics.Color.parseColor("#CFD8DC")
             ) {
                 val text = editText.text?.toString() ?: ""
                 clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("path", text))
-                android.widget.Toast.makeText(context, "Ruta copiada", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(context, R.string.om_path_copied, android.widget.Toast.LENGTH_SHORT).show()
             })
             buttonBar.addView(createChip(
-                "Pegar",
+                getString(R.string.paste),
                 iconRes = R.drawable.paste_icon_control_normal_24dp,
                 iconTint = android.graphics.Color.parseColor("#B0BEC5"),
                 chipTextColor = android.graphics.Color.parseColor("#CFD8DC")
@@ -1769,7 +1773,7 @@ class FileListActivity : AppActivity() {
                 }
             })
             buttonBar.addView(createChip(
-                "Interna",
+                getString(R.string.om_chip_internal),
                 iconRes = R.drawable.home_icon_white_24dp,
                 iconTint = android.graphics.Color.parseColor("#FFB300"),
                 chipTextColor = android.graphics.Color.parseColor("#FFD54F")
@@ -1778,7 +1782,7 @@ class FileListActivity : AppActivity() {
                 editText.setSelection(editText.text?.length ?: 0)
             })
             buttonBar.addView(createChip(
-                "Descargas",
+                getString(R.string.om_nav_downloads),
                 iconRes = R.drawable.download_icon_white_24dp,
                 iconTint = android.graphics.Color.parseColor("#42A5F5"),
                 chipTextColor = android.graphics.Color.parseColor("#90CAF9")
@@ -1796,7 +1800,7 @@ class FileListActivity : AppActivity() {
                 editText.setSelection(editText.text?.length ?: 0)
             })
             buttonBar.addView(createChip(
-                "Raíz (/)",
+                getString(R.string.om_chip_root),
                 iconRes = R.drawable.device_icon_white_24dp,
                 iconTint = android.graphics.Color.parseColor("#FF7043"),
                 chipTextColor = android.graphics.Color.parseColor("#FFAB91")
@@ -1927,7 +1931,7 @@ class FileListActivity : AppActivity() {
                                         withContext(Dispatchers.Main) {
                                             android.widget.Toast.makeText(
                                                 this@FileListActivity,
-                                                "No se pudo crear la carpeta: ${e.localizedMessage ?: e.message}",
+                                                getString(R.string.om_create_folder_error_format, e.localizedMessage ?: e.message ?: ""),
                                                 android.widget.Toast.LENGTH_SHORT
                                             ).show()
                                         }
@@ -1941,7 +1945,7 @@ class FileListActivity : AppActivity() {
                             activeFragment.navigateTo(parent)
                             android.widget.Toast.makeText(
                                 this@FileListActivity,
-                                "Archivo en: ${parent.toDisplayPath()}",
+                                getString(R.string.om_file_in_path_format, parent.toDisplayPath()),
                                 android.widget.Toast.LENGTH_SHORT
                             ).show()
                         } else {
@@ -1956,7 +1960,7 @@ class FileListActivity : AppActivity() {
             e.printStackTrace()
             android.widget.Toast.makeText(
                 this,
-                "Error en la ruta: ${e.localizedMessage ?: e.message}",
+                getString(R.string.om_path_error_format, e.localizedMessage ?: e.message ?: ""),
                 android.widget.Toast.LENGTH_SHORT
             ).show()
         }
@@ -2044,12 +2048,12 @@ class FileListActivity : AppActivity() {
 
     fun showSearchDialog() {
         val options = arrayOf(
-            "Buscar archivos por nombre o extensión",
-            "Buscar texto y reemplazar en archivos",
-            "Buscar archivos duplicados"
+            getString(R.string.om_search_opt_filename),
+            getString(R.string.om_search_opt_text_replace),
+            getString(R.string.om_search_opt_duplicates)
         )
         MaterialAlertDialogBuilder(this)
-            .setTitle("Buscador")
+            .setTitle(R.string.om_search_title)
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showFileNameSearchPrompt()
@@ -2063,21 +2067,21 @@ class FileListActivity : AppActivity() {
 
     fun showFileNameSearchPrompt() {
         val input = EditText(this).apply {
-            hint = "Nombre del archivo o extensión"
+            hint = getString(R.string.om_search_filename_hint)
             setSingleLine()
             val padding = (16 * resources.displayMetrics.density).toInt()
             setPadding(padding, padding, padding, padding)
         }
         MaterialAlertDialogBuilder(this)
-            .setTitle("Buscar archivos en panel actual")
+            .setTitle(R.string.om_search_current_panel_title)
             .setView(input)
-            .setPositiveButton("Buscar") { _, _ ->
+            .setPositiveButton(R.string.om_search_btn) { _, _ ->
                 val query = input.text.toString().trim()
                 if (query.isNotEmpty()) {
                     activeFragment.searchFiles(query)
                 }
             }
-            .setNegativeButton("Restablecer") { _, _ ->
+            .setNegativeButton(R.string.reset) { _, _ ->
                 activeFragment.stopSearching()
             }
             .show()
@@ -2108,7 +2112,7 @@ class FileListActivity : AppActivity() {
     private fun showMoreSelectionMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         val isPanelA = (activePanelIndex == 0)
-        val moveLabel = if (isPanelA) "Mover >>" else "<< Mover"
+        val moveLabel = getString(if (isPanelA) R.string.om_mt_move_right_short else R.string.om_mt_move_left_short)
         popup.menu.apply {
             add(0, 10, 0, moveLabel)
             add(0, 11, 0, getString(R.string.delete))
@@ -2119,16 +2123,16 @@ class FileListActivity : AppActivity() {
             if (activeFragment.selectedFiles.size == 2) {
                 add(0, 3, 0, getString(R.string.action_swap_file_names))
             }
-            add(0, 6, 0, "Comprimir / Añadir a ZIP...")
+            add(0, 6, 0, getString(R.string.om_menu_compress_zip))
             add(0, 13, 0, getString(R.string.share))
             add(0, 2, 0, getString(R.string.action_export_file_list))
             val totalSelectable = activeFragment.selectableItemCount
             val currentSelected = activeFragment.selectedFiles.size
             if (currentSelected < totalSelectable) {
-                add(0, 7, 0, "Seleccionar todo")
+                add(0, 7, 0, getString(R.string.om_menu_select_all))
             }
-            add(0, 4, 0, "Invertir selección")
-            add(0, 1, 0, "Desmarcar todo")
+            add(0, 4, 0, getString(R.string.om_menu_invert_selection))
+            add(0, 1, 0, getString(R.string.om_action_uncheck_all))
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -2141,14 +2145,14 @@ class FileListActivity : AppActivity() {
                     if (selected.isNotEmpty()) {
                         val opposite = getOppositeFragment(activeFragment)
                         if (activeFragment.currentPath == opposite.currentPath) {
-                            Toast.makeText(this, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, R.string.om_err_same_src_dest, Toast.LENGTH_SHORT).show()
                         } else if (!activeFragment.canWriteTo(activeFragment.currentPath) || !activeFragment.canWriteTo(opposite.currentPath)) {
-                            val msg = if (opposite.currentPath.isArchivePath) {
-                                "No se pueden mover archivos dentro de un archivo comprimido"
+                            val msgRes = if (opposite.currentPath.isArchivePath) {
+                                R.string.om_err_move_into_archive
                             } else {
-                                "Permiso denegado: no se pueden mover archivos en ubicaciones de solo lectura (se requiere Root o Shizuku)"
+                                R.string.om_err_perm_denied_move_ro
                             }
-                            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, msgRes, Toast.LENGTH_SHORT).show()
                         } else {
                             activeFragment.moveFilesTo(selected, opposite.currentPath)
                         }
@@ -2158,7 +2162,7 @@ class FileListActivity : AppActivity() {
                 11 -> {
                     if (activeFragment.selectedFiles.isNotEmpty()) {
                         if (!activeFragment.canWriteTo(activeFragment.currentPath)) {
-                            Toast.makeText(this, "Permiso denegado: este directorio es de solo lectura (se requiere Root o Shizuku)", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, R.string.om_err_perm_denied_dir_ro, Toast.LENGTH_SHORT).show()
                         } else {
                             activeFragment.deleteSelectedFiles()
                         }

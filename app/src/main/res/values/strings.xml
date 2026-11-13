@@ -2095,4 +2095,45 @@
     <string name="om_apps_extracted_format">Extracted: %1$s (%2$s)</string>
     <string name="om_apps_locate_btn">Locate</string>
     <string name="om_apps_extract_error">Error extracting app. Check permissions.</string>
+
+    <!-- OpenManager FileListActivity Localization (Batch 2D) -->
+    <string name="om_path_copied_format">Path copied: %1$s</string>
+    <string name="om_all_files_settings_error">Could not open all-files access settings</string>
+    <string name="om_storage_used_avail_format">%1$s used, %2$s free (%3$d%%)</string>
+    <string name="om_path_set_as_home">Path set as home</string>
+    <string name="om_sec_cannot_write_sys_part">For safety, cannot write directly to system partitions</string>
+    <string name="om_err_copy_into_archive">Cannot copy into a compressed archive</string>
+    <string name="om_err_perm_denied_dest_ro">Permission denied: destination is read-only (Root or Shizuku required)</string>
+    <string name="om_sec_cannot_move_partitions">For safety, partitions cannot be moved or cut (copy only)</string>
+    <string name="om_err_same_src_dest">Source and destination are the same directory</string>
+    <string name="om_sec_cannot_move_to_sys_part">For safety, cannot move to system partitions</string>
+    <string name="om_err_move_into_archive">Cannot move files into a compressed archive</string>
+    <string name="om_err_perm_denied_move_ro">Permission denied: cannot move files in read-only locations (Root or Shizuku required)</string>
+    <string name="om_sec_cannot_delete_partitions">For safety, system partitions cannot be deleted</string>
+    <string name="om_err_perm_denied_dir_ro">Permission denied: this directory is read-only (Root or Shizuku required)</string>
+    <string name="om_verb_extract">Extract</string>
+    <string name="om_verb_copy">Copy</string>
+    <string name="om_verb_to_right_panel_format">%1$s to right panel</string>
+    <string name="om_verb_to_left_panel_format">%1$s to left panel</string>
+    <string name="om_move_to_right_panel">Move to right panel</string>
+    <string name="om_move_to_left_panel">Move to left panel</string>
+    <string name="om_selected_stats_disk_format">Selected: %1$d / %2$d  %3$s</string>
+    <string name="om_selected_stats_format">Selected: %1$d / %2$d</string>
+    <string name="om_path_copied">Path copied</string>
+    <string name="om_chip_internal">Internal</string>
+    <string name="om_chip_root">Root (/)</string>
+    <string name="om_create_folder_error_format">Could not create folder: %1$s</string>
+    <string name="om_file_in_path_format">File in: %1$s</string>
+    <string name="om_path_error_format">Path error: %1$s</string>
+    <string name="om_search_opt_filename">Search files by name or extension</string>
+    <string name="om_search_opt_text_replace">Search text and replace in files</string>
+    <string name="om_search_opt_duplicates">Find duplicate files</string>
+    <string name="om_search_title">Search</string>
+    <string name="om_search_filename_hint">File name or extension</string>
+    <string name="om_search_current_panel_title">Search files in current panel</string>
+    <string name="om_search_btn">Search</string>
+    <string name="om_mt_move_right_short">Move &gt;&gt;</string>
+    <string name="om_mt_move_left_short">&lt;&lt; Move</string>
+    <string name="om_menu_compress_zip">Compress / Add to ZIP...</string>
+    <string name="om_menu_invert_selection">Invert selection</string>
 </resources>
