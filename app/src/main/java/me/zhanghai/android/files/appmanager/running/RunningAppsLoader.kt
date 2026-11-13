@@ -107,6 +107,11 @@ object RunningAppsLoader {
 
         val processMap = mutableMapOf<Int, RunningAppModel>()
 
+        // Snapshot CPU jiffies before discovery for accurate CPU% delta
+        val cpuTotalT0 = readTotalCpuJiffies()
+        val procJiffiesT0 = readAllProcJiffies()
+        val startMs = System.currentTimeMillis()
+
         // 1. Tier 1: dumpsys activity processes (Root / Shizuku / Shell)
         if (isRootGranted()) {
             try {
@@ -192,6 +197,44 @@ object RunningAppsLoader {
                 }
             }
         } catch (_: Throwable) {}
+
+        // Ensure at least ~180ms elapsed between CPU snapshots for meaningful delta
+        val elapsed = System.currentTimeMillis() - startMs
+        if (cpuTotalT0 > 0L && elapsed < 180L) {
+            try { Thread.sleep(180L - elapsed) } catch (_: Throwable) {}
+        }
+        val cpuTotalT1 = readTotalCpuJiffies()
+        val procJiffiesT1 = readAllProcJiffies()
+        val totalDelta = (cpuTotalT1 - cpuTotalT0).coerceAtLeast(1L)
+
+        // Optional fallback CPU% from ps -A -o PID,PCPU when /proc/[pid]/stat is restricted
+        val psCpuMap = if (procJiffiesT1.isEmpty() || hasElevatedAccess()) readPsCpuPercentages() else emptyMap()
+
+        // Enrich processes with CPU% and executable type (SH / ELF64 / ELF32)
+        val exeTargetMap = if (isRootGranted()) readProcExeTargetsBatch() else emptyMap()
+        for ((pid, model) in processMap) {
+            val j0 = procJiffiesT0[pid]
+            val j1 = procJiffiesT1[pid]
+            val procCpu = if (cpuTotalT0 > 0L && j0 != null && j1 != null && j1 >= j0) {
+                ((j1 - j0).toFloat() / totalDelta.toFloat() * 100f).coerceIn(0f, 100f)
+            } else {
+                psCpuMap[pid] ?: model.cpuPercent
+            }
+
+            val (execType, elfArch) = detectExecutableType(
+                pid = pid,
+                processName = model.processName,
+                cmdline = model.cmdline,
+                isApp = model.isApp,
+                exeTarget = exeTargetMap[pid]
+            )
+
+            processMap[pid] = model.copy(
+                cpuPercent = procCpu,
+                executableType = execType,
+                elfArch = elfArch
+            )
+        }
 
         return processMap.values.toList().sortedWith(compareByDescending<RunningAppModel> { it.isApp }
             .thenByDescending { it.memoryBytes }
@@ -470,6 +513,202 @@ object RunningAppsLoader {
             }
         } catch (_: Throwable) {}
         return 0L
+    }
+
+    private fun readTotalCpuJiffies(): Long {
+        try {
+            BufferedReader(FileReader("/proc/stat")).use { reader ->
+                val line = reader.readLine() ?: return 0L
+                if (line.startsWith("cpu ")) {
+                    val parts = line.trim().split(Regex("\\s+"))
+                    var sum = 0L
+                    for (i in 1 until parts.size) {
+                        sum += parts[i].toLongOrNull() ?: 0L
+                    }
+                    return sum
+                }
+            }
+        } catch (_: Throwable) {}
+        return 0L
+    }
+
+    private fun readAllProcJiffies(): Map<Int, Long> {
+        val map = HashMap<Int, Long>()
+        try {
+            val procDir = File("/proc")
+            val dirs = procDir.listFiles { f -> f.isDirectory && f.name.all { it.isDigit() } } ?: return map
+            for (d in dirs) {
+                val pid = d.name.toIntOrNull() ?: continue
+                val statFile = File(d, "stat")
+                if (!statFile.canRead()) continue
+                try {
+                    val text = statFile.readText()
+                    val rparen = text.lastIndexOf(')')
+                    if (rparen > 0 && rparen + 2 < text.length) {
+                        val after = text.substring(rparen + 2).trim().split(Regex("\\s+"))
+                        // utime is field 14 (index 11 after ')'), stime is field 15 (index 12)
+                        if (after.size > 12) {
+                            val utime = after[11].toLongOrNull() ?: 0L
+                            val stime = after[12].toLongOrNull() ?: 0L
+                            map[pid] = utime + stime
+                        }
+                    }
+                } catch (_: Throwable) {}
+            }
+        } catch (_: Throwable) {}
+        return map
+    }
+
+    private fun readPsCpuPercentages(): Map<Int, Float> {
+        val map = HashMap<Int, Float>()
+        try {
+            val lines = when {
+                isRootGranted() -> Shell.cmd("ps -A -o PID,PCPU").exec().out
+                isShizukuReady() -> {
+                    val res = ShizukuShell.exec("ps -A -o PID,PCPU")
+                    if (res.isSuccess) res.out.lines() else emptyList()
+                }
+                else -> emptyList()
+            }
+            for (line in lines.drop(1)) {
+                val tokens = line.trim().split(Regex("\\s+"))
+                if (tokens.size >= 2) {
+                    val pid = tokens[0].toIntOrNull() ?: continue
+                    val cpu = tokens[1].toFloatOrNull() ?: continue
+                    map[pid] = cpu.coerceIn(0f, 100f)
+                }
+            }
+        } catch (_: Throwable) {}
+        return map
+    }
+
+    private fun readProcExeTargetsBatch(): Map<Int, String> {
+        val map = HashMap<Int, String>()
+        try {
+            val lines = Shell.cmd("ls -l /proc/[0-9]*/exe 2>/dev/null").exec().out
+            for (line in lines) {
+                val arrowIdx = line.indexOf("->")
+                if (arrowIdx <= 0) continue
+                val left = line.substring(0, arrowIdx)
+                val target = line.substring(arrowIdx + 2).trim()
+                val procMatch = Regex("""/proc/(\d+)/exe""").find(left) ?: continue
+                val pid = procMatch.groupValues[1].toIntOrNull() ?: continue
+                if (target.isNotEmpty()) {
+                    map[pid] = target
+                }
+            }
+        } catch (_: Throwable) {}
+        return map
+    }
+
+    private val SHELL_NAMES = setOf("sh", "bash", "ash", "mksh", "zsh", "dash", "ksh")
+
+    private fun detectExecutableType(
+        pid: Int,
+        processName: String,
+        cmdline: String,
+        isApp: Boolean,
+        exeTarget: String?
+    ): Pair<ExecutableType, String> {
+        if (isApp) return ExecutableType.APP to ""
+
+        val lowerName = processName.substringAfterLast('/').lowercase()
+        val lowerCmd = cmdline.lowercase()
+
+        // 1. Shell scripts (.sh or shell interpreter running a script)
+        if (lowerName in SHELL_NAMES ||
+            lowerName.endsWith(".sh") ||
+            lowerCmd.contains(".sh ") ||
+            lowerCmd.endsWith(".sh") ||
+            lowerCmd.startsWith("/system/bin/sh") ||
+            lowerCmd.startsWith("/bin/sh")
+        ) {
+            return ExecutableType.SHELL_SCRIPT to "Shell"
+        }
+
+        // Kernel threads (usually bracketed or no binary path)
+        if (processName.startsWith("kworker") ||
+            processName.startsWith("ksoftirqd") ||
+            processName.startsWith("kswapd") ||
+            processName.startsWith("migration") ||
+            processName.startsWith("rcu_") ||
+            processName == "kthreadd"
+        ) {
+            return ExecutableType.SYSTEM_DAEMON to ""
+        }
+
+        // 2. Inspect ELF header from exeTarget, /proc/$pid/exe, or executable path
+        val candidatePaths = mutableListOf<String>()
+        if (!exeTarget.isNullOrEmpty() && !exeTarget.contains("app_process")) {
+            candidatePaths.add(exeTarget)
+        }
+        if (processName.startsWith("/")) {
+            candidatePaths.add(processName.substringBefore(' '))
+        } else {
+            val firstArg = cmdline.substringBefore(' ').trim()
+            if (firstArg.startsWith("/")) candidatePaths.add(firstArg)
+            candidatePaths.add("/system/bin/$lowerName")
+            candidatePaths.add("/vendor/bin/$lowerName")
+            candidatePaths.add("/data/local/tmp/$lowerName")
+        }
+        candidatePaths.add("/proc/$pid/exe")
+
+        for (pathStr in candidatePaths) {
+            val elfInfo = readElfHeaderQuick(pathStr)
+            if (elfInfo != null) return elfInfo
+        }
+
+        // 3. Fallback: if it's a native binary path or non-Java daemon (not app_process / zygote)
+        val targetOrName = exeTarget ?: processName
+        val isNativePath = targetOrName.startsWith("/") ||
+            cmdline.startsWith("/system/bin/") ||
+            cmdline.startsWith("/vendor/bin/") ||
+            cmdline.startsWith("/apex/") ||
+            cmdline.startsWith("/data/local/tmp/") ||
+            cmdline.startsWith("/data/adb/")
+        if (isNativePath && !targetOrName.contains("app_process") && !lowerName.contains("zygote")) {
+            return ExecutableType.ELF_GENERIC to ""
+        }
+
+        return ExecutableType.SYSTEM_DAEMON to ""
+    }
+
+    private fun readElfHeaderQuick(pathStr: String): Pair<ExecutableType, String>? {
+        return try {
+            val file = File(pathStr)
+            if (!file.exists() || !file.canRead()) return null
+            val header = ByteArray(20)
+            val read = file.inputStream().use { it.read(header) }
+            if (read < 20) return null
+            if (header[0] != 0x7F.toByte() ||
+                header[1] != 'E'.code.toByte() ||
+                header[2] != 'L'.code.toByte() ||
+                header[3] != 'F'.code.toByte()
+            ) {
+                return null
+            }
+            val eiClass = header[4].toInt() // 1 = 32-bit, 2 = 64-bit
+            val isLittleEndian = header[5].toInt() == 1
+            val b0 = header[18].toInt() and 0xFF
+            val b1 = header[19].toInt() and 0xFF
+            val machine = if (isLittleEndian) b0 or (b1 shl 8) else (b0 shl 8) or b1
+            val arch = when (machine) {
+                183 -> "AArch64"
+                62 -> "x86_64"
+                40 -> "ARM32"
+                3 -> "x86"
+                243 -> "RISC-V"
+                else -> "ELF"
+            }
+            val type = when (eiClass) {
+                2 -> ExecutableType.ELF_64
+                1 -> ExecutableType.ELF_32
+                else -> ExecutableType.ELF_GENERIC
+            }
+            type to arch
+        } catch (_: Throwable) {
+            null
+        }
     }
 
     /**

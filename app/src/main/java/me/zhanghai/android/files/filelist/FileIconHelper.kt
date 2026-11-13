@@ -23,6 +23,7 @@ object FileIconHelper {
             lowerName.endsWith(".arsc") -> R.drawable.file_arsc_icon
             lowerName == "androidmanifest.xml" || lowerName.endsWith(".xml") -> R.drawable.file_xml_mt_icon
             lowerName.endsWith(".so") -> R.drawable.file_so_icon
+            lowerName.endsWith(".elf") -> R.drawable.ic_exec_elf_generic
             lowerName.endsWith(".sh") || lowerName.endsWith(".bash") || lowerName.endsWith(".zsh") -> R.drawable.file_sh_icon
             lowerName.endsWith(".apk") || lowerName.endsWith(".apks") || lowerName.endsWith(".xapk") || lowerName.endsWith(".apkm") -> R.drawable.file_apk_icon
             lowerName.endsWith(".zip") || lowerName.endsWith(".rar") || lowerName.endsWith(".7z") ||

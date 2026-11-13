@@ -117,6 +117,16 @@
                 tools:text="142.5 MB RAM" />
 
             <TextView
+                android:id="@+id/tvProcessCpu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:textColor="#80CBC4"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                tools:text="CPU: 3.4%" />
+
+            <TextView
                 android:id="@+id/tvProcessUser"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- 64-bit ELF deep cyan-blue badge -->
+    <path
+        android:fillColor="#132D3F"
+        android:pathData="M10,4h24c3.3,0 6,2.7 6,6v24c0,3.3 -2.7,6 -6,6H10c-3.3,0 -6,-2.7 -6,-6V10c0,-3.3 2.7,-6 6,-6z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#29B6F6"
+        android:strokeWidth="1.5"
+        android:pathData="M10,4.75h24c2.9,0 5.25,2.35 5.25,5.25v24c0,2.9 -2.35,5.25 -5.25,5.25H10c-2.9,0 -5.25,-2.35 -5.25,-5.25V10c0,-2.9 2.35,-5.25 5.25,-5.25z" />
+    <!-- "64" bold vector digits -->
+    <path
+        android:fillColor="#4FC3F7"
+        android:pathData="M19,13h-5c-1.1,0 -2,0.9 -2,2v10c0,1.1 0.9,2 2,2h5c1.1,0 2,-0.9 2,-2v-4c0,-1.1 -0.9,-2 -2,-2h-4.5v-3.5H19V13zM14.5,21.5h4v3h-4v-3z" />
+    <path
+        android:fillColor="#4FC3F7"
+        android:pathData="M24,13v7.5h4.5V27H31v-6.5h1.5V18H31v-5h-2.5v5H26.5V13H24z" />
+    <!-- Accent bar -->
+    <path
+        android:fillColor="#29B6F6"
+        android:pathData="M11,31h22v3.5H11z" />
+</vector>

@@ -9,6 +9,15 @@ import android.content.pm.PackageInfo
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
 
+enum class ExecutableType {
+    APP,
+    SHELL_SCRIPT,
+    ELF_64,
+    ELF_32,
+    ELF_GENERIC,
+    SYSTEM_DAEMON
+}
+
 @Parcelize
 data class RunningAppModel(
     val pid: Int,
@@ -25,5 +34,13 @@ data class RunningAppModel(
     val threadCount: Int = 1,
     val user: String = "",
     val cmdline: String = "",
-    val selinuxContext: String = ""
-) : Parcelable
+    val selinuxContext: String = "",
+    val executableType: ExecutableType = if (isApp) ExecutableType.APP else ExecutableType.SYSTEM_DAEMON,
+    val elfArch: String = ""
+) : Parcelable {
+    val isScriptOrElf: Boolean
+        get() = executableType == ExecutableType.SHELL_SCRIPT ||
+            executableType == ExecutableType.ELF_64 ||
+            executableType == ExecutableType.ELF_32 ||
+            executableType == ExecutableType.ELF_GENERIC
+}

@@ -49,7 +49,13 @@ class RunningAppsAdapter(
         val context = holder.itemView.context
 
         holder.tvLabel.text = item.label
-        holder.tvProcessName.text = item.processName
+        holder.tvProcessName.text = when (item.executableType) {
+            ExecutableType.SHELL_SCRIPT -> "[SH] ${item.cmdline.ifBlank { item.processName }}"
+            ExecutableType.ELF_64 -> "[ELF64${if (item.elfArch.isNotEmpty()) " · ${item.elfArch}" else ""}] ${item.processName}"
+            ExecutableType.ELF_32 -> "[ELF32${if (item.elfArch.isNotEmpty()) " · ${item.elfArch}" else ""}] ${item.processName}"
+            ExecutableType.ELF_GENERIC -> "[ELF] ${item.processName}"
+            else -> item.processName
+        }
         holder.tvPid.text = "PID: ${item.pid}"
         holder.tvUser.text = item.user
 
@@ -59,6 +65,16 @@ class RunningAppsAdapter(
             "- RAM"
         }
         holder.tvMemory.text = memStr
+
+        holder.tvCpu.text = context.getString(R.string.om_running_apps_cpu_format, item.cpuPercent)
+        holder.tvCpu.setTextColor(
+            when {
+                item.cpuPercent >= 5f -> Color.parseColor("#FF7043")
+                item.cpuPercent >= 1f -> Color.parseColor("#FFB74D")
+                item.cpuPercent > 0f -> Color.parseColor("#80CBC4")
+                else -> Color.parseColor("#757575")
+            }
+        )
 
         // State Badge
         when (item.state) {
@@ -100,7 +116,7 @@ class RunningAppsAdapter(
                 }
             }
         } else {
-            holder.ivIcon.setImageResource(R.drawable.ic_running_apps)
+            holder.ivIcon.setImageResource(iconResForProcess(item))
         }
 
         holder.itemView.setOnClickListener { onItemClick(item) }
@@ -130,8 +146,19 @@ class RunningAppsAdapter(
         val tvProcessName: TextView = view.findViewById(R.id.tvProcessName)
         val tvPid: TextView = view.findViewById(R.id.tvProcessPid)
         val tvMemory: TextView = view.findViewById(R.id.tvProcessMemory)
+        val tvCpu: TextView = view.findViewById(R.id.tvProcessCpu)
         val tvUser: TextView = view.findViewById(R.id.tvProcessUser)
         val tvState: TextView = view.findViewById(R.id.tvProcessStateBadge)
         val btnMenu: ImageButton = view.findViewById(R.id.btnProcessMenu)
+    }
+
+    companion object {
+        fun iconResForProcess(item: RunningAppModel): Int = when (item.executableType) {
+            ExecutableType.SHELL_SCRIPT -> R.drawable.ic_exec_shell_script
+            ExecutableType.ELF_64 -> R.drawable.ic_exec_elf_64
+            ExecutableType.ELF_32 -> R.drawable.ic_exec_elf_32
+            ExecutableType.ELF_GENERIC -> R.drawable.ic_exec_elf_generic
+            else -> R.drawable.ic_running_apps_white_24dp
+        }
     }
 }

@@ -50,9 +50,9 @@ class RunningAppsActivity : AppActivity() {
     private val displayedProcesses = mutableListOf<RunningAppModel>()
     private lateinit var adapter: RunningAppsAdapter
 
-    private var currentTab = 0 // 0: User apps, 1: System apps, 2: All
+    private var currentTab = 0 // 0: User apps, 1: System apps, 2: SH / ELF, 3: All
     private var searchQuery = ""
-    private var currentSortOrder = 0 // 0: RAM descending, 1: Name A-Z, 2: PID ascending
+    private var currentSortOrder = 0 // 0: RAM descending, 1: CPU descending, 2: Name A-Z, 3: PID ascending
     private var isBannerDismissed = false
     private var loadJob: Job? = null
 
@@ -121,8 +121,10 @@ class RunningAppsActivity : AppActivity() {
     }
 
     private fun setupTabs() {
+        binding.tabLayout.tabMode = TabLayout.MODE_SCROLLABLE
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.running_apps_tab_user))
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.running_apps_tab_system))
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.om_running_apps_tab_exec))
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText(R.string.running_apps_tab_all))
 
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
@@ -326,14 +328,17 @@ class RunningAppsActivity : AppActivity() {
         val total = allProcesses.size
         var userCount = 0
         var sysCount = 0
+        var execCount = 0
         for (p in allProcesses) {
             if (p.isApp && !p.isSystem) userCount++ else sysCount++
+            if (p.isScriptOrElf) execCount++
         }
 
         binding.tvProcessCounters.text = getString(R.string.om_proc_counters_format, total, userCount)
         binding.tabLayout.getTabAt(0)?.text = "${getString(R.string.running_apps_tab_user)} ($userCount)"
         binding.tabLayout.getTabAt(1)?.text = "${getString(R.string.running_apps_tab_system)} ($sysCount)"
-        binding.tabLayout.getTabAt(2)?.text = "${getString(R.string.running_apps_tab_all)} ($total)"
+        binding.tabLayout.getTabAt(2)?.text = "${getString(R.string.om_running_apps_tab_exec)} ($execCount)"
+        binding.tabLayout.getTabAt(3)?.text = "${getString(R.string.running_apps_tab_all)} ($total)"
     }
 
     private fun filterAndSortProcesses() {
@@ -344,6 +349,7 @@ class RunningAppsActivity : AppActivity() {
             val matchesTab = when (currentTab) {
                 0 -> p.isApp && !p.isSystem
                 1 -> p.isSystem
+                2 -> p.isScriptOrElf
                 else -> true
             }
             if (!matchesTab) continue
@@ -352,6 +358,8 @@ class RunningAppsActivity : AppActivity() {
                 val matchesQuery = p.label.lowercase().contains(query) ||
                     p.processName.lowercase().contains(query) ||
                     (p.packageName?.lowercase()?.contains(query) == true) ||
+                    p.cmdline.lowercase().contains(query) ||
+                    p.elfArch.lowercase().contains(query) ||
                     p.pid.toString().contains(query)
                 if (!matchesQuery) continue
             }
@@ -361,8 +369,12 @@ class RunningAppsActivity : AppActivity() {
 
         when (currentSortOrder) {
             0 -> displayedProcesses.sortByDescending { it.memoryBytes }
-            1 -> displayedProcesses.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
-            2 -> displayedProcesses.sortBy { it.pid }
+            1 -> displayedProcesses.sortWith(
+                compareByDescending<RunningAppModel> { it.cpuPercent }
+                    .thenByDescending { it.memoryBytes }
+            )
+            2 -> displayedProcesses.sortWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.label })
+            3 -> displayedProcesses.sortBy { it.pid }
         }
 
         adapter.notifyDataSetChanged()
@@ -374,8 +386,22 @@ class RunningAppsActivity : AppActivity() {
 
         dialogBinding.dialogProcessLabel.text = item.label
         dialogBinding.dialogProcessName.text = item.processName
-        val typeLabel = getString(if (item.isApp) R.string.om_proc_type_app else R.string.om_proc_type_process)
-        dialogBinding.dialogProcessState.text = getString(R.string.om_proc_state_format, item.state, typeLabel)
+        val typeLabel = when (item.executableType) {
+            ExecutableType.APP -> getString(R.string.om_proc_type_app)
+            ExecutableType.SHELL_SCRIPT -> getString(R.string.om_running_apps_type_sh)
+            ExecutableType.ELF_64 -> {
+                val base = getString(R.string.om_running_apps_type_elf64)
+                if (item.elfArch.isNotEmpty()) "$base (${item.elfArch})" else base
+            }
+            ExecutableType.ELF_32 -> {
+                val base = getString(R.string.om_running_apps_type_elf32)
+                if (item.elfArch.isNotEmpty()) "$base (${item.elfArch})" else base
+            }
+            ExecutableType.ELF_GENERIC -> getString(R.string.om_running_apps_type_elf)
+            ExecutableType.SYSTEM_DAEMON -> getString(R.string.om_running_apps_type_daemon)
+        }
+        val cpuStr = getString(R.string.om_running_apps_cpu_format, item.cpuPercent)
+        dialogBinding.dialogProcessState.text = "${getString(R.string.om_proc_state_format, item.state, typeLabel)} • $cpuStr"
         dialogBinding.dialogTvPidPpid.text = "${item.pid} / ${item.ppid}"
         val memStr = if (item.memoryBytes > 0) Formatter.formatFileSize(this, item.memoryBytes) else getString(R.string.unknown)
         dialogBinding.dialogTvMemory.text = "$memStr (VmRSS)"
@@ -403,7 +429,7 @@ class RunningAppsActivity : AppActivity() {
             dialogBinding.btnDialogAppSettings.visibility = View.VISIBLE
             dialogBinding.btnDialogLaunchApp.visibility = View.VISIBLE
         } else {
-            dialogBinding.dialogProcessIcon.setImageResource(R.drawable.ic_running_apps)
+            dialogBinding.dialogProcessIcon.setImageResource(RunningAppsAdapter.iconResForProcess(item))
             dialogBinding.btnDialogForceStop.visibility = View.GONE
             dialogBinding.btnDialogAppDetails.visibility = View.GONE
             dialogBinding.btnDialogAppSettings.visibility = View.GONE
@@ -581,11 +607,12 @@ class RunningAppsActivity : AppActivity() {
     private fun showSortDialog() {
         val options = arrayOf(
             getString(R.string.running_apps_sort_ram),
+            getString(R.string.om_running_apps_sort_cpu),
             getString(R.string.running_apps_sort_name),
             getString(R.string.running_apps_sort_pid)
         )
         MaterialAlertDialogBuilder(this)
-            .setTitle("Ordenar procesos")
+            .setTitle(R.string.om_running_apps_sort_title)
             .setSingleChoiceItems(options, currentSortOrder) { dialog, which ->
                 currentSortOrder = which
                 filterAndSortProcesses()

@@ -370,7 +370,7 @@ private val menuItems: List<NavigationItem>
             InstalledAppsActivity::class.createIntent()
         ),
         IntentMenuItem(
-            R.drawable.ic_running_apps, R.string.navigation_running_apps,
+            R.drawable.ic_running_apps_white_24dp, R.string.navigation_running_apps,
             RunningAppsActivity::class.createIntent()
         ),
         IntentMenuItem(

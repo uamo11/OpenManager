@@ -711,6 +711,7 @@ object ScriptRunnerHelper {
 
                     tvInterpreter.text = elfReport.interpreter ?: activity.getString(if (elfReport.isDynamic) R.string.om_script_runner_elf_dynamic else R.string.om_script_runner_elf_static)
                     tvSubtitle.text = activity.getString(R.string.om_script_runner_elf_subtitle_format, elfReport.machineArch)
+                    ivIcon.setImageResource(if (elfReport.is64Bit) R.drawable.ic_exec_elf_64 else R.drawable.ic_exec_elf_32)
                     tvLines.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
                     rowLines.visibility = View.VISIBLE
 

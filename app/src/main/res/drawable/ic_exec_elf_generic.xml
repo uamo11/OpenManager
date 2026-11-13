@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- Generic ELF purple badge -->
+    <path
+        android:fillColor="#2A1C3A"
+        android:pathData="M10,4h24c3.3,0 6,2.7 6,6v24c0,3.3 -2.7,6 -6,6H10c-3.3,0 -6,-2.7 -6,-6V10c0,-3.3 2.7,-6 6,-6z" />
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#AB47BC"
+        android:strokeWidth="1.5"
+        android:pathData="M10,4.75h24c2.9,0 5.25,2.35 5.25,5.25v24c0,2.9 -2.35,5.25 -5.25,5.25H10c-2.9,0 -5.25,-2.35 -5.25,-5.25V10c0,-2.9 2.35,-5.25 5.25,-5.25z" />
+    <!-- Binary gear / core symbol -->
+    <path
+        android:fillColor="#CE93D8"
+        android:pathData="M17,13v2h-2v2h-2v2h2v4h-2v2h2v2h2v2h2v-2h4v2h2v-2h2v-2h2v-2h-2v-4h2v-2h-2v-2h-2v-2h-2v2h-4v-2H17zM25,25h-6v-6h6v6z" />
+    <path
+        android:fillColor="#AB47BC"
+        android:pathData="M11,31h22v3.5H11z" />
+</vector>

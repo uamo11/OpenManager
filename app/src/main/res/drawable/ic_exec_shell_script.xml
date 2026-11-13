@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<vector
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- Rounded dark emerald badge background -->
+    <path
+        android:fillColor="#1B3B2B"
+        android:pathData="M10,4h24c3.3,0 6,2.7 6,6v24c0,3.3 -2.7,6 -6,6H10c-3.3,0 -6,-2.7 -6,-6V10c0,-3.3 2.7,-6 6,-6z" />
+    <!-- Subtle border -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#4CAF50"
+        android:strokeWidth="1.5"
+        android:pathData="M10,4.75h24c2.9,0 5.25,2.35 5.25,5.25v24c0,2.9 -2.35,5.25 -5.25,5.25H10c-2.9,0 -5.25,-2.35 -5.25,-5.25V10c0,-2.9 2.35,-5.25 5.25,-5.25z" />
+    <!-- Prompt chevron >_ -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M11,14l6,5 -6,5 1.8,1.8 7.8,-6.8 -7.8,-6.8z" />
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M21,23h10v2.6H21z" />
+    <!-- SH label bar -->
+    <path
+        android:fillColor="#4CAF50"
+        android:pathData="M11,30h22v4H11z" />
+</vector>
