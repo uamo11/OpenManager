@@ -129,9 +129,18 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val initialFile = args.intent.extraPath
+        if (initialFile == null) {
+            finish()
+            return
+        }
+        argsFile = initialFile
+
         setHasOptionsMenu(true)
 
         lifecycleScope.launchWhenStarted {
+            if (!::argsFile.isInitialized) return@launchWhenStarted
             onBackPressedCallback = object : OnBackPressedCallback(false) {
                 override fun handleOnBackPressed() {
                     if (binding.searchPanel.visibility == View.VISIBLE) {
