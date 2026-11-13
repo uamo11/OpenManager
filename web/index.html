@@ -18,7 +18,7 @@
 
   <link rel="icon" type="image/png" sizes="64x64" href="icons/om-icon-64.png">
   <link rel="apple-touch-icon" sizes="512x512" href="launcher_icon.png">
-  <link rel="stylesheet" href="style.css?v=20261112_08">
+  <link rel="stylesheet" href="style.css?v=20261112_09">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -379,69 +379,84 @@
       </div>
 
       <div class="table-wrapper">
+        <svg class="svg-sprite" hidden aria-hidden="true">
+          <symbol id="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12.5 2.5 2.5 5-5"/></symbol>
+          <symbol id="ico-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></symbol>
+          <symbol id="ico-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+          <symbol id="ico-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></symbol>
+          <symbol id="ico-gpl" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9.5 12 1.8 1.8 3.5-3.6"/></symbol>
+          <symbol id="ico-privacy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></symbol>
+          <symbol id="ico-panel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><line x1="12" y1="3" x2="12" y2="21"/></symbol>
+          <symbol id="ico-smali" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></symbol>
+          <symbol id="ico-jadx" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></symbol>
+          <symbol id="ico-hex" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></symbol>
+          <symbol id="ico-xml" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></symbol>
+          <symbol id="ico-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></symbol>
+          <symbol id="ico-key" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4"/></symbol>
+        </svg>
         <table class="comparison-table">
           <thead>
             <tr>
               <th data-i18n="th_feature">Característica / Módulo</th>
-              <th data-i18n="th_mt">MT Manager (Original)</th>
-              <th class="highlight-col" data-i18n="th_om">OpenManager</th>
+              <th><span class="th-brand"><svg class="cmp-ico is-muted" aria-hidden="true"><use href="#ico-lock"/></svg><span data-i18n="th_mt">MT Manager (Original)</span></span></th>
+              <th class="highlight-col"><span class="th-brand"><img src="icons/om-icon-64.webp" class="table-inline-icon" alt="" width="18" height="18" decoding="async"><span data-i18n="th_om">OpenManager</span></span></th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td data-i18n="row_1_name"><strong>Licencia & Código</strong></td>
-              <td data-i18n="row_1_mt">Propietario / Código Cerrado</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_1_om">100% Open Source (GPLv3)</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-gpl"/></svg><strong data-i18n="row_1_name">Licencia &amp; Código</strong></span></td>
+              <td><span class="cmp-status is-paid"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-lock"/></svg><span data-i18n="row_1_mt">Propietario / Código Cerrado</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_1_om">100% Open Source (GPLv3)</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_2_name"><strong>Publicidad & Telemetría</strong></td>
-              <td data-i18n="row_2_mt">Contiene anuncios y rastreadores</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_2_om">Cero Anuncios / 100% Privado</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-privacy"/></svg><strong data-i18n="row_2_name">Publicidad &amp; Telemetría</strong></span></td>
+              <td><span class="cmp-status is-no"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-x"/></svg><span data-i18n="row_2_mt">Contiene anuncios y rastreadores</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_2_om">Cero Anuncios / 100% Privado</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_3_name"><strong>Doble Panel Simultáneo</strong></td>
-              <td data-i18n="row_3_mt">✅ Sí</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_3_om">✅ Paridad Completa</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-panel"/></svg><strong data-i18n="row_3_name">Doble Panel Simultáneo</strong></span></td>
+              <td><span class="cmp-status is-yes-muted"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_3_mt">Sí</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_3_om">Paridad Completa</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_4_name"><strong>Edición DEX & Smali</strong></td>
-              <td data-i18n="row_4_mt">Requiere VIP (Pago)</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_4_om">✅ Gratis para Siempre</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-smali"/></svg><strong data-i18n="row_4_name">Edición DEX &amp; Smali</strong></span></td>
+              <td><span class="cmp-status is-paid"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-lock"/></svg><span data-i18n="row_4_mt">Requiere VIP (Pago)</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_4_om">Gratis para Siempre</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_5_name"><strong>Descompilador JADX</strong></td>
-              <td data-i18n="row_5_mt">Requiere VIP (Pago)</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_5_om">✅ Gratis para Siempre</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-jadx"/></svg><strong data-i18n="row_5_name">Descompilador JADX</strong></span></td>
+              <td><span class="cmp-status is-paid"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-lock"/></svg><span data-i18n="row_5_mt">Requiere VIP (Pago)</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_5_om">Gratis para Siempre</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_6_name"><strong>Editor HEX & Data Inspector</strong></td>
-              <td data-i18n="row_6_mt">✅ Sí</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_6_om">✅ Virtualizado & Checksums</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-hex"/></svg><strong data-i18n="row_6_name">Editor HEX &amp; Data Inspector</strong></span></td>
+              <td><span class="cmp-status is-yes-muted"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_6_mt">Sí</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_6_om">Virtualizado &amp; Checksums</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_7_name"><strong>Editor ARSC & AXML Binario</strong></td>
-              <td data-i18n="row_7_mt">Requiere VIP (Pago)</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_7_om">✅ Gratis para Siempre</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-xml"/></svg><strong data-i18n="row_7_name">Editor ARSC &amp; AXML Binario</strong></span></td>
+              <td><span class="cmp-status is-paid"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-lock"/></svg><span data-i18n="row_7_mt">Requiere VIP (Pago)</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_7_om">Gratis para Siempre</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_8_name"><strong>Unificador AntiSplit (Split APKs)</strong></td>
-              <td data-i18n="row_8_mt">✅ Sí</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_8_om">✅ Integrado con Autofirma</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-split"/></svg><strong data-i18n="row_8_name">Unificador AntiSplit (Split APKs)</strong></span></td>
+              <td><span class="cmp-status is-yes-muted"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_8_mt">Sí</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_8_om">Integrado con Autofirma</span></span></td>
             </tr>
             <tr>
-              <td><img src="icons/shizuku.png" class="table-inline-icon" alt="Shizuku" width="18" height="18"><strong data-i18n="row_9_name">Integración Nativa con Shizuku</strong></td>
-              <td data-i18n="row_9_mt">Limitada / Sin Binder nativo</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_9_om">✅ Android 11–15 Nativo</span></td>
+              <td><span class="cmp-feat"><img src="icons/shizuku.png" class="table-inline-icon" alt="Shizuku" width="18" height="18"><strong data-i18n="row_9_name">Integración Nativa con Shizuku</strong></span></td>
+              <td><span class="cmp-status is-warn"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-warn"/></svg><span data-i18n="row_9_mt">Limitada / Sin Binder nativo</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_9_om">Android 11–15 Nativo</span></span></td>
             </tr>
             <tr>
-              <td><img src="icons/dfroot.png" class="table-inline-icon" alt="DFROOT" width="18" height="18"><strong data-i18n="row_10_name">Blindaje DFROOT "Hombre Muerto"</strong></td>
-              <td data-i18n="row_10_mt">❌ No disponible</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_10_om">✅ Protección Anti-Brick</span></td>
+              <td><span class="cmp-feat"><img src="icons/dfroot.png" class="table-inline-icon" alt="DFROOT" width="18" height="18"><strong data-i18n="row_10_name">Blindaje DFROOT "Hombre Muerto"</strong></span></td>
+              <td><span class="cmp-status is-no"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-x"/></svg><span data-i18n="row_10_mt">No disponible</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_10_om">Protección Anti-Brick</span></span></td>
             </tr>
             <tr>
-              <td data-i18n="row_11_name"><strong>Generador de Keystores en App</strong></td>
-              <td data-i18n="row_11_mt">Limitado</td>
-              <td class="highlight-col"><span class="badge-success" data-i18n="row_11_om">✅ RSA 2048/4096 (JKS, BKS)</span></td>
+              <td><span class="cmp-feat"><svg class="table-row-icon" aria-hidden="true"><use href="#ico-key"/></svg><strong data-i18n="row_11_name">Generador de Keystores en App</strong></span></td>
+              <td><span class="cmp-status is-warn"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-warn"/></svg><span data-i18n="row_11_mt">Limitado</span></span></td>
+              <td class="highlight-col"><span class="cmp-status is-yes badge-success"><svg class="cmp-ico" aria-hidden="true"><use href="#ico-check"/></svg><span data-i18n="row_11_om">RSA 2048/4096 (JKS, BKS)</span></span></td>
             </tr>
           </tbody>
         </table>
@@ -549,6 +564,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=20261112_08"></script>
+  <script src="app.js?v=20261112_09"></script>
 </body>
 </html>

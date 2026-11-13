@@ -71,32 +71,32 @@ const i18nData = {
     row_2_mt: "Contiene anuncios y rastreadores",
     row_2_om: "Cero Anuncios / 100% Privado",
     row_3_name: "Doble Panel Simultáneo",
-    row_3_mt: "✅ Sí",
-    row_3_om: "✅ Paridad Completa",
+    row_3_mt: "Sí",
+    row_3_om: "Paridad Completa",
     row_4_name: "Edición DEX & Smali",
     row_4_mt: "Requiere VIP (Pago)",
-    row_4_om: "✅ Gratis para Siempre",
+    row_4_om: "Gratis para Siempre",
     row_5_name: "Descompilador JADX",
     row_5_mt: "Requiere VIP (Pago)",
-    row_5_om: "✅ Gratis para Siempre",
+    row_5_om: "Gratis para Siempre",
     row_6_name: "Editor HEX & Data Inspector",
-    row_6_mt: "✅ Sí",
-    row_6_om: "✅ Virtualizado & Checksums",
+    row_6_mt: "Sí",
+    row_6_om: "Virtualizado & Checksums",
     row_7_name: "Editor ARSC & AXML Binario",
     row_7_mt: "Requiere VIP (Pago)",
-    row_7_om: "✅ Gratis para Siempre",
+    row_7_om: "Gratis para Siempre",
     row_8_name: "Unificador AntiSplit (Split APKs)",
-    row_8_mt: "✅ Sí",
-    row_8_om: "✅ Integrado con Autofirma",
+    row_8_mt: "Sí",
+    row_8_om: "Integrado con Autofirma",
     row_9_name: "Integración Nativa con Shizuku",
     row_9_mt: "Limitada / Sin Binder nativo",
-    row_9_om: "✅ Android 11–15 Nativo",
+    row_9_om: "Android 11–15 Nativo",
     row_10_name: "Blindaje DFROOT \"Hombre Muerto\"",
-    row_10_mt: "❌ No disponible",
-    row_10_om: "✅ Protección Anti-Brick",
+    row_10_mt: "No disponible",
+    row_10_om: "Protección Anti-Brick",
     row_11_name: "Generador de Keystores en App",
     row_11_mt: "Limitado",
-    row_11_om: "✅ RSA 2048/4096 (JKS, BKS)",
+    row_11_om: "RSA 2048/4096 (JKS, BKS)",
     build_title: "Compilar desde el Código Fuente",
     build_subtitle: "Requiere JDK 21 y Android SDK configurado.",
     btn_copy: "Copiar",
@@ -180,32 +180,32 @@ const i18nData = {
     row_2_mt: "Contains ads and trackers",
     row_2_om: "Zero Ads / 100% Private",
     row_3_name: "Simultaneous Dual-Panel",
-    row_3_mt: "✅ Yes",
-    row_3_om: "✅ Full Parity",
+    row_3_mt: "Yes",
+    row_3_om: "Full Parity",
     row_4_name: "DEX & Smali Editing",
     row_4_mt: "Requires VIP (Paid)",
-    row_4_om: "✅ Free Forever",
+    row_4_om: "Free Forever",
     row_5_name: "JADX Decompiler",
     row_5_mt: "Requires VIP (Paid)",
-    row_5_om: "✅ Free Forever",
+    row_5_om: "Free Forever",
     row_6_name: "HEX Editor & Data Inspector",
-    row_6_mt: "✅ Yes",
-    row_6_om: "✅ Virtualized & Checksums",
+    row_6_mt: "Yes",
+    row_6_om: "Virtualized & Checksums",
     row_7_name: "ARSC & Binary AXML Editor",
     row_7_mt: "Requires VIP (Paid)",
-    row_7_om: "✅ Free Forever",
+    row_7_om: "Free Forever",
     row_8_name: "AntiSplit Merger",
-    row_8_mt: "✅ Yes",
-    row_8_om: "✅ Built-in & Auto-Signed",
+    row_8_mt: "Yes",
+    row_8_om: "Built-in & Auto-Signed",
     row_9_name: "Native Shizuku Integration",
     row_9_mt: "Limited / No native Binder",
-    row_9_om: "✅ Android 11–15 Native",
+    row_9_om: "Android 11–15 Native",
     row_10_name: "DFROOT Boot Shield",
-    row_10_mt: "❌ Not Available",
-    row_10_om: "✅ Anti-Brick Protection",
+    row_10_mt: "Not Available",
+    row_10_om: "Anti-Brick Protection",
     row_11_name: "In-App Keystore Generator",
     row_11_mt: "Limited",
-    row_11_om: "✅ RSA 2048/4096 (JKS, BKS)",
+    row_11_om: "RSA 2048/4096 (JKS, BKS)",
     build_title: "Build from Source",
     build_subtitle: "Requires JDK 21 and configured Android SDK.",
     btn_copy: "Copy",
@@ -289,32 +289,32 @@ const i18nData = {
     row_2_mt: "包含商业广告与追踪",
     row_2_om: "零广告 / 零隐私收集",
     row_3_name: "双面板并行管理",
-    row_3_mt: "✅ 支持",
-    row_3_om: "✅ 完整对标",
+    row_3_mt: "支持",
+    row_3_om: "完整对标",
     row_4_name: "DEX & Smali 实时编辑",
     row_4_mt: "需开通 VIP 付费",
-    row_4_om: "✅ 永久免费",
+    row_4_om: "永久免费",
     row_5_name: "JADX Java 源码查看",
     row_5_mt: "需开通 VIP 付费",
-    row_5_om: "✅ 永久免费",
+    row_5_om: "永久免费",
     row_6_name: "HEX 编辑器与数据检查器",
-    row_6_mt: "✅ 支持",
-    row_6_om: "✅ 极速虚拟化与校验和",
+    row_6_mt: "支持",
+    row_6_om: "极速虚拟化与校验和",
     row_7_name: "ARSC 与二进制 AXML 编辑",
     row_7_mt: "需开通 VIP 付费",
-    row_7_om: "✅ 永久免费",
+    row_7_om: "永久免费",
     row_8_name: "AntiSplit 拆包合并",
-    row_8_mt: "✅ 支持",
-    row_8_om: "✅ 内置并支持自动签名",
+    row_8_mt: "支持",
+    row_8_om: "内置并支持自动签名",
     row_9_name: "原生 Shizuku 免 Root 适配",
     row_9_mt: "有限 / 非深度集成",
-    row_9_om: "✅ Android 11–15 原生直连",
+    row_9_om: "Android 11–15 原生直连",
     row_10_name: "DFROOT 防变砖保护系统",
-    row_10_mt: "❌ 无",
-    row_10_om: "✅ 系统级安全护盾",
+    row_10_mt: "无",
+    row_10_om: "系统级安全护盾",
     row_11_name: "手机端 Keystore 密钥生成",
     row_11_mt: "功能受限",
-    row_11_om: "✅ RSA 2048/4096 (JKS, BKS)",
+    row_11_om: "RSA 2048/4096 (JKS, BKS)",
     build_title: "从源码编译",
     build_subtitle: "需要安装 JDK 21 和配置好的 Android SDK。",
     btn_copy: "复制命令",
@@ -431,6 +431,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const featuresGrid = document.getElementById('featuresGrid');
       if (featuresGrid) {
         featuresGrid.scrollTo({ left: 0, behavior: 'smooth' });
+        if (typeof featuresGrid.__syncArrows === 'function') {
+          setTimeout(featuresGrid.__syncArrows, 180);
+        }
       }
     });
   });
@@ -526,6 +529,14 @@ function initCarousels() {
     const nextBtn = shell.querySelector('.carousel-next');
     if (!track) return;
 
+    const syncArrows = () => {
+      const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+      if (prevBtn) prevBtn.setAttribute('aria-disabled', String(track.scrollLeft <= 4));
+      if (nextBtn) nextBtn.setAttribute('aria-disabled', String(track.scrollLeft >= maxScroll - 4));
+    };
+
+    track.__syncArrows = syncArrows;
+
     const getStep = () => Math.max(200, Math.round(track.clientWidth * 0.78));
     if (prevBtn) {
       prevBtn.addEventListener('click', () => {
@@ -537,6 +548,18 @@ function initCarousels() {
         track.scrollBy({ left: getStep(), behavior: 'smooth' });
       });
     }
+
+    let rafId = 0;
+    track.addEventListener('scroll', () => {
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          rafId = 0;
+          syncArrows();
+        });
+      }
+    }, { passive: true });
+    window.addEventListener('resize', syncArrows, { passive: true });
+    syncArrows();
   });
 }
 
