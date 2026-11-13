@@ -277,120 +277,68 @@
         </TableRow>
     </TableLayout>
 
-    <!-- Bottom Buttons Bar: FUNCTION, QUICK EDIT, VIEW (with pencil icon), ROOT INSTALL, INSTALL -->
-    <HorizontalScrollView
+    <!-- Bottom Buttons Bar: 3-dots (Function & Quick Edit), VIEW, INSTALL -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:overScrollMode="never"
-        android:fillViewport="true"
-        android:paddingTop="16dp">
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingTop="14dp">
 
-        <LinearLayout
-            android:layout_width="match_parent"
+        <ImageButton
+            android:id="@+id/btnApkMore"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/apk_function"
+            android:padding="10dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/more_vertical_icon_white_24dp"
+            app:tint="#E0E0E0" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnApkView"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:minWidth="0dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/view"
+            android:textColor="#2196F3"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:icon="@drawable/ic_pencil_edit_16dp"
+            app:iconTint="#2196F3"
+            app:iconSize="16dp"
+            app:iconPadding="6dp"
+            app:iconGravity="textStart" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnApkFunction"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/apk_function"
-                android:textColor="#2196F3"
-                android:textSize="12.5sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnApkQuickEdit"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/apk_quick_edit"
-                android:textColor="#FF9800"
-                android:textSize="12.5sp"
-                android:textStyle="bold"
-                android:layout_marginStart="2dp" />
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1"
-                android:minWidth="6dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnApkView"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/view"
-                android:textColor="#2196F3"
-                android:textSize="12.5sp"
-                android:textStyle="bold"
-                app:icon="@drawable/ic_pencil_edit_16dp"
-                app:iconTint="#2196F3"
-                app:iconSize="16dp"
-                app:iconPadding="4dp"
-                app:iconGravity="textStart" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnApkRootInstall"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/install_root"
-                android:textColor="#4CAF50"
-                android:textSize="12.5sp"
-                android:textStyle="bold"
-                android:visibility="gone"
-                android:layout_marginStart="2dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnApkInstall"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:paddingStart="6dp"
-                android:paddingEnd="6dp"
-                android:insetLeft="0dp"
-                android:insetRight="0dp"
-                android:insetTop="0dp"
-                android:insetBottom="0dp"
-                android:text="@string/install"
-                android:textColor="#2196F3"
-                android:textSize="12.5sp"
-                android:textStyle="bold"
-                android:layout_marginStart="2dp" />
-        </LinearLayout>
-    </HorizontalScrollView>
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnApkInstall"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:minWidth="0dp"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:insetLeft="0dp"
+            android:insetRight="0dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="@string/install"
+            android:textColor="#2196F3"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </LinearLayout>

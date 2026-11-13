@@ -91,10 +91,8 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         val tvLastUpdate = view.findViewById<TextView>(R.id.tvApkLastUpdate)
         val tvUid = view.findViewById<TextView>(R.id.tvApkUid)
 
-        val btnFunction = view.findViewById<Button>(R.id.btnApkFunction)
-        val btnQuickEdit = view.findViewById<Button>(R.id.btnApkQuickEdit)
+        val btnMore = view.findViewById<ImageButton>(R.id.btnApkMore)
         val btnView = view.findViewById<Button>(R.id.btnApkView)
-        val btnRootInstall = view.findViewById<Button>(R.id.btnApkRootInstall)
         val btnInstall = view.findViewById<Button>(R.id.btnApkInstall)
 
         val file = args.file
@@ -284,7 +282,6 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
 
         val isRootAvailable = ApkInstallHelper.isRootAvailable()
         val isShizukuAvailable = ApkInstallHelper.isShizukuAvailable()
-        btnRootInstall.isVisible = isRootAvailable
 
         val dialog = MaterialAlertDialogBuilder(context)
             .setView(view)
@@ -295,30 +292,18 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             listener.viewApk(file)
         }
 
-        btnRootInstall.setOnClickListener {
-            dialog.dismiss()
-            listener.installApkWithRoot(file)
-        }
-
         btnInstall.setOnClickListener {
             dialog.dismiss()
-            if (isRootAvailable && Settings.USE_ROOT_INSTALL.valueCompat) {
-                listener.installApkWithRoot(file)
-            } else if (isShizukuAvailable && Settings.USE_SHIZUKU_INSTALL.valueCompat) {
-                installApkWithShizuku(file)
-            } else {
-                listener.installApk(file)
+            when {
+                isRootAvailable -> listener.installApkWithRoot(file)
+                isShizukuAvailable -> installApkWithShizuku(file)
+                else -> listener.installApk(file)
             }
         }
 
-        btnQuickEdit?.setOnClickListener {
-            val hostActivity = requireActivity()
-            dialog.dismiss()
-            ApkQuickEditDialogFragment.show(file, hostActivity)
-        }
-
-        btnFunction.setOnClickListener {
+        btnMore.setOnClickListener {
             val optionsList = mutableListOf(
+                ApkFunctionOption(getString(R.string.apk_quick_edit), R.drawable.edit_icon, Color.parseColor("#FF9800")),
                 ApkFunctionOption(getString(R.string.view), R.drawable.visibility_icon_white_24dp, Color.parseColor("#2196F3"))
             )
             if (isRootAvailable) {
@@ -328,7 +313,6 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 optionsList.add(ApkFunctionOption(getString(R.string.om_apk_install_shizuku), R.drawable.ic_shizuku, Color.parseColor("#1565C0")))
             }
             optionsList.addAll(listOf(
-                ApkFunctionOption(getString(R.string.apk_quick_edit), R.drawable.edit_icon, Color.parseColor("#FF9800")),
                 ApkFunctionOption(getString(R.string.om_app_view_components), R.drawable.ic_apps_white_24dp, Color.parseColor("#42A5F5")),
                 ApkFunctionOption(getString(R.string.om_app_view_manifest), R.drawable.document_icon_white_24dp, Color.parseColor("#FFCA28")),
                 ApkFunctionOption(getString(R.string.om_apk_antisplit), R.drawable.ic_apktool_antisplit, Color.parseColor("#FFB300")),
