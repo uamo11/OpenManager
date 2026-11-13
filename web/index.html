@@ -23,6 +23,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
+  <a href="#main-content" class="skip-link" data-i18n="skip_content">Saltar al contenido</a>
+  <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
   <!-- Navigation Bar -->
   <nav class="navbar">
@@ -56,12 +58,13 @@
         </a>
       </div>
 
-      <button class="mobile-menu-toggle" id="menuToggle" aria-label="Abrir menú">
+      <button type="button" class="mobile-menu-toggle" id="menuToggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">
         <span></span><span></span><span></span>
       </button>
     </div>
   </nav>
 
+  <main id="main-content">
   <!-- Hero Section -->
   <header class="hero">
     <div class="hero-glow"></div>
@@ -69,14 +72,14 @@
       <div class="hero-grid">
         <div class="hero-visual">
           <div class="hero-icon-card">
-            <img src="launcher_icon.png" alt="OpenManager App Icon" class="hero-app-icon" width="180" height="180" loading="eager">
+            <img src="launcher_icon.png" alt="OpenManager App Icon" class="hero-app-icon" width="180" height="180" loading="eager" fetchpriority="high" decoding="sync">
           </div>
         </div>
 
         <div class="hero-text">
           <div class="hero-badge">
             <span class="pulse-dot"></span>
-            <span id="heroBadgeText" data-i18n="hero_badge">Versión <strong id="latestTag">v1.9.31</strong> • Alternativa Open-Source a MT Manager</span>
+            <span id="heroBadgeText" data-i18n="hero_badge">Versión <strong id="latestTag">v1.9.66</strong> • Alternativa Open-Source a MT Manager</span>
           </div>
 
           <h1 class="hero-title" data-i18n="hero_title">
@@ -88,9 +91,13 @@
           </p>
 
           <div class="hero-actions">
-            <a href="https://github.com/uamo11/OpenManager/releases" target="_blank" rel="noopener" class="btn btn-primary">
+            <a href="https://github.com/uamo11/OpenManager/releases/latest" target="_blank" rel="noopener" class="btn btn-primary" id="apkDownloadBtn">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              <span data-i18n="btn_releases">Ver Versiones en GitHub</span>
+              <span id="apkDownloadText" data-i18n="btn_download_apk">Descargar APK</span>
+            </a>
+            <a href="https://github.com/uamo11/OpenManager/releases" target="_blank" rel="noopener" class="btn btn-secondary">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+              <span data-i18n="btn_releases">Ver Versiones</span>
             </a>
             <a href="https://github.com/uamo11/OpenManager" target="_blank" rel="noopener" class="btn btn-secondary">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -292,45 +299,45 @@
       </div>
 
       <div class="gallery-grid">
-        <div class="gallery-item" onclick="openLightbox('screenshots/01_dual_panel_audio.jpg', 'Explorador Doble Panel & Reproductor de Audio Flotante')">
-          <img src="screenshots/01_dual_panel_audio.jpg" alt="Doble Panel con Audio Flotante" loading="lazy">
-          <div class="gallery-overlay"><span data-i18n="cap_1">Doble Panel & Audio MP3</span></div>
-        </div>
+        <button type="button" class="gallery-item" data-index="0" aria-label="Explorador Doble Panel &amp; Reproductor de Audio Flotante">
+          <img src="screenshots/01_dual_panel_audio.jpg" alt="Doble Panel con Audio Flotante" width="720" height="1600" loading="lazy" decoding="async">
+          <div class="gallery-overlay"><span data-i18n="cap_1">Doble Panel &amp; Audio MP3</span></div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/02_dual_panel_menu.jpg', 'Menú Rápido de Gestión de Archivos y Paneles')">
-          <img src="screenshots/02_dual_panel_menu.jpg" alt="Menú de Acciones y Paneles" loading="lazy">
+        <button type="button" class="gallery-item" data-index="1" aria-label="Menú Rápido de Gestión de Archivos y Paneles">
+          <img src="screenshots/02_dual_panel_menu.jpg" alt="Menú de Acciones y Paneles" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_2">Menú de Acciones MT</span></div>
-        </div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/03_code_editor.jpg', 'Editor de Código C++ con Resaltado y Atajos')">
-          <img src="screenshots/03_code_editor.jpg" alt="Editor de Código C++" loading="lazy">
+        <button type="button" class="gallery-item" data-index="2" aria-label="Editor de Código C++ con Resaltado y Atajos">
+          <img src="screenshots/03_code_editor.jpg" alt="Editor de Código C++" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_3">Editor de Código O(N)</span></div>
-        </div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/04_syntax_selector.jpg', 'Selector de Sintaxis con 39 Lenguajes de Programación')">
-          <img src="screenshots/04_syntax_selector.jpg" alt="Selector de Sintaxis" loading="lazy">
+        <button type="button" class="gallery-item" data-index="3" aria-label="Selector de Sintaxis con 39 Lenguajes de Programación">
+          <img src="screenshots/04_syntax_selector.jpg" alt="Selector de Sintaxis" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_4">Selector de 39 Sintaxis</span></div>
-        </div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/05_app_manager_apk_tools.jpg', 'Gestor de Aplicaciones y Suite de Modding APK')">
-          <img src="screenshots/05_app_manager_apk_tools.jpg" alt="Suite de Herramientas APK" loading="lazy">
-          <div class="gallery-overlay"><span data-i18n="cap_5">Suite APK, JADX & Split</span></div>
-        </div>
+        <button type="button" class="gallery-item" data-index="4" aria-label="Gestor de Aplicaciones y Suite de Modding APK">
+          <img src="screenshots/05_app_manager_apk_tools.jpg" alt="Suite de Herramientas APK" width="720" height="1600" loading="lazy" decoding="async">
+          <div class="gallery-overlay"><span data-i18n="cap_5">Suite APK, JADX &amp; Split</span></div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/06_running_apps_ram.jpg', 'Monitor de Memoria RAM y Procesos con Elevación Root')">
-          <img src="screenshots/06_running_apps_ram.jpg" alt="Monitor de RAM y Procesos" loading="lazy">
-          <div class="gallery-overlay"><span data-i18n="cap_6">Monitor RAM & Procesos</span></div>
-        </div>
+        <button type="button" class="gallery-item" data-index="5" aria-label="Monitor de Memoria RAM y Procesos con Elevación Root">
+          <img src="screenshots/06_running_apps_ram.jpg" alt="Monitor de RAM y Procesos" width="720" height="1600" loading="lazy" decoding="async">
+          <div class="gallery-overlay"><span data-i18n="cap_6">Monitor RAM &amp; Procesos</span></div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/07_terminal_root.jpg', 'Terminal Integrada con Sesión Root (#) y Syscalls')">
-          <img src="screenshots/07_terminal_root.jpg" alt="Terminal Root y Syscalls" loading="lazy">
+        <button type="button" class="gallery-item" data-index="6" aria-label="Terminal Integrada con Sesión Root (#) y Syscalls">
+          <img src="screenshots/07_terminal_root.jpg" alt="Terminal Root y Syscalls" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_7">Terminal Root (#)</span></div>
-        </div>
+        </button>
 
-        <div class="gallery-item" onclick="openLightbox('screenshots/08_terminal_script.jpg', 'Ejecución Interactiva de Scripts en Terminal')">
-          <img src="screenshots/08_terminal_script.jpg" alt="Ejecución de Scripts de Shell" loading="lazy">
+        <button type="button" class="gallery-item" data-index="7" aria-label="Ejecución Interactiva de Scripts en Terminal">
+          <img src="screenshots/08_terminal_script.jpg" alt="Ejecución de Scripts de Shell" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_8">Ejecución de Scripts (EXIT 0)</span></div>
-        </div>
+        </button>
       </div>
     </div>
   </section>
@@ -466,6 +473,8 @@
     </div>
   </section>
 
+  </main>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="container footer-content">
@@ -493,14 +502,21 @@
     </div>
   </footer>
 
-  <!-- Lightbox Modal -->
-  <div id="lightbox" class="lightbox" onclick="closeLightbox()">
-    <div class="lightbox-content" onclick="event.stopPropagation()">
-      <button class="lightbox-close" onclick="closeLightbox()" aria-label="Cerrar">&times;</button>
-      <img id="lightboxImg" src="" alt="Captura ampliada">
-      <p id="lightboxCaption" class="lightbox-caption"></p>
+  <!-- Lightbox Modal (Native <dialog>) -->
+  <dialog id="lightbox" class="lightbox" aria-labelledby="lightboxCaption">
+    <div class="lightbox-content">
+      <button type="button" class="lightbox-close" id="lbClose" aria-label="Cerrar">&times;</button>
+      <div class="lightbox-stage">
+        <button type="button" class="lightbox-nav lightbox-prev" id="lbPrev" aria-label="Anterior">&#10094;</button>
+        <img id="lightboxImg" src="" alt="Captura ampliada">
+        <button type="button" class="lightbox-nav lightbox-next" id="lbNext" aria-label="Siguiente">&#10095;</button>
+      </div>
+      <div class="lightbox-meta">
+        <p id="lightboxCaption" class="lightbox-caption"></p>
+        <span id="lightboxCounter" class="lightbox-counter"></span>
+      </div>
     </div>
-  </div>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

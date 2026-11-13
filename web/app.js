@@ -333,12 +333,27 @@ const i18nData = {
 };
 
 let currentLang = 'es';
+let activeGalleryIndex = 0;
+
+function storageGet(key) {
+  try { return localStorage.getItem(key); } catch (_) { return null; }
+}
+
+function storageSet(key, val) {
+  try { localStorage.setItem(key, val); } catch (_) {}
+}
+
+const extraI18n = {
+  es: { skip_content: 'Saltar al contenido', btn_download_apk: 'Descargar APK' },
+  en: { skip_content: 'Skip to content', btn_download_apk: 'Download APK' },
+  zh: { skip_content: '跳转到主要内容', btn_download_apk: '下载 APK' }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Language detection & initialization
-  const savedLang = localStorage.getItem('om_lang');
-  const browserLang = navigator.language.slice(0, 2).toLowerCase();
-  
+  const savedLang = storageGet('om_lang');
+  const browserLang = (navigator.language || 'es').slice(0, 2).toLowerCase();
+
   if (savedLang && i18nData[savedLang]) {
     currentLang = savedLang;
   } else if (browserLang === 'zh') {
@@ -359,19 +374,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
   applyLanguage(currentLang);
 
-  // 2. Mobile Navigation Toggle
+  // 2. Accessible Mobile Navigation Toggle
   const menuToggle = document.getElementById('menuToggle');
   const navLinks = document.getElementById('navLinks');
 
+  const closeMenu = () => {
+    if (!menuToggle || !navLinks) return;
+    navLinks.classList.remove('active');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  };
+
   if (menuToggle && navLinks) {
-    menuToggle.addEventListener('click', () => {
-      navLinks.classList.toggle('active');
+    menuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = navLinks.classList.toggle('active');
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
     });
 
     navLinks.querySelectorAll('a').forEach(link => {
-      link.addEventListener('click', () => {
-        navLinks.classList.remove('active');
-      });
+      link.addEventListener('click', closeMenu);
+    });
+
+    document.addEventListener('click', (e) => {
+      if (navLinks.classList.contains('active') && !navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+        closeMenu();
+        menuToggle.focus();
+      }
     });
   }
 
@@ -396,42 +430,97 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 4. Copy Code Snippet Button
+  // 4. Copy Code Snippet Button (with fallback)
   const copyBtn = document.getElementById('copyBtn');
   const copyBtnText = document.getElementById('copyBtnText');
-  if (copyBtn) {
+  if (copyBtn && copyBtnText) {
     copyBtn.addEventListener('click', async () => {
       const code = `git clone https://github.com/uamo11/OpenManager.git\ncd OpenManager\n./gradlew assembleDebug`;
+      let copied = false;
       try {
-        await navigator.clipboard.writeText(code);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(code);
+          copied = true;
+        }
+      } catch (_) {}
+
+      if (!copied) {
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { copied = document.execCommand('copy'); } catch (_) {}
+        document.body.removeChild(ta);
+      }
+
+      if (copied) {
         const originalText = copyBtnText.textContent;
-        copyBtnText.textContent = i18nData[currentLang].btn_copied || "Copied!";
-        copyBtn.style.borderColor = "var(--accent)";
+        copyBtnText.textContent = (i18nData[currentLang] && i18nData[currentLang].btn_copied) || 'Copied!';
+        copyBtn.style.borderColor = 'var(--accent)';
         setTimeout(() => {
           copyBtnText.textContent = originalText;
-          copyBtn.style.borderColor = "";
+          copyBtn.style.borderColor = '';
         }, 2200);
-      } catch (err) {
-        // Fallback
       }
     });
   }
 
-  // 5. Fetch Latest Release Tag dynamically from GitHub API
+  // 5. Scroll Progress Bar (rAF-throttled)
+  const scrollProgress = document.getElementById('scrollProgress');
+  if (scrollProgress) {
+    let ticking = false;
+    const updateProgress = () => {
+      ticking = false;
+      const doc = document.documentElement;
+      const scrollable = doc.scrollHeight - window.innerHeight;
+      const pct = scrollable > 0 ? Math.min(100, Math.max(0, (window.scrollY / scrollable) * 100)) : 0;
+      scrollProgress.style.width = `${pct}%`;
+    };
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(updateProgress);
+      }
+    }, { passive: true });
+    updateProgress();
+  }
+
+  // 6. Scroll Reveal via IntersectionObserver
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const revealTargets = document.querySelectorAll('.metric-item, .feature-card, .gallery-item, .terminal-card, .table-wrapper');
+  if (!prefersReduced && 'IntersectionObserver' in window) {
+    revealTargets.forEach(el => el.classList.add('reveal'));
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          io.unobserve(entry.target);
+        }
+      });
+    }, { rootMargin: '0px 0px -40px 0px', threshold: 0.08 });
+    revealTargets.forEach(el => io.observe(el));
+  }
+
+  // 7. Native <dialog> Lightbox bindings
+  initLightbox();
+
+  // 8. Fetch Latest Release Tag & Direct APK URL (1h cache)
   fetchLatestRelease();
 });
 
 function setLanguage(lang) {
   if (!i18nData[lang]) return;
   currentLang = lang;
-  localStorage.setItem('om_lang', lang);
+  storageSet('om_lang', lang);
   applyLanguage(lang);
 }
 
 function applyLanguage(lang) {
   document.documentElement.lang = lang;
-  const dict = i18nData[lang];
-  if (!dict) return;
+  const dict = { ...(extraI18n[lang] || extraI18n.es), ...(i18nData[lang] || {}) };
 
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
@@ -440,57 +529,152 @@ function applyLanguage(lang) {
     }
   });
 
-  // Re-fetch or keep tag if updated
   const tagEl = document.getElementById('latestTag');
   if (tagEl && window.__latestTag) {
     tagEl.textContent = window.__latestTag;
   }
+
+  const apkTextEl = document.getElementById('apkDownloadText');
+  if (apkTextEl && window.__latestTag) {
+    const baseLabel = dict.btn_download_apk || 'Descargar APK';
+    apkTextEl.textContent = `${baseLabel} (${window.__latestTag})`;
+  }
 }
 
-// Lightbox Functions
-function openLightbox(src, caption) {
-  const lightbox = document.getElementById('lightbox');
+// Native <dialog> Lightbox
+function getGalleryItems() {
+  return Array.from(document.querySelectorAll('.gallery-item[data-index]'));
+}
+
+function renderLightboxItem(index) {
+  const items = getGalleryItems();
+  if (!items.length) return;
+  activeGalleryIndex = (index + items.length) % items.length;
+  const btn = items[activeGalleryIndex];
+  const img = btn.querySelector('img');
+  const captionSpan = btn.querySelector('.gallery-overlay span');
+
   const lightboxImg = document.getElementById('lightboxImg');
   const lightboxCaption = document.getElementById('lightboxCaption');
+  const lightboxCounter = document.getElementById('lightboxCounter');
 
-  if (lightbox && lightboxImg) {
-    lightboxImg.src = src;
-    lightboxCaption.textContent = caption || '';
-    lightbox.classList.add('active');
-    document.body.style.overflow = 'hidden';
+  if (lightboxImg && img) {
+    lightboxImg.src = img.getAttribute('src') || '';
+    lightboxImg.alt = img.getAttribute('alt') || 'Captura ampliada';
+  }
+  if (lightboxCaption) {
+    lightboxCaption.textContent = (captionSpan && captionSpan.textContent.trim()) || btn.getAttribute('aria-label') || '';
+  }
+  if (lightboxCounter) {
+    lightboxCounter.textContent = `${activeGalleryIndex + 1} / ${items.length}`;
+  }
+}
+
+function openLightboxByIndex(index) {
+  const lightbox = document.getElementById('lightbox');
+  if (!lightbox) return;
+  renderLightboxItem(index);
+  if (typeof lightbox.showModal === 'function') {
+    if (!lightbox.open) lightbox.showModal();
+  } else {
+    lightbox.setAttribute('open', '');
   }
 }
 
 function closeLightbox() {
   const lightbox = document.getElementById('lightbox');
-  if (lightbox) {
-    lightbox.classList.remove('active');
-    document.body.style.overflow = '';
+  if (!lightbox) return;
+  if (typeof lightbox.close === 'function') {
+    if (lightbox.open) lightbox.close();
+  } else {
+    lightbox.removeAttribute('open');
   }
 }
 
-// Close lightbox on Escape key
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeLightbox();
-  }
-});
+function initLightbox() {
+  const lightbox = document.getElementById('lightbox');
+  const items = getGalleryItems();
 
-// Fetch Latest Release Tag dynamically from GitHub API
+  items.forEach((btn, idx) => {
+    btn.addEventListener('click', () => openLightboxByIndex(idx));
+  });
+
+  if (!lightbox) return;
+
+  const closeBtn = document.getElementById('lbClose');
+  const prevBtn = document.getElementById('lbPrev');
+  const nextBtn = document.getElementById('lbNext');
+
+  if (closeBtn) closeBtn.addEventListener('click', closeLightbox);
+  if (prevBtn) prevBtn.addEventListener('click', () => renderLightboxItem(activeGalleryIndex - 1));
+  if (nextBtn) nextBtn.addEventListener('click', () => renderLightboxItem(activeGalleryIndex + 1));
+
+  lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  lightbox.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      renderLightboxItem(activeGalleryIndex - 1);
+    } else if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      renderLightboxItem(activeGalleryIndex + 1);
+    }
+  });
+}
+
+function applyReleaseData(tag, apkUrl) {
+  if (tag) {
+    window.__latestTag = tag;
+    const tagEl = document.getElementById('latestTag');
+    if (tagEl) tagEl.textContent = tag;
+  }
+
+  const apkBtn = document.getElementById('apkDownloadBtn');
+  const apkTextEl = document.getElementById('apkDownloadText');
+  if (apkBtn && apkUrl) {
+    apkBtn.href = apkUrl;
+  }
+  if (apkTextEl && tag) {
+    const dict = extraI18n[currentLang] || extraI18n.es;
+    apkTextEl.textContent = `${dict.btn_download_apk} (${tag})`;
+  }
+}
+
+// Fetch Latest Release Tag & APK asset with 1h localStorage cache
 async function fetchLatestRelease() {
+  const CACHE_KEY = 'om_release_cache_v1';
+  const CACHE_TTL = 60 * 60 * 1000;
+
   try {
-    const res = await fetch('https://api.github.com/repos/uamo11/OpenManager/releases/latest');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.tag_name) {
-        window.__latestTag = data.tag_name;
-        const tagEl = document.getElementById('latestTag');
-        if (tagEl) {
-          tagEl.textContent = data.tag_name;
-        }
+    const cachedRaw = storageGet(CACHE_KEY);
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      if (cached && cached.ts && Date.now() - cached.ts < CACHE_TTL && cached.tag) {
+        applyReleaseData(cached.tag, cached.apkUrl);
+        return;
       }
     }
-  } catch (err) {
-    // Keep fallback v1.9.31
+  } catch (_) {}
+
+  try {
+    const res = await fetch('https://api.github.com/repos/uamo11/OpenManager/releases/latest', {
+      headers: { Accept: 'application/vnd.github+json' }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const tag = data.tag_name;
+    const assets = Array.isArray(data.assets) ? data.assets : [];
+    const releaseApk = assets.find(a => a.name && a.name.endsWith('-release.apk'))
+      || assets.find(a => a.name && a.name.endsWith('.apk'));
+    const apkUrl = (releaseApk && releaseApk.browser_download_url) || data.html_url || '';
+
+    if (tag) {
+      applyReleaseData(tag, apkUrl);
+      storageSet(CACHE_KEY, JSON.stringify({ ts: Date.now(), tag, apkUrl }));
+    }
+  } catch (_) {
+    // Keep fallback v1.9.66
   }
 }
