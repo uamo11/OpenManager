@@ -1187,14 +1187,86 @@ dialog.lightbox::backdrop {
   .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 }
 
+.carousel-shell {
+  position: relative;
+}
+
+.carousel-arrow {
+  display: none;
+}
+
 @media (max-width: 768px) {
-  .features-grid { grid-template-columns: 1fr; }
-  .gallery-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .carousel-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 12;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: rgba(12, 16, 24, 0.88);
+    color: var(--text-main);
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: var(--transition);
+  }
+  .carousel-arrow:hover,
+  .carousel-arrow:active {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+  .carousel-prev { left: -6px; }
+  .carousel-next { right: -6px; }
+
+  /* Horizontal swipeable carousel for Modules */
+  .features-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
     gap: 12px;
+    padding: 4px 6px 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .features-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .feature-card {
+    flex: 0 0 82%;
+    max-width: 300px;
+    scroll-snap-align: start;
+    padding: 18px;
+  }
+
+  /* Horizontal swipeable carousel for Screenshots */
+  .gallery-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    gap: 12px;
+    padding: 4px 6px 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .gallery-grid::-webkit-scrollbar {
+    display: none;
+  }
+  .gallery-item {
+    flex: 0 0 54%;
+    max-width: 210px;
+    scroll-snap-align: center;
   }
   .gallery-overlay {
-    padding: 18px 8px 8px;
+    padding: 16px 8px 8px;
   }
   .gallery-overlay span {
     font-size: 0.74rem;
@@ -1202,74 +1274,47 @@ dialog.lightbox::backdrop {
     display: block;
   }
 
-  /* Responsive Comparison Cards on Mobile */
+  /* Clean compact 3-column table on Mobile */
   .table-wrapper {
-    overflow: visible;
-    border: none;
-    background: transparent;
-  }
-  .comparison-table thead {
-    display: none;
-  }
-  .comparison-table,
-  .comparison-table tbody {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .comparison-table tr {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px 10px;
-    padding: 14px;
-    background: var(--bg-card);
+    overflow-x: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
+    background: var(--bg-card);
   }
-  .comparison-table tr:hover td {
-    background: transparent;
+  .comparison-table {
+    width: 100%;
+    table-layout: fixed;
   }
+  .comparison-table th,
   .comparison-table td {
-    padding: 0;
-    border-bottom: none;
-    font-size: 0.84rem;
-    line-height: 1.4;
+    padding: 10px 8px;
+    font-size: 0.76rem;
+    line-height: 1.35;
+    word-break: break-word;
+    vertical-align: middle;
   }
+  .comparison-table th:first-child,
   .comparison-table td:first-child {
-    grid-column: 1 / -1;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-    font-size: 0.92rem;
-    color: var(--text-main);
+    width: 40%;
   }
-  .comparison-table td:nth-child(2),
-  .comparison-table td:nth-child(3) {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    background: rgba(255, 255, 255, 0.025);
-  }
-  .comparison-table td:nth-child(2)::before {
-    content: "MT Manager";
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
+  .comparison-table th:nth-child(2),
+  .comparison-table td:nth-child(2) {
+    width: 28%;
     color: var(--text-muted);
   }
-  .comparison-table td:nth-child(3).highlight-col {
-    background: rgba(33, 150, 243, 0.1);
-    border: 1px solid rgba(33, 150, 243, 0.25);
+  .comparison-table th:nth-child(3),
+  .comparison-table td:nth-child(3) {
+    width: 32%;
   }
-  .comparison-table td:nth-child(3)::before {
-    content: "OpenManager";
-    font-size: 0.7rem;
+  .badge-success {
+    font-size: 0.75rem;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--primary);
+  }
+  .table-inline-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+    vertical-align: -2px;
   }
 
   /* Mobile Lightbox ergonomics */
@@ -1310,11 +1355,9 @@ dialog.lightbox::backdrop {
 }
 
 @media (max-width: 480px) {
-  .gallery-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-  .metrics-grid { grid-template-columns: 1fr; }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .metric-item { padding: 12px 8px; }
+  .metric-number { font-size: 1.35rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

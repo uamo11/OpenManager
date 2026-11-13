@@ -18,7 +18,7 @@
 
   <link rel="icon" type="image/png" sizes="64x64" href="icons/om-icon-64.png">
   <link rel="apple-touch-icon" sizes="512x512" href="launcher_icon.png">
-  <link rel="stylesheet" href="style.css?v=20261112_06">
+  <link rel="stylesheet" href="style.css?v=20261112_07">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -196,7 +196,9 @@
         <button class="cat-tab" data-cat="root" data-i18n="cat_root">🛡️ Root & Seguridad</button>
       </div>
 
-      <div class="features-grid" id="featuresGrid">
+      <div class="carousel-shell">
+        <button type="button" class="carousel-arrow carousel-prev" aria-label="Anterior">&#10094;</button>
+        <div class="features-grid" id="featuresGrid">
 
         <!-- Explorer -->
         <div class="feature-card" data-category="explorer">
@@ -306,6 +308,8 @@
           <p class="feature-desc" data-i18n="feat_12_desc">Comparte archivos inalámbricamente con tu PC con el servidor FTP integrado. Conéctate a SFTP, SMB y WebDAV, y escucha música con el reproductor flotante sin detenerte.</p>
         </div>
 
+        </div>
+        <button type="button" class="carousel-arrow carousel-next" aria-label="Siguiente">&#10095;</button>
       </div>
     </div>
   </section>
@@ -318,7 +322,9 @@
         <p class="section-subtitle" data-i18n="gallery_subtitle">Haz clic en cualquier imagen para verla en resolución completa.</p>
       </div>
 
-      <div class="gallery-grid">
+      <div class="carousel-shell">
+        <button type="button" class="carousel-arrow carousel-prev" aria-label="Anterior">&#10094;</button>
+        <div class="gallery-grid" id="galleryGrid">
         <button type="button" class="gallery-item" data-index="0" aria-label="Explorador Doble Panel &amp; Reproductor de Audio Flotante">
           <img src="screenshots/01_dual_panel_audio.jpg" alt="Doble Panel con Audio Flotante" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_1">Doble Panel &amp; Audio MP3</span></div>
@@ -358,6 +364,8 @@
           <img src="screenshots/08_terminal_script.jpg" alt="Ejecución de Scripts de Shell" width="720" height="1600" loading="lazy" decoding="async">
           <div class="gallery-overlay"><span data-i18n="cap_8">Ejecución de Scripts (EXIT 0)</span></div>
         </button>
+        </div>
+        <button type="button" class="carousel-arrow carousel-next" aria-label="Siguiente">&#10095;</button>
       </div>
     </div>
   </section>
@@ -541,6 +549,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=20261112_06"></script>
+  <script src="app.js?v=20261112_07"></script>
 </body>
 </html>

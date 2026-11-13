@@ -427,6 +427,11 @@ document.addEventListener('DOMContentLoaded', () => {
           card.classList.add('hidden');
         }
       });
+
+      const featuresGrid = document.getElementById('featuresGrid');
+      if (featuresGrid) {
+        featuresGrid.scrollTo({ left: 0, behavior: 'smooth' });
+      }
     });
   });
 
@@ -504,12 +509,36 @@ document.addEventListener('DOMContentLoaded', () => {
     revealTargets.forEach(el => io.observe(el));
   }
 
-  // 7. Native <dialog> Lightbox bindings
+  // 7. Horizontal Carousels (prev/next buttons)
+  initCarousels();
+
+  // 8. Native <dialog> Lightbox bindings
   initLightbox();
 
-  // 8. Fetch Latest Release Tag & Direct APK URL (1h cache)
+  // 9. Fetch Latest Release Tag & Direct APK URL (1h cache)
   fetchLatestRelease();
 });
+
+function initCarousels() {
+  document.querySelectorAll('.carousel-shell').forEach(shell => {
+    const track = shell.querySelector('.features-grid, .gallery-grid');
+    const prevBtn = shell.querySelector('.carousel-prev');
+    const nextBtn = shell.querySelector('.carousel-next');
+    if (!track) return;
+
+    const getStep = () => Math.max(200, Math.round(track.clientWidth * 0.78));
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        track.scrollBy({ left: -getStep(), behavior: 'smooth' });
+      });
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        track.scrollBy({ left: getStep(), behavior: 'smooth' });
+      });
+    }
+  });
+}
 
 function setLanguage(lang) {
   if (!i18nData[lang]) return;
