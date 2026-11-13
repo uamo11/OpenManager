@@ -117,7 +117,7 @@ object ApkSignerHelper {
                 lastException = e
             }
         }
-        throw lastException ?: IllegalArgumentException("No se encontró la clave privada o certificado para el alias: $alias")
+        throw lastException ?: IllegalArgumentException("Private key or certificate not found for alias: $alias")
     }
 
     fun signFileDirect(
@@ -254,7 +254,7 @@ object ApkSignerHelper {
         btnConfirmSign.setOnClickListener {
             val outputName = editOutputName.text.toString().trim()
             if (outputName.isEmpty()) {
-                Toast.makeText(context, "Por favor ingresa un nombre válido", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_sign_invalid_name, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -271,7 +271,7 @@ object ApkSignerHelper {
             val customKeyPass = editKeyPass.text.toString()
 
             if (useCustomKey && (customKeyPath.isEmpty() || customKeyAlias.isEmpty())) {
-                Toast.makeText(context, "Por favor completa la ruta y alias del KeyStore", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_sign_missing_keystore_fields, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
@@ -310,8 +310,8 @@ object ApkSignerHelper {
         val targetPath = parentDir.resolve(outputFileName)
 
         val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Firmando APK")
-            .setMessage("Aplicando esquema de firma ${scheme.name}...\nPor favor espera.")
+            .setTitle(R.string.om_sign_progress_title)
+            .setMessage(activity.getString(R.string.om_sign_progress_msg_format, scheme.name))
             .setCancelable(false)
             .show()
 
@@ -394,15 +394,15 @@ object ApkSignerHelper {
                 if (success) {
                     Toast.makeText(
                         activity,
-                        "APK firmado exitosamente (${scheme.name}):\n$outputFileName",
+                        activity.getString(R.string.om_sign_success_format, scheme.name, outputFileName),
                         Toast.LENGTH_LONG
                     ).show()
                     onComplete?.invoke(targetPath)
                 } else {
                     MaterialAlertDialogBuilder(activity)
-                        .setTitle("Error al firmar APK")
-                        .setMessage(errorMsg ?: "Error desconocido al procesar el archivo")
-                        .setPositiveButton("Aceptar", null)
+                        .setTitle(R.string.om_sign_error_title)
+                        .setMessage(errorMsg ?: activity.getString(R.string.om_sign_unknown_error))
+                        .setPositiveButton(android.R.string.ok, null)
                         .show()
                     onComplete?.invoke(null)
                 }
@@ -415,8 +415,8 @@ object ApkSignerHelper {
      */
     fun showVerifySignatureDialog(activity: Activity, apkPath: Path) {
         val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle("Verificando firma")
-            .setMessage("Comprobando firmas V1, V2 y certificados...")
+            .setTitle(R.string.om_verify_progress_title)
+            .setMessage(R.string.om_verify_progress_msg)
             .setCancelable(false)
             .show()
 
@@ -425,7 +425,7 @@ object ApkSignerHelper {
             var v1Ok = false
             var v2Ok = false
             var v3Ok = false
-            var certSummary = "No se encontraron certificados"
+            var certSummary = activity.getString(R.string.om_verify_no_certs)
             var md5Hex = ""
             var sha1Hex = ""
             var sha256Hex = ""
@@ -453,11 +453,11 @@ object ApkSignerHelper {
                     val c = certs[0]
                     val df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                     val sb = StringBuilder()
-                    sb.append("Sujeto: ").append(c.subjectX500Principal.name).append("\n")
-                    sb.append("Emisor: ").append(c.issuerX500Principal.name).append("\n")
-                    sb.append("Válido desde: ").append(df.format(c.notBefore)).append("\n")
-                    sb.append("Válido hasta: ").append(df.format(c.notAfter)).append("\n")
-                    sb.append("Número de serie: ").append(c.serialNumber.toString(16)).append("\n")
+                    sb.append(activity.getString(R.string.om_verify_cert_subject)).append(c.subjectX500Principal.name).append("\n")
+                    sb.append(activity.getString(R.string.om_verify_cert_issuer)).append(c.issuerX500Principal.name).append("\n")
+                    sb.append(activity.getString(R.string.om_verify_cert_valid_from)).append(df.format(c.notBefore)).append("\n")
+                    sb.append(activity.getString(R.string.om_verify_cert_valid_until)).append(df.format(c.notAfter)).append("\n")
+                    sb.append(activity.getString(R.string.om_verify_cert_serial)).append(c.serialNumber.toString(16)).append("\n")
                     certSummary = sb.toString()
 
                     val der = c.encoded
@@ -479,19 +479,21 @@ object ApkSignerHelper {
                 try { progressDialog.dismiss() } catch (ignored: Exception) {}
                 if (errorMsg != null) {
                     MaterialAlertDialogBuilder(activity)
-                        .setTitle("Error al verificar firma")
+                        .setTitle(R.string.om_verify_error_title)
                         .setMessage(errorMsg)
-                        .setPositiveButton("Cerrar", null)
+                        .setPositiveButton(R.string.close, null)
                         .show()
                     return@runOnUiThread
                 }
 
+                val validText = activity.getString(R.string.om_verify_valid)
+                val invalidText = activity.getString(R.string.om_verify_invalid)
                 val msg = StringBuilder()
-                msg.append("Archivo: ").append(apkPath.fileName).append("\n\n")
-                msg.append("• Esquema V1 (JAR): ").append(if (v1Ok) "✓ Válido" else "✗ No presente / Inválido").append("\n")
-                msg.append("• Esquema V2 (Android 7.0+): ").append(if (v2Ok) "✓ Válido" else "✗ No presente / Inválido").append("\n")
-                msg.append("• Esquema V3 (Android 9.0+): ").append(if (v3Ok) "✓ Válido" else "✗ No presente / Inválido").append("\n\n")
-                msg.append("Información del Certificado:\n")
+                msg.append(activity.getString(R.string.om_verify_file_label)).append(apkPath.fileName).append("\n\n")
+                msg.append(activity.getString(R.string.om_verify_scheme_v1)).append(if (v1Ok) validText else invalidText).append("\n")
+                msg.append(activity.getString(R.string.om_verify_scheme_v2)).append(if (v2Ok) validText else invalidText).append("\n")
+                msg.append(activity.getString(R.string.om_verify_scheme_v3)).append(if (v3Ok) validText else invalidText).append("\n\n")
+                msg.append(activity.getString(R.string.om_verify_cert_info_header))
                 msg.append(certSummary).append("\n")
                 if (sha256Hex.isNotEmpty()) {
                     msg.append("MD5:\n").append(md5Hex).append("\n\n")
@@ -501,13 +503,13 @@ object ApkSignerHelper {
 
                 val fullText = msg.toString()
                 MaterialAlertDialogBuilder(activity)
-                    .setTitle("Verificación de Firma")
+                    .setTitle(R.string.om_verify_dialog_title)
                     .setMessage(fullText)
-                    .setPositiveButton("Aceptar", null)
-                    .setNeutralButton("Copiar") { _, _ ->
+                    .setPositiveButton(android.R.string.ok, null)
+                    .setNeutralButton(R.string.copy) { _, _ ->
                         val cb = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        cb.setPrimaryClip(ClipData.newPlainText("Firma APK", fullText))
-                        Toast.makeText(activity, "Información copiada al portapapeles", Toast.LENGTH_SHORT).show()
+                        cb.setPrimaryClip(ClipData.newPlainText(activity.getString(R.string.om_verify_clip_label), fullText))
+                        Toast.makeText(activity, R.string.om_copied_to_clipboard, Toast.LENGTH_SHORT).show()
                     }
                     .show()
             }

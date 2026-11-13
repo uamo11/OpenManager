@@ -33,9 +33,13 @@ object PartitionInspector {
         return s.startsWith("/dev/block") || (s.startsWith("/dev/") && !s.startsWith("/dev/pts") && !s.startsWith("/dev/socket"))
     }
 
-    fun inspect(path: Path): PartitionInspectionResult {
-        var formatName = "Dispositivo de bloques"
-        var magicDesc = "Sin firma reconocida"
+    fun inspect(path: Path, context: android.content.Context? = null): PartitionInspectionResult {
+        fun str(resId: Int, fallback: String): String = context?.getString(resId) ?: fallback
+        fun strFmt(resId: Int, fallback: String, vararg args: Any): String =
+            context?.getString(resId, *args) ?: fallback.format(*args)
+
+        var formatName = str(me.zhanghai.android.files.R.string.om_part_block_device, "Block device")
+        var magicDesc = str(me.zhanghai.android.files.R.string.om_part_no_signature, "No recognized signature")
         var details: String? = null
         var sizeBytes = 0L
 
@@ -75,8 +79,8 @@ object PartitionInspector {
                 formatName = "Android Boot Image"
                 magicDesc = "ANDROID! (Kernel / Ramdisk)"
                 details = when (headerVersion) {
-                    0, 1, 2 -> "Header v$headerVersion (Kernel legado / Ramdisk embebido)"
-                    3, 4 -> "Header v$headerVersion (GKI / Generic Kernel Image moderno)"
+                    0, 1, 2 -> strFmt(me.zhanghai.android.files.R.string.om_part_boot_legacy_format, "Header v%d (Legacy kernel / Embedded ramdisk)", headerVersion)
+                    3, 4 -> strFmt(me.zhanghai.android.files.R.string.om_part_boot_gki_format, "Header v%d (GKI / Modern Generic Kernel Image)", headerVersion)
                     else -> "Header Boot Image"
                 }
                 return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
@@ -86,8 +90,8 @@ object PartitionInspector {
             val magic4 = String(header, 0, 4, StandardCharsets.US_ASCII)
             if (magic4 == "AVB0") {
                 formatName = "Android Verified Boot (VBMeta)"
-                magicDesc = "AVB0 (Firma criptográfica AVB 2.0)"
-                details = "Verificación de integridad de arranque seguro"
+                magicDesc = str(me.zhanghai.android.files.R.string.om_part_avb_magic, "AVB0 (AVB 2.0 cryptographic signature)")
+                details = str(me.zhanghai.android.files.R.string.om_part_avb_details, "Verified boot integrity check")
                 return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
             }
 
@@ -100,7 +104,7 @@ object PartitionInspector {
                 if (b0 == 0xD0 && b1 == 0x0D && b2 == 0xFE && b3 == 0xED) {
                     formatName = "Device Tree Blob (DTB / DTBO)"
                     magicDesc = "0xD00DFEED (Hardware Tree)"
-                    details = "Árbol de configuración de hardware del kernel"
+                    details = str(me.zhanghai.android.files.R.string.om_part_dtb_details, "Kernel hardware configuration tree")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
             }
@@ -114,7 +118,7 @@ object PartitionInspector {
                 if (b0 == 0x3A && b1 == 0xFF && b2 == 0x26 && b3 == 0xED) {
                     formatName = "Android Sparse Image"
                     magicDesc = "0xED26FF3A (Sparse Chunk)"
-                    details = "Imagen de partición comprimida en bloques sparse"
+                    details = str(me.zhanghai.android.files.R.string.om_part_sparse_details, "Partition image compressed in sparse chunks")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
             }
@@ -123,7 +127,7 @@ object PartitionInspector {
             if (magic4 == "CrAU") {
                 formatName = "Android OTA Update Payload"
                 magicDesc = "CrAU (Payload.bin)"
-                details = "Paquete de actualización OTA del sistema"
+                details = str(me.zhanghai.android.files.R.string.om_part_ota_details, "System OTA update package")
                 return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
             }
 
@@ -131,9 +135,9 @@ object PartitionInspector {
             if (bytesRead >= 520) {
                 val gptMagic = String(header, 512, 8, StandardCharsets.US_ASCII)
                 if (gptMagic == "EFI PART") {
-                    formatName = "Tabla de particiones GPT"
+                    formatName = str(me.zhanghai.android.files.R.string.om_part_gpt_name, "GPT Partition Table")
                     magicDesc = "EFI PART (GUID Partition Table)"
-                    details = "Tabla de particiones maestra del almacenamiento"
+                    details = str(me.zhanghai.android.files.R.string.om_part_gpt_details, "Master storage partition table")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
             }
@@ -148,7 +152,7 @@ object PartitionInspector {
                     (b0 == 0x30 && b1 == 0x44 && b2 == 0x61 && b3 == 0x6C)) {
                     formatName = "Android Dynamic Partitions (Super)"
                     magicDesc = "0x616C4467 (liblp Metadata)"
-                    details = "Contenedor de particiones dinámicas del sistema (system, vendor, product)"
+                    details = str(me.zhanghai.android.files.R.string.om_part_super_details, "Dynamic system partition container (system, vendor, product)")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
             }
@@ -161,17 +165,17 @@ object PartitionInspector {
                 val e2 = header[1026].toInt() and 0xFF
                 val e3 = header[1027].toInt() and 0xFF
                 if (e0 == 0xE2 && e1 == 0xE1 && e2 == 0xF5 && e3 == 0xE0) {
-                    formatName = "Sistema de archivos EROFS"
+                    formatName = str(me.zhanghai.android.files.R.string.om_part_erofs_name, "EROFS Filesystem")
                     magicDesc = "0xE0F5E1E2 (Enhanced Read-Only FS)"
-                    details = "Partición de sistema de solo lectura de alto rendimiento"
+                    details = str(me.zhanghai.android.files.R.string.om_part_erofs_details, "High-performance read-only system partition")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
 
                 // F2FS: offset 1024 has magic 0xF2F52010 (10 20 F5 F2)
                 if (e0 == 0x10 && e1 == 0x20 && e2 == 0xF5 && e3 == 0xF2) {
-                    formatName = "Sistema de archivos F2FS"
+                    formatName = str(me.zhanghai.android.files.R.string.om_part_f2fs_name, "F2FS Filesystem")
                     magicDesc = "0xF2F52010 (Flash-Friendly FS)"
-                    details = "Partición optimizada para almacenamiento Flash NAND (/data)"
+                    details = str(me.zhanghai.android.files.R.string.om_part_f2fs_details, "Partition optimized for NAND Flash storage (/data)")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
 
@@ -179,9 +183,9 @@ object PartitionInspector {
                 val m0 = header[1080].toInt() and 0xFF
                 val m1 = header[1081].toInt() and 0xFF
                 if (m0 == 0x53 && m1 == 0xEF) {
-                    formatName = "Sistema de archivos ext4"
+                    formatName = str(me.zhanghai.android.files.R.string.om_part_ext4_name, "ext4 Filesystem")
                     magicDesc = "0xEF53 (Linux ext4/ext3)"
-                    details = "Partición formateada con el sistema de archivos estándar de Linux"
+                    details = str(me.zhanghai.android.files.R.string.om_part_ext4_details, "Partition formatted with standard Linux filesystem")
                     return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
                 }
             }
@@ -189,7 +193,7 @@ object PartitionInspector {
 
         // Generic fallback
         if (sizeBytes > 0) {
-            details = "Dispositivo de almacenamiento en bloques de bajo nivel"
+            details = str(me.zhanghai.android.files.R.string.om_part_generic_details, "Low-level block storage device")
         }
         return PartitionInspectionResult(formatName, magicDesc, sizeBytes, details)
     }

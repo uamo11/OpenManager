@@ -69,28 +69,22 @@ class DexInfoDialogFragment : AppCompatDialogFragment() {
             e.printStackTrace()
         }
 
-        val message = StringBuilder().apply {
-            append("• Formato: $version\n")
-            append("• Clases definidas: $classCount\n")
-            append("• Métodos: $methodCount\n")
-            append("• Campos: $fieldCount\n")
-            append("• Cadenas de texto: $stringCount\n")
-        }.toString()
+        val message = getString(R.string.om_bin_dex_info_format, version, classCount, methodCount, fieldCount, stringCount)
 
         return MaterialAlertDialogBuilder(context)
             .setIcon(R.drawable.file_dex_icon)
             .setTitle(fileName)
             .setMessage(message)
-            .setNeutralButton("Ver cadenas") { _, _ ->
+            .setNeutralButton(R.string.om_bin_view_strings) { _, _ ->
                 extractAndShowDexStrings(path)
             }
-            .setNegativeButton("Abrir como texto") { _, _ ->
+            .setNegativeButton(R.string.om_bin_open_as_text) { _, _ ->
                 val intent = Intent(context, TextEditorActivity::class.java).apply {
                     extraPath = path
                 }
                 context.startActivity(intent)
             }
-            .setPositiveButton("Cerrar", null)
+            .setPositiveButton(R.string.close, null)
             .create()
     }
 
@@ -138,7 +132,7 @@ class DexInfoDialogFragment : AppCompatDialogFragment() {
             context.startActivity(intent)
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(context, "Error al extraer cadenas: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.om_bin_extract_strings_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -179,28 +173,28 @@ class ArscInfoDialogFragment : AppCompatDialogFragment() {
         }
 
         val message = if (isValidArsc) {
-            "• Tabla de recursos binarios compilados de Android\n• Paquetes declarados: $packageCount\n• Estado: Válido"
+            getString(R.string.om_bin_arsc_valid_format, packageCount)
         } else {
-            "Tabla de recursos binarios (resources.arsc)"
+            getString(R.string.om_bin_arsc_fallback)
         }
 
         return MaterialAlertDialogBuilder(context)
             .setIcon(R.drawable.file_arsc_icon)
             .setTitle(fileName)
             .setMessage(message)
-            .setNeutralButton("Editor ARSC") { _, _ ->
+            .setNeutralButton(R.string.om_bin_arsc_editor) { _, _ ->
                 val intent = Intent(context, me.zhanghai.android.files.viewer.arsc.ArscEditorActivity::class.java).apply {
                     extraPath = path
                 }
                 context.startActivity(intent)
             }
-            .setNegativeButton("Abrir como texto") { _, _ ->
+            .setNegativeButton(R.string.om_bin_open_as_text) { _, _ ->
                 val intent = Intent(context, TextEditorActivity::class.java).apply {
                     extraPath = path
                 }
                 context.startActivity(intent)
             }
-            .setPositiveButton("Cerrar", null)
+            .setPositiveButton(R.string.close, null)
             .create()
     }
 
@@ -243,7 +237,7 @@ class ElfInfoDialogFragment : AppCompatDialogFragment() {
                         0x03 -> "x86 (i386)"
                         0x3E -> "x86_64 (amd64)"
                         0xF3 -> "RISC-V"
-                        else -> "Código $machine"
+                        else -> getString(R.string.om_bin_elf_code_format, machine)
                     }
                 }
             }
@@ -269,10 +263,10 @@ class ElfInfoDialogFragment : AppCompatDialogFragment() {
         }
 
         val message = StringBuilder().apply {
-            append("• Arquitectura: $arch ($bitClass)\n")
-            append("• Formato: ELF binario nativo ($endian)\n")
+            append(getString(R.string.om_bin_elf_arch_format, arch, bitClass))
+            append(getString(R.string.om_bin_elf_format_format, endian))
             if (neededLibs.isNotEmpty()) {
-                append("• Dependencias detectadas:\n  - ")
+                append(getString(R.string.om_bin_elf_deps_header))
                 append(neededLibs.joinToString("\n  - "))
                 append("\n")
             }
@@ -282,13 +276,13 @@ class ElfInfoDialogFragment : AppCompatDialogFragment() {
             .setIcon(R.drawable.file_so_icon)
             .setTitle(fileName)
             .setMessage(message)
-            .setNegativeButton("Abrir como texto") { _, _ ->
+            .setNegativeButton(R.string.om_bin_open_as_text) { _, _ ->
                 val intent = Intent(context, TextEditorActivity::class.java).apply {
                     extraPath = path
                 }
                 context.startActivity(intent)
             }
-            .setPositiveButton("Cerrar", null)
+            .setPositiveButton(R.string.close, null)
             .create()
     }
 

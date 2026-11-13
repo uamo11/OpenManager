@@ -283,7 +283,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             val (_, tvFormat) = addRow(getString(R.string.om_prop_partition_format), getString(R.string.om_prop_analyzing_signature))
             val (_, tvDetails) = addRow(getString(R.string.om_prop_technical_details), getString(R.string.om_prop_reading_info))
             lifecycleScope.launch(Dispatchers.IO) {
-                val report = PartitionInspector.inspect(path)
+                val report = PartitionInspector.inspect(path, context)
                 withContext(Dispatchers.Main) {
                     tvFormat.text = "${report.formatName} (${report.magicDescription})"
                     tvFormat.setTextColor(Color.parseColor("#81C784"))

@@ -46,56 +46,54 @@ class DeadManProtectedRulesDialogFragment : AppCompatDialogFragment() {
         binding.ivHeaderIcon.setImageResource(R.drawable.ic_dead_man_skull)
         binding.tvHeaderTitle.text = getString(R.string.settings_dead_man_root_rules_title)
 
-        binding.tvHeaderStatus.text = if (isProtectionActive) {
-            "DEAD MAN: ACTIVO"
-        } else {
-            "DEAD MAN: DESACTIVADO"
-        }
+        binding.tvHeaderStatus.text = getString(
+            if (isProtectionActive) R.string.om_deadman_status_active else R.string.om_deadman_status_inactive
+        )
         binding.tvHeaderStatus.setTextColor(
             if (isProtectionActive) Color.parseColor("#4CAF50") else Color.parseColor("#F44336")
         )
 
         val categories = listOf(
             CategoryGroup(
-                title = "Particiones Críticas del Sistema",
-                badgeText = "SISTEMA",
+                title = getString(R.string.om_deadman_cat_critical),
+                badgeText = getString(R.string.om_deadman_badge_system),
                 badgeColor = Color.parseColor("#E53935"),
                 items = listOf(
-                    RuleItem("/system", "Núcleo del sistema operativo Android y binarios esenciales"),
-                    RuleItem("/vendor", "Controladores propietarios (HALs) del fabricante del SoC"),
-                    RuleItem("/product & /system_ext", "Servicios de soporte extendido del sistema"),
-                    RuleItem("/apex", "Módulos modulares de actualización de Android Mainline"),
-                    RuleItem("/data/adb & /data/system", "Configuración central de superusuario y base del sistema")
+                    RuleItem("/system", getString(R.string.om_deadman_rule_system)),
+                    RuleItem("/vendor", getString(R.string.om_deadman_rule_vendor)),
+                    RuleItem("/product & /system_ext", getString(R.string.om_deadman_rule_product)),
+                    RuleItem("/apex", getString(R.string.om_deadman_rule_apex)),
+                    RuleItem("/data/adb & /data/system", getString(R.string.om_deadman_rule_adb))
                 )
             ),
             CategoryGroup(
-                title = "Dispositivos de Bloque y Particiones Raw",
+                title = getString(R.string.om_deadman_cat_raw),
                 badgeText = "RAW BLOCK",
                 badgeColor = Color.parseColor("#FF9800"),
                 items = listOf(
-                    RuleItem("/dev/block/by-name/*", "Acceso directo a particiones NAND/UFS"),
-                    RuleItem("mkfs & wipefs", "Comandos de formateo masivo de particiones del disco"),
-                    RuleItem("dd of=/dev/block/", "Sobreescritura directa de bloques crudos de almacenamiento")
+                    RuleItem("/dev/block/by-name/*", getString(R.string.om_deadman_rule_byname)),
+                    RuleItem("mkfs & wipefs", getString(R.string.om_deadman_rule_mkfs)),
+                    RuleItem("dd of=/dev/block/", getString(R.string.om_deadman_rule_dd))
                 )
             ),
             CategoryGroup(
-                title = "Protección Anti-Wipe Masivo",
+                title = getString(R.string.om_deadman_cat_antiwipe),
                 badgeText = "ANTI-WIPE",
                 badgeColor = Color.parseColor("#D32F2F"),
                 items = listOf(
-                    RuleItem("rm -rf / o rm -rf /*", "Intento de borrado recursivo desde el directorio raíz"),
-                    RuleItem("rm -rf /system", "Borrado masivo del árbol de directorios del sistema"),
-                    RuleItem("find ... -delete", "Búsqueda destructiva automatizada sobre particiones del sistema")
+                    RuleItem(getString(R.string.om_deadman_rule_rm_root_title), getString(R.string.om_deadman_rule_rm_root_desc)),
+                    RuleItem("rm -rf /system", getString(R.string.om_deadman_rule_rm_sys)),
+                    RuleItem("find ... -delete", getString(R.string.om_deadman_rule_find_del))
                 )
             ),
             CategoryGroup(
-                title = "Zona Permitida de Usuario (Sin Restricciones)",
-                badgeText = "PERMITIDO",
+                title = getString(R.string.om_deadman_cat_allowed),
+                badgeText = getString(R.string.om_dfroot_badge_allowed),
                 badgeColor = Color.parseColor("#4CAF50"),
                 items = listOf(
-                    RuleItem("/data/local/tmp/", "Scripts y binarios temporales de prueba (ej. test.sh)"),
-                    RuleItem("/sdcard/ & /storage/emulated/0/", "Almacenamiento interno del usuario y descargas"),
-                    RuleItem("Cache privado de la app", "Directorio seguro de trabajo y ejecución")
+                    RuleItem("/data/local/tmp/", getString(R.string.om_deadman_rule_tmp)),
+                    RuleItem("/sdcard/ & /storage/emulated/0/", getString(R.string.om_deadman_rule_sdcard)),
+                    RuleItem(getString(R.string.om_deadman_rule_cache_title), getString(R.string.om_deadman_rule_cache_desc))
                 )
             )
         )

@@ -44,11 +44,9 @@ class DfrootProtectedFilesDialogFragment : AppCompatDialogFragment() {
         val context = requireContext()
 
         val isProtectionActive = DeadManProtectionManager.isDfrootProtectionActive(context)
-        binding.tvHeaderStatus.text = if (isProtectionActive) {
-            "PROTECCIÓN ACTIVA"
-        } else {
-            "PROTECCIÓN DESACTIVADA"
-        }
+        binding.tvHeaderStatus.text = getString(
+            if (isProtectionActive) R.string.om_dfroot_status_active else R.string.om_dfroot_status_inactive
+        )
         binding.tvHeaderStatus.setTextColor(
             if (isProtectionActive) Color.parseColor("#4CAF50") else Color.parseColor("#F44336")
         )
@@ -56,38 +54,38 @@ class DfrootProtectedFilesDialogFragment : AppCompatDialogFragment() {
         val categories = listOf(
             CategoryGroup(
                 title = getString(R.string.dead_man_category_boot_images),
-                badgeText = "CRÍTICO",
+                badgeText = getString(R.string.om_dfroot_badge_critical),
                 badgeColor = Color.parseColor("#E53935"),
                 items = listOf(
-                    ProtectedFileItem("boot.img", "Kernel Linux y ramdisk del sistema"),
-                    ProtectedFileItem("dtbo.img", "Device Tree Blob Overlay de hardware"),
-                    ProtectedFileItem("init_boot.img", "Ramdisk genérico de inicio en Android 13+"),
-                    ProtectedFileItem("recovery.img", "Partición de rescate y recuperación"),
-                    ProtectedFileItem("vendor_boot.img", "Módulos y controladores de arranque del fabricante")
+                    ProtectedFileItem("boot.img", getString(R.string.om_dfroot_item_boot)),
+                    ProtectedFileItem("dtbo.img", getString(R.string.om_dfroot_item_dtbo)),
+                    ProtectedFileItem("init_boot.img", getString(R.string.om_dfroot_item_init_boot)),
+                    ProtectedFileItem("recovery.img", getString(R.string.om_dfroot_item_recovery)),
+                    ProtectedFileItem("vendor_boot.img", getString(R.string.om_dfroot_item_vendor_boot))
                 )
             ),
             CategoryGroup(
                 title = getString(R.string.dead_man_category_avb_firmware),
-                badgeText = "SEGURIDAD",
+                badgeText = getString(R.string.om_dfroot_badge_security),
                 badgeColor = Color.parseColor("#FB8C00"),
                 items = listOf(
-                    ProtectedFileItem("abl.img / xbl.img", "Cargadores secundarios de arranque (Bootloader)"),
-                    ProtectedFileItem("tz.img / hyp.img", "Firmware de seguridad TrustZone e hipervisor"),
-                    ProtectedFileItem("vbmeta.img", "Descriptor criptográfico maestro Android Verified Boot"),
-                    ProtectedFileItem("vbmeta_system.img", "Árbol de verificación de integridad de /system"),
-                    ProtectedFileItem("vbmeta_vendor.img", "Árbol de verificación de integridad de /vendor")
+                    ProtectedFileItem("abl.img / xbl.img", getString(R.string.om_dfroot_item_abl)),
+                    ProtectedFileItem("tz.img / hyp.img", getString(R.string.om_dfroot_item_tz)),
+                    ProtectedFileItem("vbmeta.img", getString(R.string.om_dfroot_item_vbmeta)),
+                    ProtectedFileItem("vbmeta_system.img", getString(R.string.om_dfroot_item_vbmeta_sys)),
+                    ProtectedFileItem("vbmeta_vendor.img", getString(R.string.om_dfroot_item_vbmeta_ven))
                 )
             ),
             CategoryGroup(
                 title = getString(R.string.dead_man_category_startup_files),
-                badgeText = "INICIO",
+                badgeText = getString(R.string.om_dfroot_badge_boot),
                 badgeColor = Color.parseColor("#FDD835"),
                 items = listOf(
-                    ProtectedFileItem("/default.prop", "Propiedades iniciales del entorno de inicio"),
-                    ProtectedFileItem("/init", "Binario primario de inicio raíz"),
-                    ProtectedFileItem("/system/bin/init", "Enlace de ejecución de arranque del sistema"),
-                    ProtectedFileItem("/system/etc/fstab.*", "Tabla de montaje de particiones del sistema"),
-                    ProtectedFileItem("/vendor/etc/fstab.*", "Tabla de montaje de particiones del fabricante")
+                    ProtectedFileItem("/default.prop", getString(R.string.om_dfroot_item_defprop)),
+                    ProtectedFileItem("/init", getString(R.string.om_dfroot_item_init)),
+                    ProtectedFileItem("/system/bin/init", getString(R.string.om_dfroot_item_sbin_init)),
+                    ProtectedFileItem("/system/etc/fstab.*", getString(R.string.om_dfroot_item_sys_fstab)),
+                    ProtectedFileItem("/vendor/etc/fstab.*", getString(R.string.om_dfroot_item_ven_fstab))
                 )
             ),
             CategoryGroup(
@@ -95,45 +93,45 @@ class DfrootProtectedFilesDialogFragment : AppCompatDialogFragment() {
                 badgeText = "RAW",
                 badgeColor = Color.parseColor("#757575"),
                 items = listOf(
-                    ProtectedFileItem("/dev/block/by-name/boot*", "Acceso raw directo a partición boot"),
-                    ProtectedFileItem("/dev/block/by-name/dtbo*", "Acceso raw directo a partición dtbo"),
-                    ProtectedFileItem("/dev/block/by-name/init_boot*", "Acceso raw directo a partición init_boot"),
-                    ProtectedFileItem("/dev/block/by-name/recovery*", "Acceso raw directo a partición recovery"),
-                    ProtectedFileItem("/dev/block/by-name/vbmeta*", "Acceso raw directo a partición vbmeta"),
-                    ProtectedFileItem("/dev/block/by-name/vendor_boot*", "Acceso raw directo a partición vendor_boot")
+                    ProtectedFileItem("/dev/block/by-name/boot*", getString(R.string.om_dfroot_item_raw_boot)),
+                    ProtectedFileItem("/dev/block/by-name/dtbo*", getString(R.string.om_dfroot_item_raw_dtbo)),
+                    ProtectedFileItem("/dev/block/by-name/init_boot*", getString(R.string.om_dfroot_item_raw_init_boot)),
+                    ProtectedFileItem("/dev/block/by-name/recovery*", getString(R.string.om_dfroot_item_raw_recovery)),
+                    ProtectedFileItem("/dev/block/by-name/vbmeta*", getString(R.string.om_dfroot_item_raw_vbmeta)),
+                    ProtectedFileItem("/dev/block/by-name/vendor_boot*", getString(R.string.om_dfroot_item_raw_vendor_boot))
                 )
             ),
             CategoryGroup(
                 title = getString(R.string.dead_man_category_system_partitions),
-                badgeText = "SOLO LECTURA",
+                badgeText = getString(R.string.om_dfroot_badge_readonly),
                 badgeColor = Color.parseColor("#8E24AA"),
                 items = listOf(
-                    ProtectedFileItem("/apex", "Contenedores modulares actualizables del sistema"),
-                    ProtectedFileItem("/odm", "Capa original de diseño del fabricante"),
-                    ProtectedFileItem("/product", "Personalizaciones y aplicaciones de la marca"),
-                    ProtectedFileItem("/system", "Sistema operativo Android base"),
-                    ProtectedFileItem("/system_ext", "Extensiones del marco de trabajo de Android"),
-                    ProtectedFileItem("/vendor", "Controladores binarios y blobs del hardware")
+                    ProtectedFileItem("/apex", getString(R.string.om_dfroot_item_apex)),
+                    ProtectedFileItem("/odm", getString(R.string.om_dfroot_item_odm)),
+                    ProtectedFileItem("/product", getString(R.string.om_dfroot_item_product)),
+                    ProtectedFileItem("/system", getString(R.string.om_dfroot_item_system)),
+                    ProtectedFileItem("/system_ext", getString(R.string.om_dfroot_item_system_ext)),
+                    ProtectedFileItem("/vendor", getString(R.string.om_dfroot_item_vendor))
                 )
             ),
             CategoryGroup(
                 title = getString(R.string.dead_man_category_allowed_zone),
-                badgeText = "PERMITIDO",
+                badgeText = getString(R.string.om_dfroot_badge_allowed),
                 badgeColor = Color.parseColor("#43A047"),
                 items = listOf(
                     ProtectedFileItem(
                         "/data/local/tmp/",
-                        "Scripts (ej. test.sh), ejecutables y archivos creados por el usuario funcionan libremente",
+                        getString(R.string.om_dfroot_item_tmp),
                         isAllowed = true
                     ),
                     ProtectedFileItem(
                         "/storage/emulated/0/ (/sdcard)",
-                        "Almacenamiento interno del usuario (Descargas, Documentos, Fotos)",
+                        getString(R.string.om_dfroot_item_sdcard),
                         isAllowed = true
                     ),
                     ProtectedFileItem(
-                        "/data/data/ y cachés",
-                        "Directorios privados de aplicaciones y archivos de trabajo",
+                        getString(R.string.om_dfroot_item_data_caches_title),
+                        getString(R.string.om_dfroot_item_data_caches_desc),
                         isAllowed = true
                     )
                 )

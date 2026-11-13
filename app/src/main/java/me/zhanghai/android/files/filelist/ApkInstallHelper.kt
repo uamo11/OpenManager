@@ -52,7 +52,7 @@ object ApkInstallHelper {
         val result = try {
             Shell.cmd(script).exec()
         } catch (e: Exception) {
-            return@withContext false to "Error al ejecutar en shell root: ${e.message}"
+            return@withContext false to context.getString(R.string.om_install_root_shell_error_format, e.message ?: "")
         }
 
         val output = (result.out + result.err).joinToString("\n").trim()
@@ -60,9 +60,9 @@ object ApkInstallHelper {
             (output.contains("Success", ignoreCase = true) || !output.contains("Failure", ignoreCase = true))
 
         if (isSuccess) {
-            true to "Instalación completada con éxito"
+            true to context.getString(R.string.om_install_success)
         } else {
-            val errorMsg = if (output.isNotEmpty()) output else "Código de error: ${result.code}"
+            val errorMsg = if (output.isNotEmpty()) output else context.getString(R.string.om_install_error_code_format, result.code)
             false to errorMsg
         }
     }
@@ -82,7 +82,7 @@ object ApkInstallHelper {
                 }
                 cacheFile
             } catch (e: Exception) {
-                return@withContext false to "Error al preparar archivo APK: ${e.message}"
+                return@withContext false to context.getString(R.string.om_install_prepare_apk_error_format, e.message ?: "")
             }
         } else {
             null
@@ -99,7 +99,7 @@ object ApkInstallHelper {
         apkFile: File
     ): Pair<Boolean, String> = withContext(Dispatchers.IO) {
         if (!ShizukuManager.ready()) {
-            return@withContext false to "Shizuku no está listo o no tiene permisos concedidos"
+            return@withContext false to context.getString(R.string.om_install_shizuku_not_ready)
         }
 
         val targetTmpPath = "/data/local/tmp/om_shizuku_install_${System.currentTimeMillis()}.apk"
@@ -120,7 +120,7 @@ object ApkInstallHelper {
         val result = try {
             ShizukuShell.exec(script, timeoutSeconds = 60)
         } catch (e: Exception) {
-            return@withContext false to "Error al ejecutar en shell Shizuku: ${e.message}"
+            return@withContext false to context.getString(R.string.om_install_shizuku_shell_error_format, e.message ?: "")
         }
 
         val output = (result.out + "\n" + result.err).trim()
@@ -128,9 +128,9 @@ object ApkInstallHelper {
             (output.contains("Success", ignoreCase = true) || !output.contains("Failure", ignoreCase = true))
 
         if (isSuccess) {
-            true to "Instalación con Shizuku completada con éxito"
+            true to context.getString(R.string.om_install_shizuku_success)
         } else {
-            val errorMsg = if (output.isNotEmpty()) output else "Código de error: ${result.code}"
+            val errorMsg = if (output.isNotEmpty()) output else context.getString(R.string.om_install_error_code_format, result.code)
             false to errorMsg
         }
     }
@@ -140,7 +140,7 @@ object ApkInstallHelper {
         file: FileItem
     ): Pair<Boolean, String> = withContext(Dispatchers.IO) {
         if (!ShizukuManager.ready()) {
-            return@withContext false to "Shizuku no está listo o no tiene permisos concedidos"
+            return@withContext false to context.getString(R.string.om_install_shizuku_not_ready)
         }
 
         val path = file.path
@@ -154,7 +154,7 @@ object ApkInstallHelper {
                 }
                 cacheFile
             } catch (e: Exception) {
-                return@withContext false to "Error al preparar archivo APK: ${e.message}"
+                return@withContext false to context.getString(R.string.om_install_prepare_apk_error_format, e.message ?: "")
             }
         } else {
             null

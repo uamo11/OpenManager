@@ -109,7 +109,7 @@ object MtFileMenuHelper {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("File Path", fullPath))
             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            Toast.makeText(context, "Ruta copiada al portapapeles:\n$fullPath", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.om_mt_path_copied_format, fullPath), Toast.LENGTH_SHORT).show()
         }
 
         val copyNameAction = {
@@ -121,7 +121,7 @@ object MtFileMenuHelper {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("File Name", nameToCopy))
             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            Toast.makeText(context, "Nombre copiado al portapapeles:\n$nameToCopy", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.om_mt_name_copied_format, nameToCopy), Toast.LENGTH_SHORT).show()
             true
         }
 
@@ -138,7 +138,7 @@ object MtFileMenuHelper {
         // 1. Copy / Extract with directional >> or <<
         val btnCopy = view.findViewById<LinearLayout>(R.id.btnCopy)
         val tvCopyLabel = view.findViewById<TextView>(R.id.tvCopyLabel)
-        val copyVerb = if (isArchivePath) "Extraer" else "Copiar"
+        val copyVerb = context.getString(if (isArchivePath) R.string.om_mt_action_extract else R.string.om_mt_action_copy)
 
         if (oppositePath != null) {
             tvCopyLabel.text = if (isPanelA) "$copyVerb >>" else "<< $copyVerb"
