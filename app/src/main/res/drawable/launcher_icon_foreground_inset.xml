@@ -5,4 +5,4 @@
   -->
 <inset xmlns:android="http://schemas.android.com/apk/res/android"
     android:drawable="@mipmap/launcher_icon_foreground"
-    android:inset="14%" />
+    android:inset="22%" />
