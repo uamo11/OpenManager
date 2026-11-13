@@ -114,9 +114,9 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         ivIcon.setImageResource(FileIconHelper.getIconRes(file))
         tvTitle.text = file.name
         tvSubtitle.text = when {
-            isPartition -> "Partición del Sistema (Dispositivo de bloques)"
+            isPartition -> getString(R.string.om_prop_partition_subtitle)
             isDir -> getString(R.string.file_properties_basic)
-            isScript -> "Script Ejecutable (/system/bin/sh)"
+            isScript -> getString(R.string.om_prop_script_subtitle)
             else -> "${file.getMimeTypeName(context)} (${file.mimeType.value})"
         }
 
@@ -125,11 +125,11 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             if (str.isNotBlank() && str != "-") {
                 val cb = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                 cb?.setPrimaryClip(ClipData.newPlainText(label, str))
-                Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.om_label_copied_format, label), Toast.LENGTH_SHORT).show()
             }
         }
 
-        tvTitle.setOnClickListener { copyText("Nombre", tvTitle.text) }
+        tvTitle.setOnClickListener { copyText(getString(R.string.om_label_name), tvTitle.text) }
 
         val density = context.resources.displayMetrics.density
         fun addRow(
@@ -204,13 +204,13 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                     singleLineMiddle = true
                 )
             }
-            addRow("Ruta completa", path.toUserFriendlyString(), singleLineMiddle = true)
+            addRow(getString(R.string.om_prop_full_path), path.toUserFriendlyString(), singleLineMiddle = true)
         }
 
         if (isPartition) {
             addRow(
                 getString(R.string.file_properties_basic_type),
-                "Dispositivo de bloques (Partición de sistema)"
+                getString(R.string.om_prop_block_device)
             )
         } else {
             addRow(
@@ -280,14 +280,14 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         }
 
         if (isPartition) {
-            val (_, tvFormat) = addRow("Formato de partición", "Analizando firma...")
-            val (_, tvDetails) = addRow("Detalles técnicos", "Leyendo información...")
+            val (_, tvFormat) = addRow(getString(R.string.om_prop_partition_format), getString(R.string.om_prop_analyzing_signature))
+            val (_, tvDetails) = addRow(getString(R.string.om_prop_technical_details), getString(R.string.om_prop_reading_info))
             lifecycleScope.launch(Dispatchers.IO) {
                 val report = PartitionInspector.inspect(path)
                 withContext(Dispatchers.Main) {
                     tvFormat.text = "${report.formatName} (${report.magicDescription})"
                     tvFormat.setTextColor(Color.parseColor("#81C784"))
-                    tvDetails.text = report.details ?: "Partición de bajo nivel"
+                    tvDetails.text = report.details ?: getString(R.string.om_prop_low_level_partition)
                     if (report.sizeBytes > 0 && file.attributes.fileSize.value == 0L) {
                         val humanSize = report.sizeBytes.asFileSize().formatHumanReadable(context)
                         tvSizeOrContents.text = "$humanSize (${report.sizeBytes} B)"
@@ -358,27 +358,27 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         // 3. Script-Specific Details (if executable or script)
         if (isScript) {
             val isElf = ScriptRunnerHelper.isElfBinary(path)
-            val (_, tvInterp) = addRow("Intérprete", if (isElf) "ELF Nativo" else "/system/bin/sh")
+            val (_, tvInterp) = addRow(getString(R.string.om_prop_interpreter), if (isElf) getString(R.string.om_prop_elf_native) else "/system/bin/sh")
             if (isElf) {
-                val (_, tvArch) = addRow("Arquitectura", "Analizando ELF...")
-                val (_, tvAudit) = addRow("Auditoría", "Analizando seguridad ELF...")
+                val (_, tvArch) = addRow(getString(R.string.om_prop_architecture), getString(R.string.om_prop_analyzing_elf))
+                val (_, tvAudit) = addRow(getString(R.string.om_prop_audit), getString(R.string.om_prop_analyzing_elf_security))
                 lifecycleScope.launch(Dispatchers.IO) {
                     val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(path)
                     withContext(Dispatchers.Main) {
-                        tvInterp.text = elfReport.interpreter ?: if (elfReport.isDynamic) "ELF Dinámico" else "ELF Estático"
+                        tvInterp.text = elfReport.interpreter ?: if (elfReport.isDynamic) getString(R.string.om_prop_elf_dynamic) else getString(R.string.om_prop_elf_static)
                         tvArch.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
                         if (elfReport.totalFindings > 0) {
-                            tvAudit.text = "⚠️ ${elfReport.totalFindings} riesgos detectados"
+                            tvAudit.text = getString(R.string.om_prop_risks_detected_format, elfReport.totalFindings)
                             tvAudit.setTextColor(Color.parseColor("#FFB74D"))
                         } else {
-                            tvAudit.text = "🛡️ Binario Seguro (0 riesgos)"
+                            tvAudit.text = getString(R.string.om_prop_safe_binary)
                             tvAudit.setTextColor(Color.parseColor("#81C784"))
                         }
                     }
                 }
             } else {
-                val (rowLe, tvLe) = addRow("Formato línea", "Analizando...")
-                val (_, tvStats) = addRow("Líneas", "Analizando...")
+                val (rowLe, tvLe) = addRow(getString(R.string.om_prop_line_format), getString(R.string.om_prop_analyzing))
+                val (_, tvStats) = addRow(getString(R.string.om_prop_lines), getString(R.string.om_prop_analyzing))
                 lifecycleScope.launch(Dispatchers.IO) {
                     var shebang: String? = null
                     var lines = 0
@@ -407,9 +407,9 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                         if (!shebang.isNullOrBlank()) {
                             tvInterp.text = shebang
                         }
-                        tvStats.text = "$lines líneas · UTF-8"
+                        tvStats.text = getString(R.string.om_prop_lines_utf8_format, lines)
                         if (hasCrlf) {
-                            tvLe.text = "CRLF (Windows) · Tocar para convertir a LF"
+                            tvLe.text = getString(R.string.om_prop_crlf_convert)
                             tvLe.setTextColor(Color.parseColor("#FFB74D"))
                             val convertClick = View.OnClickListener {
                                 lifecycleScope.launch(Dispatchers.IO) {
@@ -428,7 +428,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                                         }
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
-                                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, getString(R.string.om_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                                         }
                                     }
                                 }
@@ -465,8 +465,8 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                             } catch (_: Throwable) {}
                         }
                         tvSubtitle.text = "v${pkgInfo.versionName ?: "1.0"} (${pkgInfo.longVersionCodeCompat})"
-                        addRow("Paquete", pkgInfo.packageName ?: "-")
-                        addRow("Versión", "v${pkgInfo.versionName ?: "1.0"} (${pkgInfo.longVersionCodeCompat})")
+                        addRow(getString(R.string.om_prop_package), pkgInfo.packageName ?: "-")
+                        addRow(getString(R.string.om_prop_version), "v${pkgInfo.versionName ?: "1.0"} (${pkgInfo.longVersionCodeCompat})")
                         if (appInfo != null) {
                             val minSdk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) appInfo.minSdkVersion else 0
                             addRow("SDK (Min / Target)", "API $minSdk / API ${appInfo.targetSdkVersion}")
@@ -482,17 +482,18 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             if (hashesCalculated || isDir) return
             val pathStr = path.toString()
             if (pathStr == "/dev/zero" || pathStr == "/dev/urandom" || pathStr == "/dev/random" || pathStr.startsWith("/dev/pts/")) {
-                Toast.makeText(context, "No se admiten sumas de verificación en flujos continuos", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_prop_checksums_unsupported, Toast.LENGTH_SHORT).show()
                 return
             }
             hashesCalculated = true
             btnAction2.isEnabled = false
             btnAction2.alpha = 0.5f
 
-            val (_, tvCrc) = addRow("CRC32", "Calculando...")
-            val (_, tvMd5) = addRow("MD5", "Calculando...")
-            val (_, tvSha1) = addRow("SHA-1", "Calculando...")
-            val (_, tvSha256) = addRow("SHA-256", "Calculando...")
+            val calculatingText = getString(R.string.om_prop_calculating)
+            val (_, tvCrc) = addRow("CRC32", calculatingText)
+            val (_, tvMd5) = addRow("MD5", calculatingText)
+            val (_, tvSha1) = addRow("SHA-1", calculatingText)
+            val (_, tvSha256) = addRow("SHA-256", calculatingText)
 
             lifecycleScope.launch(Dispatchers.IO) {
                 try {
@@ -523,7 +524,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
-                        tvMd5.text = "Error: ${e.message}"
+                        tvMd5.text = getString(R.string.om_error_format, e.message ?: "")
                     }
                 }
             }
@@ -566,10 +567,10 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             }
         } else {
             btnAction2.visibility = View.VISIBLE
-            btnAction2.text = "COPIAR RUTA"
+            btnAction2.text = getString(R.string.om_prop_btn_copy_path)
             btnAction2.setTextColor(Color.parseColor("#FF9800"))
             btnAction2.setOnClickListener {
-                copyText("Ruta", path.toUserFriendlyString())
+                copyText(getString(R.string.om_prop_label_path), path.toUserFriendlyString())
             }
         }
 

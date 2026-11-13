@@ -125,14 +125,14 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             if (textStr.isNotEmpty() && textStr != "-") {
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(ClipData.newPlainText(label, textStr))
-                Toast.makeText(context, "$label copiado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.om_label_copied_format, label), Toast.LENGTH_SHORT).show()
             }
         }
 
-        tvPackage.setOnClickListener { copyToClipboard("Paquete", tvPackage.text) }
-        tvLabel.setOnClickListener { copyToClipboard("Nombre", tvLabel.text) }
-        tvDataDir?.setOnClickListener { copyToClipboard("Ruta de datos", tvDataDir.text) }
-        tvApkPath?.setOnClickListener { copyToClipboard("Ruta de APK", tvApkPath.text) }
+        tvPackage.setOnClickListener { copyToClipboard(getString(R.string.om_prop_package), tvPackage.text) }
+        tvLabel.setOnClickListener { copyToClipboard(getString(R.string.om_label_name), tvLabel.text) }
+        tvDataDir?.setOnClickListener { copyToClipboard(getString(R.string.om_apk_data_path), tvDataDir.text) }
+        tvApkPath?.setOnClickListener { copyToClipboard(getString(R.string.om_apk_apk_path), tvApkPath.text) }
         tvUid?.setOnClickListener { copyToClipboard("UID", tvUid.text) }
 
         val layoutIconContainer = view.findViewById<View>(R.id.layoutApkIconContainer) ?: ivIcon
@@ -202,7 +202,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         @Suppress("DEPRECATION")
                         packageInfo.signatures?.size ?: 0
                     }
-                    tvSignature.text = if (sigCount > 0) "V1 + V2 + V3 (Válida)" else "Sin firmar"
+                    tvSignature.text = getString(if (sigCount > 0) R.string.om_apk_sig_valid else R.string.om_apk_sig_unsigned)
 
                     // Check if installed
                     val pkgName = packageInfo.packageName
@@ -325,22 +325,22 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 optionsList.add(ApkFunctionOption(getString(R.string.install_root), R.drawable.ic_root_generic, Color.parseColor("#4CAF50")))
             }
             if (isShizukuAvailable) {
-                optionsList.add(ApkFunctionOption("Instalar con Shizuku", R.drawable.ic_shizuku, Color.parseColor("#1565C0")))
+                optionsList.add(ApkFunctionOption(getString(R.string.om_apk_install_shizuku), R.drawable.ic_shizuku, Color.parseColor("#1565C0")))
             }
             optionsList.addAll(listOf(
                 ApkFunctionOption(getString(R.string.apk_quick_edit), R.drawable.edit_icon, Color.parseColor("#FF9800")),
-                ApkFunctionOption("Ver componentes (App Manager)", R.drawable.ic_apps_white_24dp, Color.parseColor("#42A5F5")),
-                ApkFunctionOption("Ver AndroidManifest.xml", R.drawable.document_icon_white_24dp, Color.parseColor("#FFCA28")),
-                ApkFunctionOption("AntiSplit (Fusionar Splits)", R.drawable.ic_apktool_antisplit, Color.parseColor("#FFB300")),
-                ApkFunctionOption("Descompilar APK a Java (JADX)", R.drawable.ic_open_as_code, Color.parseColor("#64B5F6")),
-                ApkFunctionOption("Descompilar APK (Apktool)", R.drawable.ic_apktool_decompile, Color.parseColor("#FFA000")),
+                ApkFunctionOption(getString(R.string.om_app_view_components), R.drawable.ic_apps_white_24dp, Color.parseColor("#42A5F5")),
+                ApkFunctionOption(getString(R.string.om_app_view_manifest), R.drawable.document_icon_white_24dp, Color.parseColor("#FFCA28")),
+                ApkFunctionOption(getString(R.string.om_apk_antisplit), R.drawable.ic_apktool_antisplit, Color.parseColor("#FFB300")),
+                ApkFunctionOption(getString(R.string.om_apk_decompile_jadx), R.drawable.ic_open_as_code, Color.parseColor("#64B5F6")),
+                ApkFunctionOption(getString(R.string.om_apk_decompile_apktool), R.drawable.ic_apktool_decompile, Color.parseColor("#FFA000")),
                 ApkFunctionOption(getString(R.string.toast_dialog_inject_title), R.drawable.ic_toast_inject, Color.parseColor("#FFCA28")),
                 ApkFunctionOption(getString(R.string.toast_dialog_clean_title), R.drawable.ic_toast_clean, Color.parseColor("#EF5350")),
                 ApkFunctionOption(getString(R.string.apk_sign), R.drawable.ic_apktool_sign, Color.parseColor("#4CAF50")),
-                ApkFunctionOption("Generar clave KeyStore (.jks)", R.drawable.ic_keystore_key, Color.parseColor("#5C6BC0")),
-                ApkFunctionOption("Verificar firma", R.drawable.ic_apktool_verify, Color.parseColor("#AB47BC")),
-                ApkFunctionOption("Copiar nombre del paquete", R.drawable.copy_icon_control_normal_24dp, Color.parseColor("#B0BEC5")),
-                ApkFunctionOption("Extraer APK", R.drawable.ic_apk_extract, Color.parseColor("#26A69A")),
+                ApkFunctionOption(getString(R.string.om_apk_generate_keystore), R.drawable.ic_keystore_key, Color.parseColor("#5C6BC0")),
+                ApkFunctionOption(getString(R.string.om_tool_verify_sig), R.drawable.ic_apktool_verify, Color.parseColor("#AB47BC")),
+                ApkFunctionOption(getString(R.string.om_apk_copy_pkg_name), R.drawable.copy_icon_control_normal_24dp, Color.parseColor("#B0BEC5")),
+                ApkFunctionOption(getString(R.string.om_apk_extract), R.drawable.ic_apk_extract, Color.parseColor("#26A69A")),
                 ApkFunctionOption(getString(R.string.apk_optimize), R.drawable.ic_apk_optimize, Color.parseColor("#00897B"))
             ))
 
@@ -375,7 +375,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             dialog.dismiss()
                             listener.installApkWithRoot(file)
                         }
-                        "Instalar con Shizuku" -> {
+                        getString(R.string.om_apk_install_shizuku) -> {
                             dialog.dismiss()
                             installApkWithShizuku(file)
                         }
@@ -384,7 +384,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             dialog.dismiss()
                             ApkQuickEditDialogFragment.show(file, hostActivity)
                         }
-                        "Ver componentes (App Manager)" -> {
+                        getString(R.string.om_app_view_components) -> {
                             dialog.dismiss()
                             try {
                                 val apkJavaFile = file.path.toFile()
@@ -395,10 +395,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                     apkJavaFile
                                 )
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Error al abrir componentes: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, getString(R.string.om_apk_components_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                             }
                         }
-                        "Ver AndroidManifest.xml" -> {
+                        getString(R.string.om_app_view_manifest) -> {
                             dialog.dismiss()
                             try {
                                 val apkJavaFile = file.path.toFile()
@@ -408,10 +408,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                     file.name
                                 )
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Error al decodificar manifiesto: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, getString(R.string.om_apk_manifest_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                             }
                         }
-                        "AntiSplit (Fusionar Splits)" -> {
+                        getString(R.string.om_apk_antisplit) -> {
                             dialog.dismiss()
                             val fragment = (activity as? FileListActivity)?.activeFragment
                             if (fragment != null) {
@@ -420,15 +420,15 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                 if (allApks.size > 1) {
                                     fragment.showAntiSplitDialogForFiles(allApks)
                                 } else {
-                                    Toast.makeText(context, "No se encontraron otros splits en este directorio", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, R.string.om_apk_no_other_splits, Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
-                        "Descompilar APK a Java (JADX)" -> {
+                        getString(R.string.om_apk_decompile_jadx) -> {
                             dialog.dismiss()
                             decompileApkToJava(file)
                         }
-                        "Descompilar APK (Apktool)" -> {
+                        getString(R.string.om_apk_decompile_apktool) -> {
                             dialog.dismiss()
                             ApktoolHelper.decompileApk(requireActivity(), file.path) { targetDir ->
                                 if (targetDir != null) {
@@ -454,7 +454,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                 }
                             }
                         }
-                        "Generar clave KeyStore (.jks)" -> {
+                        getString(R.string.om_apk_generate_keystore) -> {
                             dialog.dismiss()
                             val parentDir = try {
                                 file.path.parent?.toFile()?.absolutePath ?: "/storage/emulated/0/Download"
@@ -465,16 +465,16 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                                 (activity as? FileListActivity)?.activeFragment?.reload()
                             }
                         }
-                        "Verificar firma" -> {
+                        getString(R.string.om_tool_verify_sig) -> {
                             ApkSignerHelper.showVerifySignatureDialog(requireActivity(), file.path)
                         }
-                        "Copiar nombre del paquete" -> {
+                        getString(R.string.om_apk_copy_pkg_name) -> {
                             val pkg = parsedPackageName ?: tvPackage.text.toString()
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             clipboard.setPrimaryClip(ClipData.newPlainText("Package Name", pkg))
-                            Toast.makeText(context, "Nombre del paquete copiado:\n$pkg", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, getString(R.string.om_apk_pkg_copied_format, pkg), Toast.LENGTH_SHORT).show()
                         }
-                        "Extraer APK" -> {
+                        getString(R.string.om_apk_extract) -> {
                             dialog.dismiss()
                             val activity = activity as? FileListActivity ?: return@setAdapter
                             val activeFrag = activity.activeFragment ?: return@setAdapter
@@ -483,7 +483,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             activeFrag.copyFilesTo(fileItemSetOf(file), dest)
                         }
                         getString(R.string.apk_optimize) -> {
-                            Toast.makeText(context, "El archivo APK ya cuenta con alineación zipalign a 4 bytes", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, R.string.om_apk_already_zipaligned, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -496,8 +496,8 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
     private fun installApkWithShizuku(file: FileItem) {
         val context = requireContext()
         val progressDialog = MaterialAlertDialogBuilder(context)
-            .setTitle("Instalando con Shizuku…")
-            .setMessage("Por favor espere mientras Shizuku instala la aplicación…")
+            .setTitle(R.string.om_apk_shizuku_installing_title)
+            .setMessage(R.string.om_apk_shizuku_installing_msg)
             .setCancelable(false)
             .create()
         progressDialog.show()
@@ -584,7 +584,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
 
         btnSave?.setOnClickListener {
             if (bitmap == null) {
-                Toast.makeText(context, "No hay icono para exportar", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, R.string.om_apk_no_icon_export, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             try {
@@ -597,10 +597,10 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 FileOutputStream(targetFile).use { fos ->
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
                 }
-                Toast.makeText(context, "Icono guardado en:\n${targetFile.absolutePath}", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, getString(R.string.om_apk_icon_saved_format, targetFile.absolutePath), Toast.LENGTH_LONG).show()
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "Error al guardar: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.om_apk_icon_save_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 
