@@ -384,17 +384,17 @@ class InstalledAppsActivity : AppActivity() {
 
     private fun showSortDialog() {
         val sortOptions = arrayOf(
-            "Nombre (A - Z)",
-            "Nombre (Z - A)",
-            "Nombre de paquete (A - Z)",
-            "Tamaño (Mayor a menor)",
-            "Tamaño (Menor a mayor)",
-            "Fecha de actualización (Recientes primero)",
-            "Fecha de instalación",
-            "Target SDK (Mayor a menor)"
+            getString(R.string.om_apps_sort_name_az),
+            getString(R.string.om_apps_sort_name_za),
+            getString(R.string.om_apps_sort_pkg_az),
+            getString(R.string.om_apps_sort_size_desc),
+            getString(R.string.om_apps_sort_size_asc),
+            getString(R.string.om_apps_sort_updated),
+            getString(R.string.om_apps_sort_installed),
+            getString(R.string.om_apps_sort_target_sdk)
         )
         MaterialAlertDialogBuilder(this)
-            .setTitle("Ordenar aplicaciones")
+            .setTitle(R.string.om_apps_sort_title)
             .setSingleChoiceItems(sortOptions, currentSortOrder) { dialog, which ->
                 currentSortOrder = which
                 applySort()
@@ -429,7 +429,7 @@ class InstalledAppsActivity : AppActivity() {
 
         if (app.isSplit) {
             dialogBinding.dialogAppSplits.visibility = View.VISIBLE
-            dialogBinding.dialogAppSplits.text = "APKS: ${app.splitCount} archivos divididos"
+            dialogBinding.dialogAppSplits.text = getString(R.string.om_apps_splits_count_format, app.splitCount)
         } else {
             dialogBinding.dialogAppSplits.visibility = View.GONE
         }
@@ -437,8 +437,12 @@ class InstalledAppsActivity : AppActivity() {
         val isRoot = ApkInstallHelper.isRootAvailable()
         if (isRoot) {
             dialogBinding.layoutRootActions.visibility = View.VISIBLE
-            dialogBinding.tvToggleEnableTitle.text = if (app.isEnabled) "Inhabilitar / Congelar (Root)" else "Habilitar / Descongelar (Root)"
-            dialogBinding.tvToggleEnableSubtitle.text = if (app.isEnabled) "Desactivar paquete con pm disable" else "Activar paquete con pm enable"
+            dialogBinding.tvToggleEnableTitle.text = getString(
+                if (app.isEnabled) R.string.om_app_disable_root else R.string.om_apps_enable_root
+            )
+            dialogBinding.tvToggleEnableSubtitle.text = getString(
+                if (app.isEnabled) R.string.om_app_disable_root_desc else R.string.om_apps_enable_root_desc
+            )
         } else {
             dialogBinding.layoutRootActions.visibility = View.GONE
         }
@@ -484,7 +488,7 @@ class InstalledAppsActivity : AppActivity() {
             if (launchIntent != null) {
                 startActivity(launchIntent)
             } else {
-                Toast.makeText(this, "Esta aplicación no tiene interfaz ejecutable", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.om_app_no_launchable_ui, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -508,7 +512,7 @@ class InstalledAppsActivity : AppActivity() {
             if (fileItem != null) {
                 ApkQuickEditDialogFragment.show(fileItem, this)
             } else {
-                Toast.makeText(this, "No se pudo preparar el APK para edición", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.om_apps_prepare_apk_error, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -545,12 +549,12 @@ class InstalledAppsActivity : AppActivity() {
                         putExtra(Intent.EXTRA_STREAM, uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                    startActivity(Intent.createChooser(shareIntent, "Compartir ${app.label}"))
+                    startActivity(Intent.createChooser(shareIntent, getString(R.string.om_apps_share_chooser_format, app.label)))
                 } catch (e: Exception) {
-                    Toast.makeText(this, "Error al compartir APK: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.om_apps_share_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             } else {
-                Toast.makeText(this, "Se requiere extraer el APK previamente para compartir", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.om_apps_extract_first_to_share, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -580,9 +584,9 @@ class InstalledAppsActivity : AppActivity() {
                 val result = Shell.cmd("am force-stop ${app.packageName.escapeShellArg()}").exec()
                 withContext(Dispatchers.Main) {
                     if (result.isSuccess) {
-                        Toast.makeText(this@InstalledAppsActivity, "Aplicación detenida (Root)", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_stopped_root, Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(this@InstalledAppsActivity, "Error al forzar detención", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_force_stop_error, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -592,16 +596,16 @@ class InstalledAppsActivity : AppActivity() {
         dialogBinding.btnActionClearData.setOnClickListener {
             dialog.dismiss()
             MaterialAlertDialogBuilder(this)
-                .setTitle("¿Limpiar datos?")
-                .setMessage("Se eliminarán todos los datos y configuraciones de ${app.label}.")
-                .setPositiveButton("Limpiar") { _, _ ->
+                .setTitle(R.string.om_apps_clear_data_title)
+                .setMessage(getString(R.string.om_apps_clear_data_msg_format, app.label))
+                .setPositiveButton(R.string.om_apps_clear_btn) { _, _ ->
                     lifecycleScope.launch(Dispatchers.IO) {
                         val result = Shell.cmd("pm clear ${app.packageName.escapeShellArg()}").exec()
                         withContext(Dispatchers.Main) {
                             if (result.isSuccess) {
-                                Toast.makeText(this@InstalledAppsActivity, "Datos restablecidos con éxito", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_clear_data_success, Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(this@InstalledAppsActivity, "Error al limpiar datos", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_clear_data_error, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -619,11 +623,11 @@ class InstalledAppsActivity : AppActivity() {
                 val result = Shell.cmd(cmdStr).exec()
                 withContext(Dispatchers.Main) {
                     if (result.isSuccess) {
-                        val msg = if (newEnable) "Aplicación habilitada" else "Aplicación inhabilitada"
-                        Toast.makeText(this@InstalledAppsActivity, msg, Toast.LENGTH_SHORT).show()
+                        val msgRes = if (newEnable) R.string.om_apps_enabled_toast else R.string.om_apps_disabled_toast
+                        Toast.makeText(this@InstalledAppsActivity, msgRes, Toast.LENGTH_SHORT).show()
                         loadApps(forceRefresh = true)
                     } else {
-                        Toast.makeText(this@InstalledAppsActivity, "Error al cambiar estado", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_toggle_state_error, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -635,17 +639,17 @@ class InstalledAppsActivity : AppActivity() {
     private fun showCopyInfoDialog(app: AppModel) {
         val certSha256 = getCertificateSha256(this, app.packageName)
         val infoItems = arrayOf(
-            "Nombre: ${app.label}",
-            "Paquete: ${app.packageName}",
-            "Versión: ${app.versionName} (${app.versionCode})",
-            "Ruta APK: ${app.sourceDir}",
-            "Ruta Datos: ${app.dataDir}",
-            "Firma SHA-256: $certSha256",
-            "Copiar todo el informe"
+            getString(R.string.om_apps_info_name_format, app.label),
+            getString(R.string.om_apps_info_pkg_format, app.packageName),
+            getString(R.string.om_apps_info_version_format, app.versionName, app.versionCode),
+            getString(R.string.om_apps_info_apk_path_format, app.sourceDir),
+            getString(R.string.om_apps_info_data_path_format, app.dataDir),
+            getString(R.string.om_apps_info_sha256_format, certSha256),
+            getString(R.string.om_apps_copy_full_report)
         )
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("Copiar información")
+            .setTitle(R.string.om_app_copy_info)
             .setItems(infoItems) { _, which ->
                 val textToCopy = when (which) {
                     0 -> app.label
@@ -744,10 +748,10 @@ class InstalledAppsActivity : AppActivity() {
                 if (success && destFile.exists() && destFile.length() > 0) {
                     val snackbar = Snackbar.make(
                         binding.root,
-                        "Extraído: ${destFile.name} (${formatSize(destFile.length())})",
+                        getString(R.string.om_apps_extracted_format, destFile.name, formatSize(destFile.length())),
                         Snackbar.LENGTH_LONG
                     )
-                    snackbar.setAction("Localizar") {
+                    snackbar.setAction(R.string.om_apps_locate_btn) {
                         val viewIntent = FileListActivity.createViewIntent(Paths.get(destFile.parentFile!!.absolutePath))
                             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
                         startActivity(viewIntent)
@@ -757,7 +761,7 @@ class InstalledAppsActivity : AppActivity() {
                 } else {
                     Toast.makeText(
                         this@InstalledAppsActivity,
-                        "Error al extraer la aplicación. Revisa los permisos.",
+                        R.string.om_apps_extract_error,
                         Toast.LENGTH_SHORT
                     ).show()
                 }

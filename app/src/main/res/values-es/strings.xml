@@ -1953,4 +1953,42 @@
     <string name="om_error_format">Error: %1$s</string>
     <string name="om_manifest_decode_error_format">Error al decodificar AndroidManifest.xml: %1$s</string>
     <string name="om_manifest_not_found_in_apk">No se encontró AndroidManifest.xml en el APK</string>
+
+    <!-- OpenManager InstalledApps Localization (Batch 2C) -->
+    <string name="om_apps_sort_name_az">Nombre (A - Z)</string>
+    <string name="om_apps_sort_name_za">Nombre (Z - A)</string>
+    <string name="om_apps_sort_pkg_az">Nombre de paquete (A - Z)</string>
+    <string name="om_apps_sort_size_desc">Tamaño (Mayor a menor)</string>
+    <string name="om_apps_sort_size_asc">Tamaño (Menor a mayor)</string>
+    <string name="om_apps_sort_updated">Fecha de actualización (Recientes primero)</string>
+    <string name="om_apps_sort_installed">Fecha de instalación</string>
+    <string name="om_apps_sort_target_sdk">Target SDK (Mayor a menor)</string>
+    <string name="om_apps_sort_title">Ordenar aplicaciones</string>
+    <string name="om_apps_splits_count_format">APKS: %1$d archivos divididos</string>
+    <string name="om_apps_enable_root">Habilitar / Descongelar (Root)</string>
+    <string name="om_apps_enable_root_desc">Activar paquete con pm enable</string>
+    <string name="om_apps_prepare_apk_error">No se pudo preparar el APK para edición</string>
+    <string name="om_apps_share_chooser_format">Compartir %1$s</string>
+    <string name="om_apps_share_error_format">Error al compartir APK: %1$s</string>
+    <string name="om_apps_extract_first_to_share">Se requiere extraer el APK previamente para compartir</string>
+    <string name="om_apps_stopped_root">Aplicación detenida (Root)</string>
+    <string name="om_apps_force_stop_error">Error al forzar detención</string>
+    <string name="om_apps_clear_data_title">¿Limpiar datos?</string>
+    <string name="om_apps_clear_data_msg_format">Se eliminarán todos los datos y configuraciones de %1$s.</string>
+    <string name="om_apps_clear_btn">Limpiar</string>
+    <string name="om_apps_clear_data_success">Datos restablecidos con éxito</string>
+    <string name="om_apps_clear_data_error">Error al limpiar datos</string>
+    <string name="om_apps_enabled_toast">Aplicación habilitada</string>
+    <string name="om_apps_disabled_toast">Aplicación inhabilitada</string>
+    <string name="om_apps_toggle_state_error">Error al cambiar estado</string>
+    <string name="om_apps_info_name_format">Nombre: %1$s</string>
+    <string name="om_apps_info_pkg_format">Paquete: %1$s</string>
+    <string name="om_apps_info_version_format">Versión: %1$s (%2$d)</string>
+    <string name="om_apps_info_apk_path_format">Ruta APK: %1$s</string>
+    <string name="om_apps_info_data_path_format">Ruta Datos: %1$s</string>
+    <string name="om_apps_info_sha256_format">Firma SHA-256: %1$s</string>
+    <string name="om_apps_copy_full_report">Copiar todo el informe</string>
+    <string name="om_apps_extracted_format">Extraído: %1$s (%2$s)</string>
+    <string name="om_apps_locate_btn">Localizar</string>
+    <string name="om_apps_extract_error">Error al extraer la aplicación. Revisa los permisos.</string>
 </resources>
