@@ -101,7 +101,7 @@ class SuperuserDetectorTest {
 
         assertEquals("KernelSU (Disabled)", status.title)
         assertEquals("DISABLED", status.statusTag)
-        assertEquals("La solicitud de root está desactivada en Ajustes > Inicio", status.subtitle)
+        assertEquals("Root request is disabled in Settings > Home", status.subtitle)
         assertFalse(status.isRootGranted)
     }
 
@@ -173,7 +173,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = null
         )
 
-        assertEquals("Shizuku Conectado", status.title)
+        assertEquals("Shizuku Connected", status.title)
         assertEquals("SHIZUKU", status.statusTag)
         assertTrue(status.isShizukuReady)
         assertFalse(status.isRootGranted)
@@ -192,7 +192,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/data/local/tmp/dfroot"
         )
 
-        assertEquals("DFRoot (Jailbreak) (No autorizado)", status.title)
+        assertEquals("DFRoot (Jailbreak) (Unauthorized)", status.title)
         assertEquals("EXPLOIT", status.statusTag)
         assertTrue(status.hasDfRoot)
     }
@@ -249,9 +249,9 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/data/adb/magisk"
         )
 
-        assertEquals("Magisk (No autorizado)", status.title)
+        assertEquals("Magisk (Unauthorized)", status.title)
         assertEquals("STANDARD", status.statusTag)
-        assertEquals("Gestor instalado pero permiso no concedido", status.subtitle)
+        assertEquals("Manager installed but permission not granted", status.subtitle)
         assertFalse(status.isRootGranted)
         assertFalse(status.hasDfRoot)
         assertFalse(status.isShizukuReady)
@@ -270,9 +270,9 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/dev/kernelsu"
         )
 
-        assertEquals("KernelSU (No autorizado)", status.title)
+        assertEquals("KernelSU (Unauthorized)", status.title)
         assertEquals("STANDARD", status.statusTag)
-        assertEquals("Gestor instalado pero permiso no concedido", status.subtitle)
+        assertEquals("Manager installed but permission not granted", status.subtitle)
         assertFalse(status.isRootGranted)
     }
 
@@ -289,7 +289,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/dev/apatch"
         )
 
-        assertEquals("APatch (No autorizado)", status.title)
+        assertEquals("APatch (Unauthorized)", status.title)
         assertEquals("STANDARD", status.statusTag)
         assertFalse(status.isRootGranted)
     }
@@ -360,9 +360,9 @@ class SuperuserDetectorTest {
             hasDfRoot = false
         )
 
-        assertEquals("Shizuku Conectado (ADB)", status.title)
+        assertEquals("Shizuku Connected (ADB)", status.title)
         assertEquals("SHIZUKU", status.statusTag)
-        assertTrue(status.subtitle.contains("Modo ADB Shell"))
+        assertTrue(status.subtitle.contains("ADB Shell Mode"))
         assertTrue(status.isShizukuReady)
         assertTrue(status.isShizukuExecutionEnabled)
         assertEquals(2000, status.shizukuUid)
@@ -384,7 +384,7 @@ class SuperuserDetectorTest {
 
         assertEquals("Superuser: KernelSU + Shizuku", status.title)
         assertEquals("ROOT", status.statusTag)
-        assertTrue(status.subtitle.contains("simultáneamente"))
+        assertTrue(status.subtitle.contains("simultaneously"))
         assertTrue(status.isRootGranted)
         assertTrue(status.isShizukuReady)
     }
@@ -402,7 +402,7 @@ class SuperuserDetectorTest {
 
         assertEquals("Shizuku (No execution permission)", status.title)
         assertEquals("STANDARD", status.statusTag)
-        assertTrue(status.subtitle.contains("falta autorizar permiso de ejecución"))
+        assertTrue(status.subtitle.contains("execution permission not authorized"))
         assertFalse(status.isShizukuReady)
         assertTrue(status.isShizukuAvailable)
     }
