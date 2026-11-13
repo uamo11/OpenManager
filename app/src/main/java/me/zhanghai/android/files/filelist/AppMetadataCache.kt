@@ -11,6 +11,29 @@ import androidx.collection.LruCache
 object AppMetadataCache {
     private val labelCache = LruCache<String, String>(500)
     private val installedCache = LruCache<String, Boolean>(500)
+    @Volatile
+    private var isWarmedUp = false
+
+    fun warmUp(context: Context) {
+        if (isWarmedUp) return
+        try {
+            val pm = context.applicationContext.packageManager
+            val apps = pm.getInstalledApplications(0)
+            synchronized(this) {
+                for (info in apps) {
+                    val pkg = info.packageName ?: continue
+                    val label = try {
+                        pm.getApplicationLabel(info).toString()
+                    } catch (_: Exception) {
+                        pkg
+                    }
+                    labelCache.put(pkg, label)
+                    installedCache.put(pkg, true)
+                }
+                isWarmedUp = true
+            }
+        } catch (_: Throwable) {}
+    }
 
     @Synchronized
     fun getAppLabel(context: Context, packageName: String): String? {
@@ -50,5 +73,6 @@ object AppMetadataCache {
     fun clear() {
         labelCache.evictAll()
         installedCache.evictAll()
+        isWarmedUp = false
     }
 }

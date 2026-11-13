@@ -1057,9 +1057,17 @@ class InstalledAppsActivity : AppActivity() {
         private val onClick: (AppModel) -> Unit
     ) : RecyclerView.Adapter<AppsAdapter.ViewHolder>() {
 
-        inner class ViewHolder(val binding: InstalledAppItemBinding) : RecyclerView.ViewHolder(binding.root)
+        inner class ViewHolder(val binding: InstalledAppItemBinding) : RecyclerView.ViewHolder(binding.root) {
+            var iconJob: kotlinx.coroutines.Job? = null
+        }
 
         override fun getItemId(position: Int): Long = items[position].packageName.hashCode().toLong()
+
+        override fun onViewRecycled(holder: ViewHolder) {
+            super.onViewRecycled(holder)
+            holder.iconJob?.cancel()
+            holder.iconJob = null
+        }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val b = InstalledAppItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -1081,6 +1089,8 @@ class InstalledAppsActivity : AppActivity() {
                 val dateStr = formatDate(app.lastUpdateTime)
                 appMetaInfo.text = "SDK: $minSdkStr - ${app.targetSdkVersion}  •  $dateStr"
 
+                holder.iconJob?.cancel()
+                holder.iconJob = null
                 val cached = NativeAppIconLoader.getCached(app.packageName)
                 if (cached != null) {
                     appIcon.setImageDrawable(cached)
@@ -1088,7 +1098,7 @@ class InstalledAppsActivity : AppActivity() {
                     appIcon.setImageResource(R.drawable.file_apk_icon)
                     val tag = app.packageName
                     appIcon.tag = tag
-                    lifecycleScope.launch(Dispatchers.IO) {
+                    holder.iconJob = lifecycleScope.launch(Dispatchers.IO) {
                         val drawable = NativeAppIconLoader.loadIcon(this@InstalledAppsActivity, app.packageName)
                         if (drawable != null) {
                             withContext(Dispatchers.Main) {

@@ -10,7 +10,7 @@ import android.graphics.drawable.Drawable
 import androidx.collection.LruCache
 
 object NativeAppIconLoader {
-    private val memoryCache = LruCache<String, Drawable>(300)
+    private val memoryCache = LruCache<String, Drawable>(200)
 
     fun getCached(packageName: String): Drawable? = memoryCache.get(packageName)
 
@@ -20,7 +20,7 @@ object NativeAppIconLoader {
 
     fun loadIcon(context: Context, packageName: String): Drawable? {
         memoryCache.get(packageName)?.let { return it }
-        val pm = context.packageManager
+        val pm = context.applicationContext.packageManager
         val drawable = try {
             val appInfo = pm.getApplicationInfo(packageName, 0)
             pm.getApplicationIcon(appInfo)

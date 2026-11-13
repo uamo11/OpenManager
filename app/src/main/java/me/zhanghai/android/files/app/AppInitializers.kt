@@ -5,13 +5,18 @@
 
 package me.zhanghai.android.files.app
 
+import android.content.ComponentCallbacks2
+import android.content.res.Configuration
 import android.os.AsyncTask
 import android.os.Build
 import android.webkit.WebView
 import jcifs.context.SingletonContext
 import me.zhanghai.android.files.BuildConfig
+import me.zhanghai.android.files.appmanager.NativeAppIconLoader
 import me.zhanghai.android.files.coil.initializeCoil
 import me.zhanghai.android.files.filejob.fileJobNotificationTemplate
+import me.zhanghai.android.files.filelist.AppMetadataCache
+import me.zhanghai.android.files.filelist.DirectorySnapshotCache
 import me.zhanghai.android.files.ftpserver.ftpServerServiceNotificationTemplate
 import me.zhanghai.android.files.filelist.apktoolNotificationTemplate
 import me.zhanghai.android.files.terminal.scriptExecutionNotificationTemplate
@@ -44,7 +49,8 @@ val appInitializers = listOf(
     ::initializeCustomTheme,
     ::initializeNightMode,
     ::createNotificationChannels,
-    ::initializeTerminalBinTools
+    ::initializeTerminalBinTools,
+    ::initializeMemoryTrimAndWarmUp
 )
 
 private fun initializeCrashHandler() {
@@ -120,5 +126,30 @@ private fun initializeTerminalBinTools() {
         try {
             me.zhanghai.android.files.terminal.TerminalExpansionManager.ensureBinTools(application)
         } catch (_: Throwable) {}
+    }
+}
+
+private fun initializeMemoryTrimAndWarmUp() {
+    application.registerComponentCallbacks(object : ComponentCallbacks2 {
+        override fun onTrimMemory(level: Int) {
+            if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+                NativeAppIconLoader.clear()
+            }
+            if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+                DirectorySnapshotCache.clear()
+                AppMetadataCache.clear()
+            }
+        }
+
+        override fun onConfigurationChanged(newConfig: Configuration) {}
+
+        override fun onLowMemory() {
+            NativeAppIconLoader.clear()
+            DirectorySnapshotCache.clear()
+            AppMetadataCache.clear()
+        }
+    })
+    AsyncTask.THREAD_POOL_EXECUTOR.execute {
+        AppMetadataCache.warmUp(application)
     }
 }

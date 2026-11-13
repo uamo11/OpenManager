@@ -239,22 +239,31 @@ object ArchiveReader {
     ): InputStream? {
         val javaFile = try { file.toFile() } catch (_: Throwable) { null }
         if (javaFile != null && javaFile.exists() && javaFile.canRead()) {
+            var zip: java.util.zip.ZipFile? = null
+            var ownershipTransferred = false
             try {
-                val zip = java.util.zip.ZipFile(javaFile, charset)
+                zip = java.util.zip.ZipFile(javaFile, charset)
                 val ze = zip.getEntry(entry.name)
                 if (ze != null) {
                     val rawIn = zip.getInputStream(ze)
+                    val ownedZip = zip
+                    ownershipTransferred = true
                     return object : InputStream() {
                         override fun read(): Int = rawIn.read()
                         override fun read(b: ByteArray, off: Int, len: Int): Int = rawIn.read(b, off, len)
                         override fun available(): Int = rawIn.available()
                         override fun skip(n: Long): Long = rawIn.skip(n)
                         override fun close() {
-                            try { rawIn.close() } finally { zip.close() }
+                            try { rawIn.close() } finally { ownedZip.close() }
                         }
                     }
                 }
-            } catch (_: Throwable) {}
+            } catch (_: Throwable) {
+            } finally {
+                if (!ownershipTransferred) {
+                    try { zip?.close() } catch (_: Throwable) {}
+                }
+            }
         }
         return null
     }
