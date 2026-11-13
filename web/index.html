@@ -16,7 +16,8 @@
   <meta property="og:description" content="Alternativa open-source a MT Manager para Android. DEX/Smali, JADX, HEX, AntiSplit, Root, Shizuku y protección DFROOT.">
   <meta property="og:image" content="screenshots/01_dual_panel_audio.jpg">
 
-  <link rel="icon" type="image/png" href="launcher_icon.png">
+  <link rel="icon" type="image/png" sizes="64x64" href="icons/om-icon-64.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="launcher_icon.png">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +31,10 @@
   <nav class="navbar">
     <div class="nav-container">
       <a href="#" class="brand">
-        <img src="launcher_icon.png" alt="OpenManager Icon" class="brand-logo" width="34" height="34">
+        <picture>
+          <source srcset="icons/om-icon-64.webp" type="image/webp">
+          <img src="icons/om-icon-64.png" alt="OpenManager Icon" class="brand-logo" width="34" height="34" decoding="async">
+        </picture>
         <span class="brand-name">OpenManager</span>
         <span class="badge-tag">GPLv3</span>
       </a>
@@ -72,7 +76,23 @@
       <div class="hero-grid">
         <div class="hero-visual">
           <div class="hero-icon-card">
-            <img src="launcher_icon.png" alt="OpenManager App Icon" class="hero-app-icon" width="180" height="180" loading="eager" fetchpriority="high" decoding="sync">
+            <picture>
+              <source
+                srcset="icons/om-icon-256.webp 256w, icons/om-icon-384.webp 384w, icons/om-icon-512.webp 512w"
+                sizes="(max-width: 480px) 108px, (max-width: 992px) 144px, 180px"
+                type="image/webp">
+              <img
+                src="icons/om-icon-384.png"
+                srcset="icons/om-icon-256.png 256w, icons/om-icon-384.png 384w, launcher_icon.png 512w"
+                sizes="(max-width: 480px) 108px, (max-width: 992px) 144px, 180px"
+                alt="OpenManager App Icon"
+                class="hero-app-icon"
+                width="180"
+                height="180"
+                loading="eager"
+                fetchpriority="high"
+                decoding="sync">
+            </picture>
           </div>
         </div>
 
@@ -479,7 +499,10 @@
   <footer class="footer">
     <div class="container footer-content">
       <div class="footer-brand">
-        <img src="launcher_icon.png" alt="OpenManager Icon" class="footer-logo" width="32" height="32">
+        <picture>
+          <source srcset="icons/om-icon-64.webp" type="image/webp">
+          <img src="icons/om-icon-64.png" alt="OpenManager Icon" class="footer-logo" width="32" height="32" loading="lazy" decoding="async">
+        </picture>
         <span class="footer-name">OpenManager</span>
         <p class="footer-desc" data-i18n="footer_desc">Gestor de archivos de doble panel y suite de ingeniería inversa para Android.</p>
         <p class="footer-copyright">Copyright © 2018–2026 Hai Zhang, <a href="https://github.com/uamo11" target="_blank" rel="noopener">uamo11</a> & Colaboradores.<br>Distribuido bajo la Licencia Pública General GNU v3.0 (GPLv3).</p>

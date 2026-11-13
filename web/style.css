@@ -149,6 +149,11 @@ p {
 }
 
 .brand-logo {
+  width: clamp(28px, 3vw, 34px);
+  height: clamp(28px, 3vw, 34px);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
   border-radius: var(--radius-sm);
   filter: drop-shadow(0 2px 8px var(--primary-glow));
 }
@@ -298,8 +303,8 @@ section, header {
 
 .hero-grid {
   display: grid;
-  grid-template-columns: 210px 1fr;
-  gap: 40px;
+  grid-template-columns: clamp(136px, 18vw, 212px) 1fr;
+  gap: clamp(20px, 3.5vw, 40px);
   align-items: center;
   text-align: left;
   margin-bottom: 32px;
@@ -313,10 +318,10 @@ section, header {
 
 .hero-icon-card {
   position: relative;
-  padding: 14px;
+  padding: clamp(10px, 1.4vw, 15px);
   background: linear-gradient(145deg, rgba(25, 31, 43, 0.95), rgba(14, 17, 24, 0.9));
   border: 1px solid var(--border-light);
-  border-radius: 26px;
+  border-radius: clamp(18px, 2.4vw, 26px);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), 0 0 32px rgba(33, 150, 243, 0.18);
   display: flex;
   align-items: center;
@@ -331,11 +336,11 @@ section, header {
 }
 
 .hero-app-icon {
-  width: 180px;
-  height: 180px;
+  width: clamp(104px, 15vw, 180px);
+  height: clamp(104px, 15vw, 180px);
   aspect-ratio: 1 / 1;
   object-fit: contain;
-  border-radius: 20px;
+  border-radius: clamp(14px, 2vw, 20px);
   display: block;
   filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.4));
 }
@@ -945,6 +950,10 @@ section, header {
 }
 
 .footer-logo {
+  width: clamp(26px, 2.5vw, 32px);
+  height: clamp(26px, 2.5vw, 32px);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
   vertical-align: middle;
   margin-right: 8px;
 }
@@ -1149,8 +1158,8 @@ dialog.lightbox::backdrop {
   }
 
   .hero-app-icon {
-    width: 140px;
-    height: 140px;
+    width: clamp(96px, 22vw, 144px);
+    height: clamp(96px, 22vw, 144px);
   }
 
   .nav-links {
@@ -1188,10 +1197,6 @@ dialog.lightbox::backdrop {
 @media (max-width: 480px) {
   .gallery-grid { grid-template-columns: 1fr; }
   .metrics-grid { grid-template-columns: 1fr; }
-  .hero-app-icon {
-    width: 110px;
-    height: 110px;
-  }
   .lightbox-nav {
     width: 34px;
     height: 34px;
