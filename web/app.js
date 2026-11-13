@@ -488,9 +488,9 @@ document.addEventListener('DOMContentLoaded', () => {
     updateProgress();
   }
 
-  // 6. Scroll Reveal via IntersectionObserver
+  // 6. Scroll Reveal via IntersectionObserver (keep gallery & comparison always visible)
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const revealTargets = document.querySelectorAll('.metric-item, .feature-card, .gallery-item, .terminal-card, .table-wrapper');
+  const revealTargets = document.querySelectorAll('.metric-item, .feature-card');
   if (!prefersReduced && 'IntersectionObserver' in window) {
     revealTargets.forEach(el => el.classList.add('reveal'));
     const io = new IntersectionObserver((entries) => {

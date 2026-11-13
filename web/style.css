@@ -90,11 +90,9 @@ p {
   text-wrap: pretty;
 }
 
-#capturas,
-#comparativa,
 #compilacion {
   content-visibility: auto;
-  contain-intrinsic-size: auto 650px;
+  contain-intrinsic-size: auto 520px;
 }
 
 .reveal {
