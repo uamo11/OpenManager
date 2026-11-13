@@ -44,52 +44,52 @@ object SuperuserDetector {
         KERNEL_SU(
             "KernelSU",
             R.drawable.ic_root_kernelsu,
-            "Módulo de Kernel con privilegios de superusuario activos"
+            "Kernel module with active superuser privileges"
         ),
         KERNEL_SU_NEXT(
             "KernelSU Next",
             R.drawable.ic_root_kernelsu_next,
-            "KernelSU Next con integración avanzada de kernel"
+            "KernelSU Next with advanced kernel integration"
         ),
         MAGISK(
             "Magisk",
             R.drawable.ic_root_magisk,
-            "Gestor Magisk estándar con acceso root de sistema"
+            "Standard Magisk manager with system root access"
         ),
         MAGISK_DELTA(
             "Magisk Delta (Kitsune)",
             R.drawable.ic_root_magisk_delta,
-            "Magisk Delta / Kitsune Mask con soporte de módulos"
+            "Magisk Delta / Kitsune Mask with module support"
         ),
         APATCH(
             "APatch",
             R.drawable.ic_root_apatch,
-            "APatch basado en parches de KernelPatch (kp / apd)"
+            "APatch based on KernelPatch (kp / apd)"
         ),
         BAKA_SU(
             "Baka-SU",
             R.drawable.ic_root_bakasu,
-            "Gestor de superusuario minimalista Baka-SU"
+            "Minimalist Baka-SU superuser manager"
         ),
         DFROOT(
             "DFRoot (Jailbreak)",
             R.drawable.ic_root_dfroot,
-            "Herramienta de elevación DFRoot Jailbreak/Exploit"
+            "DFRoot Jailbreak/Exploit elevation tool"
         ),
         GENERIC_ROOT(
-            "Superusuario (su)",
+            "Superuser (su)",
             R.drawable.ic_root_generic,
-            "Acceso superusuario activo (gestor con nombre modificado o binario su independiente)"
+            "Active superuser access (custom-named manager or standalone su binary)"
         ),
         SHIZUKU(
             "Shizuku",
             R.drawable.ic_shizuku_logo,
-            "Servidor de privilegios Shizuku conectado vía Binder"
+            "Shizuku privilege server connected via Binder"
         ),
         NONE(
-            "Sin Superusuario",
+            "No Superuser",
             R.drawable.ic_shield_locked,
-            "Modo estándar con permisos normales de aplicación"
+            "Standard mode with normal app permissions"
         )
     }
 
@@ -110,52 +110,52 @@ object SuperuserDetector {
         val title: String
             get() = when {
                 !isRootEnabledInSettings && (type != SuperuserType.NONE || hasDfRoot) ->
-                    "${type.displayName} (Desactivado)"
+                    "${type.displayName} (Disabled)"
                 !isRootEnabledInSettings && type == SuperuserType.NONE ->
-                    "Modo Estándar (Root desactivado)"
+                    "Standard Mode (Root disabled)"
                 type == SuperuserType.SHIZUKU ->
-                    if (shizukuUid >= 0) "Shizuku Conectado (${if (shizukuUid == 0) "Root" else "ADB"})" else "Shizuku Conectado"
+                    if (shizukuUid >= 0) "Shizuku Connected (${if (shizukuUid == 0) "Root" else "ADB"})" else "Shizuku Connected"
                 isRootGranted && isShizukuReady ->
-                    "Superusuario: ${type.displayName} + Shizuku"
+                    "Superuser: ${type.displayName} + Shizuku"
                 isRootGranted ->
-                    "Superusuario: ${type.displayName}"
+                    "Superuser: ${type.displayName}"
                 type != SuperuserType.NONE ->
-                    "${type.displayName} (No autorizado)"
+                    "${type.displayName} (Unauthorized)"
                 hasDfRoot ->
-                    "DFRoot (No autorizado)"
+                    "DFRoot (Unauthorized)"
                 isShizukuAvailable ->
-                    "Shizuku (Sin permiso de ejecución)"
+                    "Shizuku (No execution permission)"
                 else ->
-                    "Modo Estándar (Sin Root)"
+                    "Standard Mode (No Root)"
             }
 
         val subtitle: String
             get() = when {
                 !isRootEnabledInSettings ->
-                    "La solicitud de root está desactivada en Ajustes > Inicio"
+                    "Root request is disabled in Settings > Home"
                 type == SuperuserType.SHIZUKU ->
-                    "Acceso elevado mediante Binder API (${if (shizukuUid == 0) "Modo Root" else "Modo ADB Shell"})"
+                    "Elevated access via Binder API (${if (shizukuUid == 0) "Root Mode" else "ADB Shell Mode"})"
                 isRootGranted && isShizukuReady ->
-                    "Privilegios Root y servidor Shizuku activos simultáneamente"
+                    "Root privileges and Shizuku server active simultaneously"
                 isRootGranted ->
-                    "Privilegios administrativos activos para operaciones de sistema"
+                    "Administrative privileges active for system operations"
                 type != SuperuserType.NONE ->
-                    "Gestor instalado pero permiso no concedido"
+                    "Manager installed but permission not granted"
                 hasDfRoot ->
-                    "DFRoot Jailbreak detectado en el dispositivo"
+                    "DFRoot Jailbreak detected on device"
                 isShizukuAvailable ->
-                    "Servidor Shizuku detectado pero falta autorizar permiso de ejecución"
+                    "Shizuku server detected but execution permission not authorized"
                 else ->
-                    "Permisos estándar de almacenamiento y aplicación"
+                    "Standard storage and application permissions"
             }
 
         val statusTag: String
             get() = when {
-                !isRootEnabledInSettings && (type != SuperuserType.NONE || hasDfRoot) -> "DESACTIVADO"
+                !isRootEnabledInSettings && (type != SuperuserType.NONE || hasDfRoot) -> "DISABLED"
                 isRootGranted -> "ROOT"
                 isShizukuReady -> "SHIZUKU"
                 hasDfRoot -> "EXPLOIT"
-                else -> "ESTÁNDAR"
+                else -> "STANDARD"
             }
     }
 

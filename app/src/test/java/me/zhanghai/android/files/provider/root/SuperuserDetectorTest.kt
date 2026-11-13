@@ -25,7 +25,7 @@ class SuperuserDetectorTest {
     @Test
     fun testGenericRootTypeProperties() {
         val type = SuperuserDetector.SuperuserType.GENERIC_ROOT
-        assertEquals("Superusuario (su)", type.displayName)
+        assertEquals("Superuser (su)", type.displayName)
         assertEquals(R.drawable.ic_root_generic, type.iconRes)
         assertTrue(type.description.contains("su"))
     }
@@ -43,7 +43,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/dev/kernelsu"
         )
 
-        assertEquals("Superusuario: KernelSU", status.title)
+        assertEquals("Superuser: KernelSU", status.title)
         assertEquals("ROOT", status.statusTag)
         assertTrue(status.isRootGranted)
         assertFalse(status.hasDfRoot)
@@ -62,7 +62,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/dev/kernelsu"
         )
 
-        assertEquals("Superusuario: KernelSU", status.title)
+        assertEquals("Superuser: KernelSU", status.title)
         assertEquals("ROOT", status.statusTag)
         assertTrue(status.hasDfRoot)
     }
@@ -80,7 +80,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/system/bin/su"
         )
 
-        assertEquals("Superusuario: Superusuario (su)", status.title)
+        assertEquals("Superuser: Superuser (su)", status.title)
         assertEquals("ROOT", status.statusTag)
         assertTrue(status.isRootGranted)
         assertEquals(R.drawable.ic_root_generic, status.type.iconRes)
@@ -99,8 +99,8 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/dev/kernelsu"
         )
 
-        assertEquals("KernelSU (Desactivado)", status.title)
-        assertEquals("DESACTIVADO", status.statusTag)
+        assertEquals("KernelSU (Disabled)", status.title)
+        assertEquals("DISABLED", status.statusTag)
         assertEquals("La solicitud de root está desactivada en Ajustes > Inicio", status.subtitle)
         assertFalse(status.isRootGranted)
     }
@@ -118,8 +118,8 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/system/bin/su"
         )
 
-        assertEquals("Superusuario (su) (Desactivado)", status.title)
-        assertEquals("DESACTIVADO", status.statusTag)
+        assertEquals("Superuser (su) (Disabled)", status.title)
+        assertEquals("DISABLED", status.statusTag)
         assertFalse(status.isRootGranted)
     }
 
@@ -136,8 +136,8 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/data/local/tmp/dfroot"
         )
 
-        assertEquals("DFRoot (Jailbreak) (Desactivado)", status.title)
-        assertEquals("DESACTIVADO", status.statusTag)
+        assertEquals("DFRoot (Jailbreak) (Disabled)", status.title)
+        assertEquals("DISABLED", status.statusTag)
         assertFalse(status.isRootGranted)
         assertTrue(status.hasDfRoot)
     }
@@ -155,8 +155,8 @@ class SuperuserDetectorTest {
             detectedBinaryPath = null
         )
 
-        assertEquals("Modo Estándar (Root desactivado)", status.title)
-        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("Standard Mode (Root disabled)", status.title)
+        assertEquals("STANDARD", status.statusTag)
         assertFalse(status.isRootGranted)
     }
 
@@ -210,8 +210,8 @@ class SuperuserDetectorTest {
             detectedBinaryPath = null
         )
 
-        assertEquals("Modo Estándar (Sin Root)", status.title)
-        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("Standard Mode (No Root)", status.title)
+        assertEquals("STANDARD", status.statusTag)
         assertFalse(status.isRootGranted)
         assertFalse(status.isShizukuReady)
         assertFalse(status.hasDfRoot)
@@ -230,7 +230,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/data/adb/ksu/bin"
         )
 
-        assertEquals("Superusuario: KernelSU", status.title)
+        assertEquals("Superuser: KernelSU", status.title)
         assertEquals("ROOT", status.statusTag)
         assertTrue(status.isRootGranted)
         assertEquals("/data/adb/ksu/bin", status.detectedBinaryPath)
@@ -250,7 +250,7 @@ class SuperuserDetectorTest {
         )
 
         assertEquals("Magisk (No autorizado)", status.title)
-        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("STANDARD", status.statusTag)
         assertEquals("Gestor instalado pero permiso no concedido", status.subtitle)
         assertFalse(status.isRootGranted)
         assertFalse(status.hasDfRoot)
@@ -271,7 +271,7 @@ class SuperuserDetectorTest {
         )
 
         assertEquals("KernelSU (No autorizado)", status.title)
-        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("STANDARD", status.statusTag)
         assertEquals("Gestor instalado pero permiso no concedido", status.subtitle)
         assertFalse(status.isRootGranted)
     }
@@ -290,7 +290,7 @@ class SuperuserDetectorTest {
         )
 
         assertEquals("APatch (No autorizado)", status.title)
-        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("STANDARD", status.statusTag)
         assertFalse(status.isRootGranted)
     }
 
@@ -382,7 +382,7 @@ class SuperuserDetectorTest {
             hasDfRoot = false
         )
 
-        assertEquals("Superusuario: KernelSU + Shizuku", status.title)
+        assertEquals("Superuser: KernelSU + Shizuku", status.title)
         assertEquals("ROOT", status.statusTag)
         assertTrue(status.subtitle.contains("simultáneamente"))
         assertTrue(status.isRootGranted)
@@ -400,8 +400,8 @@ class SuperuserDetectorTest {
             isShizukuExecutionEnabled = false
         )
 
-        assertEquals("Shizuku (Sin permiso de ejecución)", status.title)
-        assertEquals("ESTÁNDAR", status.statusTag)
+        assertEquals("Shizuku (No execution permission)", status.title)
+        assertEquals("STANDARD", status.statusTag)
         assertTrue(status.subtitle.contains("falta autorizar permiso de ejecución"))
         assertFalse(status.isShizukuReady)
         assertTrue(status.isShizukuAvailable)
@@ -431,7 +431,7 @@ class SuperuserDetectorTest {
             detectedBinaryPath = "/data/local/tmp/dfroot"
         )
 
-        assertEquals("Superusuario: DFRoot (Jailbreak)", status.title)
+        assertEquals("Superuser: DFRoot (Jailbreak)", status.title)
         assertEquals("ROOT", status.statusTag)
         assertTrue(status.isRootGranted)
         assertTrue(status.hasDfRoot)
