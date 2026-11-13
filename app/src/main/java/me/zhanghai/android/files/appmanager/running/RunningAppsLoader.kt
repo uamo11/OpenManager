@@ -16,6 +16,7 @@ import com.topjohnwu.superuser.Shell
 import me.zhanghai.android.files.filelist.ApkInstallHelper
 import me.zhanghai.android.files.provider.root.ShizukuManager
 import me.zhanghai.android.files.provider.root.ShizukuShell
+import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import me.zhanghai.android.files.util.escapeShellArg
 import java.io.BufferedReader
 import java.io.File
@@ -82,9 +83,30 @@ object RunningAppsLoader {
 
     fun hasElevatedAccess(): Boolean = isRootGranted() || isShizukuReady()
 
+    private data class CpuSnapshot(
+        val totalJiffies: Long,
+        val procJiffies: Map<Int, Long>,
+        val procStates: Map<Int, String>,
+        val timestampMs: Long
+    )
+
+    private data class ShellProcessDetails(
+        val cmdline: String = "",
+        val cwd: String = "",
+        val environScript: String = "",
+        val fdScript: String = ""
+    )
+
+    private val cpuSnapshotLock = Any()
+    @Volatile
+    private var lastCpuSnapshot: CpuSnapshot? = null
+
     private val APP_PROCESS_REGEX = Pattern.compile(
         "\\*[A-Z]+\\*\\s+UID\\s+(\\d+)\\s+ProcessRecord\\{[0-9a-fA-F]+\\s+(\\d+):([^/\\s]+)"
     )
+
+    private val SH_PATH_REGEX = Regex("""([^\s"'();]+\.sh)(?:$|[\s"'();])""", RegexOption.IGNORE_CASE)
+    private val CD_PATH_REGEX = Regex("""cd\s+'([^']+)'""")
 
     /**
      * Discovers all running processes and apps using multi-tier strategy (App Manager Style).
@@ -107,10 +129,15 @@ object RunningAppsLoader {
 
         val processMap = mutableMapOf<Int, RunningAppModel>()
 
-        // Snapshot CPU jiffies before discovery for accurate CPU% delta
-        val cpuTotalT0 = readTotalCpuJiffies()
-        val procJiffiesT0 = readAllProcJiffies()
-        val startMs = System.currentTimeMillis()
+        val previousSnapshot = synchronized(cpuSnapshotLock) { lastCpuSnapshot }
+        val nowMs = System.currentTimeMillis()
+        val hasRecentSnapshot = previousSnapshot != null && (nowMs - previousSnapshot.timestampMs) in 400L..12_000L
+
+        val snap0 = if (hasRecentSnapshot) {
+            previousSnapshot!!
+        } else {
+            readCpuSnapshot()
+        }
 
         // 1. Tier 1: dumpsys activity processes (Root / Shizuku / Shell)
         if (isRootGranted()) {
@@ -127,21 +154,9 @@ object RunningAppsLoader {
             } catch (_: Throwable) {}
         }
 
-        // 2. Tier 2: ps -A or ps command
+        // 2. Tier 2: ps -A with full ARGS (falling back if -o ARGS unsupported)
         try {
-            val psOutput = when {
-                isRootGranted() -> {
-                    Shell.cmd("ps -A -o PID,PPID,USER,RSS,STAT,NAME").exec().out
-                }
-                isShizukuReady() -> {
-                    val res = ShizukuShell.exec("ps -A -o PID,PPID,USER,RSS,STAT,NAME")
-                    if (res.isSuccess && res.out.isNotEmpty()) res.out.lines() else emptyList()
-                }
-                else -> {
-                    val p = Runtime.getRuntime().exec(arrayOf("ps", "-A"))
-                    p.inputStream.bufferedReader().use { it.readLines() }
-                }
-            }
+            val psOutput = readPsLines()
             parsePsOutput(psOutput, installedMap, uidPackageMap, processMap, pm)
         } catch (_: Throwable) {}
 
@@ -198,16 +213,21 @@ object RunningAppsLoader {
             }
         } catch (_: Throwable) {}
 
-        // Ensure at least ~250ms elapsed between CPU snapshots for meaningful delta
-        val elapsed = System.currentTimeMillis() - startMs
-        if (elapsed < 250L) {
-            try { Thread.sleep(250L - elapsed) } catch (_: Throwable) {}
+        // On cold load without a recent snapshot, ensure at least ~220ms elapsed for real CPU delta.
+        // During real-time auto-refresh, compare directly against the cached snapshot with 0ms sleep.
+        if (!hasRecentSnapshot) {
+            val elapsed = System.currentTimeMillis() - snap0.timestampMs
+            if (elapsed < 220L) {
+                try { Thread.sleep(220L - elapsed) } catch (_: Throwable) {}
+            }
         }
-        val actualElapsedMs = (System.currentTimeMillis() - startMs).coerceAtLeast(1L)
-        val cpuTotalT1 = readTotalCpuJiffies()
-        val procJiffiesT1 = readAllProcJiffies()
-        val totalDelta = if (cpuTotalT0 > 0L && cpuTotalT1 > cpuTotalT0) {
-            cpuTotalT1 - cpuTotalT0
+        val snap1 = readCpuSnapshot()
+        synchronized(cpuSnapshotLock) {
+            lastCpuSnapshot = snap1
+        }
+        val actualElapsedMs = (snap1.timestampMs - snap0.timestampMs).coerceAtLeast(1L)
+        val totalDelta = if (snap0.totalJiffies > 0L && snap1.totalJiffies > snap0.totalJiffies) {
+            snap1.totalJiffies - snap0.totalJiffies
         } else {
             // Fallback when /proc/stat is SELinux-restricted on Android 8+:
             // USER_HZ is 100 jiffies/sec per CPU core.
@@ -215,35 +235,85 @@ object RunningAppsLoader {
             ((actualElapsedMs / 1000.0) * 100.0 * cores).toLong().coerceAtLeast(1L)
         }
 
-        // Optional fallback CPU% from ps -A -o PID,PCPU
-        val psCpuMap = readPsCpuPercentages()
-
-        // Enrich processes with CPU% and executable type (SH / ELF64 / ELF32)
+        // Batch resolve /proc/$pid/exe for native ELF classification
         val exeTargetMap = if (isRootGranted()) readProcExeTargetsBatch() else emptyMap()
+
+        // Batch inspect detailed cmdline/cwd/fd for shell candidate PIDs (fast, ~5-15 PIDs)
+        val candidateShellPids = processMap.values
+            .filter { isPotentialShellCandidate(it.processName, it.cmdline, it.isApp) }
+            .map { it.pid }
+        val shellDetailsMap = readShellDetailsBatch(candidateShellPids)
+
+        // Enrich processes with accurate real-time CPU%, coherent SLEEP/RUNNING state, and script paths
         for ((pid, model) in processMap) {
-            val j0 = procJiffiesT0[pid]
-            val j1 = procJiffiesT1[pid]
-            val deltaCpu = if (j0 != null && j1 != null && j1 >= j0) {
+            val j0 = snap0.procJiffies[pid]
+            val j1 = snap1.procJiffies[pid]
+            val rawDeltaCpu = if (j0 != null && j1 != null && j1 >= j0) {
                 ((j1 - j0).toFloat() / totalDelta.toFloat() * 100f).coerceIn(0f, 100f)
             } else {
-                null
+                0f
             }
-            val procCpu = when {
-                deltaCpu != null && deltaCpu > 0f -> deltaCpu
-                psCpuMap.containsKey(pid) -> psCpuMap[pid] ?: 0f
-                else -> deltaCpu ?: model.cpuPercent
+
+            // Use the freshest process state sampled at T1 when available
+            val sampledState = snap1.procStates[pid] ?: model.state
+            val normalizedState = sampledState.take(1).uppercase().ifEmpty { "S" }
+
+            // Coherent CPU% vs state:
+            // - If delta CPU >= 0.2% in this interval, the process is actively executing even if it
+            //   hit 'S' between scheduler ticks -> report as RUNNING ("R").
+            // - If sleeping with < 0.2% CPU noise, clamp negligible jitter (<0.1%) to 0.0%.
+            val finalCpu = if (rawDeltaCpu < 0.1f) 0f else rawDeltaCpu
+            val finalState = if (finalCpu >= 0.2f && normalizedState == "S") {
+                "R"
+            } else {
+                normalizedState
+            }
+
+            val shellInfo = shellDetailsMap[pid]
+            val effectiveCmdline = when {
+                shellInfo != null && shellInfo.cmdline.length > model.cmdline.length -> shellInfo.cmdline
+                model.cmdline.isNotBlank() -> model.cmdline
+                else -> ""
             }
 
             val (execType, elfArch) = detectExecutableType(
                 pid = pid,
                 processName = model.processName,
-                cmdline = model.cmdline,
+                cmdline = effectiveCmdline,
                 isApp = model.isApp,
                 exeTarget = exeTargetMap[pid]
             )
 
+            val resolvedScriptPath = if (execType == ExecutableType.SHELL_SCRIPT) {
+                resolveScriptPath(
+                    pid = pid,
+                    ppid = model.ppid,
+                    processName = model.processName,
+                    cmdline = effectiveCmdline,
+                    shellInfo = shellInfo,
+                    exeTarget = exeTargetMap[pid]
+                )
+            } else {
+                ""
+            }
+
+            val updatedLabel = if (execType == ExecutableType.SHELL_SCRIPT && resolvedScriptPath.isNotEmpty()) {
+                val candidateFile = File(resolvedScriptPath.substringBefore(" ("))
+                if (candidateFile.name.endsWith(".sh", ignoreCase = true)) {
+                    candidateFile.name
+                } else {
+                    model.label
+                }
+            } else {
+                model.label
+            }
+
             processMap[pid] = model.copy(
-                cpuPercent = procCpu,
+                label = updatedLabel,
+                cmdline = effectiveCmdline,
+                scriptPath = resolvedScriptPath,
+                cpuPercent = finalCpu,
+                state = finalState,
                 executableType = execType,
                 elfArch = elfArch
             )
@@ -252,6 +322,38 @@ object RunningAppsLoader {
         return processMap.values.toList().sortedWith(compareByDescending<RunningAppModel> { it.isApp }
             .thenByDescending { it.memoryBytes }
             .thenBy { it.label.lowercase() })
+    }
+
+    private fun readPsLines(): List<String> {
+        val withArgsCmd = "ps -A -o PID,PPID,USER,RSS,STAT,NAME,ARGS"
+        val basicCmd = "ps -A -o PID,PPID,USER,RSS,STAT,NAME"
+        return when {
+            isRootGranted() -> {
+                val out = Shell.cmd(withArgsCmd).exec().out
+                if (out.size > 1) out else Shell.cmd(basicCmd).exec().out
+            }
+            isShizukuReady() -> {
+                val res = ShizukuShell.exec(withArgsCmd)
+                if (res.isSuccess && res.out.isNotEmpty()) {
+                    val lines = res.out.lines()
+                    if (lines.size > 1) lines else emptyList()
+                } else {
+                    val fallback = ShizukuShell.exec(basicCmd)
+                    if (fallback.isSuccess) fallback.out.lines() else emptyList()
+                }
+            }
+            else -> {
+                try {
+                    val p = Runtime.getRuntime().exec(arrayOf("ps", "-A", "-o", "PID,PPID,USER,RSS,STAT,NAME,ARGS"))
+                    val lines = p.inputStream.bufferedReader().use { it.readLines() }
+                    if (lines.size > 1) lines else Runtime.getRuntime().exec(arrayOf("ps", "-A"))
+                        .inputStream.bufferedReader().use { it.readLines() }
+                } catch (_: Throwable) {
+                    val p = Runtime.getRuntime().exec(arrayOf("ps", "-A"))
+                    p.inputStream.bufferedReader().use { it.readLines() }
+                }
+            }
+        }
     }
 
     fun parseDumpsysOutput(
@@ -316,6 +418,7 @@ object RunningAppsLoader {
         var colRss = -1
         var colStat = -1
         var colName = -1
+        var colArgs = -1
 
         if (isHeader) {
             val headerTokens = header.split(Regex("\\s+"))
@@ -327,6 +430,7 @@ object RunningAppsLoader {
                     "RSS", "VMRSS" -> colRss = idx
                     "STAT", "S" -> colStat = idx
                     "NAME", "CMD", "COMMAND" -> colName = idx
+                    "ARGS" -> colArgs = idx
                 }
             }
         }
@@ -343,6 +447,7 @@ object RunningAppsLoader {
             var rssKb = 0L
             var stat = "S"
             var name = ""
+            var cmdline = ""
 
             if (colPid in tokens.indices && colName in tokens.indices) {
                 pid = tokens[colPid].toIntOrNull() ?: -1
@@ -351,13 +456,22 @@ object RunningAppsLoader {
                 if (colRss in tokens.indices) {
                     rssKb = tokens[colRss].toLongOrNull() ?: 0L
                 }
-                if (colStat in tokens.indices) stat = tokens[colStat]
-                name = if (colName == tokens.size - 1) {
-                    tokens[colName]
-                } else if (colName < tokens.size) {
-                    tokens.subList(colName, tokens.size).joinToString(" ")
+                if (colStat in tokens.indices) {
+                    stat = tokens[colStat].take(1).uppercase().ifEmpty { "S" }
+                }
+                if (colArgs != -1) {
+                    name = tokens[colName]
+                    if (colArgs in tokens.indices) {
+                        cmdline = tokens.subList(colArgs, tokens.size).joinToString(" ")
+                    }
                 } else {
-                    tokens.last()
+                    name = if (colName == tokens.size - 1) {
+                        tokens[colName]
+                    } else if (colName < tokens.size) {
+                        tokens.subList(colName, tokens.size).joinToString(" ")
+                    } else {
+                        tokens.last()
+                    }
                 }
             } else {
                 for (token in tokens) {
@@ -367,7 +481,7 @@ object RunningAppsLoader {
                 }
                 user = tokens[0]
                 name = tokens.last()
-                stat = tokens.find { it.length == 1 && it[0] in "RSDZTtW" } ?: "S"
+                stat = (tokens.find { it.isNotEmpty() && it[0] in "RSDZTtW" && it.length <= 4 }?.take(1) ?: "S")
 
                 for (token in tokens) {
                     val num = token.toLongOrNull()
@@ -379,11 +493,18 @@ object RunningAppsLoader {
 
             if (pid <= 0) continue
 
-            // Update existing entry (e.g. from dumpsys) if RSS was missing
+            // Update existing entry (e.g. from dumpsys) if RSS or cmdline was missing
             val existing = processMap[pid]
             if (existing != null) {
-                if (existing.memoryBytes <= 0L && rssKb > 0L) {
-                    processMap[pid] = existing.copy(memoryBytes = rssKb * 1024L)
+                val updatedMem = if (existing.memoryBytes <= 0L && rssKb > 0L) rssKb * 1024L else existing.memoryBytes
+                val updatedCmd = if (existing.cmdline.isEmpty() && cmdline.isNotEmpty()) cmdline else existing.cmdline
+                val updatedPpid = if (existing.ppid == 0 && ppid > 0) ppid else existing.ppid
+                if (updatedMem != existing.memoryBytes || updatedCmd != existing.cmdline || updatedPpid != existing.ppid) {
+                    processMap[pid] = existing.copy(
+                        memoryBytes = updatedMem,
+                        cmdline = updatedCmd,
+                        ppid = updatedPpid
+                    )
                 }
                 continue
             }
@@ -427,7 +548,8 @@ object RunningAppsLoader {
                 isSystem = isSystem,
                 memoryBytes = finalMem,
                 state = stat,
-                user = user
+                user = user,
+                cmdline = cmdline
             )
         }
     }
@@ -530,78 +652,247 @@ object RunningAppsLoader {
         return 0L
     }
 
+    private fun readCpuSnapshot(): CpuSnapshot {
+        val jiffiesMap = HashMap<Int, Long>()
+        val statesMap = HashMap<Int, String>()
+        var totalCpu = 0L
+
+        val batchCmd = "read -r c < /proc/stat 2>/dev/null && echo \"OMCPU \$c\"; for f in /proc/[0-9]*/stat; do read -r l < \"\$f\" 2>/dev/null && echo \"\$l\"; done"
+        val shellLines: List<String>? = when {
+            isRootGranted() -> try {
+                Shell.cmd(batchCmd).exec().out
+            } catch (_: Throwable) {
+                null
+            }
+            isShizukuReady() -> try {
+                val res = ShizukuShell.exec(batchCmd)
+                if (res.isSuccess && res.out.isNotEmpty()) res.out.lines() else null
+            } catch (_: Throwable) {
+                null
+            }
+            else -> null
+        }
+
+        if (!shellLines.isNullOrEmpty()) {
+            for (line in shellLines) {
+                if (line.startsWith("OMCPU ")) {
+                    totalCpu = parseProcStatCpuLine(line.removePrefix("OMCPU ").trim())
+                } else {
+                    parsePidStatLine(line, jiffiesMap, statesMap)
+                }
+            }
+            return CpuSnapshot(totalCpu, jiffiesMap, statesMap, System.currentTimeMillis())
+        }
+
+        // Unprivileged fallback: read /proc directly
+        totalCpu = readTotalCpuJiffies()
+        try {
+            val procDir = File("/proc")
+            val dirs = procDir.listFiles { f -> f.isDirectory && f.name.all { it.isDigit() } }
+            if (dirs != null) {
+                for (d in dirs) {
+                    val statFile = File(d, "stat")
+                    if (!statFile.canRead()) continue
+                    try {
+                        parsePidStatLine(statFile.readText(), jiffiesMap, statesMap)
+                    } catch (_: Throwable) {}
+                }
+            }
+        } catch (_: Throwable) {}
+        return CpuSnapshot(totalCpu, jiffiesMap, statesMap, System.currentTimeMillis())
+    }
+
+    private fun parseProcStatCpuLine(line: String): Long {
+        if (!line.startsWith("cpu ")) return 0L
+        val parts = line.trim().split(Regex("\\s+"))
+        var sum = 0L
+        for (i in 1 until parts.size) {
+            sum += parts[i].toLongOrNull() ?: 0L
+        }
+        return sum
+    }
+
+    private fun parsePidStatLine(
+        text: String,
+        jiffiesMap: MutableMap<Int, Long>,
+        statesMap: MutableMap<Int, String>
+    ) {
+        val trimmed = text.trim()
+        val lparen = trimmed.indexOf('(')
+        val rparen = trimmed.lastIndexOf(')')
+        if (lparen <= 0 || rparen <= lparen || rparen + 2 >= trimmed.length) return
+        val pid = trimmed.substring(0, lparen).trim().toIntOrNull() ?: return
+        val after = trimmed.substring(rparen + 2).trim().split(Regex("\\s+"))
+        // after[0] is state (field 3), utime is index 11 (field 14), stime is index 12 (field 15)
+        if (after.isNotEmpty()) {
+            val st = after[0].take(1).uppercase()
+            if (st.isNotEmpty()) {
+                statesMap[pid] = st
+            }
+        }
+        if (after.size > 12) {
+            val utime = after[11].toLongOrNull() ?: 0L
+            val stime = after[12].toLongOrNull() ?: 0L
+            jiffiesMap[pid] = utime + stime
+        }
+    }
+
     private fun readTotalCpuJiffies(): Long {
         try {
             BufferedReader(FileReader("/proc/stat")).use { reader ->
                 val line = reader.readLine() ?: return 0L
-                if (line.startsWith("cpu ")) {
-                    val parts = line.trim().split(Regex("\\s+"))
-                    var sum = 0L
-                    for (i in 1 until parts.size) {
-                        sum += parts[i].toLongOrNull() ?: 0L
-                    }
-                    return sum
-                }
+                return parseProcStatCpuLine(line)
             }
         } catch (_: Throwable) {}
         return 0L
     }
 
-    private fun readAllProcJiffies(): Map<Int, Long> {
-        val map = HashMap<Int, Long>()
-        try {
-            val procDir = File("/proc")
-            val dirs = procDir.listFiles { f -> f.isDirectory && f.name.all { it.isDigit() } } ?: return map
-            for (d in dirs) {
-                val pid = d.name.toIntOrNull() ?: continue
-                val statFile = File(d, "stat")
-                if (!statFile.canRead()) continue
+    private fun isPotentialShellCandidate(processName: String, cmdline: String, isApp: Boolean): Boolean {
+        if (isApp) return false
+        val lowerName = processName.substringAfterLast('/').lowercase()
+        val lowerCmd = cmdline.lowercase()
+        return lowerName in SHELL_NAMES ||
+            lowerName.endsWith(".sh") ||
+            SH_PATH_REGEX.containsMatchIn(lowerCmd) ||
+            lowerCmd.contains("om_shell_init") ||
+            lowerCmd.startsWith("/system/bin/sh") ||
+            lowerCmd.startsWith("/bin/sh")
+    }
+
+    private fun readShellDetailsBatch(pids: List<Int>): Map<Int, ShellProcessDetails> {
+        val map = HashMap<Int, ShellProcessDetails>()
+        if (pids.isEmpty()) return map
+
+        if (isRootGranted() || isShizukuReady()) {
+            val pidListStr = pids.joinToString(" ")
+            val script = buildString {
+                append("for p in ").append(pidListStr).append("; do ")
+                append("[ -d /proc/\$p ] || continue; ")
+                append("cmd=\$(tr '\\0' ' ' < /proc/\$p/cmdline 2>/dev/null); ")
+                append("cwd=\$(readlink /proc/\$p/cwd 2>/dev/null); ")
+                append("envp=\$(tr '\\0' '\\n' < /proc/\$p/environ 2>/dev/null | grep -m1 '^OM_ACTIVE_SCRIPT_PATH='); ")
+                append("fdp=\$(ls -l /proc/\$p/fd 2>/dev/null | grep -m1 '\\.sh\$'); ")
+                append("echo \"OMSH|\$p|\$cwd|\${envp#OM_ACTIVE_SCRIPT_PATH=}|\$cmd\"; ")
+                append("[ -n \"\$fdp\" ] && echo \"OMFD|\$p|\$fdp\"; ")
+                append("done")
+            }
+            val lines = if (isRootGranted()) {
+                try { Shell.cmd(script).exec().out } catch (_: Throwable) { emptyList() }
+            } else {
                 try {
-                    val text = statFile.readText()
-                    val rparen = text.lastIndexOf(')')
-                    if (rparen > 0 && rparen + 2 < text.length) {
-                        val after = text.substring(rparen + 2).trim().split(Regex("\\s+"))
-                        // utime is field 14 (index 11 after ')'), stime is field 15 (index 12)
-                        if (after.size > 12) {
-                            val utime = after[11].toLongOrNull() ?: 0L
-                            val stime = after[12].toLongOrNull() ?: 0L
-                            map[pid] = utime + stime
+                    val res = ShizukuShell.exec(script)
+                    if (res.isSuccess) res.out.lines() else emptyList()
+                } catch (_: Throwable) { emptyList() }
+            }
+            for (line in lines) {
+                if (line.startsWith("OMSH|")) {
+                    val parts = line.split('|', limit = 5)
+                    if (parts.size == 5) {
+                        val pid = parts[1].toIntOrNull() ?: continue
+                        map[pid] = ShellProcessDetails(
+                            cmdline = parts[4].trim(),
+                            cwd = parts[2].trim(),
+                            environScript = parts[3].trim(),
+                            fdScript = map[pid]?.fdScript ?: ""
+                        )
+                    }
+                } else if (line.startsWith("OMFD|")) {
+                    val parts = line.split('|', limit = 3)
+                    if (parts.size == 3) {
+                        val pid = parts[1].toIntOrNull() ?: continue
+                        val arrowIdx = parts[2].indexOf("->")
+                        val fdTarget = if (arrowIdx >= 0) parts[2].substring(arrowIdx + 2).trim() else ""
+                        if (fdTarget.endsWith(".sh", ignoreCase = true)) {
+                            val cur = map[pid] ?: ShellProcessDetails()
+                            map[pid] = cur.copy(fdScript = fdTarget)
                         }
                     }
-                } catch (_: Throwable) {}
+                }
             }
-        } catch (_: Throwable) {}
+            return map
+        }
+
+        // Unprivileged fallback: read accessible /proc/$pid files directly
+        for (pid in pids) {
+            try {
+                val cmdFile = File("/proc/$pid/cmdline")
+                val cmd = if (cmdFile.canRead()) cmdFile.readText().replace('\u0000', ' ').trim() else ""
+                val cwd = try { File("/proc/$pid/cwd").canonicalPath } catch (_: Throwable) { "" }
+                if (cmd.isNotEmpty() || cwd.isNotEmpty()) {
+                    map[pid] = ShellProcessDetails(cmdline = cmd, cwd = cwd)
+                }
+            } catch (_: Throwable) {}
+        }
         return map
     }
 
-    private fun readPsCpuPercentages(): Map<Int, Float> {
-        val map = HashMap<Int, Float>()
-        try {
-            val lines = when {
-                isRootGranted() -> Shell.cmd("ps -A -o PID,PCPU").exec().out
-                isShizukuReady() -> {
-                    val res = ShizukuShell.exec("ps -A -o PID,PCPU")
-                    if (res.isSuccess) res.out.lines() else emptyList()
+    private fun resolveScriptPath(
+        pid: Int,
+        ppid: Int,
+        processName: String,
+        cmdline: String,
+        shellInfo: ShellProcessDetails?,
+        exeTarget: String?
+    ): String {
+        val cdDir = CD_PATH_REGEX.find(cmdline)?.groupValues?.getOrNull(1)?.trim()
+        val baseDir = when {
+            !cdDir.isNullOrEmpty() -> cdDir
+            shellInfo != null && shellInfo.cwd.isNotEmpty() -> shellInfo.cwd
+            else -> ""
+        }
+
+        // 1. Prefer explicit *.sh script argument from cmdline (ignoring wrapper init script om_shell_init.sh)
+        val matches = SH_PATH_REGEX.findAll(cmdline).map { it.groupValues[1] }.toList()
+        val explicitSh = matches.lastOrNull { !it.endsWith("om_shell_init.sh", ignoreCase = true) }
+        if (!explicitSh.isNullOrEmpty()) {
+            return if (explicitSh.startsWith("/")) {
+                explicitSh
+            } else if (baseDir.isNotEmpty()) {
+                try {
+                    File(baseDir, explicitSh).canonicalPath
+                } catch (_: Throwable) {
+                    "$baseDir/${explicitSh.removePrefix("./")}"
                 }
-                else -> {
-                    try {
-                        val p = Runtime.getRuntime().exec(arrayOf("ps", "-A", "-o", "PID,PCPU"))
-                        p.inputStream.bufferedReader().use { it.readLines() }
-                    } catch (_: Throwable) {
-                        emptyList()
-                    }
-                }
+            } else {
+                explicitSh
             }
-            for (line in lines.drop(1)) {
-                val tokens = line.trim().split(Regex("\\s+"))
-                if (tokens.size >= 2) {
-                    val pid = tokens[0].toIntOrNull() ?: continue
-                    val cpu = tokens[1].toFloatOrNull() ?: continue
-                    map[pid] = cpu.coerceIn(0f, 100f)
-                }
+        }
+
+        // 2. Open descriptor pointing to a .sh file
+        if (shellInfo != null && shellInfo.fdScript.endsWith(".sh", ignoreCase = true)) {
+            return shellInfo.fdScript
+        }
+
+        // 3. Environment variable exported by OpenManager's TerminalExpansionManager
+        if (shellInfo != null && shellInfo.environScript.isNotEmpty() &&
+            !shellInfo.environScript.endsWith("om_shell_init.sh", ignoreCase = true)
+        ) {
+            val envPath = shellInfo.environScript
+            if (envPath.endsWith(".sh", ignoreCase = true) || File(envPath).isFile) {
+                return envPath
             }
-        } catch (_: Throwable) {}
-        return map
+        }
+
+        // 4. Match active script in ScriptExecutionManager
+        if (ScriptExecutionManager.isRunning()) {
+            val activePid = ScriptExecutionManager.activePid
+            val activePath = ScriptExecutionManager.activeScriptPath
+            if ((pid == activePid || ppid == activePid) && !activePath.isNullOrBlank()) {
+                return activePath
+            }
+        }
+
+        // 5. Generic shell session fallback (show shell path + working directory)
+        val shellExe = exeTarget?.takeIf { it.isNotEmpty() } ?: when {
+            processName.startsWith("/") -> processName
+            baseDir.isNotEmpty() -> "/system/bin/${processName.substringAfterLast('/')}"
+            else -> ""
+        }
+        return if (baseDir.isNotEmpty() && shellExe.isNotEmpty()) {
+            "$shellExe ($baseDir)"
+        } else {
+            shellExe.ifEmpty { baseDir }
+        }
     }
 
     private fun readProcExeTargetsBatch(): Map<Int, String> {
@@ -640,8 +931,7 @@ object RunningAppsLoader {
         // 1. Shell scripts (.sh or shell interpreter running a script)
         if (lowerName in SHELL_NAMES ||
             lowerName.endsWith(".sh") ||
-            lowerCmd.contains(".sh ") ||
-            lowerCmd.endsWith(".sh") ||
+            SH_PATH_REGEX.containsMatchIn(lowerCmd) ||
             lowerCmd.startsWith("/system/bin/sh") ||
             lowerCmd.startsWith("/bin/sh")
         ) {
@@ -734,17 +1024,18 @@ object RunningAppsLoader {
     }
 
     /**
-     * Kills a process by PID using SIGKILL (-9).
+     * Kills a process (and any child processes spawned by a script) by PID using SIGKILL (-9).
      */
     fun killProcess(pid: Int): Boolean {
         if (pid <= 0) return false
+        val cmd = "pkill -9 -P $pid 2>/dev/null || true; kill -9 -$pid 2>/dev/null || true; kill -9 $pid"
         if (isRootGranted()) {
-            val res = Shell.cmd("kill -9 $pid").exec()
-            return res.isSuccess
+            val res = Shell.cmd(cmd).exec()
+            return res.isSuccess || !File("/proc/$pid").exists()
         }
         if (isShizukuReady()) {
-            val res = ShizukuShell.exec("kill -9 $pid")
-            return res.isSuccess
+            val res = ShizukuShell.exec(cmd)
+            return res.isSuccess || !File("/proc/$pid").exists()
         }
         return try {
             Process.killProcess(pid)

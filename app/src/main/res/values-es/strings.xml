@@ -2622,7 +2622,7 @@
     <string name="om_script_runner_crlf_auto_converted">Formato CRLF convertido automáticamente a Unix (LF)</string>
     <string name="om_script_runner_archive_cannot_run">No se puede ejecutar directamente un script dentro de un archivo comprimido. Extráelo primero.</string>
     <string name="om_script_runner_termex_unavailable">Expansión Termex no disponible, usando shell del sistema</string>
-    <string name="om_running_apps_tab_exec">SH / ELF</string>
+    <string name="om_running_apps_tab_exec">SH</string>
     <string name="om_running_apps_sort_title">Ordenar procesos</string>
     <string name="om_running_apps_sort_cpu">Uso de CPU (Mayor a menor)</string>
     <string name="om_running_apps_cpu_format">CPU: %1$.1f%%</string>
@@ -2631,4 +2631,10 @@
     <string name="om_running_apps_type_elf32">ELF 32-bit</string>
     <string name="om_running_apps_type_elf">Binario ELF</string>
     <string name="om_running_apps_type_daemon">Proceso del sistema</string>
+    <string name="om_proc_script_path">Ruta del script</string>
+    <string name="om_proc_locate_script">Localizar script en el explorador</string>
+    <string name="om_proc_kill_script_confirm_title">Cerrar script SH</string>
+    <string name="om_proc_kill_script_confirm_msg">¿Deseas finalizar el script en ejecución?\n\n• Script: %1$s\n• PID: %2$d\n• Ruta: %3$s</string>
+    <string name="om_proc_kill_script_wait_fmt">Cerrar (%1$ds)</string>
+    <string name="om_proc_kill_script_now">Cerrar script</string>
 </resources>

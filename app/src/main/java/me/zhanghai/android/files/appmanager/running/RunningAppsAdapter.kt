@@ -15,6 +15,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -26,14 +27,47 @@ import me.zhanghai.android.files.appmanager.NativeAppIconLoader
 
 class RunningAppsAdapter(
     private val scope: CoroutineScope,
-    private val items: List<RunningAppModel>,
     private val onItemClick: (RunningAppModel) -> Unit,
     private val onKillClick: (RunningAppModel) -> Unit,
     private val onForceStopClick: (RunningAppModel) -> Unit
 ) : RecyclerView.Adapter<RunningAppsAdapter.ViewHolder>() {
 
+    private val items = mutableListOf<RunningAppModel>()
+
+    var isPopupMenuOpen: Boolean = false
+        private set
+
     init {
         setHasStableIds(true)
+    }
+
+    fun submitList(newItems: List<RunningAppModel>) {
+        val oldList = items.toList()
+        val diffResult = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize(): Int = oldList.size
+            override fun getNewListSize(): Int = newItems.size
+
+            override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                oldList[oldItemPosition].pid == newItems[newItemPosition].pid
+
+            override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean =
+                oldList[oldItemPosition] == newItems[newItemPosition]
+
+            override fun getChangePayload(oldItemPosition: Int, newItemPosition: Int): Any? {
+                val oldItem = oldList[oldItemPosition]
+                val newItem = newItems[newItemPosition]
+                return if (oldItem.packageName == newItem.packageName &&
+                    oldItem.executableType == newItem.executableType
+                ) {
+                    PAYLOAD_METRICS
+                } else {
+                    null
+                }
+            }
+        })
+        items.clear()
+        items.addAll(newItems)
+        diffResult.dispatchUpdatesTo(this)
     }
 
     override fun getItemId(position: Int): Long = items[position].pid.toLong()
@@ -45,13 +79,23 @@ class RunningAppsAdapter(
         return ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = items[position]
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.contains(PAYLOAD_METRICS)) {
+            val item = items[position]
+            bindMetricsAndText(holder, item)
+            holder.itemView.setOnClickListener { onItemClick(item) }
+            bindMenuButton(holder, item)
+            return
+        }
+        onBindViewHolder(holder, position)
+    }
+
+    private fun bindMetricsAndText(holder: ViewHolder, item: RunningAppModel) {
         val context = holder.itemView.context
 
         holder.tvLabel.text = item.label
         holder.tvProcessName.text = when (item.executableType) {
-            ExecutableType.SHELL_SCRIPT -> "[SH] ${item.cmdline.ifBlank { item.processName }}"
+            ExecutableType.SHELL_SCRIPT -> "[SH] ${item.scriptPath.ifBlank { item.cmdline.ifBlank { item.processName } }}"
             ExecutableType.ELF_64 -> "[ELF64${if (item.elfArch.isNotEmpty()) " · ${item.elfArch}" else ""}] ${item.processName}"
             ExecutableType.ELF_32 -> "[ELF32${if (item.elfArch.isNotEmpty()) " · ${item.elfArch}" else ""}] ${item.processName}"
             ExecutableType.ELF_GENERIC -> "[ELF] ${item.processName}"
@@ -96,6 +140,38 @@ class RunningAppsAdapter(
                 holder.tvState.setTextColor(COLOR_STATE_SLEEP)
             }
         }
+    }
+
+    private fun bindMenuButton(holder: ViewHolder, item: RunningAppModel) {
+        val context = holder.itemView.context
+        holder.btnMenu.setOnClickListener { v ->
+            val popup = PopupMenu(context, v)
+            popup.menu.add(0, 1, 0, context.getString(R.string.om_proc_menu_details))
+            popup.menu.add(0, 2, 1, context.getString(R.string.om_proc_menu_kill))
+            if (item.packageName != null) {
+                popup.menu.add(0, 3, 2, context.getString(R.string.om_proc_menu_force_stop))
+            }
+            popup.setOnMenuItemClickListener { menuItem ->
+                when (menuItem.itemId) {
+                    1 -> onItemClick(item)
+                    2 -> onKillClick(item)
+                    3 -> onForceStopClick(item)
+                }
+                true
+            }
+            popup.setOnDismissListener {
+                isPopupMenuOpen = false
+            }
+            isPopupMenuOpen = true
+            popup.show()
+        }
+    }
+
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+        val item = items[position]
+        val context = holder.itemView.context
+
+        bindMetricsAndText(holder, item)
 
         // Icon loading
         holder.iconJob?.cancel()
@@ -123,24 +199,7 @@ class RunningAppsAdapter(
         }
 
         holder.itemView.setOnClickListener { onItemClick(item) }
-
-        holder.btnMenu.setOnClickListener { v ->
-            val popup = PopupMenu(context, v)
-            popup.menu.add(0, 1, 0, context.getString(R.string.om_proc_menu_details))
-            popup.menu.add(0, 2, 1, context.getString(R.string.om_proc_menu_kill))
-            if (item.packageName != null) {
-                popup.menu.add(0, 3, 2, context.getString(R.string.om_proc_menu_force_stop))
-            }
-            popup.setOnMenuItemClickListener { menuItem ->
-                when (menuItem.itemId) {
-                    1 -> onItemClick(item)
-                    2 -> onKillClick(item)
-                    3 -> onForceStopClick(item)
-                }
-                true
-            }
-            popup.show()
-        }
+        bindMenuButton(holder, item)
     }
 
     override fun onViewRecycled(holder: ViewHolder) {
@@ -163,6 +222,7 @@ class RunningAppsAdapter(
     }
 
     companion object {
+        private const val PAYLOAD_METRICS = "metrics"
         private val COLOR_CPU_HIGH = Color.parseColor("#FF7043")
         private val COLOR_CPU_MED = Color.parseColor("#FFB74D")
         private val COLOR_CPU_LOW = Color.parseColor("#80CBC4")

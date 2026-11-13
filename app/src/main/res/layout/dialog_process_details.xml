@@ -191,6 +191,32 @@
                     android:textSize="11.5sp"
                     tools:text="com.whatsapp" />
             </TableRow>
+
+            <!-- Script path (shown for SH / shell processes) -->
+            <TableRow
+                android:id="@+id/rowScriptPath"
+                android:background="?selectableItemBackground"
+                android:clickable="true"
+                android:focusable="true"
+                android:paddingVertical="4dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+                <TextView
+                    android:layout_width="120dp"
+                    android:text="@string/om_proc_script_path"
+                    android:textColor="#81C784"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/dialogTvScriptPath"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:textColor="#A5D6A7"
+                    android:textIsSelectable="true"
+                    android:textSize="12sp"
+                    tools:text="/storage/emulated/0/a.sh" />
+            </TableRow>
         </TableLayout>
 
         <View
@@ -343,6 +369,38 @@
                 android:text="@string/om_app_open"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp" />
+        </LinearLayout>
+
+        <!-- 5.5 Localizar script en el explorador -->
+        <LinearLayout
+            android:id="@+id/btnDialogLocateScript"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:background="?selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:src="@drawable/directory_icon_white_24dp"
+                app:tint="#4CAF50" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="16dp"
+                android:text="@string/om_proc_locate_script"
+                android:textColor="#A5D6A7"
+                android:textSize="14sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <!-- 6. Copiar info del proceso -->

@@ -34,10 +34,14 @@ data class RunningAppModel(
     val threadCount: Int = 1,
     val user: String = "",
     val cmdline: String = "",
+    val scriptPath: String = "",
     val selinuxContext: String = "",
     val executableType: ExecutableType = if (isApp) ExecutableType.APP else ExecutableType.SYSTEM_DAEMON,
     val elfArch: String = ""
 ) : Parcelable {
+    val isShellScript: Boolean
+        get() = executableType == ExecutableType.SHELL_SCRIPT
+
     val isScriptOrElf: Boolean
         get() = executableType == ExecutableType.SHELL_SCRIPT ||
             executableType == ExecutableType.ELF_64 ||
