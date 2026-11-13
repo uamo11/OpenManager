@@ -66,7 +66,7 @@
                 android:id="@+id/tvAuditStatusBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="EN EJECUCIÓN"
+                android:text="@string/om_audit_running"
                 android:textSize="11sp"
                 android:textStyle="bold"
                 android:textColor="#4CAF50"
@@ -114,7 +114,7 @@
                         android:id="@+id/tvStaticAuditBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="LIMPIO"
+                        android:text="@string/om_audit_clean"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:textColor="#81C784"
@@ -285,7 +285,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🗑️ Borrados"
+                        android:text="@string/om_audit_deletions"
                         android:textSize="11sp"
                         android:textColor="#B0BEC5" />
 
@@ -303,7 +303,7 @@
                         android:id="@+id/tvStatDeletionsSub"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0 bloq • 0 perm"
+                        android:text="@string/om_audit_zero_counts"
                         android:textSize="10sp"
                         android:textColor="#78909C" />
                 </LinearLayout>
@@ -329,7 +329,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="⚡ Syscalls"
+                        android:text="@string/om_audit_syscalls"
                         android:textSize="11sp"
                         android:textColor="#B0BEC5" />
 
@@ -347,7 +347,7 @@
                         android:id="@+id/tvStatSyscallsSub"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Frecuencia normal"
+                        android:text="@string/om_audit_normal_freq"
                         android:textSize="10sp"
                         android:textColor="#78909C" />
                 </LinearLayout>
@@ -380,7 +380,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="🔍 Kernel / Proc"
+                        android:text="@string/om_audit_kernel_proc"
                         android:textSize="11sp"
                         android:textColor="#B0BEC5" />
 
@@ -398,7 +398,7 @@
                         android:id="@+id/tvStatKernelSub"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Consultas /proc"
+                        android:text="@string/om_audit_proc_queries"
                         android:textSize="10sp"
                         android:textColor="#78909C" />
                 </LinearLayout>
@@ -424,7 +424,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="💀 Dead Man"
+                        android:text="@string/om_audit_deadman"
                         android:textSize="11sp"
                         android:textColor="#B0BEC5" />
 
@@ -432,7 +432,7 @@
                         android:id="@+id/tvStatDeadManVal"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="ACTIVO"
+                        android:text="@string/om_audit_active"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:textColor="#81C784"
@@ -442,7 +442,7 @@
                         android:id="@+id/tvStatDeadManSub"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Wipe guard ON"
+                        android:text="@string/om_audit_wipe_guard_on"
                         android:textSize="10sp"
                         android:textColor="#78909C" />
                 </LinearLayout>
@@ -476,7 +476,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="⚡ Lectura y Detección de Syscalls en Vivo"
+                        android:text="@string/om_audit_live_syscalls"
                         android:textSize="13sp"
                         android:textStyle="bold"
                         android:textColor="#90CAF9" />
@@ -485,7 +485,7 @@
                         android:id="@+id/tvLiveSyscallStatusBadge"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="EN ESPERA"
+                        android:text="@string/om_audit_waiting"
                         android:textSize="10sp"
                         android:textStyle="bold"
                         android:textColor="#B0BEC5"
@@ -502,7 +502,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
-                    android:text="Syscall actual: Sin proceso activo"
+                    android:text="@string/om_audit_current_syscall_idle"
                     android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:textColor="#CFD8DC" />
@@ -519,7 +519,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Lecturas (syscr): 0"
+                        android:text="@string/om_audit_reads_zero"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
                         android:textColor="#81C784" />
@@ -529,7 +529,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Escrituras (syscw): 0"
+                        android:text="@string/om_audit_writes_zero"
                         android:textSize="10sp"
                         android:fontFamily="monospace"
                         android:textColor="#FFB74D" />

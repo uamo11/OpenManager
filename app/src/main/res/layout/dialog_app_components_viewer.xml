@@ -58,7 +58,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cerrar"
+            android:text="@string/om_action_close"
             android:textColor="#FFFFFF" />
     </LinearLayout>
 
@@ -105,7 +105,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No se encontraron elementos en esta categoría"
+            android:text="@string/om_app_components_empty"
             android:textColor="#757575"
             android:textSize="13sp"
             android:visibility="gone" />

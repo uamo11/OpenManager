@@ -18,7 +18,7 @@
 
 <p align="center">
   🌐 <b>Sitio Web Oficial:</b> <a href="https://uamo11.github.io/OpenManager/"><b>uamo11.github.io/OpenManager</b></a><br>
-  <a href="README.md">Español</a> · <a href="README_zh-CN.md">简体中文</a>
+  <a href="README_en.md">English</a> · <a href="README.md">Español</a> · <a href="README_zh-CN.md">简体中文</a>
 </p>
 
 ---

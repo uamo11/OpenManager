@@ -63,7 +63,7 @@
                 android:paddingTop="1dp"
                 android:paddingEnd="6dp"
                 android:paddingBottom="1dp"
-                android:text="DETECTADA"
+                android:text="@string/om_storage_detected"
                 android:textColor="#4CAF50"
                 android:textSize="9sp"
                 android:textStyle="bold"

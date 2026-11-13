@@ -89,7 +89,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Anterior"
+                android:contentDescription="@string/om_action_previous"
                 android:src="@drawable/arrow_up_icon_white_24dp"
                 app:tint="#FFFFFF" />
 
@@ -98,7 +98,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Siguiente"
+                android:contentDescription="@string/om_action_next"
                 android:src="@drawable/ic_arrow_downward_24dp"
                 app:tint="#FFFFFF" />
 
@@ -107,7 +107,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Cerrar búsqueda"
+                android:contentDescription="@string/om_close_search"
                 android:src="@drawable/close_icon_white_24dp"
                 app:tint="#FFFFFF" />
         </LinearLayout>

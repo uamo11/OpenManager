@@ -49,6 +49,6 @@
         android:layout_height="16dp"
         android:layout_marginStart="4dp"
         android:src="@drawable/arrow_forward_chevron_white_24dp"
-        android:contentDescription="Abrir"
+        android:contentDescription="@string/om_action_open"
         android:alpha="0.4" />
 </LinearLayout>

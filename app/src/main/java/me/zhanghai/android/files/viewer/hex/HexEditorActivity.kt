@@ -177,7 +177,7 @@ class HexEditorActivity : AppActivity() {
             binding.etSearch.hint = if (isSearchHexMode) {
                 getString(R.string.hex_editor_search_hint)
             } else {
-                "Buscar texto…"
+                getString(R.string.om_hex_search_text_hint)
             }
         }
 
@@ -209,8 +209,8 @@ class HexEditorActivity : AppActivity() {
             if (fileSize > maxSafeBytes) {
                 binding.progressBar.visibility = View.GONE
                 MaterialAlertDialogBuilder(this@HexEditorActivity)
-                    .setTitle("Archivo demasiado grande")
-                    .setMessage("El archivo supera el límite seguro de 25 MB para edición hexadecimal en memoria (${formatFileSize(fileSize)}).\n\nPara evitar cierres forzados por memoria insuficiente (OOM), no se puede cargar en este modo.")
+                    .setTitle(R.string.om_hex_file_too_large_title)
+                    .setMessage(getString(R.string.om_hex_file_too_large_msg_format, formatFileSize(fileSize)))
                     .setPositiveButton(android.R.string.ok) { _, _ -> finish() }
                     .setCancelable(false)
                     .show()
@@ -230,7 +230,7 @@ class HexEditorActivity : AppActivity() {
             binding.progressBar.visibility = View.GONE
 
             if (rawBytes == null) {
-                showToast("Error al leer el archivo o memoria insuficiente")
+                showToast(getString(R.string.om_hex_read_or_oom_error))
                 finish()
                 return@launch
             }
@@ -396,14 +396,14 @@ class HexEditorActivity : AppActivity() {
                         val u = b.toInt() and 0xFF
                         if (u in 32..126) u.toChar() else '.'
                     }.joinToString("")
-                    dialogBinding.tvPreview.text = "Bytes: ${bytes.size}  |  Texto: $ascii"
+                    dialogBinding.tvPreview.text = getString(R.string.om_hex_preview_text_format, bytes.size, ascii)
                 } else {
-                    dialogBinding.tvPreview.text = "Hex inválido"
+                    dialogBinding.tvPreview.text = getString(R.string.om_hex_invalid_hex)
                 }
             } else {
                 val bytes = text.toByteArray(currentCharset)
                 val hexStr = bytes.joinToString(" ") { String.format("%02X", it.toInt() and 0xFF) }
-                dialogBinding.tvPreview.text = "Bytes: ${bytes.size}  |  Hex: $hexStr"
+                dialogBinding.tvPreview.text = getString(R.string.om_hex_preview_hex_format, bytes.size, hexStr)
             }
         }
 
@@ -520,7 +520,7 @@ class HexEditorActivity : AppActivity() {
 
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.hex_editor_delete_bytes)
-            .setMessage(String.format("Eliminar bytes a partir del offset 0x%08X", currentOffset))
+            .setMessage(getString(R.string.om_hex_delete_from_offset_format, String.format("0x%08X", currentOffset)))
             .setView(input)
             .setPositiveButton(R.string.delete) { _, _ ->
                 val count = input.text.toString().toIntOrNull() ?: 1
@@ -570,8 +570,8 @@ class HexEditorActivity : AppActivity() {
             }
 
             val msg = StringBuilder()
-                .append("Archivo: ").append(path.fileName).append("\n")
-                .append("Tamaño: ").append(buffer.size).append(" bytes (").append(formatFileSize(buffer.size.toLong())).append(")\n\n")
+                .append(getString(R.string.om_hex_info_file_format, path.fileName.toString())).append("\n")
+                .append(getString(R.string.om_hex_info_size_format, buffer.size, formatFileSize(buffer.size.toLong()))).append("\n\n")
                 .append("MD5:\n").append(md5).append("\n\n")
                 .append("SHA-1:\n").append(sha1).append("\n\n")
                 .append("SHA-256:\n").append(sha256)
@@ -580,7 +580,7 @@ class HexEditorActivity : AppActivity() {
             MaterialAlertDialogBuilder(this@HexEditorActivity)
                 .setTitle(R.string.hex_editor_file_info)
                 .setMessage(msg)
-                .setPositiveButton("Copiar Hashes") { _, _ ->
+                .setPositiveButton(R.string.om_hex_copy_hashes) { _, _ ->
                     copyToClipboard(msg)
                 }
                 .setNegativeButton(R.string.close, null)
@@ -597,9 +597,9 @@ class HexEditorActivity : AppActivity() {
             .setSingleChoiceItems(encodings, currentIdx) { dialog, which ->
                 try {
                     currentCharset = Charset.forName(encodings[which])
-                    showToast("Codificación: ${encodings[which]}")
+                    showToast(getString(R.string.om_hex_encoding_set_format, encodings[which]))
                 } catch (e: Exception) {
-                    showToast("Codificación no soportada")
+                    showToast(getString(R.string.om_hex_encoding_unsupported))
                 }
                 dialog.dismiss()
             }

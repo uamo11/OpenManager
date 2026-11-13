@@ -36,7 +36,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Firmar archivo APK"
+                    android:text="@string/om_apk_sign_title"
                     android:textColor="#FFFFFF"
                     android:textSize="17sp"
                     android:textStyle="bold" />
@@ -44,7 +44,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Elige el tipo de firma y la clave"
+                    android:text="@string/om_sign_choose_scheme_key"
                     android:textColor="#AAAAAA"
                     android:textSize="12sp" />
             </LinearLayout>
@@ -60,7 +60,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Nombre del archivo firmado:"
+            android:text="@string/om_sign_output_name"
             android:textColor="#CCCCCC"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -82,7 +82,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Tipo de esquema de firma:"
+            android:text="@string/om_sign_scheme_label"
             android:textColor="#CCCCCC"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -99,7 +99,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="V1 + V2 (Híbrido - Recomendado)"
+                android:text="@string/om_sign_v1_v2"
                 android:textColor="#FFFFFF"
                 android:textSize="13.5sp" />
 
@@ -108,7 +108,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="32dp"
                 android:layout_marginBottom="8dp"
-                android:text="Esquema JAR + APK Signature Scheme v2. Máxima compatibilidad (Android 4.4 a 15+)."
+                android:text="@string/om_sign_v1_v2_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
 
@@ -116,7 +116,7 @@
                 android:id="@+id/rbSchemeV1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="V1 (Esquema JAR)"
+                android:text="@string/om_sign_v1"
                 android:textColor="#FFFFFF"
                 android:textSize="13.5sp" />
 
@@ -125,7 +125,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="32dp"
                 android:layout_marginBottom="8dp"
-                android:text="Firma clásica en META-INF. Para dispositivos antiguos o ROMs heredadas."
+                android:text="@string/om_sign_v1_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
 
@@ -133,7 +133,7 @@
                 android:id="@+id/rbSchemeV2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="V2 (Android 7.0+)"
+                android:text="@string/om_sign_v2"
                 android:textColor="#FFFFFF"
                 android:textSize="13.5sp" />
 
@@ -142,7 +142,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="32dp"
                 android:layout_marginBottom="4dp"
-                android:text="Firma de archivo completo APK v2. Solo para dispositivos con Android 7.0 o superior."
+                android:text="@string/om_sign_v2_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </RadioGroup>
@@ -151,7 +151,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Clave de firma (Keystore):"
+            android:text="@string/om_sign_keystore_label"
             android:textColor="#CCCCCC"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -168,7 +168,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="testkey (AOSP por defecto)"
+                android:text="@string/om_sign_testkey"
                 android:textColor="#FFFFFF"
                 android:textSize="13.5sp" />
 
@@ -177,7 +177,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="32dp"
                 android:layout_marginBottom="8dp"
-                android:text="Clave estándar RSA 2048-bit generada automáticamente."
+                android:text="@string/om_sign_testkey_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
 
@@ -185,7 +185,7 @@
                 android:id="@+id/rbKeyCustom"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="KeyStore personalizado (.jks / .keystore)"
+                android:text="@string/om_sign_custom_keystore"
                 android:textColor="#FFFFFF"
                 android:textSize="13.5sp" />
         </RadioGroup>
@@ -203,7 +203,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ruta del archivo KeyStore:"
+                android:text="@string/om_sign_keystore_path"
                 android:textColor="#AAAAAA"
                 android:textSize="11.5sp" />
 
@@ -232,7 +232,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_marginStart="8dp"
-                    android:text="Elegir"
+                    android:text="@string/om_action_choose"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
                     android:backgroundTint="#424242" />
@@ -252,7 +252,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Contraseña del KeyStore:"
+                android:text="@string/om_sign_keystore_pass"
                 android:textColor="#AAAAAA"
                 android:textSize="11.5sp" />
 
@@ -273,7 +273,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Alias de la clave:"
+                android:text="@string/om_sign_key_alias"
                 android:textColor="#AAAAAA"
                 android:textSize="11.5sp" />
 
@@ -293,7 +293,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="Contraseña de la clave:"
+                android:text="@string/om_sign_key_pass"
                 android:textColor="#AAAAAA"
                 android:textSize="11.5sp" />
 
@@ -316,7 +316,7 @@
             android:id="@+id/cbOverwrite"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Sobrescribir archivo APK original"
+            android:text="@string/om_sign_overwrite"
             android:textColor="#CCCCCC"
             android:textSize="12.5sp"
             android:layout_marginBottom="16dp" />
@@ -333,7 +333,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:background="?selectableItemBackground"
-                android:text="CANCELAR"
+                android:text="@string/om_action_cancel_upper"
                 android:textColor="#AAAAAA"
                 android:textSize="13sp" />
 
@@ -343,7 +343,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="12dp"
                 android:backgroundTint="#4CAF50"
-                android:text="FIRMAR"
+                android:text="@string/om_sign_button"
                 android:textColor="#FFFFFF"
                 android:textSize="13sp"
                 android:textStyle="bold" />

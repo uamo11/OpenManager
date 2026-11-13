@@ -43,7 +43,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Copiar"
+            android:text="@string/om_action_copy"
             android:textColor="#00E676" />
 
         <Button
@@ -51,7 +51,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cerrar"
+            android:text="@string/om_action_close"
             android:textColor="#FFFFFF" />
     </LinearLayout>
 

@@ -69,7 +69,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="3dp"
-                android:text="Toca para copiar ruta completa • Mantén para copiar nombre"
+                android:text="@string/om_mt_copy_path_hint"
                 android:textColor="#42A5F5"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -82,7 +82,7 @@
             app:tint="#B0BEC5"
             android:padding="6dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Cerrar" />
+            android:contentDescription="@string/om_action_close" />
     </LinearLayout>
 
     <View
@@ -106,7 +106,7 @@
             android:id="@+id/tvTip"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Los menús con • admiten pulsación larga para operar en una sola ventana"
+            android:text="@string/om_mt_long_press_hint"
             android:textColor="#9E9E9E"
             android:textSize="11.5sp"
             android:lineSpacingExtra="2dp" />
@@ -154,7 +154,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Copiar >>"
+                    android:text="@string/om_mt_copy_to"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -183,7 +183,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Mover >>"
+                    android:text="@string/om_mt_move_to"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -219,7 +219,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Eliminar"
+                    android:text="@string/om_action_delete"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -248,7 +248,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Renombrar"
+                    android:text="@string/om_action_rename"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -284,7 +284,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Herramientas"
+                    android:text="@string/om_nav_tools"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -313,7 +313,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Comprimir"
+                    android:text="@string/om_action_compress"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -349,7 +349,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Propiedades"
+                    android:text="@string/om_action_properties"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -378,7 +378,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Compartir"
+                    android:text="@string/om_action_share"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -414,7 +414,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Abrir con…"
+                    android:text="@string/om_mt_open_with"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>
@@ -443,7 +443,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:paddingStart="12dp"
-                    android:text="Añadir marcador"
+                    android:text="@string/om_action_add_bookmark"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
             </LinearLayout>

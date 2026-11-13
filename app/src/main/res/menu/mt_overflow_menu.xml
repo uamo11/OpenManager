@@ -14,57 +14,57 @@
     <item
         android:id="@+id/mt_menu_refresh"
         android:icon="@drawable/reset_icon_white_24dp"
-        android:title="Actualizar" />
+        android:title="@string/om_menu_refresh" />
 
     <item
         android:id="@+id/mt_menu_search"
         android:icon="@drawable/search_icon_control_normal_24dp"
-        android:title="Buscar archivos..." />
+        android:title="@string/om_menu_search_files" />
 
     <item
         android:id="@+id/mt_menu_search_text"
         android:icon="@drawable/file_document_icon"
-        android:title="Buscar texto en archivos (Reemplazar)..." />
+        android:title="@string/om_menu_search_text_replace" />
 
     <item
         android:id="@+id/mt_menu_find_duplicates"
         android:icon="@drawable/filter_icon_control_normal_24dp"
-        android:title="Buscador de duplicados..." />
+        android:title="@string/om_menu_duplicate_finder" />
 
     <item
         android:id="@+id/mt_menu_filter"
         android:icon="@drawable/filter_icon_control_normal_24dp"
-        android:title="Filtrar" />
+        android:title="@string/om_menu_filter" />
 
     <item
         android:id="@+id/mt_menu_sort"
         android:icon="@drawable/sort_icon_control_normal_24dp"
-        android:title="Ordenar" />
+        android:title="@string/om_menu_sort" />
 
     <item
         android:id="@+id/mt_menu_select_all"
         android:icon="@drawable/select_all_icon_white_24dp"
-        android:title="Seleccionar todo" />
+        android:title="@string/om_menu_select_all" />
 
     <item
         android:id="@+id/mt_menu_hidden_files"
         android:icon="@drawable/visibility_icon_white_24dp"
-        android:title="Archivos y directorios ocultos" />
+        android:title="@string/om_menu_show_hidden" />
 
     <item
         android:id="@+id/mt_menu_swap_windows"
         android:icon="@drawable/ic_mt_swap"
-        android:title="Intercambiar paneles" />
+        android:title="@string/om_menu_swap_panels" />
 
     <item
         android:id="@+id/mt_menu_add_bookmark"
         android:icon="@drawable/bookmark_icon_white_24dp"
-        android:title="Añadir a marcadores" />
+        android:title="@string/om_menu_add_bookmark" />
 
     <item
         android:id="@+id/mt_menu_set_as_home"
         android:icon="@drawable/home_icon_white_24dp"
-        android:title="Fijar como inicio" />
+        android:title="@string/om_menu_set_home" />
 
     <item
         android:id="@+id/mt_menu_export_file_list"
@@ -74,6 +74,6 @@
     <item
         android:id="@+id/mt_menu_exit"
         android:icon="@drawable/exit_to_app_icon_white_24dp"
-        android:title="Salir" />
+        android:title="@string/om_menu_exit" />
 
 </menu>

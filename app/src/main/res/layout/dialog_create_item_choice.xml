@@ -33,7 +33,7 @@
             android:id="@+id/tvCreateTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Crear nuevo"
+            android:text="@string/om_create_new_title"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -91,7 +91,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nueva carpeta"
+                android:text="@string/om_create_new_folder"
                 android:textColor="#FFFFFF"
                 android:textSize="15.5sp"
                 android:textStyle="bold" />
@@ -100,7 +100,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Crear un directorio en la ruta actual"
+                android:text="@string/om_create_new_folder_desc"
                 android:textColor="#9E9E9E"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -141,7 +141,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nuevo archivo"
+                android:text="@string/om_create_new_file"
                 android:textColor="#FFFFFF"
                 android:textSize="15.5sp"
                 android:textStyle="bold" />
@@ -150,7 +150,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Crear archivo de texto, código o datos"
+                android:text="@string/om_create_new_file_desc"
                 android:textColor="#9E9E9E"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -191,7 +191,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nuevo archivo ZIP"
+                android:text="@string/om_create_new_zip"
                 android:textColor="#FFFFFF"
                 android:textSize="15.5sp"
                 android:textStyle="bold" />
@@ -200,7 +200,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Crear un archivo comprimido vacío"
+                android:text="@string/om_create_new_zip_desc"
                 android:textColor="#9E9E9E"
                 android:textSize="12sp" />
         </LinearLayout>

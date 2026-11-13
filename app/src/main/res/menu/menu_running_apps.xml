@@ -15,7 +15,7 @@
     <item
         android:id="@+id/action_sort"
         android:icon="@drawable/sort_icon_control_normal_24dp"
-        android:title="Ordenar"
+        android:title="@string/om_menu_sort"
         app:showAsAction="ifRoom" />
 
     <item

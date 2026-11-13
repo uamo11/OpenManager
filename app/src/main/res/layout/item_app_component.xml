@@ -62,7 +62,7 @@
         android:paddingEnd="10dp"
         android:paddingTop="0dp"
         android:paddingBottom="0dp"
-        android:text="Iniciar"
+        android:text="@string/om_action_start"
         android:textColor="#00E676"
         android:textSize="11.5sp"
         app:strokeColor="#00E676"

@@ -54,7 +54,7 @@
                     android:id="@+id/tvHeaderStatus"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="PROTECCIÓN ACTIVA"
+                    android:text="@string/om_dfroot_protection_active"
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:textColor="#4CAF50" />
@@ -68,7 +68,7 @@
             android:paddingBottom="16dp"
             android:textSize="13sp"
             android:textColor="?android:attr/textColorSecondary"
-            android:text="En entornos con DFRoot, DirtyFlag o bootloader bloqueado, modificar, reemplazar, renombrar o cambiar permisos a los archivos clasificados a continuación causará un brick o bootloop irrecuperable al reiniciar el teléfono." />
+            android:text="@string/om_dfroot_warning_body" />
 
         <!-- Dynamic Category Views will be inserted into categoriesContainer -->
 

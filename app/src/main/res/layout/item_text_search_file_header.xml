@@ -76,6 +76,6 @@
         android:layout_height="20dp"
         android:layout_marginStart="6dp"
         android:src="@drawable/arrow_up_icon_white_24dp"
-        android:contentDescription="Expandir/Contraer"
+        android:contentDescription="@string/om_action_expand_collapse"
         app:tint="#8B949E" />
 </LinearLayout>

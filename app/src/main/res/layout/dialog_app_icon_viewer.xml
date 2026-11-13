@@ -23,7 +23,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Visor de Icono"
+            android:text="@string/om_app_icon_viewer_title"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -64,7 +64,7 @@
                 android:layout_width="140dp"
                 android:layout_height="140dp"
                 android:scaleType="fitCenter"
-                android:contentDescription="Icono de la aplicación" />
+                android:contentDescription="@string/om_app_icon_desc" />
         </LinearLayout>
     </androidx.cardview.widget.CardView>
 
@@ -110,7 +110,7 @@
             style="@style/Widget.Material3.Button.TonalButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Guardar PNG"
+            android:text="@string/om_save_png"
             android:textColor="#FFFFFF"
             app:backgroundTint="#388E3C"
             app:icon="@drawable/download_icon_white_24dp"

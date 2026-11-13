@@ -107,7 +107,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
-                    android:text="Modificado con OpenManager" />
+                    android:text="@string/om_apk_inject_default_title" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <TextView
@@ -167,7 +167,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
-                    android:text="Información" />
+                    android:text="@string/om_info_title" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -184,7 +184,7 @@
                     android:layout_height="wrap_content"
                     android:inputType="textMultiLine"
                     android:lines="3"
-                    android:text="¡Bienvenido a esta versión modificada con OpenManager!" />
+                    android:text="@string/om_apk_inject_default_msg" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <LinearLayout
@@ -207,7 +207,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:inputType="text"
-                        android:text="Aceptar" />
+                        android:text="@string/om_action_ok" />
                 </com.google.android.material.textfield.TextInputLayout>
 
                 <com.google.android.material.textfield.TextInputLayout

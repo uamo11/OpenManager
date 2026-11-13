@@ -45,7 +45,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="Vista previa de texto en el documento."
+            android:text="@string/om_docx_preview_text"
             android:textColor="#FFFFFF"
             android:textSize="15sp" />
     </FrameLayout>

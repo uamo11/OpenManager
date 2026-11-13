@@ -88,7 +88,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
-                    android:text="Reintentar con Root"
+                    android:text="@string/om_retry_with_root"
                     android:visibility="gone"
                     app:icon="@drawable/shield_icon_white_24dp" />
 
@@ -123,7 +123,7 @@
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Volver"
+                    android:text="@string/om_go_back"
                     app:icon="@drawable/arrow_back_icon_white_24dp" />
             </LinearLayout>
         </LinearLayout>

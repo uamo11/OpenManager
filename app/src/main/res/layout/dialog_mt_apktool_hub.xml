@@ -32,7 +32,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Herramientas APK / Apktool"
+                android:text="@string/om_nav_apktool_tools"
                 android:textColor="#FFFFFF"
                 android:textSize="17sp"
                 android:textStyle="bold" />
@@ -40,7 +40,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ingeniería inversa y modificación de APKs"
+                android:text="@string/om_apktool_hub_subtitle"
                 android:textColor="#AAAAAA"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -79,7 +79,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Descompilar APK (Apktool)"
+                android:text="@string/om_apktool_decompile"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -87,7 +87,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Decodifica AndroidManifest.xml, recursos XML y genera proyecto"
+                android:text="@string/om_apktool_decompile_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -120,7 +120,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Descompilar a Java (JADX)"
+                android:text="@string/om_app_decompile_jadx"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -128,7 +128,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Descompila todo el código DEX a código fuente Java navegable"
+                android:text="@string/om_apktool_jadx_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -161,7 +161,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Recompilar APK (Apktool)"
+                android:text="@string/om_apktool_recompile"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -169,7 +169,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Empaqueta la carpeta de proyecto y genera el APK firmado"
+                android:text="@string/om_apktool_recompile_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -202,7 +202,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Firmar archivo APK"
+                android:text="@string/om_apk_sign_title"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -210,7 +210,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Firma APKs con esquemas V1 (JAR), V2 (Android 7.0+) o V1+V2"
+                android:text="@string/om_apk_sign_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -243,7 +243,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Verificar firma del APK"
+                android:text="@string/om_apk_verify_sig_title"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -251,7 +251,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Inspecciona el estado de los esquemas V1/V2/V3 y huellas MD5/SHA"
+                android:text="@string/om_apk_verify_sig_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -284,7 +284,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Ver aplicaciones (App Manager)"
+                android:text="@string/om_apktool_hub_apps_title"
                 android:textColor="#FFFFFF"
                 android:textSize="14sp"
                 android:textStyle="bold" />
@@ -292,7 +292,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Explora, gestiona, inspecciona y extrae APKs instalados"
+                android:text="@string/om_apktool_hub_apps_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -305,7 +305,7 @@
         android:layout_gravity="end"
         android:layout_marginTop="8dp"
         android:background="?selectableItemBackground"
-        android:text="CERRAR"
+        android:text="@string/om_action_close_upper"
         android:textColor="#AAAAAA"
         android:textSize="13sp" />
 

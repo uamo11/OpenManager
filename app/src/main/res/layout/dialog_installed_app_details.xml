@@ -136,7 +136,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Extraer APK"
+                    android:text="@string/om_app_extract_apk"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -144,7 +144,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Guardar instalador APK / APKS en la memoria"
+                    android:text="@string/om_app_extract_apk_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -179,14 +179,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Localizar APK en el explorador"
+                    android:text="@string/om_app_locate_apk"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Abrir la carpeta del APK instalado en el panel"
+                    android:text="@string/om_app_locate_apk_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -221,14 +221,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Localizar Datos (Data)"
+                    android:text="@string/om_app_locate_data"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Abrir carpeta de datos (/data/data o Android/data)"
+                    android:text="@string/om_app_locate_data_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -263,14 +263,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Abrir aplicación"
+                    android:text="@string/om_app_open"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ejecutar la aplicación"
+                    android:text="@string/om_app_launch_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -305,7 +305,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ver componentes (App Manager)"
+                    android:text="@string/om_app_view_components"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -313,7 +313,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Actividades (con inicio directo), Servicios y Permisos"
+                    android:text="@string/om_app_view_components_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -348,14 +348,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ver AndroidManifest.xml"
+                    android:text="@string/om_app_view_manifest"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Inspeccionar el manifiesto decodificado del APK"
+                    android:text="@string/om_app_view_manifest_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -390,14 +390,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Edición Rápida (Quick Edit)"
+                    android:text="@string/om_app_quick_edit"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Modificar versión, nombre del paquete o icono del APK"
+                    android:text="@string/om_app_quick_edit_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -432,14 +432,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Descompilar a Java (JADX)"
+                    android:text="@string/om_app_decompile_jadx"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Convertir el código DEX de la aplicación a Java navegable"
+                    android:text="@string/om_app_decompile_jadx_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -474,14 +474,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ajustes de la aplicación"
+                    android:text="@string/om_app_settings"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Permisos, almacenamiento y notificaciones en Ajustes"
+                    android:text="@string/om_app_settings_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -516,14 +516,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Copiar información"
+                    android:text="@string/om_app_copy_info"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Paquete, rutas, versión o firma SHA-256"
+                    android:text="@string/om_app_copy_info_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -558,14 +558,14 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Compartir APK"
+                    android:text="@string/om_app_share_apk"
                     android:textColor="#FFFFFF"
                     android:textSize="14sp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Enviar archivo APK por Telegram, Drive, etc."
+                    android:text="@string/om_app_share_apk_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -607,7 +607,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Ver ficha oficial de la aplicación"
+                    android:text="@string/om_app_play_store_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -642,7 +642,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Desinstalar aplicación"
+                    android:text="@string/om_app_uninstall"
                     android:textColor="#FF5252"
                     android:textSize="14sp"
                     android:textStyle="bold" />
@@ -650,7 +650,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Eliminar del dispositivo"
+                    android:text="@string/om_app_uninstall_desc"
                     android:textColor="#888888"
                     android:textSize="11sp" />
             </LinearLayout>
@@ -679,7 +679,7 @@
                 android:paddingEnd="20dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="4dp"
-                android:text="HERRAMIENTAS ROOT"
+                android:text="@string/om_app_root_tools"
                 android:textColor="#2196F3"
                 android:textSize="11sp"
                 android:textStyle="bold" />
@@ -712,14 +712,14 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Forzar detención (Root)"
+                        android:text="@string/om_app_force_stop_root"
                         android:textColor="#FFFFFF"
                         android:textSize="14sp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Detener procesos de la app con am force-stop"
+                        android:text="@string/om_app_force_stop_root_desc"
                         android:textColor="#888888"
                         android:textSize="11sp" />
                 </LinearLayout>
@@ -753,14 +753,14 @@
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Limpiar datos (Root)"
+                        android:text="@string/om_app_clear_data_root"
                         android:textColor="#FFFFFF"
                         android:textSize="14sp" />
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Restablecer la app a estado inicial con pm clear"
+                        android:text="@string/om_app_clear_data_root_desc"
                         android:textColor="#888888"
                         android:textSize="11sp" />
                 </LinearLayout>
@@ -795,7 +795,7 @@
                         android:id="@+id/tvToggleEnableTitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Inhabilitar / Congelar (Root)"
+                        android:text="@string/om_app_disable_root"
                         android:textColor="#FFFFFF"
                         android:textSize="14sp" />
 
@@ -803,7 +803,7 @@
                         android:id="@+id/tvToggleEnableSubtitle"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Desactivar paquete con pm disable"
+                        android:text="@string/om_app_disable_root_desc"
                         android:textColor="#888888"
                         android:textSize="11sp" />
                 </LinearLayout>

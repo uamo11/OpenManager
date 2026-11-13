@@ -97,7 +97,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="INFORMACIÓN BÁSICA"
+                android:text="@string/om_apk_qe_basic_info"
                 android:textColor="#42A5F5"
                 android:textSize="11.5sp"
                 android:textStyle="bold"
@@ -142,7 +142,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="VERSIÓN DE LA APLICACIÓN"
+                android:text="@string/om_apk_qe_version_info"
                 android:textColor="#42A5F5"
                 android:textSize="11.5sp"
                 android:textStyle="bold"
@@ -195,7 +195,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="COMPATIBILIDAD SDK"
+                android:text="@string/om_apk_qe_sdk_compat"
                 android:textColor="#42A5F5"
                 android:textSize="11.5sp"
                 android:textStyle="bold"
@@ -248,7 +248,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="INSTALACIÓN Y OPCIONES AVANZADAS"
+                android:text="@string/om_apk_qe_install_adv"
                 android:textColor="#42A5F5"
                 android:textSize="11.5sp"
                 android:textStyle="bold"

@@ -83,7 +83,7 @@
                         android:ellipsize="end"
                         android:textSize="10sp"
                         android:textColor="#A0A0A0"
-                        android:text="Cargando..." />
+                        android:text="@string/om_loading_dots" />
                 </LinearLayout>
 
                 <ImageButton
@@ -92,7 +92,7 @@
                     android:layout_height="match_parent"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/more_vertical_icon_white_24dp"
-                    android:contentDescription="Más opciones"
+                    android:contentDescription="@string/om_more_options"
                     app:tint="@android:color/white" />
             </LinearLayout>
         </androidx.appcompat.widget.Toolbar>
@@ -151,7 +151,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/arrow_back_chevron_white_24dp"
-                    android:contentDescription="Atrás"
+                    android:contentDescription="@string/om_action_back"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -161,7 +161,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/arrow_forward_chevron_white_24dp"
-                    android:contentDescription="Adelante"
+                    android:contentDescription="@string/om_action_forward"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -171,7 +171,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/add_icon_white_24dp"
-                    android:contentDescription="Nuevo"
+                    android:contentDescription="@string/om_action_new"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -181,7 +181,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/ic_mt_swap"
-                    android:contentDescription="Intercambiar Paneles"
+                    android:contentDescription="@string/om_action_swap_panels_title"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -191,7 +191,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/arrow_up_icon_white_24dp"
-                    android:contentDescription="Subir Carpeta"
+                    android:contentDescription="@string/om_action_parent_dir"
                     app:tint="@android:color/white" />
             </LinearLayout>
 
@@ -211,7 +211,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/close_icon_white_24dp"
-                    android:contentDescription="Cancelar selección"
+                    android:contentDescription="@string/om_action_cancel_selection"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -221,7 +221,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/copy_icon_white_24dp"
-                    android:contentDescription="Copiar al panel opuesto"
+                    android:contentDescription="@string/om_action_copy_other_panel_desc"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -231,7 +231,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/move_icon_white_24dp"
-                    android:contentDescription="Mover al panel opuesto"
+                    android:contentDescription="@string/om_action_move_other_panel_desc"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -241,7 +241,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/delete_icon_white_24dp"
-                    android:contentDescription="Eliminar seleccionados"
+                    android:contentDescription="@string/om_action_delete_selected"
                     app:tint="@android:color/white" />
 
                 <ImageButton
@@ -251,7 +251,7 @@
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
                     android:src="@drawable/more_vertical_icon_white_24dp"
-                    android:contentDescription="Más opciones"
+                    android:contentDescription="@string/om_more_options"
                     app:tint="@android:color/white" />
             </LinearLayout>
         </LinearLayout>
@@ -315,7 +315,7 @@
                 android:background="?selectableItemBackgroundBorderless"
                 android:src="@drawable/settings_icon_white_24dp"
                 app:tint="@android:color/white"
-                android:contentDescription="Ajustes" />
+                android:contentDescription="@string/om_nav_settings" />
         </LinearLayout>
 
         <!-- Drawer Content -->
@@ -341,7 +341,7 @@
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:text="Local"
+                    android:text="@string/om_nav_section_local"
                     android:textColor="#888888"
                     android:textSize="11.5sp"
                     android:textStyle="bold" />
@@ -381,7 +381,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Directorio Raíz"
+                            android:text="@string/om_nav_root_title"
                             android:textColor="#FFFFFF"
                             android:textSize="13.5sp" />
 
@@ -399,7 +399,7 @@
                             android:id="@+id/tvRootStorageStats"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="/ (Raíz del sistema)"
+                            android:text="@string/om_nav_root_subtitle"
                             android:textColor="#888888"
                             android:textSize="10.5sp" />
                     </LinearLayout>
@@ -440,7 +440,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Almacenamiento Interno"
+                            android:text="@string/om_nav_internal_storage"
                             android:textColor="#FFFFFF"
                             android:textSize="13.5sp" />
 
@@ -497,7 +497,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Descargas"
+                            android:text="@string/om_nav_downloads"
                             android:textColor="#FFFFFF"
                             android:textSize="13.5sp" />
 
@@ -550,7 +550,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Datos de aplicaciones (Android/data)"
+                            android:text="@string/om_nav_android_data_subtitle"
                             android:textColor="#888888"
                             android:textSize="10.5sp" />
                     </LinearLayout>
@@ -590,7 +590,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Añadir almacenamiento"
+                        android:text="@string/om_nav_add_storage"
                         android:textColor="#42A5F5"
                         android:textSize="13.5sp" />
                 </LinearLayout>
@@ -603,7 +603,7 @@
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
-                    android:text="Herramientas"
+                    android:text="@string/om_nav_tools"
                     android:textColor="#888888"
                     android:textSize="11.5sp"
                     android:textStyle="bold" />
@@ -635,7 +635,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Herramientas APK / Apktool"
+                        android:text="@string/om_nav_apktool_tools"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>
@@ -729,7 +729,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Editor de Texto"
+                        android:text="@string/om_nav_text_editor"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>
@@ -761,7 +761,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Administrador Remoto (FTP)"
+                        android:text="@string/om_nav_remote_ftp"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>
@@ -793,7 +793,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Terminal"
+                        android:text="@string/om_nav_terminal"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>
@@ -857,7 +857,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Ajustes"
+                        android:text="@string/om_nav_settings"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>
@@ -889,7 +889,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="14dp"
-                        android:text="Acerca de OpenManager"
+                        android:text="@string/om_nav_about"
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>

@@ -18,6 +18,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.ItemPdfPageBinding
 
 class PdfPageAdapter(
@@ -148,7 +149,9 @@ class PdfPageAdapter(
                 } else {
                     if (holder.bindingAdapterPosition == position) {
                         holder.binding.pageLoading.visibility = View.GONE
-                        holder.binding.pageErrorText.text = "Error pág. ${position + 1}"
+                        holder.binding.pageErrorText.text = holder.binding.pageErrorText.context.getString(
+                            R.string.om_pdf_page_error_format, position + 1
+                        )
                         holder.binding.pageErrorText.visibility = View.VISIBLE
                     }
                 }

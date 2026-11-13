@@ -87,7 +87,7 @@ class VideoPlayerActivity : AppActivity() {
 
         val path = intent.extraPath
         if (path == null) {
-            Toast.makeText(this, "Ruta de video no válida", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_video_invalid_path, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -177,13 +177,13 @@ class VideoPlayerActivity : AppActivity() {
                 showControls()
             }
             videoView.setOnErrorListener { _, what, extra ->
-                Toast.makeText(this, "Error al reproducir video ($what, $extra)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.om_video_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
                 finish()
                 true
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "No se pudo cargar el video: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.om_video_load_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             finish()
         }
     }

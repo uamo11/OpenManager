@@ -31,7 +31,8 @@ class CrashReportActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val logPath = intent.getStringExtra(EXTRA_LOG_PATH)
-        val errorMessage = intent.getStringExtra(EXTRA_ERROR_MESSAGE) ?: "Error desconocido"
+        val errorMessage = intent.getStringExtra(EXTRA_ERROR_MESSAGE)
+            ?: getString(R.string.om_crash_unknown_error)
         val stackTrace = intent.getStringExtra(EXTRA_STACK_TRACE) ?: "No stacktrace available"
         val threadName = intent.getStringExtra(EXTRA_THREAD_NAME) ?: "Unknown"
         val fullReport = intent.getStringExtra(EXTRA_REPORT) ?: stackTrace
@@ -42,15 +43,17 @@ class CrashReportActivity : AppCompatActivity() {
         if (!logPath.isNullOrEmpty()) {
             binding.logPathText.text = getString(R.string.crash_report_saved_format, logPath)
         } else {
-            binding.logPathText.text = "Registro guardado en /storage/emulated/0/OpenManager/logs/"
+            binding.logPathText.text = getString(R.string.om_crash_log_default_path)
         }
 
         binding.systemInfoText.text = buildString {
             append("App: OpenManager ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})\n")
-            append("Dispositivo: ${Build.MANUFACTURER} ${Build.MODEL} (${Build.DEVICE})\n")
+            append(getString(R.string.om_crash_device_format, Build.MANUFACTURER, Build.MODEL, Build.DEVICE))
+            append("\n")
             append("Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})\n")
-            append("Hilo: $threadName\n")
-            append("Error: $errorMessage")
+            append(getString(R.string.om_crash_thread_format, threadName))
+            append("\n")
+            append(getString(R.string.om_crash_error_format, errorMessage))
         }
 
         binding.stackTraceText.text = stackTrace
@@ -62,7 +65,7 @@ class CrashReportActivity : AppCompatActivity() {
                 clipboard.setPrimaryClip(clip)
                 Toast.makeText(this, R.string.crash_report_copied_toast, Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                Toast.makeText(this, "Error al copiar: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.om_crash_copy_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -77,10 +80,10 @@ class CrashReportActivity : AppCompatActivity() {
                     }
                     startActivity(Intent.createChooser(viewIntent, getString(R.string.crash_report_open_log)))
                 } catch (e: Exception) {
-                    Toast.makeText(this, "No se pudo abrir el log: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.om_crash_open_log_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             } else {
-                Toast.makeText(this, "El archivo de log no existe aún", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.om_crash_log_not_found, Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -93,7 +96,7 @@ class CrashReportActivity : AppCompatActivity() {
                 }
                 startActivity(Intent.createChooser(shareIntent, getString(R.string.crash_report_share)))
             } catch (e: Exception) {
-                Toast.makeText(this, "Error al compartir: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.om_crash_share_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             }
         }
 

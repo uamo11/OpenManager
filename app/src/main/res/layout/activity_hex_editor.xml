@@ -88,7 +88,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Anterior"
+                android:contentDescription="@string/om_action_previous"
                 android:src="@drawable/ic_arrow_upward_24dp"
                 app:tint="#CCCCCC" />
 
@@ -97,7 +97,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Siguiente"
+                android:contentDescription="@string/om_action_next"
                 android:src="@drawable/ic_arrow_downward_24dp"
                 app:tint="#CCCCCC" />
 
@@ -106,7 +106,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Reemplazar"
+                android:contentDescription="@string/om_action_replace"
                 android:src="@drawable/edit_icon"
                 app:tint="#CCCCCC" />
 
@@ -115,7 +115,7 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Cerrar"
+                android:contentDescription="@string/om_action_close"
                 android:src="@drawable/close_icon_control_normal_24dp"
                 app:tint="#CCCCCC" />
         </LinearLayout>

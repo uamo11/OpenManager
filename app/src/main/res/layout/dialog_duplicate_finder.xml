@@ -24,7 +24,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Buscador de Duplicados"
+            android:text="@string/om_dup_title"
             android:textColor="#FFFFFF"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -59,7 +59,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Buscar en subdirectorios"
+                android:text="@string/om_dup_subdirs"
                 android:textColor="#F0F6FC"
                 android:textSize="14sp" />
 
@@ -75,7 +75,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:text="Tamaño mínimo de archivo"
+            android:text="@string/om_dup_min_size"
             android:textColor="#8B949E"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -91,7 +91,7 @@
                 android:id="@+id/rbMinSize0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Todos"
+                android:text="@string/om_filter_all"
                 android:textColor="#F0F6FC"
                 android:textSize="12sp" />
 
@@ -129,7 +129,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:text="Filtro de extensiones (vacío o * = todos)"
+            android:text="@string/om_dup_ext_filter"
             android:textColor="#8B949E"
             android:textSize="12sp"
             android:textStyle="bold" />
@@ -140,7 +140,7 @@
             android:layout_height="40dp"
             android:layout_marginTop="4dp"
             android:background="#282828"
-            android:hint="Ej: jpg, png, mp4, apk"
+            android:hint="@string/om_dup_ext_hint"
             android:textColorHint="#6E7681"
             android:textColor="#F0F6FC"
             android:textSize="13sp"
@@ -153,7 +153,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="20dp"
-            android:text="Iniciar Búsqueda de Duplicados"
+            android:text="@string/om_dup_start_btn"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             app:backgroundTint="#1F6FEB"
@@ -181,7 +181,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="Analizando archivos y sumas de verificación..."
+            android:text="@string/om_dup_analyzing"
             android:textColor="#F0F6FC"
             android:textSize="14sp"
             android:textStyle="bold" />
@@ -194,7 +194,7 @@
             android:textColor="#8B949E"
             android:textSize="12sp"
             android:fontFamily="monospace"
-            android:text="Escaneando..." />
+            android:text="@string/om_scanning" />
     </LinearLayout>
 
     <!-- 3. RESULTS VIEW -->
@@ -228,7 +228,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="Se mantendrá 1 copia original de cada grupo."
+                android:text="@string/om_dup_keep_one_note"
                 android:textColor="#8B949E"
                 android:textSize="11.5sp" />
         </LinearLayout>
@@ -254,7 +254,7 @@
                     android:gravity="center"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
-                    android:text="Conservar más antiguo"
+                    android:text="@string/om_dup_keep_oldest"
                     android:textColor="#58A6FF"
                     android:textSize="11.5sp" />
 
@@ -267,7 +267,7 @@
                     android:gravity="center"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
-                    android:text="Conservar más nuevo"
+                    android:text="@string/om_dup_keep_newest"
                     android:textColor="#58A6FF"
                     android:textSize="11.5sp" />
 
@@ -280,7 +280,7 @@
                     android:gravity="center"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
-                    android:text="Invertir"
+                    android:text="@string/om_action_invert"
                     android:textColor="#C9D1D9"
                     android:textSize="11.5sp" />
 
@@ -293,7 +293,7 @@
                     android:gravity="center"
                     android:paddingStart="10dp"
                     android:paddingEnd="10dp"
-                    android:text="Desmarcar todo"
+                    android:text="@string/om_action_uncheck_all"
                     android:textColor="#C9D1D9"
                     android:textSize="11.5sp" />
             </LinearLayout>
@@ -314,7 +314,7 @@
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
-            android:text="Eliminar Duplicados Seleccionados"
+            android:text="@string/om_dup_delete_selected"
             android:textStyle="bold"
             android:textColor="#FFFFFF"
             app:backgroundTint="#DA3633"

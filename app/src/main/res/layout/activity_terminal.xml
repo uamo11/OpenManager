@@ -57,7 +57,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/copy_icon_control_normal_24dp"
                     app:tint="#C9D1D9"
-                    android:contentDescription="Copiar salida" />
+                    android:contentDescription="@string/om_terminal_copy_output" />
 
                 <ImageButton
                     android:id="@+id/btnDeadManSkull"
@@ -77,7 +77,7 @@
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/more_vertical_icon_white_24dp"
                     app:tint="#C9D1D9"
-                    android:contentDescription="Más opciones" />
+                    android:contentDescription="@string/om_more_options" />
             </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
@@ -171,7 +171,7 @@
                     android:textSize="14sp"
                     android:textStyle="bold"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Reducir fuente" />
+                    android:contentDescription="@string/om_terminal_decrease_font" />
 
                 <TextView
                     android:id="@+id/tvZoomSize"
@@ -184,7 +184,7 @@
                     android:textSize="11sp"
                     android:fontFamily="monospace"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Restablecer fuente" />
+                    android:contentDescription="@string/om_terminal_reset_font" />
 
                 <TextView
                     android:id="@+id/btnZoomIn"
@@ -196,7 +196,7 @@
                     android:textSize="13sp"
                     android:textStyle="bold"
                     android:background="?attr/selectableItemBackgroundBorderless"
-                    android:contentDescription="Aumentar fuente" />
+                    android:contentDescription="@string/om_terminal_increase_font" />
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
@@ -250,7 +250,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="7dp"
-                android:text="DEAD MAN: BLOQUEADO"
+                android:text="@string/om_terminal_deadman_locked"
                 android:textColor="#FFDCD7"
                 android:textSize="11.5sp"
                 android:textStyle="bold"

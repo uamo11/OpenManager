@@ -62,7 +62,7 @@
         android:id="@+id/tvApktoolStatus"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Iniciando tarea..."
+        android:text="@string/om_apktool_starting"
         android:textColor="#DDDDDD"
         android:textSize="13sp"
         android:layout_marginBottom="10dp" />

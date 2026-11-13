@@ -902,7 +902,11 @@ object UpdateChecker {
                 }
                 activity.startActivity(intent)
             } catch (e: Exception) {
-                Toast.makeText(activity, "Error al iniciar instalador: ${e.message}", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    activity,
+                    activity.getString(R.string.om_update_installer_error_format, e.message ?: ""),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }

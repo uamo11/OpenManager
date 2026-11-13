@@ -45,7 +45,7 @@
             android:id="@+id/tvTableInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="0 filas"
+            android:text="@string/om_sqlite_zero_rows"
             android:textColor="#AAAAAA"
             android:textSize="12sp" />
     </LinearLayout>
@@ -92,7 +92,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No hay registros en esta tabla"
+            android:text="@string/om_sqlite_no_records"
             android:textColor="#888888"
             android:textSize="14sp"
             android:visibility="gone" />
@@ -114,7 +114,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Anterior"
+            android:text="@string/om_action_previous"
             android:textColor="#2196F3"
             android:textSize="12sp" />
 
@@ -124,7 +124,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:gravity="center"
-            android:text="Pág. 1"
+            android:text="@string/om_page_one"
             android:textColor="#FFFFFF"
             android:textSize="12sp" />
 
@@ -133,7 +133,7 @@
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Siguiente"
+            android:text="@string/om_action_next"
             android:textColor="#2196F3"
             android:textSize="12sp" />
     </LinearLayout>

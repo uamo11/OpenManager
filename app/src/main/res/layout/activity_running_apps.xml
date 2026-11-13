@@ -250,7 +250,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="20dp"
-        android:contentDescription="Refrescar"
+        android:contentDescription="@string/om_action_refresh"
         android:src="@drawable/reset_icon_white_24dp"
         app:backgroundTint="#00E676"
         app:tint="#121212" />

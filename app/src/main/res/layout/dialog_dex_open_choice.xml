@@ -313,7 +313,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Visualizar y editar bytes binarios en crudo"
+                android:text="@string/om_dex_open_hex_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -355,7 +355,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Abrir directamente en el editor de texto"
+                android:text="@string/om_dex_open_text_desc"
                 android:textColor="#888888"
                 android:textSize="11sp" />
         </LinearLayout>
