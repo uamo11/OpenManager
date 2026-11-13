@@ -72,19 +72,20 @@ object AppDetailsViewerHelper {
                 pm.getPackageInfo(packageName, flags)
             }
         } catch (e: Exception) {
-            Toast.makeText(activity, "Error al cargar componentes: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, activity.getString(R.string.om_comp_load_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
             return
         }
 
         if (pkgInfo == null) {
-            Toast.makeText(activity, "No se pudo leer la información del paquete", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_comp_pkg_info_error, Toast.LENGTH_SHORT).show()
             return
         }
 
+        val permLabel = activity.getString(R.string.om_comp_permission_label)
         val activitiesList = pkgInfo.activities?.map {
             ComponentItem(
                 name = it.name,
-                subtitle = "Exported: ${it.exported}${if (it.permission != null) " • Permiso: ${it.permission}" else ""}",
+                subtitle = "Exported: ${it.exported}${if (it.permission != null) " • $permLabel: ${it.permission}" else ""}",
                 type = ComponentType.ACTIVITY,
                 isExported = it.exported
             )
@@ -93,7 +94,7 @@ object AppDetailsViewerHelper {
         val servicesList = pkgInfo.services?.map {
             ComponentItem(
                 name = it.name,
-                subtitle = "Exported: ${it.exported}${if (it.permission != null) " • Permiso: ${it.permission}" else ""}",
+                subtitle = "Exported: ${it.exported}${if (it.permission != null) " • $permLabel: ${it.permission}" else ""}",
                 type = ComponentType.SERVICE,
                 isExported = it.exported
             )
@@ -102,7 +103,7 @@ object AppDetailsViewerHelper {
         val receiversList = pkgInfo.receivers?.map {
             ComponentItem(
                 name = it.name,
-                subtitle = "Exported: ${it.exported}${if (it.permission != null) " • Permiso: ${it.permission}" else ""}",
+                subtitle = "Exported: ${it.exported}${if (it.permission != null) " • $permLabel: ${it.permission}" else ""}",
                 type = ComponentType.RECEIVER,
                 isExported = it.exported
             )
@@ -232,12 +233,12 @@ object AppDetailsViewerHelper {
                                 }
 
                                 if (startedElevated) {
-                                    Toast.makeText(activity, "Iniciando con privilegios: ${item.name.substringAfterLast('.')}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(activity, activity.getString(R.string.om_comp_starting_elevated_format, item.name.substringAfterLast('.')), Toast.LENGTH_SHORT).show()
                                 } else {
-                                    Toast.makeText(activity, "Seguridad: Actividad privada / requiere permisos", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(activity, R.string.om_comp_private_or_perm_required, Toast.LENGTH_LONG).show()
                                 }
                             } catch (e: Exception) {
-                                Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                                Toast.makeText(activity, activity.getString(R.string.om_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
                             }
                         }
                     }
@@ -359,13 +360,13 @@ object AppDetailsViewerHelper {
                 }
             }
         } catch (e: Exception) {
-            xmlText = "// Error al decodificar AndroidManifest.xml: ${e.message}\n"
+            xmlText = "// ${activity.getString(R.string.om_manifest_decode_error_format, e.message ?: "")}\n"
         } finally {
             tempCopiedFile?.delete()
         }
 
         if (xmlText.isNullOrBlank()) {
-            Toast.makeText(activity, "No se encontró AndroidManifest.xml en el APK", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_manifest_not_found_in_apk, Toast.LENGTH_SHORT).show()
             return
         }
 

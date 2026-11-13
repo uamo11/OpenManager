@@ -107,10 +107,10 @@ class RunningAppsAdapter(
 
         holder.btnMenu.setOnClickListener { v ->
             val popup = PopupMenu(context, v)
-            popup.menu.add(0, 1, 0, "Detalles del proceso")
-            popup.menu.add(0, 2, 1, "Finalizar proceso (kill)")
+            popup.menu.add(0, 1, 0, context.getString(R.string.om_proc_menu_details))
+            popup.menu.add(0, 2, 1, context.getString(R.string.om_proc_menu_kill))
             if (item.packageName != null) {
-                popup.menu.add(0, 3, 2, "Forzar detención")
+                popup.menu.add(0, 3, 2, context.getString(R.string.om_proc_menu_force_stop))
             }
             popup.setOnMenuItemClickListener { menuItem ->
                 when (menuItem.itemId) {

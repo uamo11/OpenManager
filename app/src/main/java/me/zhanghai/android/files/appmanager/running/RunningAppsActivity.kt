@@ -239,9 +239,9 @@ class RunningAppsActivity : AppActivity() {
     private fun requestShizukuPrivileges() {
         if (!ShizukuManager.isInstalled(this)) {
             MaterialAlertDialogBuilder(this)
-                .setTitle("Shizuku no instalado")
-                .setMessage("Para usar Shizuku, debes instalar la aplicación Shizuku en tu dispositivo y activarla.")
-                .setPositiveButton("Ver Shizuku") { _, _ ->
+                .setTitle(R.string.om_shizuku_not_installed_title)
+                .setMessage(R.string.om_shizuku_not_installed_msg)
+                .setPositiveButton(R.string.om_shizuku_view_btn) { _, _ ->
                     try {
                         startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://shizuku.rikka.app/")))
                     } catch (_: Throwable) {}
@@ -252,7 +252,7 @@ class RunningAppsActivity : AppActivity() {
         }
 
         if (!ShizukuManager.isAvailable()) {
-            Toast.makeText(this, "El servicio de Shizuku no está iniciado. Ábrelo e inícialo primero.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, R.string.om_shizuku_service_not_running, Toast.LENGTH_LONG).show()
             return
         }
 
@@ -262,7 +262,7 @@ class RunningAppsActivity : AppActivity() {
                 updateElevationUi()
                 loadProcesses()
             } else {
-                Toast.makeText(this, "Permiso de Shizuku no concedido", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.om_shizuku_permission_denied, Toast.LENGTH_SHORT).show()
                 updateElevationUi()
             }
         }
@@ -272,21 +272,21 @@ class RunningAppsActivity : AppActivity() {
         val isRoot = RunningAppsLoader.isRootGranted()
         val isShizuku = RunningAppsLoader.isShizukuReady()
         val statusText = when {
-            isRoot -> "Acceso Superusuario (Root) concedido y activo."
-            isShizuku -> "Acceso Shizuku (ADB API) concedido y activo."
-            else -> "Modo estándar sin privilegios elevados. En Android moderno solo se listan procesos del propio proceso."
+            isRoot -> getString(R.string.om_proc_elev_root_active)
+            isShizuku -> getString(R.string.om_proc_elev_shizuku_active)
+            else -> getString(R.string.om_proc_elev_standard)
         }
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("Privilegios de Procesos")
-            .setMessage("$statusText\n\n¿Deseas solicitar permisos elevados para ver y gestionar todos los procesos?")
-            .setPositiveButton("Pedir Root") { _, _ ->
+            .setTitle(R.string.om_proc_elev_title)
+            .setMessage(getString(R.string.om_proc_elev_msg_format, statusText))
+            .setPositiveButton(R.string.om_proc_req_root) { _, _ ->
                 requestRootPrivileges(interactive = true)
             }
-            .setNeutralButton("Pedir Shizuku") { _, _ ->
+            .setNeutralButton(R.string.om_proc_req_shizuku) { _, _ ->
                 requestShizukuPrivileges()
             }
-            .setNegativeButton("Cerrar", null)
+            .setNegativeButton(R.string.close, null)
             .show()
     }
 
@@ -330,7 +330,7 @@ class RunningAppsActivity : AppActivity() {
             if (p.isApp && !p.isSystem) userCount++ else sysCount++
         }
 
-        binding.tvProcessCounters.text = "$total procesos en ejecución • $userCount apps de usuario"
+        binding.tvProcessCounters.text = getString(R.string.om_proc_counters_format, total, userCount)
         binding.tabLayout.getTabAt(0)?.text = "${getString(R.string.running_apps_tab_user)} ($userCount)"
         binding.tabLayout.getTabAt(1)?.text = "${getString(R.string.running_apps_tab_system)} ($sysCount)"
         binding.tabLayout.getTabAt(2)?.text = "${getString(R.string.running_apps_tab_all)} ($total)"
@@ -374,12 +374,13 @@ class RunningAppsActivity : AppActivity() {
 
         dialogBinding.dialogProcessLabel.text = item.label
         dialogBinding.dialogProcessName.text = item.processName
-        dialogBinding.dialogProcessState.text = "ESTADO: ${item.state} (${if (item.isApp) "App" else "Proceso"})"
+        val typeLabel = getString(if (item.isApp) R.string.om_proc_type_app else R.string.om_proc_type_process)
+        dialogBinding.dialogProcessState.text = getString(R.string.om_proc_state_format, item.state, typeLabel)
         dialogBinding.dialogTvPidPpid.text = "${item.pid} / ${item.ppid}"
-        val memStr = if (item.memoryBytes > 0) Formatter.formatFileSize(this, item.memoryBytes) else "Desconocido"
+        val memStr = if (item.memoryBytes > 0) Formatter.formatFileSize(this, item.memoryBytes) else getString(R.string.unknown)
         dialogBinding.dialogTvMemory.text = "$memStr (VmRSS)"
         dialogBinding.dialogTvUidUser.text = "${item.uid} (${item.user})"
-        dialogBinding.dialogTvThreads.text = "${item.threadCount} hilos"
+        dialogBinding.dialogTvThreads.text = getString(R.string.om_proc_threads_format, item.threadCount)
         dialogBinding.dialogTvSelinux.text = if (item.selinuxContext.isNotEmpty()) item.selinuxContext else "u:r:default:s0"
         dialogBinding.dialogTvCmdline.text = if (item.cmdline.isNotEmpty()) item.cmdline else item.processName
 
@@ -453,7 +454,7 @@ class RunningAppsActivity : AppActivity() {
                 if (launchIntent != null) {
                     startActivity(launchIntent)
                 } else {
-                    Toast.makeText(this, "Esta aplicación no tiene interfaz ejecutable", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, R.string.om_app_no_launchable_ui, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -476,7 +477,7 @@ class RunningAppsActivity : AppActivity() {
             """.trimIndent()
             val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("Process Info", text))
-            Toast.makeText(this, "Información del proceso copiada", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_proc_info_copied, Toast.LENGTH_SHORT).show()
         }
 
         dialog.show()
@@ -485,7 +486,7 @@ class RunningAppsActivity : AppActivity() {
     private fun killProcess(item: RunningAppModel) {
         if (!RunningAppsLoader.hasElevatedAccess() && (item.isSystem || item.uid != android.os.Process.myUid())) {
             MaterialAlertDialogBuilder(this)
-                .setTitle("Se requieren permisos elevados")
+                .setTitle(R.string.om_proc_elevated_required_title)
                 .setMessage(R.string.running_apps_kill_unprivileged_warning)
                 .setPositiveButton(R.string.running_apps_action_request_root) { _, _ ->
                     requestRootPrivileges(interactive = true)
@@ -518,7 +519,7 @@ class RunningAppsActivity : AppActivity() {
                 data = Uri.parse("package:$pkg")
             }
             startActivity(intent)
-            Toast.makeText(this@RunningAppsActivity, "Usa 'Forzar detención' en Ajustes", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@RunningAppsActivity, R.string.om_proc_use_force_stop_settings, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -534,7 +535,7 @@ class RunningAppsActivity : AppActivity() {
                         data = Uri.parse("package:$pkg")
                     }
                     startActivity(intent)
-                    Toast.makeText(this@RunningAppsActivity, "Usa 'Forzar detención' en Ajustes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@RunningAppsActivity, R.string.om_proc_use_force_stop_settings, Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -545,7 +546,7 @@ class RunningAppsActivity : AppActivity() {
 
         val searchItem = menu.findItem(R.id.action_search)
         val searchView = searchItem?.actionView as? SearchView
-        searchView?.queryHint = "Buscar proceso o app..."
+        searchView?.queryHint = getString(R.string.om_proc_search_hint)
         searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 searchQuery = query.orEmpty()

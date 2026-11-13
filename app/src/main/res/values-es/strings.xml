@@ -1918,4 +1918,39 @@
     <string name="om_hex_copy_hashes">Copiar Hashes</string>
     <string name="om_hex_encoding_set_format">Codificación: %1$s</string>
     <string name="om_hex_encoding_unsupported">Codificación no soportada</string>
+
+    <!-- OpenManager RunningApps & AppDetails Localization (Batch 2B) -->
+    <string name="om_proc_menu_details">Detalles del proceso</string>
+    <string name="om_proc_menu_kill">Finalizar proceso (kill)</string>
+    <string name="om_proc_menu_force_stop">Forzar detención</string>
+    <string name="om_shizuku_not_installed_title">Shizuku no instalado</string>
+    <string name="om_shizuku_not_installed_msg">Para usar Shizuku, debes instalar la aplicación Shizuku en tu dispositivo y activarla.</string>
+    <string name="om_shizuku_view_btn">Ver Shizuku</string>
+    <string name="om_shizuku_service_not_running">El servicio de Shizuku no está iniciado. Ábrelo e inícialo primero.</string>
+    <string name="om_shizuku_permission_denied">Permiso de Shizuku no concedido</string>
+    <string name="om_proc_elev_root_active">Acceso Superusuario (Root) concedido y activo.</string>
+    <string name="om_proc_elev_shizuku_active">Acceso Shizuku (ADB API) concedido y activo.</string>
+    <string name="om_proc_elev_standard">Modo estándar sin privilegios elevados. En Android moderno solo se listan procesos del propio proceso.</string>
+    <string name="om_proc_elev_title">Privilegios de Procesos</string>
+    <string name="om_proc_elev_msg_format">%1$s\n\n¿Deseas solicitar permisos elevados para ver y gestionar todos los procesos?</string>
+    <string name="om_proc_req_root">Pedir Root</string>
+    <string name="om_proc_req_shizuku">Pedir Shizuku</string>
+    <string name="om_proc_counters_format">%1$d procesos en ejecución • %2$d apps de usuario</string>
+    <string name="om_proc_type_app">App</string>
+    <string name="om_proc_type_process">Proceso</string>
+    <string name="om_proc_state_format">ESTADO: %1$s (%2$s)</string>
+    <string name="om_proc_threads_format">%1$d hilos</string>
+    <string name="om_app_no_launchable_ui">Esta aplicación no tiene interfaz ejecutable</string>
+    <string name="om_proc_info_copied">Información del proceso copiada</string>
+    <string name="om_proc_elevated_required_title">Se requieren permisos elevados</string>
+    <string name="om_proc_use_force_stop_settings">Usa "Forzar detención" en Ajustes</string>
+    <string name="om_proc_search_hint">Buscar proceso o app...</string>
+    <string name="om_comp_load_error_format">Error al cargar componentes: %1$s</string>
+    <string name="om_comp_pkg_info_error">No se pudo leer la información del paquete</string>
+    <string name="om_comp_permission_label">Permiso</string>
+    <string name="om_comp_starting_elevated_format">Iniciando con privilegios: %1$s</string>
+    <string name="om_comp_private_or_perm_required">Seguridad: Actividad privada / requiere permisos</string>
+    <string name="om_error_format">Error: %1$s</string>
+    <string name="om_manifest_decode_error_format">Error al decodificar AndroidManifest.xml: %1$s</string>
+    <string name="om_manifest_not_found_in_apk">No se encontró AndroidManifest.xml en el APK</string>
 </resources>

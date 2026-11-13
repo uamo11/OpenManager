@@ -2022,4 +2022,39 @@
     <string name="om_hex_copy_hashes">Copy Hashes</string>
     <string name="om_hex_encoding_set_format">Encoding: %1$s</string>
     <string name="om_hex_encoding_unsupported">Unsupported encoding</string>
+
+    <!-- OpenManager RunningApps & AppDetails Localization (Batch 2B) -->
+    <string name="om_proc_menu_details">Process details</string>
+    <string name="om_proc_menu_kill">Kill process (kill)</string>
+    <string name="om_proc_menu_force_stop">Force stop</string>
+    <string name="om_shizuku_not_installed_title">Shizuku not installed</string>
+    <string name="om_shizuku_not_installed_msg">To use Shizuku, you must install the Shizuku app on your device and activate it.</string>
+    <string name="om_shizuku_view_btn">Get Shizuku</string>
+    <string name="om_shizuku_service_not_running">Shizuku service is not running. Open it and start it first.</string>
+    <string name="om_shizuku_permission_denied">Shizuku permission denied</string>
+    <string name="om_proc_elev_root_active">Superuser (Root) access granted and active.</string>
+    <string name="om_proc_elev_shizuku_active">Shizuku (ADB API) access granted and active.</string>
+    <string name="om_proc_elev_standard">Standard mode without elevated privileges. Modern Android only lists own processes.</string>
+    <string name="om_proc_elev_title">Process Privileges</string>
+    <string name="om_proc_elev_msg_format">%1$s\n\nDo you want to request elevated permissions to view and manage all processes?</string>
+    <string name="om_proc_req_root">Request Root</string>
+    <string name="om_proc_req_shizuku">Request Shizuku</string>
+    <string name="om_proc_counters_format">%1$d running processes • %2$d user apps</string>
+    <string name="om_proc_type_app">App</string>
+    <string name="om_proc_type_process">Process</string>
+    <string name="om_proc_state_format">STATE: %1$s (%2$s)</string>
+    <string name="om_proc_threads_format">%1$d threads</string>
+    <string name="om_app_no_launchable_ui">This app has no launchable UI</string>
+    <string name="om_proc_info_copied">Process info copied</string>
+    <string name="om_proc_elevated_required_title">Elevated permissions required</string>
+    <string name="om_proc_use_force_stop_settings">Use "Force stop" in Settings</string>
+    <string name="om_proc_search_hint">Search process or app...</string>
+    <string name="om_comp_load_error_format">Error loading components: %1$s</string>
+    <string name="om_comp_pkg_info_error">Could not read package info</string>
+    <string name="om_comp_permission_label">Permission</string>
+    <string name="om_comp_starting_elevated_format">Starting with privileges: %1$s</string>
+    <string name="om_comp_private_or_perm_required">Security: Private activity / requires permissions</string>
+    <string name="om_error_format">Error: %1$s</string>
+    <string name="om_manifest_decode_error_format">Error decoding AndroidManifest.xml: %1$s</string>
+    <string name="om_manifest_not_found_in_apk">AndroidManifest.xml not found in APK</string>
 </resources>
