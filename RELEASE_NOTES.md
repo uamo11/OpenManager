@@ -1,3 +1,17 @@
+# OpenManager v1.9.69: Renovación Visual de Iconos (Sin Fondo Blanco y Diseño Variado por Pantalla)
+
+### 🎨 Nuevos Iconos de Alta Definición con Fondo Transparente
+- **Icono Principal de la App (Launcher / Escritorio)**:
+  - Se adoptó la variante **Full Moderno** con efecto 3D, profundidad metálica, tarjeta translúcida y letras `OM` en relieve, adaptada a todas las densidades Android (`mdpi` a `xxxhdpi`) y al formato adaptativo.
+- **Barra Lateral / Menú de Navegación (32dp)**:
+  - Se integró la variante **Ultra Simple** en el encabezado del menú lateral para mantener máxima nitidez y legibilidad en tamaño compacto.
+- **Pantalla "Acerca de"**:
+  - Se incorporó la variante **Simple Variado** en alta resolución para el logotipo principal dentro de la vista *Acerca de*.
+- **Eliminación Total de Fondos Blancos**:
+  - Limpieza precisa de bordes y halos blancos con anti-aliasing suave para integrarse limpiamente sobre temas oscuros, claros y fondos del sistema.
+
+---
+
 # OpenManager v1.9.68: Limpieza y Filtrado Estricto de Notas de Actualización (Solo Versión Más Reciente y Cero Textos Largos de Versiones Antiguas)
 
 ### 🧹 Información Exclusiva de la Versión Más Reciente
