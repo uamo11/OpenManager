@@ -9,7 +9,7 @@ const i18nData = {
     nav_comparison: "Comparativa",
     nav_build: "Compilar",
     nav_releases: "Releases",
-    hero_badge: "Versión <strong id=\"latestTag\">v1.9.31</strong> • Alternativa Open-Source a MT Manager",
+    hero_badge: "Versión <strong id=\"latestTag\">v1.9.69</strong> • Alternativa Open-Source a MT Manager",
     hero_title: "Gestión Dual-Panel & <br><span class=\"gradient-text\">Suite de Modding</span> en tu Móvil",
     hero_subtitle: "El administrador de archivos definitivo para Android. Totalmente <strong>código abierto</strong>, sin suscripciones de pago y sin anuncios. Descompila con JADX, edita Smali/DEX en tiempo real, inspecciona con Data Inspector, fusiona Split APKs y opera con Shizuku o Root.",
     btn_releases: "Ver Versiones en GitHub",
@@ -118,7 +118,7 @@ const i18nData = {
     nav_comparison: "Comparison",
     nav_build: "Build",
     nav_releases: "Releases",
-    hero_badge: "Version <strong id=\"latestTag\">v1.9.31</strong> • Open-Source Alternative to MT Manager",
+    hero_badge: "Version <strong id=\"latestTag\">v1.9.69</strong> • Open-Source Alternative to MT Manager",
     hero_title: "Dual-Panel Explorer & <br><span class=\"gradient-text\">Modding Suite</span> on Android",
     hero_subtitle: "The ultimate Android file manager. Fully <strong>open-source</strong>, zero paid VIP subscriptions, and no ads. Decompile with JADX, edit Smali/DEX live, inspect in HEX with Data Inspector, merge Split APKs, and operate with Shizuku or Root.",
     btn_releases: "View Releases on GitHub",
@@ -227,7 +227,7 @@ const i18nData = {
     nav_comparison: "对比分析",
     nav_build: "源码编译",
     nav_releases: "发布版本",
-    hero_badge: "版本 <strong id=\"latestTag\">v1.9.31</strong> • MT 管理器开源全功能替代",
+    hero_badge: "版本 <strong id=\"latestTag\">v1.9.69</strong> • MT 管理器开源全功能替代",
     hero_title: "移动端双面板浏览 & <br><span class=\"gradient-text\">逆向工程套件</span>",
     hero_subtitle: "适用于 Android 的终极文件管理器。完全<strong>开源免费</strong>，无 VIP 付费订阅，零广告。集成 JADX 源码查看、Smali/DEX 实时编辑、带数据检查器的十六进制编辑器、AntiSplit 拆包合并与 Shizuku/Root 特权支持。",
     btn_releases: "前往 GitHub 查看版本",
@@ -559,15 +559,15 @@ function applyLanguage(lang) {
   });
 
   const tagEl = document.getElementById('latestTag');
-  if (tagEl && window.__latestTag) {
-    tagEl.textContent = window.__latestTag;
+  const activeTag = window.__latestTag || 'v1.9.69';
+  if (tagEl) {
+    tagEl.textContent = activeTag;
   }
 
-  const apkTextEl = document.getElementById('apkDownloadText');
-  if (apkTextEl && window.__latestTag) {
-    const baseLabel = dict.btn_download_apk || 'Descargar APK';
-    apkTextEl.textContent = `${baseLabel} (${window.__latestTag})`;
-  }
+  const baseLabel = dict.btn_download_apk || 'Descargar APK';
+  document.querySelectorAll('.js-apk-label').forEach(el => {
+    el.textContent = `${baseLabel} (${activeTag})`;
+  });
 }
 
 // Native <dialog> Lightbox
@@ -660,35 +660,36 @@ function applyReleaseData(tag, apkUrl) {
     if (tagEl) tagEl.textContent = tag;
   }
 
-  const apkBtn = document.getElementById('apkDownloadBtn');
-  const apkTextEl = document.getElementById('apkDownloadText');
-  if (apkBtn && apkUrl) {
-    apkBtn.href = apkUrl;
+  if (apkUrl) {
+    document.querySelectorAll('.js-apk-download').forEach(btn => {
+      btn.href = apkUrl;
+    });
   }
-  if (apkTextEl && tag) {
+  if (tag) {
     const dict = extraI18n[currentLang] || extraI18n.es;
-    apkTextEl.textContent = `${dict.btn_download_apk} (${tag})`;
+    document.querySelectorAll('.js-apk-label').forEach(el => {
+      el.textContent = `${dict.btn_download_apk} (${tag})`;
+    });
   }
 }
 
-// Fetch Latest Release Tag & APK asset with 1h localStorage cache
+// Fetch Latest Release Tag & APK asset (stale-while-revalidate, always checks GitHub)
 async function fetchLatestRelease() {
-  const CACHE_KEY = 'om_release_cache_v1';
-  const CACHE_TTL = 60 * 60 * 1000;
+  const CACHE_KEY = 'om_release_cache_v2';
 
   try {
     const cachedRaw = storageGet(CACHE_KEY);
     if (cachedRaw) {
       const cached = JSON.parse(cachedRaw);
-      if (cached && cached.ts && Date.now() - cached.ts < CACHE_TTL && cached.tag) {
+      if (cached && cached.tag && cached.apkUrl) {
         applyReleaseData(cached.tag, cached.apkUrl);
-        return;
       }
     }
   } catch (_) {}
 
   try {
     const res = await fetch('https://api.github.com/repos/uamo11/OpenManager/releases/latest', {
+      cache: 'no-store',
       headers: { Accept: 'application/vnd.github+json' }
     });
     if (!res.ok) return;
@@ -704,6 +705,6 @@ async function fetchLatestRelease() {
       storageSet(CACHE_KEY, JSON.stringify({ ts: Date.now(), tag, apkUrl }));
     }
   } catch (_) {
-    // Keep fallback v1.9.66
+    // Keep fallback v1.9.69
   }
 }
