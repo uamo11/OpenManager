@@ -513,7 +513,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         })
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                adapter.isFlinging = newState == RecyclerView.SCROLL_STATE_FLING
+                adapter.isFlinging = newState == RecyclerView.SCROLL_STATE_SETTLING
             }
         })
         binding.recyclerView.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {

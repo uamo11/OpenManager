@@ -20,6 +20,7 @@ import me.zhanghai.android.files.theme.night.NightModeHelper
 import me.zhanghai.android.files.ui.PreferenceFragmentCompat
 import me.zhanghai.android.files.util.createIntent
 import me.zhanghai.android.files.util.startActivitySafe
+import me.zhanghai.android.files.util.valueCompat
 
 class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     private lateinit var localePreference: LocalePreference
