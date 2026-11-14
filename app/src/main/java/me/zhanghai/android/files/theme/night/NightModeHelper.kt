@@ -42,7 +42,7 @@ object NightModeHelper {
     }
 
     fun sync() {
-        for (activity in activities) {
+        for (activity in activities.toList()) {
             val nightMode = nightMode
             if (activity is OnNightModeChangedListener) {
                 if (getUiModeNight(activity.delegate.localNightMode, activity)

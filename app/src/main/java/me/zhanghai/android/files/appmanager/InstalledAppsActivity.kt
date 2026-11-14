@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -22,11 +23,11 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsetsController
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -54,6 +55,8 @@ import me.zhanghai.android.files.filelist.ApktoolHelper
 import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.file.MimeType
+import me.zhanghai.android.files.settings.Settings as AppSettings
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.ThemedFastScroller
 import me.zhanghai.android.files.util.copyText
 import me.zhanghai.android.files.util.createSendStreamIntent
@@ -78,6 +81,7 @@ class InstalledAppsActivity : AppActivity() {
     private var showSystemApps = false
     private var searchQuery = ""
     private var currentSortOrder = 0 // 0: Name A-Z
+    private var currentPalette: OpenManagerPalette? = null
 
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
@@ -90,12 +94,6 @@ class InstalledAppsActivity : AppActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityInstalledAppsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // 1. Consistent dark status bar
-        window.statusBarColor = Color.parseColor("#1F1F1F")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
-        }
 
         // 2. Query status bar height directly from framework dimensions
         val resId = resources.getIdentifier("status_bar_height", "dimen", "android")
@@ -126,7 +124,49 @@ class InstalledAppsActivity : AppActivity() {
 
         setupTabs()
         setupRecyclerView()
+        applyVisualTheme()
+        observeVisualTheme()
         loadApps()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyVisualTheme()
+    }
+
+    private fun observeVisualTheme() {
+        AppSettings.NIGHT_MODE.observe(this) { applyVisualTheme() }
+        AppSettings.BLACK_NIGHT_MODE.observe(this) { applyVisualTheme() }
+        AppSettings.THEME_COLOR.observe(this) { applyVisualTheme() }
+        AppSettings.MATERIAL_DESIGN_3.observe(this) { applyVisualTheme() }
+    }
+
+    private fun applyVisualTheme() {
+        val palette = OpenManagerPalette.from(this)
+        currentPalette = palette
+
+        window.statusBarColor = palette.appBarBg
+        window.navigationBarColor = palette.screenBg
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = palette.isLightStatusBar
+            isAppearanceLightNavigationBars = palette.isLightStatusBar
+        }
+
+        binding.rootLayout.setBackgroundColor(palette.screenBg)
+        binding.appBarLayout.setBackgroundColor(palette.appBarBg)
+        binding.toolbar.setBackgroundColor(palette.appBarBg)
+        binding.toolbar.setTitleTextColor(palette.textPrimary)
+        binding.toolbar.navigationIcon?.mutate()?.setTint(palette.iconTint)
+        binding.toolbar.overflowIcon?.mutate()?.setTint(palette.iconTint)
+        binding.tabLayout.setBackgroundColor(palette.appBarBg)
+        binding.tabLayout.setSelectedTabIndicatorColor(palette.accentColor)
+        binding.tabLayout.setTabTextColors(palette.textSecondary, palette.accentColor)
+        binding.progressBar.indeterminateTintList = ColorStateList.valueOf(palette.accentColor)
+        binding.emptyText.setTextColor(palette.textSecondary)
+
+        if (::adapter.isInitialized && displayedApps.isNotEmpty()) {
+            adapter.notifyItemRangeChanged(0, displayedApps.size)
+        }
     }
 
     private fun setupTabs() {
@@ -1078,16 +1118,22 @@ class InstalledAppsActivity : AppActivity() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val app = items[position]
+            val p = currentPalette ?: OpenManagerPalette.from(this@InstalledAppsActivity)
             with(holder.binding) {
                 appName.text = app.label
+                appName.setTextColor(p.textPrimary)
                 appPackage.text = app.packageName
+                appPackage.setTextColor(p.textSecondary)
                 appVersion.text = "v${app.versionName} (${app.versionCode})"
+                appVersion.setTextColor(p.textSecondary)
                 appSize.text = formatSize(app.sizeBytes)
+                appSize.setTextColor(p.accentColor)
                 appSplitBadge.visibility = if (app.isSplit) View.VISIBLE else View.GONE
 
                 val minSdkStr = if (app.minSdkVersion > 0) app.minSdkVersion.toString() else "?"
                 val dateStr = formatDate(app.lastUpdateTime)
                 appMetaInfo.text = "SDK: $minSdkStr - ${app.targetSdkVersion}  •  $dateStr"
+                appMetaInfo.setTextColor(p.textSecondary)
 
                 holder.iconJob?.cancel()
                 holder.iconJob = null

@@ -291,9 +291,19 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
     private fun onNightModeChanged(nightMode: NightMode) {
         NightModeHelper.sync()
+        CustomThemeHelper.sync()
     }
 
     private fun onBlackNightModeChanged(blackNightMode: Boolean) {
+        val isCurrentlyLight = (activity as? androidx.appcompat.app.AppCompatActivity)
+            ?.let { !NightModeHelper.isInNightMode(it) }
+            ?: (Settings.NIGHT_MODE.valueCompat == NightMode.OFF)
+        if (blackNightMode && isCurrentlyLight) {
+            findPreference<rikka.preference.SimpleMenuPreference>(
+                getString(R.string.pref_key_night_mode)
+            )?.value = NightMode.ON.ordinal.toString()
+            Settings.NIGHT_MODE.putValue(NightMode.ON)
+        }
         CustomThemeHelper.sync()
     }
 

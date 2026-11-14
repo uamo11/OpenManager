@@ -788,15 +788,16 @@
     <string name="settings_theme_color_title">Color de tema</string>
     <string name="settings_theme_color_summary">Color que aparece más frecuentemente en la aplicación</string>
     <string name="settings_material_design_3_title">Material Design 3</string>
-    <string name="settings_night_mode_title">Tema oscuro</string>
+    <string name="settings_night_mode_title">Tema de la aplicación</string>
     <string-array name="settings_night_mode_entries">
-        <item>Seguir al sistema</item>
-        <item>Desactivado</item>
-        <item>Activado</item>
-        <item>Según el horario</item>
-        <item>Según el ahorro de batería</item>
+        <item>Seguir al sistema (Claro / Oscuro)</item>
+        <item>Modo claro</item>
+        <item>Modo oscuro (Predeterminado)</item>
+        <item>Automático (según horario)</item>
+        <item>Automático (ahorro de batería)</item>
     </string-array>
-    <string name="settings_black_night_mode">Usar negro puro</string>
+    <string name="settings_black_night_mode">Modo AMOLED</string>
+    <string name="settings_black_night_mode_summary">Fondo negro puro (#000000) en toda la app para pantallas OLED y menor fatiga visual</string>
     <string name="settings_file_list_animation_title">Animación en la lista de archivos</string>
     <string name="settings_file_name_ellipsize_title">En nombres de archivo extensos</string>
     <string-array name="settings_file_name_ellipsize_entries">
@@ -966,6 +967,22 @@
         <item>dd/MM/yyyy HH:mm:ss</item>
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
+    <string name="settings_dual_panel_contrast_title">Contraste entre paneles (A / B)</string>
+    <string-array name="settings_dual_panel_contrast_entries">
+        <item>Estándar MT (Predeterminado)</item>
+        <item>Alto contraste con separador de acento</item>
+        <item>Fondo uniforme (ahorro de GPU)</item>
+    </string-array>
+    <string name="settings_visual_performance_mode_title">Modo fluido de bajo consumo (Rendimiento UI)</string>
+    <string name="settings_visual_performance_mode_summary">Desactiva animaciones de transición, marquesinas continuas y efectos pesados para máxima fluidez y estabilidad</string>
+    <string name="settings_thumbnail_load_mode_title">Renderizado de miniaturas e iconos</string>
+    <string-array name="settings_thumbnail_load_mode_entries">
+        <item>Completo (Predeterminado)</item>
+        <item>Optimizado (pausar al deslizar rápido)</item>
+        <item>Solo iconos vectoriales (máxima velocidad y menos RAM)</item>
+    </string-array>
+    <string name="settings_file_list_dividers_title">Líneas divisoras en lista de archivos</string>
+    <string name="settings_file_list_dividers_summary">Mostrar separadores sutiles entre elementos de la lista</string>
 
     <!-- MT Manager General Preferences -->
     <string name="settings_generate_backup_file_title">Generar archivo de copia de seguridad</string>

@@ -7,5 +7,5 @@
 
 <resources>
 
-    <bool name="pref_default_value_material_design_3">true</bool>
+    <bool name="pref_default_value_material_design_3">false</bool>
 </resources>

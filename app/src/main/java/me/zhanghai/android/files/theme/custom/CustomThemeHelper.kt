@@ -45,7 +45,7 @@ object CustomThemeHelper {
     }
 
     fun sync() {
-        for ((activity, baseThemeRes) in activityBaseThemes) {
+        for ((activity, baseThemeRes) in activityBaseThemes.entries.toList()) {
             val currentThemeRes = activity.themeResIdCompat
             val customThemeRes = getCustomThemeRes(baseThemeRes, activity)
             if (currentThemeRes != customThemeRes) {

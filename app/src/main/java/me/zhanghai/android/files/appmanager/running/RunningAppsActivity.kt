@@ -9,6 +9,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -18,12 +19,12 @@ import android.text.format.Formatter
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.WindowInsetsController
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DefaultItemAnimator
@@ -49,7 +50,9 @@ import me.zhanghai.android.files.databinding.DialogProcessDetailsBinding
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
 import me.zhanghai.android.files.provider.root.ShizukuManager
+import me.zhanghai.android.files.settings.Settings as AppSettings
 import me.zhanghai.android.files.terminal.ScriptExecutionManager
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.ThemedFastScroller
 import me.zhanghai.android.files.ui.bindToLifecycle
 import me.zhanghai.android.files.ui.isUiAlive
@@ -92,12 +95,6 @@ class RunningAppsActivity : AppActivity() {
         isBannerDismissed = getSharedPreferences("running_apps_prefs", MODE_PRIVATE)
             .getBoolean("hide_permission_banner", false)
 
-        // 1. Consistent dark status bar
-        window.statusBarColor = Color.parseColor("#1F1F1F")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.insetsController?.setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS)
-        }
-
         // 2. Query status bar height directly from framework dimensions
         val resId = resources.getIdentifier("status_bar_height", "dimen", "android")
         val statusBarHeight = if (resId > 0) {
@@ -126,6 +123,8 @@ class RunningAppsActivity : AppActivity() {
         setupTabs()
         setupRecyclerView()
         setupElevationControls()
+        applyVisualTheme()
+        observeVisualTheme()
 
         ShizukuManager.init(this)
         ShizukuManager.addBinderListener(shizukuListener)
@@ -138,8 +137,59 @@ class RunningAppsActivity : AppActivity() {
         loadProcesses()
     }
 
+    private fun observeVisualTheme() {
+        AppSettings.NIGHT_MODE.observe(this) { applyVisualTheme() }
+        AppSettings.BLACK_NIGHT_MODE.observe(this) { applyVisualTheme() }
+        AppSettings.THEME_COLOR.observe(this) { applyVisualTheme() }
+        AppSettings.MATERIAL_DESIGN_3.observe(this) { applyVisualTheme() }
+    }
+
+    private fun applyVisualTheme() {
+        val palette = OpenManagerPalette.from(this)
+        window.statusBarColor = palette.appBarBg
+        window.navigationBarColor = palette.screenBg
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = palette.isLightStatusBar
+            isAppearanceLightNavigationBars = palette.isLightStatusBar
+        }
+
+        binding.rootLayout.setBackgroundColor(palette.screenBg)
+        binding.appBarLayout.setBackgroundColor(palette.appBarBg)
+        binding.toolbar.setBackgroundColor(palette.appBarBg)
+        binding.toolbar.setTitleTextColor(palette.textPrimary)
+        binding.toolbar.navigationIcon?.mutate()?.setTint(palette.iconTint)
+        binding.toolbar.overflowIcon?.mutate()?.setTint(palette.iconTint)
+
+        val tabAccent = if (palette.isDark && !palette.isAmoled) {
+            Color.parseColor("#00E676")
+        } else {
+            palette.accentColor
+        }
+        binding.cardRamMonitor.setBackgroundColor(palette.cardBg)
+        binding.tvRamUsageTitle.setTextColor(palette.textPrimary)
+        binding.tvRamAvailable.setTextColor(tabAccent)
+        binding.pbRamUsage.progressTintList = ColorStateList.valueOf(tabAccent)
+        binding.pbRamUsage.progressBackgroundTintList = ColorStateList.valueOf(palette.dividerLineColor)
+        binding.tvProcessCounters.setTextColor(palette.textSecondary)
+
+        binding.tabLayout.setBackgroundColor(palette.appBarBg)
+        binding.tabLayout.setSelectedTabIndicatorColor(tabAccent)
+        binding.tabLayout.setTabTextColors(palette.textSecondary, tabAccent)
+        binding.tvEmptyState.setTextColor(palette.textSecondary)
+        binding.progressBar.indeterminateTintList = ColorStateList.valueOf(tabAccent)
+        binding.fabRefresh.backgroundTintList = ColorStateList.valueOf(tabAccent)
+        binding.fabRefresh.imageTintList = ColorStateList.valueOf(
+            if (palette.isDark && !palette.isAmoled) 0xFF121212.toInt() else palette.onAccentColor
+        )
+
+        if (::adapter.isInitialized) {
+            adapter.palette = palette
+        }
+    }
+
     override fun onResume() {
         super.onResume()
+        applyVisualTheme()
         startAutoRefresh()
     }
 

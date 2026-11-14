@@ -230,6 +230,48 @@ object Settings {
             R.string.pref_default_value_file_list_size
         )
 
+    val FILE_LIST_TIME_PREFERENCE: SettingLiveData<String> =
+        StringSettingLiveData(
+            R.string.pref_key_file_list_time_preference,
+            R.string.pref_default_value_file_list_time_preference
+        )
+
+    val DISABLE_PERMISSION_IN_FILE_LIST: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_disable_permission_in_file_list,
+            R.bool.pref_default_value_disable_permission_in_file_list
+        )
+
+    val DATE_TIME_FORMAT: SettingLiveData<String> =
+        StringSettingLiveData(
+            R.string.pref_key_date_time_format,
+            R.string.pref_default_value_date_time_format
+        )
+
+    val DUAL_PANEL_CONTRAST: SettingLiveData<String> =
+        StringSettingLiveData(
+            R.string.pref_key_dual_panel_contrast,
+            R.string.pref_default_value_dual_panel_contrast
+        )
+
+    val VISUAL_PERFORMANCE_MODE: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_visual_performance_mode,
+            R.bool.pref_default_value_visual_performance_mode
+        )
+
+    val THUMBNAIL_LOAD_MODE: SettingLiveData<String> =
+        StringSettingLiveData(
+            R.string.pref_key_thumbnail_load_mode,
+            R.string.pref_default_value_thumbnail_load_mode
+        )
+
+    val FILE_LIST_DIVIDERS: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_file_list_dividers,
+            R.bool.pref_default_value_file_list_dividers
+        )
+
     val MOVE_TO_RECYCLE_BIN_ON_DELETE: SettingLiveData<Boolean> =
         BooleanSettingLiveData(
             R.string.pref_key_move_to_recycle_bin_on_delete,

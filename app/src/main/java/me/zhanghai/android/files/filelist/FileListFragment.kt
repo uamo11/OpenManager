@@ -118,6 +118,7 @@ import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.terminal.Terminal
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.AppBarLayoutExpandHackListener
 import me.zhanghai.android.files.ui.CoordinatorAppBarLayout
 import me.zhanghai.android.files.ui.DrawerLayoutOnBackPressedCallback
@@ -491,7 +492,30 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             binding.recyclerView.setRecycledViewPool(it)
         }
         adapter = FileListAdapter(this)
+        adapter.palette = OpenManagerPalette.from(requireContext())
         binding.recyclerView.adapter = adapter
+        val dividerPaint = Paint().apply {
+            style = Paint.Style.FILL
+        }
+        binding.recyclerView.addItemDecoration(object : RecyclerView.ItemDecoration() {
+            override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
+                if (!Settings.FILE_LIST_DIVIDERS.valueCompat) return
+                dividerPaint.color = adapter.palette?.dividerLineColor
+                    ?: OpenManagerPalette.from(parent.context).dividerLineColor
+                val left = parent.paddingLeft.toFloat()
+                val right = (parent.width - parent.paddingRight).toFloat()
+                for (i in 0 until parent.childCount - 1) {
+                    val child = parent.getChildAt(i)
+                    val bottom = child.bottom.toFloat()
+                    c.drawRect(left, bottom - 1f, right, bottom, dividerPaint)
+                }
+            }
+        })
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                adapter.isFlinging = newState == RecyclerView.SCROLL_STATE_FLING
+            }
+        })
         binding.recyclerView.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {
             override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
                 (activity as? FileListActivity)?.onPanelFocused(this@FileListFragment)
@@ -726,14 +750,42 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         Settings.FILE_NAME_ELLIPSIZE.observe(viewLifecycleOwner) { onFileNameEllipsizeChanged(it) }
         Settings.MAX_LINES_FILE_NAME.observe(viewLifecycleOwner) { adapter.maxLines = it.toIntOrNull() ?: 2 }
         Settings.FILE_LIST_SIZE.observe(viewLifecycleOwner) { adapter.fileListSize = it.toIntOrNull() ?: 0 }
+        Settings.NIGHT_MODE.observe(viewLifecycleOwner) { refreshVisualTheme() }
+        Settings.BLACK_NIGHT_MODE.observe(viewLifecycleOwner) { refreshVisualTheme() }
+        Settings.THEME_COLOR.observe(viewLifecycleOwner) { refreshVisualTheme() }
+        Settings.MATERIAL_DESIGN_3.observe(viewLifecycleOwner) { refreshVisualTheme() }
+        Settings.DUAL_PANEL_CONTRAST.observe(viewLifecycleOwner) { refreshVisualTheme() }
+        Settings.FILE_LIST_TIME_PREFERENCE.observe(viewLifecycleOwner) {
+            adapter.refreshVisibleItems()
+        }
+        Settings.DATE_TIME_FORMAT.observe(viewLifecycleOwner) { adapter.refreshVisibleItems() }
+        Settings.DISABLE_PERMISSION_IN_FILE_LIST.observe(viewLifecycleOwner) {
+            adapter.disablePermissionInFileList = it
+        }
+        Settings.THUMBNAIL_LOAD_MODE.observe(viewLifecycleOwner) {
+            adapter.thumbnailLoadMode = it.toIntOrNull() ?: 0
+        }
+        Settings.VISUAL_PERFORMANCE_MODE.observe(viewLifecycleOwner) {
+            adapter.visualPerformanceMode = it
+            binding.recyclerView.setItemViewCacheSize(if (it) 36 else 24)
+        }
+        Settings.FILE_LIST_DIVIDERS.observe(viewLifecycleOwner) {
+            binding.recyclerView.invalidateItemDecorations()
+        }
         viewModel.fileListLiveData.observe(viewLifecycleOwner) { onFileListChanged(it) }
         Settings.FILE_LIST_SHOW_HIDDEN_FILES.observe(viewLifecycleOwner) {
             onShowHiddenFilesChanged(it)
         }
     }
 
+    private fun refreshVisualTheme() {
+        adapter.palette = OpenManagerPalette.from(requireContext())
+        binding.recyclerView.invalidateItemDecorations()
+    }
+
     override fun onResume() {
         super.onResume()
+        refreshVisualTheme()
 
         if (activity !is FileListActivity) {
             if (!viewModel.isNotificationPermissionRequested) {

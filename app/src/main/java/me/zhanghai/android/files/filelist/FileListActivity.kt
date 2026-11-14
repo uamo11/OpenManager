@@ -10,8 +10,11 @@ import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -39,8 +42,10 @@ import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import androidx.core.widget.ImageViewCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
@@ -69,6 +74,7 @@ import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.ftpserver.FtpServerService
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.settings.SettingsActivity
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.compat.getDescriptionCompat
 import me.zhanghai.android.files.compat.isPrimaryCompat
 import me.zhanghai.android.files.compat.pathCompat
@@ -174,7 +180,7 @@ class FileListActivity : AppActivity() {
         })
         mainToolbar = findViewById(R.id.mainToolbar)
         mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
-        mainToolbar.navigationIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
+        mainToolbar.navigationIcon?.mutate()?.setTint(OpenManagerPalette.from(this).iconTint)
         mainToolbar.setNavigationOnClickListener {
             drawerLayout.openDrawer(GravityCompat.START)
         }
@@ -311,7 +317,8 @@ class FileListActivity : AppActivity() {
 
     override fun onPostCreate(savedInstanceState: Bundle?) {
         super.onPostCreate(savedInstanceState)
-        syncPanelColors()
+        applyVisualTheme()
+        observeVisualThemeSettings()
         updateTopBarInfo()
         syncBottomBarSelectionState()
         observePanelPathsAndStats()
@@ -323,6 +330,7 @@ class FileListActivity : AppActivity() {
 
     override fun onResume() {
         super.onResume()
+        applyVisualTheme()
         checkAndRequestStoragePermissions()
         refreshRootStatusOnResume()
         updateDrawerStats()
@@ -1091,6 +1099,7 @@ class FileListActivity : AppActivity() {
             }
             layoutCustomStorages.addView(itemView)
         }
+        applyDrawerPalette(OpenManagerPalette.from(this))
     }
 
     private fun observeCustomStorages() {
@@ -1584,14 +1593,116 @@ class FileListActivity : AppActivity() {
         }
     }
 
-    private fun syncPanelColors() {
-        // Sampled from MT Manager: Active focused panel = #363636, Inactive panel = #242424
+    private fun observeVisualThemeSettings() {
+        Settings.NIGHT_MODE.observe(this) { applyVisualTheme() }
+        Settings.BLACK_NIGHT_MODE.observe(this) { applyVisualTheme() }
+        Settings.THEME_COLOR.observe(this) { applyVisualTheme() }
+        Settings.MATERIAL_DESIGN_3.observe(this) { applyVisualTheme() }
+        Settings.DUAL_PANEL_CONTRAST.observe(this) { applyVisualTheme() }
+    }
+
+    private fun applyVisualTheme() {
+        val palette = OpenManagerPalette.from(this)
+        window.statusBarColor = palette.toolbarBg
+        window.navigationBarColor = palette.bottomBarBg
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            isAppearanceLightStatusBars = palette.isLightStatusBar
+            isAppearanceLightNavigationBars = palette.isLightStatusBar
+        }
+
+        findViewById<View>(R.id.activityRoot)?.setBackgroundColor(palette.toolbarBg)
+        mainToolbar.setBackgroundColor(palette.toolbarBg)
+        tvPathTitle.setTextColor(palette.textPrimary)
+        tvStatsSubtitle.setTextColor(palette.textSecondary)
+        val iconTintList = ColorStateList.valueOf(palette.iconTint)
+        ImageViewCompat.setImageTintList(btnMainBack, iconTintList)
+        ImageViewCompat.setImageTintList(btnMainMore, iconTintList)
+        updateMainToolbarNavigationIcon()
+
+        paneDivider.setBackgroundColor(palette.paneDivider)
+        syncPanelColors(palette)
+
+        findViewById<View>(R.id.bottomBar)?.setBackgroundColor(palette.bottomBarBg)
+        listOf(
+            btnBottomBack, btnBottomForward, btnBottomAdd, btnBottomSwap, btnBottomUp,
+            btnSelectionClose, btnCopyOpposite, btnMoveOpposite, btnDeleteSelection, btnMoreSelection
+        ).forEach { ImageViewCompat.setImageTintList(it, iconTintList) }
+
+        applyDrawerPalette(palette)
+    }
+
+    private fun applyDrawerPalette(palette: OpenManagerPalette) {
+        val drawerView = findViewById<View>(R.id.navigationDrawerView) ?: return
+        drawerView.setBackgroundColor(palette.drawerBg)
+        findViewById<View>(R.id.layoutDrawerHeader)?.setBackgroundColor(palette.drawerHeaderBg)
+        findViewById<ImageView>(R.id.btnDrawerSettings)?.let {
+            ImageViewCompat.setImageTintList(it, ColorStateList.valueOf(palette.iconTint))
+        }
+        applyPaletteToDrawerTree(drawerView, palette)
+    }
+
+    private fun applyPaletteToDrawerTree(view: View, palette: OpenManagerPalette) {
+        val id = view.id
+        if (id == R.id.btnDrawerSettings) {
+            return
+        }
+        if (view is android.widget.ProgressBar) {
+            view.progressTintList = ColorStateList.valueOf(palette.accentColor)
+            view.progressBackgroundTintList = ColorStateList.valueOf(palette.dividerLineColor)
+        } else if (view is android.widget.FrameLayout && view.background != null &&
+            id != R.id.layoutDrawerHeader
+        ) {
+            ViewCompat.setBackgroundTintList(view, ColorStateList.valueOf(palette.drawerCircleBg))
+        } else if (view is TextView) {
+            var role = view.getTag(R.id.tag_palette_role) as? String
+            if (role == null) {
+                val color = view.currentTextColor and 0x00FFFFFF
+                val parentRowId = (view.parent as? View)?.id
+                role = when {
+                    parentRowId == R.id.drawerItemAddStorage || color == 0x42A5F5 -> ROLE_ACCENT
+                    color == 0xFFFFFF -> ROLE_PRIMARY
+                    else -> ROLE_SECONDARY
+                }
+                view.setTag(R.id.tag_palette_role, role)
+            }
+            view.setTextColor(
+                when (role) {
+                    ROLE_ACCENT -> palette.accentColor
+                    ROLE_PRIMARY -> palette.textPrimary
+                    else -> palette.textSecondary
+                }
+            )
+        } else if (view is ImageView) {
+            var role = view.getTag(R.id.tag_palette_role) as? String
+            if (role == null) {
+                val currentTint = ImageViewCompat.getImageTintList(view)?.defaultColor
+                val grandParentId = (view.parent?.parent as? View)?.id
+                role = when {
+                    grandParentId == R.id.drawerItemAddStorage -> ROLE_ICON_ACCENT
+                    currentTint != null && (currentTint and 0x00FFFFFF) == 0xDCDCDC -> ROLE_ICON_NEUTRAL
+                    else -> ROLE_KEEP
+                }
+                view.setTag(R.id.tag_palette_role, role)
+            }
+            when (role) {
+                ROLE_ICON_ACCENT -> ImageViewCompat.setImageTintList(view, ColorStateList.valueOf(palette.accentColor))
+                ROLE_ICON_NEUTRAL -> ImageViewCompat.setImageTintList(view, ColorStateList.valueOf(palette.drawerIconTint))
+            }
+        }
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                applyPaletteToDrawerTree(view.getChildAt(i), palette)
+            }
+        }
+    }
+
+    private fun syncPanelColors(palette: OpenManagerPalette = OpenManagerPalette.from(this)) {
         if (activePanelIndex == 0) {
-            containerA.setBackgroundColor(0xFF363636.toInt())
-            containerB.setBackgroundColor(0xFF242424.toInt())
+            containerA.setBackgroundColor(palette.activePanelBg)
+            containerB.setBackgroundColor(palette.inactivePanelBg)
         } else {
-            containerA.setBackgroundColor(0xFF242424.toInt())
-            containerB.setBackgroundColor(0xFF363636.toInt())
+            containerA.setBackgroundColor(palette.inactivePanelBg)
+            containerB.setBackgroundColor(palette.activePanelBg)
         }
     }
 
@@ -1644,9 +1755,10 @@ class FileListActivity : AppActivity() {
         val selectedCount = try { activeFragment.selectedFiles.size } catch (e: Exception) { 0 }
         val canNavigateUp = try { activeFragment.canNavigateUp } catch (e: Exception) { false }
 
+        val navTint = OpenManagerPalette.from(this).iconTint
         if (selectedCount > 0) {
             mainToolbar.setNavigationIcon(R.drawable.close_icon_control_normal_24dp)
-            mainToolbar.navigationIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
+            mainToolbar.navigationIcon?.mutate()?.setTint(navTint)
             mainToolbar.navigationContentDescription = getString(android.R.string.cancel)
             mainToolbar.setNavigationOnClickListener {
                 activeFragment.clearSelectedFiles()
@@ -1656,7 +1768,7 @@ class FileListActivity : AppActivity() {
             }
         } else {
             mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
-            mainToolbar.navigationIcon?.mutate()?.setTint(android.graphics.Color.WHITE)
+            mainToolbar.navigationIcon?.mutate()?.setTint(navTint)
             mainToolbar.navigationContentDescription = getString(R.string.open_navigation_drawer)
             mainToolbar.setNavigationOnClickListener {
                 drawerLayout.openDrawer(GravityCompat.START)
@@ -1686,13 +1798,14 @@ class FileListActivity : AppActivity() {
         if (!::fragmentA.isInitialized || !::fragmentB.isInitialized) return
         val currentDisplayPath = activeFragment.currentPath.toDisplayPath(trailingSlash = true)
         val context = this
+        val palette = OpenManagerPalette.from(context)
         val editText = androidx.appcompat.widget.AppCompatEditText(context).apply {
             setText(currentDisplayPath)
             setSingleLine(true)
             selectAll()
-            setTextColor(android.graphics.Color.WHITE)
+            setTextColor(palette.textPrimary)
             setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 15f)
-            supportBackgroundTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#2196F3"))
+            supportBackgroundTintList = android.content.res.ColorStateList.valueOf(palette.accentColor)
             val paddingPx = (16 * resources.displayMetrics.density).toInt()
             setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
         }
@@ -1717,7 +1830,7 @@ class FileListActivity : AppActivity() {
             ): android.widget.TextView {
                 return android.widget.TextView(context).apply {
                     this.text = text
-                    setTextColor(chipTextColor)
+                    setTextColor(if (palette.isDark) chipTextColor else palette.textPrimary)
                     textSize = 12f
                     gravity = android.view.Gravity.CENTER_VERTICAL
                     val padH = (10 * resources.displayMetrics.density).toInt()
@@ -1736,9 +1849,14 @@ class FileListActivity : AppActivity() {
                         }
                     }
                     background = android.graphics.drawable.GradientDrawable().apply {
-                        setColor(android.graphics.Color.parseColor("#262626"))
+                        val chipBg = when {
+                            !palette.isDark -> 0xFFF0F2F5.toInt()
+                            palette.isAmoled -> 0xFF141414.toInt()
+                            else -> 0xFF262626.toInt()
+                        }
+                        setColor(chipBg)
                         cornerRadius = 8 * resources.displayMetrics.density
-                        setStroke((1 * resources.displayMetrics.density).toInt(), android.graphics.Color.parseColor("#444444"))
+                        setStroke((1 * resources.displayMetrics.density).toInt(), palette.dividerLineColor)
                     }
                     val params = android.widget.LinearLayout.LayoutParams(
                         android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -2242,6 +2360,12 @@ class FileListActivity : AppActivity() {
         private const val TAG_PANEL_A = "panel_a"
         private const val TAG_PANEL_B = "panel_b"
         private const val KEY_ACTIVE_PANEL = "active_panel"
+        private const val ROLE_PRIMARY = "primary"
+        private const val ROLE_SECONDARY = "secondary"
+        private const val ROLE_ACCENT = "accent"
+        private const val ROLE_ICON_ACCENT = "icon_accent"
+        private const val ROLE_ICON_NEUTRAL = "icon_neutral"
+        private const val ROLE_KEEP = "keep"
 
         fun createViewIntent(path: Path): Intent =
             FileListActivity::class.createIntent()

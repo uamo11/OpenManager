@@ -5,7 +5,9 @@
 
 package me.zhanghai.android.files.filelist
 
+import android.content.res.ColorStateList
 import android.text.TextUtils
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -13,6 +15,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.isVisible
+import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import coil.dispose
@@ -33,8 +36,11 @@ import me.zhanghai.android.files.file.formatShort
 import me.zhanghai.android.files.file.iconRes
 import me.zhanghai.android.files.file.isApk
 import me.zhanghai.android.files.provider.archive.isArchivePath
+import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.isEncrypted
+import me.zhanghai.android.files.provider.common.toModeString
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.AnimatedListAdapter
 import me.zhanghai.android.files.ui.CheckableForegroundLinearLayout
 import me.zhanghai.android.files.ui.CheckableItemBackground
@@ -110,6 +116,47 @@ class FileListAdapter(
                 notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
             }
         }
+
+    var palette: OpenManagerPalette? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+            }
+        }
+
+    var disablePermissionInFileList: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+            }
+        }
+
+    var thumbnailLoadMode: Int = 0
+        set(value) {
+            if (field != value) {
+                field = value
+                notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+            }
+        }
+
+    var isFlinging: Boolean = false
+        set(value) {
+            if (field != value) {
+                val stoppedFlinging = field && !value
+                field = value
+                if (stoppedFlinging && thumbnailLoadMode == 1) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+                }
+            }
+        }
+
+    var visualPerformanceMode: Boolean = false
+
+    fun refreshVisibleItems() {
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+    }
 
     fun replaceSelectedFiles(files: FileItemSet) {
         val changedFiles = fileItemSetOf()
@@ -313,28 +360,7 @@ class FileListAdapter(
         menu.findItem(R.id.action_copy).isVisible = !hasPickOptions
         val checked = file in selectedFiles
         holder.itemLayout.isChecked = checked
-        holder.nameText.apply {
-            maxLines = this@FileListAdapter.maxLines
-            if (this@FileListAdapter.maxLines == 1) {
-                val nameEllipsize = nameEllipsize
-                ellipsize = nameEllipsize
-                isSelected = nameEllipsize == TextUtils.TruncateAt.MARQUEE
-            } else {
-                ellipsize = TextUtils.TruncateAt.END
-                isSelected = false
-            }
-        }
-        val density = holder.itemView.resources.displayMetrics.density
-        val targetHeightPx = when (fileListSize) {
-            1 -> (52 * density).toInt()
-            2 -> (62 * density).toInt()
-            else -> (44 * density).toInt()
-        }
-        val lp = holder.itemLayout.layoutParams
-        if (lp != null && lp.height != targetHeightPx) {
-            lp.height = targetHeightPx
-            holder.itemLayout.layoutParams = lp
-        }
+        applySizeAndTheme(holder, file.isParentDirectoryItem)
         if (file.isParentDirectoryItem) {
             holder.itemLayout.isEnabled = true
             holder.itemLayout.isChecked = false
@@ -368,10 +394,12 @@ class FileListAdapter(
             holder.badgeImage.isVisible = false
             return
         }
-        if (payloads.isNotEmpty()) {
+        if (payloads.isNotEmpty() && payloads.none { it === PAYLOAD_CONTENT_REFRESH }) {
             return
         }
-        bindViewHolderAnimation(holder)
+        if (payloads.isEmpty()) {
+            bindViewHolderAnimation(holder)
+        }
         holder.itemLayout.apply {
             setOnClickListener {
                 if (selectedFiles.isEmpty()) {
@@ -403,12 +431,20 @@ class FileListAdapter(
 
         holder.descriptionText?.isVisible = true
         val lastModificationTime = attributes.lastModifiedTime().toInstant().formatMtDate()
-        holder.descriptionText?.text = if (isDirectory) {
+        val pathStr = path.toString()
+        val isSharedStoragePath = pathStr.startsWith("/storage/") || pathStr.startsWith("/sdcard")
+        val permStr = if (!disablePermissionInFileList && !isSharedStoragePath) {
+            (attributes as? PosixFileAttributes)?.mode()?.toModeString()
+        } else {
+            null
+        }
+        val baseDesc = if (isDirectory) {
             if (appLabel != null) "$lastModificationTime  $appLabel" else lastModificationTime
         } else {
             val size = attributes.fileSize.formatHumanReadable(holder.itemView.context)
             "$lastModificationTime  $size"
         }
+        holder.descriptionText?.text = if (permStr != null) "$baseDesc  $permStr" else baseDesc
 
         val iconRes = FileIconHelper.getIconRes(file)
         holder.iconImage.apply {
@@ -417,7 +453,9 @@ class FileListAdapter(
         }
         holder.directoryThumbnailImage?.isVisible = isDirectory
         holder.thumbnailOutlineView?.isVisible = !isDirectory
-        val supportsThumbnail = file.supportsThumbnail
+        val supportsThumbnail = file.supportsThumbnail &&
+            thumbnailLoadMode != 2 &&
+            !(thumbnailLoadMode == 1 && isFlinging)
         val shouldLoadThumbnailIcon = supportsThumbnail && holder.thumbnailIconImage != null &&
             file.mimeType.isApk
         holder.thumbnailIconImage?.apply {
@@ -605,11 +643,96 @@ class FileListAdapter(
         }
     }
 
+    private fun applySizeAndTheme(holder: ViewHolder, isParentDir: Boolean) {
+        val currentPalette = palette
+        if (currentPalette != null) {
+            holder.nameText.setTextColor(
+                if (isParentDir) currentPalette.textSecondary else currentPalette.filePrimaryText
+            )
+            holder.descriptionText?.setTextColor(currentPalette.textSecondary)
+            ImageViewCompat.setImageTintList(
+                holder.menuButton,
+                ColorStateList.valueOf(currentPalette.textSecondary)
+            )
+        }
+        holder.nameText.apply {
+            maxLines = this@FileListAdapter.maxLines
+            if (this@FileListAdapter.maxLines == 1) {
+                val targetEllipsize = if (
+                    visualPerformanceMode && nameEllipsize == TextUtils.TruncateAt.MARQUEE
+                ) {
+                    TextUtils.TruncateAt.END
+                } else {
+                    nameEllipsize
+                }
+                ellipsize = targetEllipsize
+                isSelected = !visualPerformanceMode && targetEllipsize == TextUtils.TruncateAt.MARQUEE
+            } else {
+                ellipsize = TextUtils.TruncateAt.END
+                isSelected = false
+            }
+        }
+        if (holder.descriptionText != null) {
+            val density = holder.itemView.resources.displayMetrics.density
+            val targetHeightPx: Int
+            val iconContainerPx: Int
+            val iconPx: Int
+            val nameSp: Float
+            val descSp: Float
+            when (fileListSize) {
+                1 -> {
+                    targetHeightPx = (52 * density).toInt()
+                    iconContainerPx = (42 * density).toInt()
+                    iconPx = (38 * density).toInt()
+                    nameSp = 14f
+                    descSp = 11.5f
+                }
+                2 -> {
+                    targetHeightPx = (62 * density).toInt()
+                    iconContainerPx = (48 * density).toInt()
+                    iconPx = (44 * density).toInt()
+                    nameSp = 15.5f
+                    descSp = 12.5f
+                }
+                else -> {
+                    targetHeightPx = (44 * density).toInt()
+                    iconContainerPx = (36 * density).toInt()
+                    iconPx = (32 * density).toInt()
+                    nameSp = 13f
+                    descSp = 11f
+                }
+            }
+            updateViewSizeIfChanged(holder.itemLayout, height = targetHeightPx)
+            updateViewSizeIfChanged(holder.iconLayout, width = iconContainerPx, height = iconContainerPx)
+            updateViewSizeIfChanged(holder.iconImage, width = iconPx, height = iconPx)
+            updateViewSizeIfChanged(holder.thumbnailImage, width = iconPx, height = iconPx)
+            holder.nameText.setTextSize(TypedValue.COMPLEX_UNIT_SP, nameSp)
+            holder.descriptionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, descSp)
+        }
+    }
+
+    private fun updateViewSizeIfChanged(view: View, width: Int? = null, height: Int? = null) {
+        val lp = view.layoutParams ?: return
+        var changed = false
+        if (width != null && lp.width != width) {
+            lp.width = width
+            changed = true
+        }
+        if (height != null && lp.height != height) {
+            lp.height = height
+            changed = true
+        }
+        if (changed) {
+            view.layoutParams = lp
+        }
+    }
+
     override val isAnimationEnabled: Boolean
-        get() = Settings.FILE_LIST_ANIMATION.valueCompat
+        get() = Settings.FILE_LIST_ANIMATION.valueCompat && !visualPerformanceMode
 
     companion object {
         private val PAYLOAD_STATE_CHANGED = Any()
+        private val PAYLOAD_CONTENT_REFRESH = Any()
 
         private val CALLBACK = object : DiffUtil.ItemCallback<FileItem>() {
             override fun areItemsTheSame(oldItem: FileItem, newItem: FileItem): Boolean =

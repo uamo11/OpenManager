@@ -8,6 +8,8 @@ package me.zhanghai.android.files.file
 import android.content.Context
 import android.text.format.DateUtils
 import android.text.format.Time
+import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.util.valueCompat
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -33,7 +35,45 @@ fun Instant.formatLong(): String =
         .withZone(ZoneId.systemDefault())
         .format(this)
 
-private val MT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm")
+private val MT_DATE_FULL_ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    .withZone(ZoneId.systemDefault())
+private val MT_DATE_FULL_DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
+    .withZone(ZoneId.systemDefault())
+private val MT_DATE_FULL_MDY = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
     .withZone(ZoneId.systemDefault())
 
-fun Instant.formatMtDate(): String = MT_DATE_FORMATTER.format(this)
+private val MT_DATE_SHORT_ISO = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm")
+    .withZone(ZoneId.systemDefault())
+private val MT_DATE_SHORT_DMY = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
+    .withZone(ZoneId.systemDefault())
+private val MT_DATE_SHORT_MDY = DateTimeFormatter.ofPattern("MM/dd/yy HH:mm")
+    .withZone(ZoneId.systemDefault())
+
+fun Instant.formatMtDateWithOptions(
+    timePref: String,
+    dateFormat: String,
+    zoneId: ZoneId? = null
+): String {
+    val hideSeconds = timePref != "0"
+    val baseFormatter = when (dateFormat) {
+        "1" -> if (hideSeconds) MT_DATE_SHORT_DMY else MT_DATE_FULL_DMY
+        "2" -> if (hideSeconds) MT_DATE_SHORT_MDY else MT_DATE_FULL_MDY
+        else -> if (hideSeconds) MT_DATE_SHORT_ISO else MT_DATE_FULL_ISO
+    }
+    val formatter = if (zoneId != null) baseFormatter.withZone(zoneId) else baseFormatter
+    return formatter.format(this)
+}
+
+fun Instant.formatMtDate(): String {
+    val timePref = try {
+        Settings.FILE_LIST_TIME_PREFERENCE.valueCompat
+    } catch (_: Throwable) {
+        "1"
+    }
+    val dateFormat = try {
+        Settings.DATE_TIME_FORMAT.valueCompat
+    } catch (_: Throwable) {
+        "0"
+    }
+    return formatMtDateWithOptions(timePref, dateFormat)
+}

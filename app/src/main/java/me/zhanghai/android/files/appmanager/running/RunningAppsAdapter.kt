@@ -6,6 +6,7 @@
 package me.zhanghai.android.files.appmanager.running
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.text.format.Formatter
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.widget.ImageViewCompat
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 
 class RunningAppsAdapter(
     private val scope: CoroutineScope,
@@ -36,6 +39,16 @@ class RunningAppsAdapter(
 
     var isPopupMenuOpen: Boolean = false
         private set
+
+    var palette: OpenManagerPalette? = null
+        set(value) {
+            if (field != value) {
+                field = value
+                if (items.isNotEmpty()) {
+                    notifyItemRangeChanged(0, items.size, PAYLOAD_METRICS)
+                }
+            }
+        }
 
     init {
         setHasStableIds(true)
@@ -92,6 +105,14 @@ class RunningAppsAdapter(
 
     private fun bindMetricsAndText(holder: ViewHolder, item: RunningAppModel) {
         val context = holder.itemView.context
+        val p = palette ?: OpenManagerPalette.from(context)
+
+        holder.tvLabel.setTextColor(p.textPrimary)
+        holder.tvProcessName.setTextColor(p.textSecondary)
+        holder.tvPid.setTextColor(p.textSecondary)
+        holder.tvUser.setTextColor(p.textSecondary)
+        holder.tvMemory.setTextColor(p.accentColor)
+        ImageViewCompat.setImageTintList(holder.btnMenu, ColorStateList.valueOf(p.iconTint))
 
         holder.tvLabel.text = item.label
         holder.tvProcessName.text = when (item.executableType) {
@@ -116,8 +137,8 @@ class RunningAppsAdapter(
             when {
                 item.cpuPercent >= 5f -> COLOR_CPU_HIGH
                 item.cpuPercent >= 1f -> COLOR_CPU_MED
-                item.cpuPercent > 0f -> COLOR_CPU_LOW
-                else -> COLOR_CPU_IDLE
+                item.cpuPercent > 0f -> if (p.isDark) COLOR_CPU_LOW else COLOR_CPU_LOW_LIGHT
+                else -> p.textSecondary
             }
         )
 
@@ -125,7 +146,7 @@ class RunningAppsAdapter(
         when (item.state) {
             "R" -> {
                 holder.tvState.text = "RUNNING"
-                holder.tvState.setTextColor(COLOR_STATE_RUNNING)
+                holder.tvState.setTextColor(if (p.isDark) COLOR_STATE_RUNNING else COLOR_STATE_RUNNING_LIGHT)
             }
             "D" -> {
                 holder.tvState.text = "DISK SLEEP"
@@ -137,7 +158,7 @@ class RunningAppsAdapter(
             }
             else -> {
                 holder.tvState.text = if (item.isApp) "ACTIVE" else "SLEEP"
-                holder.tvState.setTextColor(COLOR_STATE_SLEEP)
+                holder.tvState.setTextColor(if (p.isDark) COLOR_STATE_SLEEP else COLOR_STATE_SLEEP_LIGHT)
             }
         }
     }
@@ -226,11 +247,13 @@ class RunningAppsAdapter(
         private val COLOR_CPU_HIGH = Color.parseColor("#FF7043")
         private val COLOR_CPU_MED = Color.parseColor("#FFB74D")
         private val COLOR_CPU_LOW = Color.parseColor("#80CBC4")
-        private val COLOR_CPU_IDLE = Color.parseColor("#757575")
+        private val COLOR_CPU_LOW_LIGHT = Color.parseColor("#00796B")
         private val COLOR_STATE_RUNNING = Color.parseColor("#00E676")
+        private val COLOR_STATE_RUNNING_LIGHT = Color.parseColor("#00A152")
         private val COLOR_STATE_DISK = Color.parseColor("#FF9800")
         private val COLOR_STATE_ZOMBIE = Color.parseColor("#F44336")
         private val COLOR_STATE_SLEEP = Color.parseColor("#90CAF9")
+        private val COLOR_STATE_SLEEP_LIGHT = Color.parseColor("#1976D2")
 
         fun iconResForProcess(item: RunningAppModel): Int = when (item.executableType) {
             ExecutableType.SHELL_SCRIPT -> R.drawable.ic_exec_shell_script
