@@ -1,3 +1,18 @@
+# OpenManager v1.9.72: Temas Globales (Claro, Oscuro y AMOLED), Rendimiento Visual y Mejoras en Apps en Ejecución
+
+### 🎨 Apariencia Global y Temas (Claro, Oscuro por Defecto y AMOLED)
+- **Tematización Completa en Toda la App**:
+  - Se incorporó `OpenManagerPalette` y soporte global para **Modo claro**, **Modo oscuro** (conservado como predeterminado) y **Modo AMOLED** (`#000000` puro), aplicando automáticamente colores, barras del sistema, menús emergentes y colores de acento en el Explorador de doble panel, Cajón lateral, Diálogo de ruta rápida, Gestor de Apps (`InstalledAppsActivity`) y Apps en Ejecución (`RunningAppsActivity`).
+- **Opciones Visuales de Rendimiento y Estabilidad**:
+  - Nuevos ajustes configurables: **Contraste entre paneles** (estándar, alto o uniforme), **Modo visual fluido / bajo consumo** (desactiva animaciones/marquees pesados y amplía la caché de vistas), **Carga de miniaturas e iconos** (completa, pausada al deslizar rápido o solo iconos) y **Divisores en la lista de archivos**.
+  - Enlazados también el escalado de filas/iconos/texto (`FILE_LIST_SIZE`), visualización de permisos POSIX en rutas fuera de almacenamiento compartido y formatos configurables de fecha y hora.
+
+### ⚙️ Apps en Ejecución en Tiempo Real
+- **Pestaña `SH`, CPU por Intervalo y Seguridad al Cerrar**:
+  - Pestaña renombrada a **`SH`** con ruta completa visible al tocar scripts ejecutables, medición real de CPU (%) por intervalo en tiempo real con refresco automático estable y confirmación con espera de **3 segundos** antes de finalizar procesos/scripts `SH`.
+
+---
+
 # OpenManager v1.9.71: Utilidades Visuales de Estabilidad, Auditoría de Scripts/ELF, Gestor de Apps y Visores Endurecidos
 
 ### 🛡️ Nuevas Utilidades Visuales y Estabilidad Global
