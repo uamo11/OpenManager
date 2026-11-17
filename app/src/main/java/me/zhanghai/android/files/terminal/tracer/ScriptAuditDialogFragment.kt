@@ -85,6 +85,17 @@ class ScriptAuditDialogFragment : AppCompatDialogFragment() {
                         appendLine("PIE (Position Independent Executable): ${getString(if (elfReport.isPie) R.string.om_audit_elf_pie_yes else R.string.om_audit_elf_pie_no)}")
                         appendLine(getString(R.string.om_audit_elf_linker_format, elfReport.interpreter ?: getString(if (elfReport.isDynamic) R.string.om_audit_elf_dynamic else R.string.om_audit_elf_static)))
                         appendLine(getString(R.string.om_audit_elf_abi_format, getString(if (elfReport.isAbiCompatible) R.string.om_audit_elf_compatible else R.string.om_audit_elf_incompatible)))
+                        appendLine("Direct Kernel Syscalls (svc/syscall): ${elfReport.directSyscallsCount}")
+                        appendLine("Stripped: ${elfReport.isStripped}")
+                        if (elfReport.hasRwxSegment) {
+                            appendLine("RWX Memory Segment: Detected")
+                        }
+                        if (elfReport.isPacked) {
+                            appendLine("Packer: UPX!")
+                        }
+                        if (elfReport.neededLibraries.isNotEmpty()) {
+                            appendLine("Needed Libraries: ${elfReport.neededLibraries.joinToString()}")
+                        }
                         appendLine()
                         appendLine(getString(R.string.om_audit_elf_syscalls_header_format, elfReport.totalFindings))
                         for (f in elfReport.findings) {

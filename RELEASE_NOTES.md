@@ -1,3 +1,22 @@
+# OpenManager v1.9.73: Apertura Inteligente de Archivos, Ubicaciones Complejas y Auditor Avanzado de Scripts/ELF v2
+
+### 📂 Apertura Inteligente de Archivos y Ubicaciones Complejas
+- **Enrutamiento Inteligente según Tipo de Archivo (`SmartOpenActivity`)**:
+  - **PDF**: Al abrir o tocar un PDF (detectado por MIME, extensión `.pdf` o cabecera mágica `%PDF-`, incluso sin extensión o como `application/octet-stream`), se abre inmediatamente en el Lector de PDF integrado, incorporando además **Abrir ubicación** en su menú.
+  - **Vídeos**: Muestra un diálogo para elegir entre **Ver video** (visor integrado con soporte directo de URIs `content://` y botón superior **Abrir ubicación**) o **Abrir ubicación**.
+  - **Archivos comprimidos (`.zip`, `.rar`, `.7z`, etc.) y otros archivos**: Al abrir desde otras apps ya no entra al ZIP como carpeta sin retorno; abre la **carpeta contenedora** en el Panel A (preservando el Panel B intacto), desplaza y resalta el archivo visualmente. Al entrar manualmente a un ZIP y pulsar Atrás o `..`, regresa a la carpeta padre resaltando ese mismo archivo.
+- **Resolución Multi-Estrategia de Ubicaciones Externas (`SmartUriPathResolver` & `SmartFileOpenEngine`)**:
+  - Resuelve `file://`, URIs SAF (`ExternalStorageProvider`, `DownloadsProvider`, `MediaDocumentsProvider`), columna `_data`, descriptores del kernel (`/proc/self/fd/<fd>` normalizando `/mnt/user`, `/mnt/pass_through`, `/mnt/runtime`, `/data/media`, `/sdcard` y `/mnt/media_rw`) y prefijos de `FileProvider`. Si la ruta padre es inaccesible sin Root, importa de forma idempotente en `Download/OpenManager_Recibidos`.
+
+### 🛡️ Auditor de Scripts y Binarios ELF de Kernel v2
+- **Inspección de Código Máquina en ELF Stripped/Estáticos (`ElfInspector` + `SyscallResolver`)**:
+  - Desensamblado rápido de llamadas directas al kernel en **AArch64 (`svc #0` + `movz x8/w8, #NR`)** y **x86_64 (`syscall` + `mov eax/rax, #NR`)**, ampliando la tabla de syscalls del kernel (`bpf`, `init_module`, `finit_module`, `delete_module`, `chroot`, `pivot_root`, `setns`, `unshare`, `memfd_create`, `capset`, `prctl`, `seccomp`).
+  - Detección en una sola pasada $O(N)$ sin compilación repetitiva de regex, detección de segmentos **RWX / pila ejecutable**, empaquetado **UPX!**, binarios sin símbolos (`stripped`) y selección correcta de `/system/bin/linker` vs `linker64` según arquitectura 32/64-bit o estático.
+- **Desofuscación y Endurecimiento del Auditor de Scripts (`ScriptRunnerHelper`)**:
+  - Unión de líneas continuadas con `\`, desofuscación de comillas vacías/intercaladas (`r'm'`), escapes (`\rm`) e `$IFS`, bloqueo de condición de carrera en ejecución anticipada, lectura acotada y tematización completa para **Modo Claro / Oscuro / AMOLED**.
+
+---
+
 # OpenManager v1.9.72: Temas Globales (Claro, Oscuro y AMOLED), Rendimiento Visual y Mejoras en Apps en Ejecución
 
 ### 🎨 Apariencia Global y Temas (Claro, Oscuro por Defecto y AMOLED)

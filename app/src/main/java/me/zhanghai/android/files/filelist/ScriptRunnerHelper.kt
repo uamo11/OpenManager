@@ -32,8 +32,11 @@ import android.widget.Toast
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Files
 import java8.nio.file.Path
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
@@ -49,6 +52,7 @@ import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.viewer.hex.HexEditorActivity
@@ -65,6 +69,29 @@ import java.util.zip.CRC32
 
 object ScriptRunnerHelper {
 
+    private const val MAX_AUDIT_READ_BYTES = 1024 * 1024
+    private const val MAX_CODE_PREVIEW_LINES = 800
+
+    private val REGEX_SUBCMD_SPLIT = Regex("[;&|]+")
+    private val REGEX_DELETION = Regex(
+        """\b(rm|rmdir|unlink|truncate|shred|wipe|toybox\s+rm|busybox\s+rm|flash_image)\b|\bfind\b.*\s-(delete|exec\s+rm)\b|\bfastboot\s+(erase|format|flash)\b"""
+    )
+    private val REGEX_BLOCK_OR_FORMAT = Regex(
+        """\bdd\s+.*of=|\b(mkfs|mke2fs|fdisk|sfdisk|blkdiscard|wipefs|make_ext4fs)\b"""
+    )
+    private val REGEX_ROOT = Regex(
+        """\b(su|sudo|magisk|ksud|apd|supolicy|magiskpolicy|nsenter|capsh|setenforce|chown\s+root|insmod|rmmod|modprobe|resetprop|setprop)\b"""
+    )
+    private val REGEX_NETWORK = Regex(
+        """\b(curl|wget|nc|netcat|ncat|socat|ssh|scp|rsync|ping|traceroute|nmap|ftpget|ftpput|tftp|iptables|ip6tables)\b"""
+    )
+    private val REGEX_SYSTEM = Regex(
+        """(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+(uninstall|install|disable|clear)|\bam\s+(start|force-stop)|\breboot|\bsys_reboot|\bshutdown|\bpoweroff|\bhalt|\bchroot\b|\bpivot_root\b|\bmount\s+.*remount|\b(chmod|chown|mv|cp|tee|eval|screencap|screenrecord|appops|dpm)\b|\binput\s+(tap|swipe|text|keyevent)|\bsed\s+-i|\bbase64\s+-d|\bxxd\s+-r|>>?\s*(/storage|/sdcard|/data|/system|/vendor|\$)|\bln\s+(-[a-zA-Z0-9_-]+\s+)*.*)"""
+    )
+    private val REGEX_BACKSLASH_ESCAPE = Regex("""\\(?=[A-Za-z0-9_])""")
+    private val REGEX_QUOTES = Regex("""['"]""")
+    private val REGEX_IFS_VAR = Regex("""\$\{?IFS\}?""")
+
     data class ScriptAuditReport(
         val deletions: List<String>,
         val rootCalls: List<String>,
@@ -73,62 +100,130 @@ object ScriptRunnerHelper {
     ) {
         val totalFindings: Int
             get() = deletions.size + rootCalls.size + networkCalls.size + systemPaths.size
+
+        val riskLevel: String
+            get() = when {
+                deletions.isNotEmpty() ||
+                    rootCalls.any { it.contains("insmod") || it.contains("setenforce") || it.contains("capset") } ||
+                    systemPaths.any {
+                        it.contains("/dev/block") || it.contains("chroot") ||
+                            it.contains("RWX") || it.contains("init_module")
+                    } -> "CRITICAL"
+                rootCalls.isNotEmpty() || systemPaths.isNotEmpty() -> "HIGH"
+                networkCalls.isNotEmpty() -> "MEDIUM"
+                else -> "SAFE"
+            }
+    }
+
+    private fun deobfuscateShellLine(line: String): String {
+        var clean = REGEX_IFS_VAR.replace(line, " ")
+        clean = REGEX_BACKSLASH_ESCAPE.replace(clean, "")
+        clean = REGEX_QUOTES.replace(clean, "")
+        return clean
     }
 
     fun auditScriptText(content: String): ScriptAuditReport {
-        val lines = content.lines()
+        val rawLines = content.lines()
+        val logicalLines = mutableListOf<Pair<Int, String>>()
+        var i = 0
+        while (i < rawLines.size) {
+            val trimmed = rawLines[i].trim()
+            val startLineNum = i + 1
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+                i++
+                continue
+            }
+            val sb = StringBuilder(trimmed)
+            while (i + 1 < rawLines.size) {
+                val curStr = sb.toString()
+                var trailingSlashes = 0
+                for (cIdx in curStr.length - 1 downTo 0) {
+                    if (curStr[cIdx] == '\\') trailingSlashes++ else break
+                }
+                if (trailingSlashes % 2 == 1) {
+                    i++
+                    sb.append(' ').append(rawLines[i].trim())
+                } else {
+                    break
+                }
+            }
+            logicalLines.add(startLineNum to sb.toString())
+            i++
+        }
+
         val deletions = mutableListOf<String>()
         val rootCalls = mutableListOf<String>()
         val networkCalls = mutableListOf<String>()
         val systemPaths = mutableListOf<String>()
 
-        lines.forEachIndexed { idx, rawLine ->
-            val line = rawLine.trim()
-            val lineNum = idx + 1
-            if (line.startsWith("#")) return@forEachIndexed
+        for ((lineNum, line) in logicalLines) {
+            val subCommands = REGEX_SUBCMD_SPLIT.split(line).map { it.trim() }.filter { it.isNotEmpty() }
+            val cleanLine = deobfuscateShellLine(line)
+            val cleanSubCommands = REGEX_SUBCMD_SPLIT.split(cleanLine).map { it.trim() }.filter { it.isNotEmpty() }
+            val targetsToCheck = (subCommands + cleanSubCommands + line + cleanLine).distinct()
 
-            // Split line into chained sub-commands (;, &&, ||, |, \n) for granular inspection
-            val subCommands = line.split(Regex("[;&|]+")).map { it.trim() }.filter { it.isNotEmpty() }
-            val targetsToCheck = if (subCommands.isNotEmpty()) subCommands + line else listOf(line)
-
-            val hasDeletion = targetsToCheck.any {
-                Regex("""\b(rm|rmdir|unlink|truncate|shred|wipe|toybox\s+rm|busybox\s+rm)\b""").containsMatchIn(it)
-            }
-            if (hasDeletion) {
+            if (targetsToCheck.any { REGEX_DELETION.containsMatchIn(it) }) {
                 deletions.add("Line $lineNum: $line")
             }
 
-            val hasBlockOrFormat = targetsToCheck.any {
-                Regex("""\bdd\s+.*of=|\b(mkfs|mke2fs|fdisk|sfdisk|blkdiscard|wipefs|make_ext4fs)\b""").containsMatchIn(it)
-            }
-            if (hasBlockOrFormat) {
+            if (targetsToCheck.any { REGEX_BLOCK_OR_FORMAT.containsMatchIn(it) }) {
                 deletions.add("Line $lineNum (format/block): $line")
             }
 
-            val hasRoot = targetsToCheck.any {
-                Regex("""\b(su|sudo|magisk|ksud|setenforce|chown\s+root|insmod|rmmod|modprobe|resetprop|setprop)\b""").containsMatchIn(it)
-            }
-            if (hasRoot) {
+            if (targetsToCheck.any { REGEX_ROOT.containsMatchIn(it) }) {
                 rootCalls.add("Line $lineNum: $line")
             }
 
-            val hasNetwork = targetsToCheck.any {
-                Regex("""\b(curl|wget|nc|netcat|ncat|socat|ssh|scp|rsync|ping|traceroute|nmap)\b""").containsMatchIn(it) ||
-                    it.contains("/dev/tcp") || it.contains("/dev/udp")
-            }
-            if (hasNetwork) {
+            if (targetsToCheck.any {
+                    REGEX_NETWORK.containsMatchIn(it) || it.contains("/dev/tcp") || it.contains("/dev/udp")
+                }
+            ) {
                 networkCalls.add("Line $lineNum: $line")
             }
 
-            val hasSystemOrSymlink = targetsToCheck.any {
-                Regex("""(/system|/vendor|/product|/apex|/dev/block|/data/data|/data/user|/data/local/tmp|\bpm\s+(uninstall|install|disable|clear)|\bam\s+(start|force-stop)|\breboot|\bsys_reboot|\bshutdown|\bpoweroff|\bhalt|\bchroot\b|\bpivot_root\b|\bmount\s+.*remount|\b(chmod|chown|mv|cp|tee|eval)\b|\bsed\s+-i|\bbase64\s+-d|>>?\s*(/storage|/sdcard|/data|/system|/vendor|\$)|\bln\s+(-[a-zA-Z0-9_-]+\s+)*.*)""").containsMatchIn(it)
-            }
-            if (hasSystemOrSymlink) {
+            if (targetsToCheck.any { REGEX_SYSTEM.containsMatchIn(it) }) {
                 systemPaths.add("Line $lineNum: $line")
             }
         }
 
         return ScriptAuditReport(deletions, rootCalls, networkCalls, systemPaths)
+    }
+
+    private fun readLimitedBytes(path: Path, maxBytes: Int = MAX_AUDIT_READ_BYTES): Pair<ByteArray, Boolean> {
+        path.newInputStream().use { stream ->
+            val buf = ByteArray(maxBytes + 1)
+            var total = 0
+            while (total < buf.size) {
+                val read = stream.read(buf, total, buf.size - total)
+                if (read <= 0) break
+                total += read
+            }
+            val truncated = total > maxBytes
+            val length = minOf(total, maxBytes)
+            return buf.copyOf(length) to truncated
+        }
+    }
+
+    fun buildElfSummaryText(elfReport: ElfAuditReport): String = buildString {
+        appendLine("/* C/C++ COMPILED ELF BINARY AUDIT REPORT */")
+        appendLine("Architecture: ${elfReport.machineArch}")
+        appendLine("Bitness: ${if (elfReport.is64Bit) "64-bit" else "32-bit"}")
+        appendLine("Endianness: ${if (elfReport.isLittleEndian) "Little-Endian (LSB)" else "Big-Endian (MSB)"}")
+        appendLine("PIE (Position Independent): ${if (elfReport.isPie) "Yes (Android 5.0+ Compatible)" else "No (Fixed - May fail on Android)"}")
+        appendLine("Linker / Interpreter: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dynamic" else "Static"}")
+        appendLine("Stripped Symbols: ${if (elfReport.isStripped) "Yes" else "No"}")
+        appendLine("RWX / Exec Stack Segment: ${if (elfReport.hasRwxSegment) "Detected (High Risk)" else "None"}")
+        appendLine("Packed (UPX): ${if (elfReport.isPacked) "Yes" else "No"}")
+        appendLine("Direct Syscall Instructions (svc/syscall): ${elfReport.directSyscallsCount}")
+        if (elfReport.neededLibraries.isNotEmpty()) {
+            appendLine("Libraries: ${elfReport.neededLibraries.joinToString(", ")}")
+        }
+        appendLine("ABI Compatibility: ${if (elfReport.isAbiCompatible) "Compatible with this device" else "Incompatible"}")
+        appendLine()
+        appendLine("/* DETECTED SYSCALLS & SYMBOLS (${elfReport.totalFindings}) */")
+        for (f in elfReport.findings) {
+            appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Risk: ${f.risk.levelName})")
+        }
     }
 
     fun showScriptAuditDetailsDialog(
@@ -138,6 +233,7 @@ object ScriptRunnerHelper {
         scriptContent: String,
         onExecuteDirect: (() -> Unit)? = null
     ) {
+        val palette = OpenManagerPalette.from(activity)
         val density = activity.resources.displayMetrics.density
         val scroll = android.widget.ScrollView(activity)
         val container = LinearLayout(activity).apply {
@@ -148,7 +244,7 @@ object ScriptRunnerHelper {
 
         val tvSummary = TextView(activity).apply {
             textSize = 15f
-            setTextColor(Color.WHITE)
+            setTextColor(palette.textPrimary)
             text = if (report.totalFindings == 0) {
                 activity.getString(R.string.om_script_runner_audit_safe)
             } else {
@@ -173,8 +269,8 @@ object ScriptRunnerHelper {
                 val tvItem = TextView(activity).apply {
                     textSize = 12f
                     setTypeface(android.graphics.Typeface.MONOSPACE)
-                    setTextColor(Color.parseColor("#CCCCCC"))
-                    setBackgroundColor(Color.parseColor("#222222"))
+                    setTextColor(palette.filePrimaryText)
+                    setBackgroundColor(palette.cardBg)
                     val p = (6 * density).toInt()
                     setPadding(p, p, p, p)
                     val lp = LinearLayout.LayoutParams(
@@ -189,10 +285,14 @@ object ScriptRunnerHelper {
             }
         }
 
-        addSection(activity.getString(R.string.om_script_runner_section_deletions_format, report.deletions.size), report.deletions, "#FF8A80")
-        addSection(activity.getString(R.string.om_script_runner_section_root_format, report.rootCalls.size), report.rootCalls, "#FFD54F")
-        addSection(activity.getString(R.string.om_script_runner_section_network_format, report.networkCalls.size), report.networkCalls, "#80D8FF")
-        addSection(activity.getString(R.string.om_script_runner_section_system_format, report.systemPaths.size), report.systemPaths, "#B388FF")
+        val delColor = if (palette.isDark) "#FF8A80" else "#C62828"
+        val rootColor = if (palette.isDark) "#FFD54F" else "#EF6C00"
+        val netColor = if (palette.isDark) "#80D8FF" else "#0277BD"
+        val sysColor = if (palette.isDark) "#B388FF" else "#6A1B9A"
+        addSection(activity.getString(R.string.om_script_runner_section_deletions_format, report.deletions.size), report.deletions, delColor)
+        addSection(activity.getString(R.string.om_script_runner_section_root_format, report.rootCalls.size), report.rootCalls, rootColor)
+        addSection(activity.getString(R.string.om_script_runner_section_network_format, report.networkCalls.size), report.networkCalls, netColor)
+        addSection(activity.getString(R.string.om_script_runner_section_system_format, report.systemPaths.size), report.systemPaths, sysColor)
 
         val btnViewCode = Button(activity).apply {
             text = activity.getString(R.string.om_script_runner_view_full_code)
@@ -250,6 +350,7 @@ object ScriptRunnerHelper {
         content: String,
         report: ScriptAuditReport? = null
     ) {
+        val palette = OpenManagerPalette.from(activity)
         val density = activity.resources.displayMetrics.density
         val scroll = android.widget.ScrollView(activity)
         val container = LinearLayout(activity).apply {
@@ -267,9 +368,13 @@ object ScriptRunnerHelper {
             }
         }
 
-        val lines = content.lines()
+        val allLines = content.lines()
+        val renderCount = minOf(allLines.size, MAX_CODE_PREVIEW_LINES)
         val ssb = SpannableStringBuilder()
-        lines.forEachIndexed { idx, line ->
+        val flagFg = if (palette.isDark) Color.parseColor("#FFD54F") else Color.parseColor("#BF360C")
+        val flagBg = if (palette.isDark) Color.parseColor("#3E2723") else Color.parseColor("#FFE0B2")
+        for (idx in 0 until renderCount) {
+            val line = allLines[idx]
             val lineNum = idx + 1
             val isFlagged = lineNum in flaggedLines
             val prefix = if (isFlagged) String.format("%3d ⚠️ | ", lineNum) else String.format("%3d    | ", lineNum)
@@ -279,12 +384,18 @@ object ScriptRunnerHelper {
             val end = ssb.length
 
             if (isFlagged) {
-                ssb.setSpan(ForegroundColorSpan(Color.parseColor("#FFD54F")), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                ssb.setSpan(BackgroundColorSpan(Color.parseColor("#3E2723")), start, end - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ssb.setSpan(ForegroundColorSpan(flagFg), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ssb.setSpan(BackgroundColorSpan(flagBg), start, end - 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             } else {
-                ssb.setSpan(ForegroundColorSpan(Color.parseColor("#90A4AE")), start, start + prefix.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                ssb.setSpan(ForegroundColorSpan(Color.parseColor("#E0E0E0")), start + prefix.length, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ssb.setSpan(ForegroundColorSpan(palette.textSecondary), start, start + prefix.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                ssb.setSpan(ForegroundColorSpan(palette.filePrimaryText), start + prefix.length, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             }
+        }
+        if (allLines.size > MAX_CODE_PREVIEW_LINES) {
+            val extra = "\n... (+${allLines.size - MAX_CODE_PREVIEW_LINES} lines)"
+            val sStart = ssb.length
+            ssb.append(extra)
+            ssb.setSpan(ForegroundColorSpan(palette.textSecondary), sStart, ssb.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         }
 
         val tvCode = TextView(activity).apply {
@@ -522,9 +633,14 @@ object ScriptRunnerHelper {
     ) {
         var currentAuditReport: ScriptAuditReport? = null
         var currentScriptText = ""
+        var auditCompleted = false
         var dialog: androidx.appcompat.app.AlertDialog? = null
+        val palette = OpenManagerPalette.from(activity)
+        val uiScope = (activity as? LifecycleOwner)?.lifecycleScope ?: CoroutineScope(Dispatchers.Main.immediate)
+        val activeJobs = mutableListOf<Job>()
 
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_mt_file_properties, null)
+        view.setBackgroundColor(palette.dialogBg)
 
         val ivIcon = view.findViewById<ImageView>(R.id.ivPropIcon)
         val tvTitle = view.findViewById<TextView>(R.id.tvPropTitle)
@@ -541,7 +657,9 @@ object ScriptRunnerHelper {
 
         ivIcon.setImageResource(R.drawable.file_sh_icon)
         tvTitle.text = fileName
+        tvTitle.setTextColor(palette.textPrimary)
         tvSubtitle.text = activity.getString(if (isElf) R.string.om_script_runner_subtitle_elf else R.string.om_script_runner_subtitle_sh)
+        tvSubtitle.setTextColor(palette.textSecondary)
 
         fun copyText(label: String, value: CharSequence?) {
             val str = value?.toString() ?: return
@@ -558,7 +676,7 @@ object ScriptRunnerHelper {
         fun addRow(
             label: String,
             initialValue: String,
-            valueColor: Int = Color.parseColor("#E0E0E0"),
+            valueColor: Int = palette.filePrimaryText,
             boldValue: Boolean = false,
             singleLineMiddle: Boolean = false,
             onClick: ((TextView) -> Unit)? = null
@@ -571,7 +689,7 @@ object ScriptRunnerHelper {
             val tvLabel = TextView(activity).apply {
                 layoutParams = TableRow.LayoutParams((115 * density).toInt(), TableRow.LayoutParams.WRAP_CONTENT)
                 text = label
-                setTextColor(Color.parseColor("#9E9E9E"))
+                setTextColor(palette.textSecondary)
                 textSize = 13f
             }
             val tvVal = TextView(activity).apply {
@@ -643,12 +761,17 @@ object ScriptRunnerHelper {
         }
         addRow(activity.getString(R.string.om_script_runner_label_modified), dateStr)
 
+        val linkColor = if (palette.isDark) Color.parseColor("#64B5F6") else palette.accentColor
+        val safeGreen = if (palette.isDark) Color.parseColor("#81C784") else Color.parseColor("#2E7D32")
+        val warnOrange = if (palette.isDark) Color.parseColor("#FFB74D") else Color.parseColor("#EF6C00")
+        val auditIdleBlue = if (palette.isDark) Color.parseColor("#90CAF9") else palette.accentColor
+
         // Interactive Permissions Row ("Permisos: 777 (rwxrwxrwx)")
         val permInfo = MtPermissionsHelper.getPermissions(activity, path, fileItem)
         addRow(
             label = activity.getString(R.string.om_script_runner_label_permissions),
             initialValue = "${permInfo.displayString}  ✎",
-            valueColor = Color.parseColor("#64B5F6"),
+            valueColor = linkColor,
             boldValue = true
         ) { tvPerm ->
             MtPermissionsHelper.showPermissionsDialog(
@@ -684,152 +807,141 @@ object ScriptRunnerHelper {
         val (rowAudit, tvAudit) = addRow(
             activity.getString(R.string.om_script_runner_label_audit),
             activity.getString(if (isElf) R.string.om_script_runner_audit_analyzing_elf else R.string.om_script_runner_audit_analyzing_script),
-            valueColor = Color.parseColor("#90CAF9"),
+            valueColor = auditIdleBlue,
             boldValue = true
         )
         if (isElf) {
             rowLineEnding.visibility = View.GONE
-            CoroutineScope(Dispatchers.IO).launch {
-                val elfReport = ElfInspector.inspect(path)
-                val scriptReport = elfReport.toScriptAuditReport()
-                val summaryText = buildString {
-                    appendLine("/* C/C++ COMPILED ELF BINARY AUDIT REPORT */")
-                    appendLine("Architecture: ${elfReport.machineArch}")
-                    appendLine("Bitness: ${if (elfReport.is64Bit) "64-bit" else "32-bit"}")
-                    appendLine("Endianness: ${if (elfReport.isLittleEndian) "Little-Endian (LSB)" else "Big-Endian (MSB)"}")
-                    appendLine("PIE (Position Independent): ${if (elfReport.isPie) "Yes (Android 5.0+ Compatible)" else "No (Fixed - May fail on Android)"}")
-                    appendLine("Linker / Interpreter: ${elfReport.interpreter ?: if (elfReport.isDynamic) "Dynamic" else "Static"}")
-                    appendLine("ABI Compatibility: ${if (elfReport.isAbiCompatible) "Compatible with this device" else "Incompatible"}")
-                    appendLine()
-                    appendLine("/* DETECTED SYSCALLS & SYMBOLS (${elfReport.totalFindings}) */")
-                    for (f in elfReport.findings) {
-                        appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} (Risk: ${f.risk.levelName})")
-                    }
+            activeJobs += uiScope.launch {
+                val (elfReport, scriptReport, summaryText) = withContext(Dispatchers.IO) {
+                    val elf = ElfInspector.inspect(path)
+                    Triple(elf, elf.toScriptAuditReport(), buildElfSummaryText(elf))
                 }
-                withContext(Dispatchers.Main) {
-                    currentAuditReport = scriptReport
-                    currentScriptText = summaryText
+                if (activity.isFinishing || activity.isDestroyed) return@launch
+                currentAuditReport = scriptReport
+                currentScriptText = summaryText
+                auditCompleted = true
 
-                    tvInterpreter.text = elfReport.interpreter ?: activity.getString(if (elfReport.isDynamic) R.string.om_script_runner_elf_dynamic else R.string.om_script_runner_elf_static)
-                    tvSubtitle.text = activity.getString(R.string.om_script_runner_elf_subtitle_format, elfReport.machineArch)
-                    ivIcon.setImageResource(if (elfReport.is64Bit) R.drawable.ic_exec_elf_64 else R.drawable.ic_exec_elf_32)
-                    tvLines.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
-                    rowLines.visibility = View.VISIBLE
+                tvInterpreter.text = elfReport.interpreter ?: activity.getString(
+                    if (elfReport.isDynamic) R.string.om_script_runner_elf_dynamic else R.string.om_script_runner_elf_static
+                )
+                tvSubtitle.text = activity.getString(R.string.om_script_runner_elf_subtitle_format, elfReport.machineArch)
+                ivIcon.setImageResource(if (elfReport.is64Bit) R.drawable.ic_exec_elf_64 else R.drawable.ic_exec_elf_32)
+                tvLines.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
+                rowLines.visibility = View.VISIBLE
 
-                    if (elfReport.totalFindings == 0) {
-                        tvAudit.text = activity.getString(R.string.om_script_runner_elf_safe)
-                        tvAudit.setTextColor(Color.parseColor("#81C784"))
-                    } else {
-                        tvAudit.text = activity.getString(R.string.om_script_runner_elf_risks_format, elfReport.totalFindings)
-                        tvAudit.setTextColor(Color.parseColor("#FFB74D"))
-                    }
-
-                    val auditClick = View.OnClickListener {
-                        showScriptAuditDetailsDialog(activity, path, scriptReport, summaryText, onExecuteDirect = {
-                            dialog?.dismiss()
-                            executeScriptOrBinary(activity, path)
-                        })
-                    }
-                    rowAudit.setOnClickListener(auditClick)
-                    tvAudit.setOnClickListener(auditClick)
+                if (elfReport.totalFindings == 0) {
+                    tvAudit.text = activity.getString(R.string.om_script_runner_elf_safe)
+                    tvAudit.setTextColor(safeGreen)
+                } else {
+                    tvAudit.text = activity.getString(R.string.om_script_runner_elf_risks_format, elfReport.totalFindings)
+                    tvAudit.setTextColor(warnOrange)
                 }
+
+                val auditClick = View.OnClickListener {
+                    showScriptAuditDetailsDialog(activity, path, scriptReport, summaryText, onExecuteDirect = {
+                        dialog?.dismiss()
+                        executeScriptOrBinary(activity, path)
+                    })
+                }
+                rowAudit.setOnClickListener(auditClick)
+                tvAudit.setOnClickListener(auditClick)
             }
         }
 
-        // Asynchronously inspect shebang, line count, and line endings for text scripts
+        // Single-pass bounded script inspection for shebang, line count, line endings, and audit
         if (!isElf) {
-            CoroutineScope(Dispatchers.IO).launch {
-                var shebang: String? = null
-                var lineCount = 0
-                var hasCrlf = false
-                try {
-                    path.newInputStream().use { stream ->
-                        val bytes = stream.readBytes()
-                        for (i in bytes.indices) {
-                            if (bytes[i] == '\n'.code.toByte()) {
-                                lineCount++
-                                if (i > 0 && bytes[i - 1] == '\r'.code.toByte()) {
-                                    hasCrlf = true
-                                }
-                            }
-                        }
-                        if (lineCount == 0 && bytes.isNotEmpty()) lineCount = 1
-                    }
-                    path.newInputStream().use { stream ->
-                        BufferedReader(InputStreamReader(stream, StandardCharsets.UTF_8)).use { reader ->
-                            val first = reader.readLine()
-                            if (first != null && first.startsWith("#!")) {
-                                shebang = first.trim()
+            activeJobs += uiScope.launch {
+                data class ScriptAnalysisResult(
+                    val shebang: String?,
+                    val lineCount: Int,
+                    val hasCrlf: Boolean,
+                    val content: String,
+                    val auditReport: ScriptAuditReport
+                )
+                val result = withContext(Dispatchers.IO) {
+                    val bytes = runCatching { readLimitedBytes(path).first }.getOrDefault(ByteArray(0))
+                    var lines = 0
+                    var crlf = false
+                    for (idx in bytes.indices) {
+                        if (bytes[idx] == '\n'.code.toByte()) {
+                            lines++
+                            if (idx > 0 && bytes[idx - 1] == '\r'.code.toByte()) {
+                                crlf = true
                             }
                         }
                     }
-                } catch (_: Throwable) {}
+                    if (lines == 0 && bytes.isNotEmpty()) lines = 1
+                    val text = String(bytes, StandardCharsets.UTF_8)
+                    val firstLineEnd = text.indexOf('\n')
+                    val firstLine = (if (firstLineEnd >= 0) text.substring(0, firstLineEnd) else text).trim()
+                    val sb = if (firstLine.startsWith("#!")) firstLine else null
+                    val report = auditScriptText(text)
+                    ScriptAnalysisResult(sb, lines, crlf, text, report)
+                }
+                if (activity.isFinishing || activity.isDestroyed) return@launch
 
-                var fullScriptContent = ""
-                try {
-                    path.newInputStream().use { stream ->
-                        fullScriptContent = String(stream.readBytes(), StandardCharsets.UTF_8)
-                    }
-                } catch (_: Throwable) {}
-                val auditReport = auditScriptText(fullScriptContent)
+                currentAuditReport = result.auditReport
+                currentScriptText = result.content
+                auditCompleted = true
 
-                withContext(Dispatchers.Main) {
-                    currentAuditReport = auditReport
-                    currentScriptText = fullScriptContent
+                if (!result.shebang.isNullOrBlank()) {
+                    tvInterpreter.text = result.shebang
+                    tvSubtitle.text = "Script (${result.shebang.removePrefix("#!").trim()})"
+                }
+                tvLines.text = activity.getString(R.string.om_script_runner_lines_utf8_format, result.lineCount)
 
-                    if (!shebang.isNullOrBlank()) {
-                        tvInterpreter.text = shebang
-                        tvSubtitle.text = "Script (${shebang!!.removePrefix("#!").trim()})"
-                    }
-                    tvLines.text = activity.getString(R.string.om_script_runner_lines_utf8_format, lineCount)
+                if (result.auditReport.totalFindings == 0) {
+                    tvAudit.text = activity.getString(R.string.om_script_runner_script_safe)
+                    tvAudit.setTextColor(safeGreen)
+                } else {
+                    tvAudit.text = activity.getString(
+                        R.string.om_script_runner_script_warnings_format,
+                        result.auditReport.totalFindings
+                    )
+                    tvAudit.setTextColor(warnOrange)
+                }
+                val auditClick = View.OnClickListener {
+                    showScriptAuditDetailsDialog(activity, path, result.auditReport, result.content, onExecuteDirect = {
+                        dialog?.dismiss()
+                        executeScriptOrBinary(activity, path)
+                    })
+                }
+                rowAudit.setOnClickListener(auditClick)
+                tvAudit.setOnClickListener(auditClick)
 
-                    if (auditReport.totalFindings == 0) {
-                        tvAudit.text = activity.getString(R.string.om_script_runner_script_safe)
-                        tvAudit.setTextColor(Color.parseColor("#81C784"))
-                    } else {
-                        tvAudit.text = activity.getString(R.string.om_script_runner_script_warnings_format, auditReport.totalFindings)
-                        tvAudit.setTextColor(Color.parseColor("#FFB74D"))
-                    }
-                    val auditClick = View.OnClickListener {
-                        showScriptAuditDetailsDialog(activity, path, auditReport, fullScriptContent, onExecuteDirect = {
-                            dialog?.dismiss()
-                            executeScriptOrBinary(activity, path)
-                        })
-                    }
-                    rowAudit.setOnClickListener(auditClick)
-                    tvAudit.setOnClickListener(auditClick)
-
-                    if (hasCrlf) {
-                        tvLineEnding.text = activity.getString(R.string.om_script_runner_crlf_tap_convert)
-                        tvLineEnding.setTextColor(Color.parseColor("#FFB74D"))
-                        val convertClick = View.OnClickListener {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                try {
+                if (result.hasCrlf) {
+                    tvLineEnding.text = activity.getString(R.string.om_script_runner_crlf_tap_convert)
+                    tvLineEnding.setTextColor(warnOrange)
+                    val convertClick = View.OnClickListener {
+                        activeJobs += uiScope.launch {
+                            try {
+                                val converted = withContext(Dispatchers.IO) {
                                     val raw = Files.readAllBytes(path)
-                                    val converted = String(raw, StandardCharsets.UTF_8)
+                                    val out = String(raw, StandardCharsets.UTF_8)
                                         .replace("\r\n", "\n")
                                         .replace("\r", "\n")
                                         .toByteArray(StandardCharsets.UTF_8)
-                                    Files.write(path, converted)
-                                    withContext(Dispatchers.Main) {
-                                        tvLineEnding.text = "LF (Unix)"
-                                        tvLineEnding.setTextColor(Color.parseColor("#81C784"))
-                                        tvSizeVal.text = "${converted.size.toLong().asFileSize().formatHumanReadable(activity)} (${converted.size} B)"
-                                        Toast.makeText(activity, R.string.file_properties_script_convert_success, Toast.LENGTH_SHORT).show()
-                                    }
-                                } catch (e: Exception) {
-                                    withContext(Dispatchers.Main) {
-                                        Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
+                                    Files.write(path, out)
+                                    out
+                                }
+                                if (activity.isFinishing || activity.isDestroyed) return@launch
+                                tvLineEnding.text = "LF (Unix)"
+                                tvLineEnding.setTextColor(safeGreen)
+                                tvSizeVal.text = "${converted.size.toLong().asFileSize().formatHumanReadable(activity)} (${converted.size} B)"
+                                Toast.makeText(activity, R.string.file_properties_script_convert_success, Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                if (!activity.isFinishing && !activity.isDestroyed) {
+                                    Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
-                        rowLineEnding.setOnClickListener(convertClick)
-                        tvLineEnding.setOnClickListener(convertClick)
-                    } else {
-                        tvLineEnding.text = "LF (Unix)"
-                        tvLineEnding.setTextColor(Color.parseColor("#81C784"))
                     }
+                    rowLineEnding.setOnClickListener(convertClick)
+                    tvLineEnding.setOnClickListener(convertClick)
+                } else {
+                    tvLineEnding.text = "LF (Unix)"
+                    tvLineEnding.setTextColor(safeGreen)
                 }
             }
         }
@@ -838,12 +950,15 @@ object ScriptRunnerHelper {
             .setView(view)
             .create()
         dialog = createdDialog
-        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
+        createdDialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(palette.dialogBg))
+        createdDialog.setOnDismissListener {
+            activeJobs.forEach { it.cancel() }
+        }
 
         // Button 1: PREFERENCIAS
         btnAction1.visibility = View.VISIBLE
         btnAction1.text = activity.getString(R.string.script_action_preferences)
-        btnAction1.setTextColor(Color.parseColor("#2196F3"))
+        btnAction1.setTextColor(palette.accentColor)
         btnAction1.setOnClickListener {
             showPreferencesDialog(activity, path)
         }
@@ -852,7 +967,7 @@ object ScriptRunnerHelper {
         var hashesCalculated = false
         btnAction2.visibility = View.VISIBLE
         btnAction2.text = "HASH"
-        btnAction2.setTextColor(Color.parseColor("#FF9800"))
+        btnAction2.setTextColor(warnOrange)
         btnAction2.setOnClickListener {
             if (hashesCalculated) return@setOnClickListener
             hashesCalculated = true
@@ -863,35 +978,38 @@ object ScriptRunnerHelper {
             val (_, tvSha1) = addRow("SHA-1", "Calculando...")
             val (_, tvSha256) = addRow("SHA-256", "Calculando...")
 
-            CoroutineScope(Dispatchers.IO).launch {
+            activeJobs += uiScope.launch {
                 try {
-                    val crc = CRC32()
-                    val md5 = MessageDigest.getInstance("MD5")
-                    val sha1 = MessageDigest.getInstance("SHA-1")
-                    val sha256 = MessageDigest.getInstance("SHA-256")
-                    path.newInputStream().use { inp ->
-                        val buf = ByteArray(16384)
-                        var n: Int
-                        while (inp.read(buf).also { n = it } != -1) {
-                            crc.update(buf, 0, n)
-                            md5.update(buf, 0, n)
-                            sha1.update(buf, 0, n)
-                            sha256.update(buf, 0, n)
+                    val (crcHex, md5Hex, sha1Hex, sha256Hex) = withContext(Dispatchers.IO) {
+                        val crc = CRC32()
+                        val md5 = MessageDigest.getInstance("MD5")
+                        val sha1 = MessageDigest.getInstance("SHA-1")
+                        val sha256 = MessageDigest.getInstance("SHA-256")
+                        path.newInputStream().use { inp ->
+                            val buf = ByteArray(16384)
+                            var n: Int
+                            while (inp.read(buf).also { n = it } != -1) {
+                                crc.update(buf, 0, n)
+                                md5.update(buf, 0, n)
+                                sha1.update(buf, 0, n)
+                                sha256.update(buf, 0, n)
+                            }
                         }
+                        fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
+                        listOf(
+                            "%08x".format(crc.value),
+                            md5.digest().toHex(),
+                            sha1.digest().toHex(),
+                            sha256.digest().toHex()
+                        )
                     }
-                    fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
-                    val crcHex = "%08x".format(crc.value)
-                    val md5Hex = md5.digest().toHex()
-                    val sha1Hex = sha1.digest().toHex()
-                    val sha256Hex = sha256.digest().toHex()
-                    withContext(Dispatchers.Main) {
-                        tvCrc.text = crcHex
-                        tvMd5.text = md5Hex
-                        tvSha1.text = sha1Hex
-                        tvSha256.text = sha256Hex
-                    }
+                    if (activity.isFinishing || activity.isDestroyed) return@launch
+                    tvCrc.text = crcHex
+                    tvMd5.text = md5Hex
+                    tvSha1.text = sha1Hex
+                    tvSha256.text = sha256Hex
                 } catch (e: Exception) {
-                    withContext(Dispatchers.Main) {
+                    if (!activity.isFinishing && !activity.isDestroyed) {
                         tvMd5.text = "Error: ${e.message}"
                     }
                 }
@@ -901,7 +1019,7 @@ object ScriptRunnerHelper {
         // Button 3: EDITAR
         btnAction3.visibility = View.VISIBLE
         btnAction3.text = activity.getString(R.string.script_action_edit)
-        btnAction3.setTextColor(Color.parseColor("#FFFFFF"))
+        btnAction3.setTextColor(palette.textPrimary)
         btnAction3.setOnClickListener {
             dialog?.dismiss()
             editScriptOrBinary(activity, path)
@@ -910,15 +1028,14 @@ object ScriptRunnerHelper {
         // Button 4: EJECUTAR
         btnAction4.visibility = View.VISIBLE
         btnAction4.text = activity.getString(R.string.script_action_execute)
-        btnAction4.setTextColor(Color.parseColor("#4CAF50"))
-        btnAction4.setOnClickListener {
-            val report = currentAuditReport
+        btnAction4.setTextColor(if (palette.isDark) Color.parseColor("#4CAF50") else Color.parseColor("#2E7D32"))
+        fun runWithAuditCheck(report: ScriptAuditReport?, content: String) {
             if (report != null && report.totalFindings > 0) {
                 showPreExecutionAuditWarningDialog(
                     activity = activity,
                     path = path,
                     report = report,
-                    scriptContent = currentScriptText
+                    scriptContent = content
                 ) {
                     dialog?.dismiss()
                     executeScriptOrBinary(activity, path)
@@ -926,6 +1043,37 @@ object ScriptRunnerHelper {
             } else {
                 dialog?.dismiss()
                 executeScriptOrBinary(activity, path)
+            }
+        }
+        btnAction4.setOnClickListener {
+            if (auditCompleted) {
+                runWithAuditCheck(currentAuditReport, currentScriptText)
+            } else {
+                btnAction4.isEnabled = false
+                activeJobs += uiScope.launch {
+                    try {
+                        val (report, text) = withContext(Dispatchers.IO) {
+                            if (isElf) {
+                                val elf = ElfInspector.inspect(path)
+                                elf.toScriptAuditReport() to buildElfSummaryText(elf)
+                            } else {
+                                val bytes = runCatching { readLimitedBytes(path).first }.getOrDefault(ByteArray(0))
+                                val s = String(bytes, StandardCharsets.UTF_8)
+                                auditScriptText(s) to s
+                            }
+                        }
+                        if (activity.isFinishing || activity.isDestroyed) return@launch
+                        currentAuditReport = report
+                        currentScriptText = text
+                        auditCompleted = true
+                        btnAction4.isEnabled = true
+                        runWithAuditCheck(report, text)
+                    } catch (_: Throwable) {
+                        if (!activity.isFinishing && !activity.isDestroyed) {
+                            btnAction4.isEnabled = true
+                        }
+                    }
+                }
             }
         }
 
@@ -1160,9 +1308,12 @@ object ScriptRunnerHelper {
                     try {
                         File(scriptPath).copyTo(target, overwrite = true)
                         target.setExecutable(true, false)
-                        if (File("/system/bin/linker64").exists()) {
+                        val elfInfo = ElfInspector.inspect(path)
+                        if (!elfInfo.isDynamic) {
+                            target.absolutePath.escapeShellArg()
+                        } else if (elfInfo.is64Bit && File("/system/bin/linker64").exists()) {
                             "/system/bin/linker64 ${target.absolutePath.escapeShellArg()}"
-                        } else if (File("/system/bin/linker").exists()) {
+                        } else if (!elfInfo.is64Bit && File("/system/bin/linker").exists()) {
                             "/system/bin/linker ${target.absolutePath.escapeShellArg()}"
                         } else {
                             target.absolutePath.escapeShellArg()

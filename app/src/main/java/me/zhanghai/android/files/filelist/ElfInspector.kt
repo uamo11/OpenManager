@@ -9,6 +9,7 @@ import android.os.Build
 import java8.nio.file.Path
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.terminal.tracer.SyscallCategory
+import me.zhanghai.android.files.terminal.tracer.SyscallResolver
 import me.zhanghai.android.files.terminal.tracer.SyscallRisk
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
@@ -35,7 +36,12 @@ data class ElfAuditReport(
     val networkCalls: List<String>,
     val executionCalls: List<String>,
     val ptraceCalls: List<String>,
-    val systemCalls: List<String>
+    val systemCalls: List<String>,
+    val isStripped: Boolean = false,
+    val hasRwxSegment: Boolean = false,
+    val isPacked: Boolean = false,
+    val directSyscallsCount: Int = 0,
+    val neededLibraries: List<String> = emptyList()
 ) {
     fun toScriptAuditReport(): ScriptRunnerHelper.ScriptAuditReport {
         return ScriptRunnerHelper.ScriptAuditReport(
@@ -135,6 +141,25 @@ object ElfInspector {
         "swapon" to Triple(SyscallCategory.SYSTEM_ADMIN, SyscallRisk.HIGH, "Enable swap partition")
     )
 
+    private val DANGEROUS_PATHS = listOf(
+        "/system", "/vendor", "/product", "/apex", "/dev/block",
+        "/dev/kmem", "/dev/mem", "/proc/kallsyms", "/sys/kernel", "/proc/modules",
+        "/data/local/tmp", "/data/adb",
+        "/system/bin/su", "/system/xbin/su", "/sbin/su", "magisk", "kernelsu", "apatch"
+    )
+
+    private val SO_LIBRARY_REGEX = Regex("""^[A-Za-z0-9_.-]+\.so(?:\.[0-9]+)*$""")
+
+    private val SENSITIVE_DIRECT_SYSCALL_CATEGORIES = setOf(
+        SyscallCategory.DELETION_FS,
+        SyscallCategory.PRIVILEGE,
+        SyscallCategory.NETWORK,
+        SyscallCategory.PROCESS_EXEC,
+        SyscallCategory.DEBUG_PTRACE,
+        SyscallCategory.SYSTEM_ADMIN,
+        SyscallCategory.SIGNALING
+    )
+
     fun isElf(path: Path): Boolean {
         return try {
             path.newInputStream().use { isElf(it) }
@@ -225,34 +250,87 @@ object ElfInspector {
             else -> "ELF Machine #$machine" to true
         }
 
-        // Program header parsing for PT_INTERP (type 3)
+        // Program header parsing: PT_LOAD (1), PT_INTERP (3), PT_GNU_STACK (0x6474E551)
         var interpreter: String? = null
-        val phOff = if (is64Bit) readU64(32).toInt() else readU32(28).toInt()
+        var hasRwxSegment = false
+        val execRanges = mutableListOf<IntRange>()
+
+        val phOff = if (is64Bit) readU64(32) else readU32(28)
         val phEntSize = if (is64Bit) readU16(54) else readU16(42)
         val phNum = if (is64Bit) readU16(56) else readU16(44)
+        val minPhEntry = if (is64Bit) 56 else 32
 
-        if (phOff > 0 && phEntSize > 0 && phNum > 0 && phOff < bytes.size) {
+        if (phOff > 0L && phEntSize >= minPhEntry && phNum > 0 && phOff < bytes.size) {
             for (i in 0 until phNum) {
-                val curPh = phOff + i * phEntSize
-                if (curPh + 16 > bytes.size) break
+                val curPhLong = phOff + i.toLong() * phEntSize
+                if (curPhLong + phEntSize > bytes.size) break
+                val curPh = curPhLong.toInt()
                 val pType = readU32(curPh)
-                if (pType == 3L) { // PT_INTERP
-                    val pOffset = if (is64Bit) readU64(curPh + 8).toInt() else readU32(curPh + 4).toInt()
-                    val pFilesz = if (is64Bit) readU64(curPh + 32).toInt() else readU32(curPh + 16).toInt()
-                    if (pOffset in 0 until bytes.size && pFilesz > 0 && pOffset + pFilesz <= bytes.size) {
-                        val rawStr = String(bytes, pOffset, pFilesz, StandardCharsets.UTF_8).trimEnd('\u0000')
-                        if (rawStr.isNotBlank()) {
-                            interpreter = rawStr
+                val pFlags = if (is64Bit) readU32(curPh + 4).toInt() else readU32(curPh + 24).toInt()
+                when (pType) {
+                    1L -> { // PT_LOAD
+                        if ((pFlags and 0x7) == 0x7) {
+                            hasRwxSegment = true
+                        }
+                        if ((pFlags and 0x1) != 0) {
+                            val pOffset = if (is64Bit) readU64(curPh + 8) else readU32(curPh + 4)
+                            val pFilesz = if (is64Bit) readU64(curPh + 32) else readU32(curPh + 16)
+                            if (pFilesz > 0L && pOffset in 0L until bytes.size.toLong()) {
+                                val endExcl = minOf(bytes.size.toLong(), pOffset + pFilesz).toInt()
+                                if (endExcl > pOffset.toInt()) {
+                                    execRanges.add(pOffset.toInt() until endExcl)
+                                }
+                            }
                         }
                     }
+                    3L -> { // PT_INTERP
+                        if (interpreter == null) {
+                            val pOffset = if (is64Bit) readU64(curPh + 8) else readU32(curPh + 4)
+                            val pFilesz = if (is64Bit) readU64(curPh + 32) else readU32(curPh + 16)
+                            if (pOffset in 0L until bytes.size.toLong() && pFilesz > 0L &&
+                                pOffset + pFilesz <= bytes.size.toLong()
+                            ) {
+                                val rawStr = String(
+                                    bytes, pOffset.toInt(), pFilesz.toInt(), StandardCharsets.UTF_8
+                                ).trimEnd('\u0000')
+                                if (rawStr.isNotBlank()) {
+                                    interpreter = rawStr
+                                }
+                            }
+                        }
+                    }
+                    0x6474E551L -> { // PT_GNU_STACK
+                        if ((pFlags and 0x1) != 0) {
+                            hasRwxSegment = true
+                        }
+                    }
+                }
+            }
+        }
+
+        // Section header parsing for stripped detection (SHT_SYMTAB = 2)
+        val shOff = if (is64Bit) readU64(40) else readU32(32)
+        val shEntSize = if (is64Bit) readU16(58) else readU16(46)
+        val shNum = if (is64Bit) readU16(60) else readU16(48)
+        var isStripped = false
+        if (shNum == 0 && phNum > 0 && elfType != 3) {
+            isStripped = true
+        } else if (shOff > 0L && shEntSize >= 24 && shNum > 0 && shOff + shNum.toLong() * shEntSize <= bytes.size) {
+            var hasSymtab = false
+            for (i in 0 until shNum) {
+                val curSh = (shOff + i.toLong() * shEntSize).toInt()
+                if (readU32(curSh + 4) == 2L) { // SHT_SYMTAB
+                    hasSymtab = true
                     break
                 }
+            }
+            if (!hasSymtab) {
+                isStripped = true
             }
         }
 
         val isDynamic = interpreter != null || elfType == 3
 
-        // Scan for sensitive symbols and syscalls in the binary content
         val findings = mutableListOf<ElfFinding>()
         val deletions = mutableListOf<String>()
         val rootCalls = mutableListOf<String>()
@@ -260,45 +338,199 @@ object ElfInspector {
         val executionCalls = mutableListOf<String>()
         val ptraceCalls = mutableListOf<String>()
         val systemCalls = mutableListOf<String>()
-
-        // Convert the binary strings to search for symbol names cleanly
-        val binaryText = buildString {
-            var start = 0
-            for (i in bytes.indices) {
-                val b = bytes[i].toInt()
-                if (b in 32..126) {
-                    // Printable ASCII
-                } else {
-                    if (i - start >= 3) {
-                        append(String(bytes, start, i - start, StandardCharsets.ISO_8859_1))
-                        append('\n')
-                    }
-                    start = i + 1
-                }
-            }
-        }
-
+        val neededLibraries = LinkedHashSet<String>()
         val detectedSet = mutableSetOf<String>()
-        for ((symbol, info) in SENSITIVE_SYMBOLS) {
-            val (category, risk, desc) = info
-            val regex = Regex("""\b${Regex.escape(symbol)}\b""")
-            if (regex.containsMatchIn(binaryText) && detectedSet.add(symbol)) {
-                val finding = ElfFinding(
-                    symbol = symbol,
+        var isPacked = false
+
+        fun recordFinding(
+            dedupKey: String,
+            symbolLabel: String,
+            category: SyscallCategory,
+            risk: SyscallRisk,
+            desc: String,
+            lineText: String
+        ) {
+            if (!detectedSet.add(dedupKey)) return
+            findings.add(
+                ElfFinding(
+                    symbol = symbolLabel,
                     category = category,
                     risk = risk,
                     description = desc
                 )
-                findings.add(finding)
+            )
+            when (category) {
+                SyscallCategory.DELETION_FS -> deletions.add(lineText)
+                SyscallCategory.PRIVILEGE -> rootCalls.add(lineText)
+                SyscallCategory.NETWORK -> networkCalls.add(lineText)
+                SyscallCategory.PROCESS_EXEC -> executionCalls.add(lineText)
+                SyscallCategory.DEBUG_PTRACE -> ptraceCalls.add(lineText)
+                else -> systemCalls.add(lineText)
+            }
+        }
 
-                when (category) {
-                    SyscallCategory.DELETION_FS -> deletions.add("$symbol() - $desc")
-                    SyscallCategory.PRIVILEGE -> rootCalls.add("$symbol() - $desc")
-                    SyscallCategory.NETWORK -> networkCalls.add("$symbol() - $desc")
-                    SyscallCategory.PROCESS_EXEC -> executionCalls.add("$symbol() - $desc")
-                    SyscallCategory.DEBUG_PTRACE -> ptraceCalls.add("$symbol() - $desc")
-                    SyscallCategory.SYSTEM_ADMIN -> systemCalls.add("$symbol() - $desc")
-                    else -> {}
+        fun isWordChar(c: Int): Boolean =
+            (c in 'a'.code..'z'.code) ||
+                (c in 'A'.code..'Z'.code) ||
+                (c in '0'.code..'9'.code) ||
+                c == '_'.code
+
+        // Single-pass O(N) printable ASCII run + word scanner
+        var runStart = -1
+        for (idx in 0..bytes.size) {
+            val b = if (idx < bytes.size) bytes[idx].toInt() and 0xFF else -1
+            if (b in 32..126) {
+                if (runStart < 0) runStart = idx
+            } else if (runStart >= 0) {
+                val runLen = idx - runStart
+                if (runLen >= 2) {
+                    val text = String(bytes, runStart, runLen, StandardCharsets.ISO_8859_1)
+                    if (text.contains("UPX!")) {
+                        isPacked = true
+                    }
+                    if (neededLibraries.size < 16 && runLen in 5..64 && text.contains(".so") &&
+                        SO_LIBRARY_REGEX.matches(text)
+                    ) {
+                        neededLibraries.add(text)
+                    }
+                    if (runLen >= 6) {
+                        for (dp in DANGEROUS_PATHS) {
+                            if (text.contains(dp) && detectedSet.add("PATH:$dp")) {
+                                if (dp.endsWith("/su") || dp == "magisk" || dp == "kernelsu" || dp == "apatch") {
+                                    rootCalls.add("Root binary reference ($dp)")
+                                } else {
+                                    systemCalls.add("System/Kernel path reference ($dp)")
+                                }
+                            }
+                        }
+                    }
+
+                    // Split identifier words in-place
+                    var wStart = -1
+                    for (wIdx in 0..text.length) {
+                        val ch = if (wIdx < text.length) text[wIdx].code else -1
+                        if (isWordChar(ch)) {
+                            if (wStart < 0) wStart = wIdx
+                        } else if (wStart >= 0) {
+                            if (wIdx - wStart >= 2) {
+                                val word = text.substring(wStart, wIdx)
+                                if (word == "su" && detectedSet.add("PATH:su_word")) {
+                                    rootCalls.add("Root binary reference (su)")
+                                }
+                                SENSITIVE_SYMBOLS[word]?.let { (cat, risk, desc) ->
+                                    recordFinding(word, word, cat, risk, desc, "$word() - $desc")
+                                }
+                            }
+                            wStart = -1
+                        }
+                    }
+                }
+                runStart = -1
+            }
+        }
+
+        // Machine-code direct syscall disassembler (for stripped / static binaries)
+        var directSyscallsCount = 0
+        var resolvedAnyDirectNr = false
+        val scanRanges = if (execRanges.isNotEmpty()) {
+            execRanges
+        } else {
+            val limit = minOf(bytes.size, 512 * 1024)
+            if (limit > 64) listOf(64 until limit) else emptyList()
+        }
+
+        if (isLittleEndian && machine == 183) { // EM_AARCH64
+            fun readLe32(offset: Int): Int {
+                return (bytes[offset].toInt() and 0xFF) or
+                    ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
+                    ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
+                    ((bytes[offset + 3].toInt() and 0xFF) shl 24)
+            }
+            for (range in scanRanges) {
+                val alignedStart = (range.first + 3) and -4
+                var pc = alignedStart
+                while (pc + 4 <= range.last + 1) {
+                    val insn = readLe32(pc)
+                    if (insn == 0xD4000001.toInt()) { // svc #0
+                        directSyscallsCount++
+                        var foundNr: Int? = null
+                        for (k in 1..4) {
+                            val prevPc = pc - k * 4
+                            if (prevPc < range.first) break
+                            val prev = readLe32(prevPc)
+                            // movz x8, #imm16  (0xD2800008) or movz w8, #imm16 (0x52800008)
+                            if ((prev and 0xFFE0001F.toInt()) == 0xD2800008.toInt() ||
+                                (prev and 0xFFE0001F.toInt()) == 0x52800008.toInt()
+                            ) {
+                                foundNr = (prev ushr 5) and 0xFFFF
+                                break
+                            }
+                            // Stop backward walk on branches/svc
+                            if ((prev and 0x7C000000) == 0x14000000 ||
+                                (prev and 0xFC000000.toInt()) == 0xD4000000.toInt() ||
+                                (prev and 0xFE000000.toInt()) == 0xD6000000.toInt()
+                            ) {
+                                break
+                            }
+                        }
+                        if (foundNr != null && foundNr in 0..512) {
+                            resolvedAnyDirectNr = true
+                            val info = SyscallResolver.resolve(foundNr, "arm64-v8a")
+                            if (info.category in SENSITIVE_DIRECT_SYSCALL_CATEGORIES) {
+                                val sym = "${info.name} [svc #0, NR=$foundNr]"
+                                recordFinding(
+                                    "DIRECT_SYSCALL:${info.name}",
+                                    sym,
+                                    info.category,
+                                    info.risk,
+                                    info.description,
+                                    "$sym - ${info.description}"
+                                )
+                            }
+                        }
+                    }
+                    pc += 4
+                }
+            }
+        } else if (isLittleEndian && machine == 62) { // EM_X86_64
+            fun readLe32Signed(offset: Int): Int {
+                return (bytes[offset].toInt() and 0xFF) or
+                    ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
+                    ((bytes[offset + 2].toInt() and 0xFF) shl 16) or
+                    ((bytes[offset + 3].toInt() and 0xFF) shl 24)
+            }
+            for (range in scanRanges) {
+                var pc = range.first
+                while (pc + 2 <= range.last + 1) {
+                    if (bytes[pc] == 0x0F.toByte() && bytes[pc + 1] == 0x05.toByte()) { // syscall
+                        directSyscallsCount++
+                        val foundNr = when {
+                            pc - 5 >= range.first && bytes[pc - 5] == 0xB8.toByte() -> readLe32Signed(pc - 4)
+                            pc - 7 >= range.first &&
+                                bytes[pc - 7] == 0x48.toByte() &&
+                                bytes[pc - 6] == 0xC7.toByte() &&
+                                bytes[pc - 5] == 0xC0.toByte() -> readLe32Signed(pc - 4)
+                            else -> null
+                        }
+                        if (foundNr != null && foundNr in 0..512) {
+                            resolvedAnyDirectNr = true
+                            val info = SyscallResolver.resolve(foundNr, "x86_64")
+                            if (info.category in SENSITIVE_DIRECT_SYSCALL_CATEGORIES) {
+                                val sym = "${info.name} [syscall, NR=$foundNr]"
+                                recordFinding(
+                                    "DIRECT_SYSCALL:${info.name}",
+                                    sym,
+                                    info.category,
+                                    info.risk,
+                                    info.description,
+                                    "$sym - ${info.description}"
+                                )
+                            }
+                        }
+                        pc += 2
+                    } else {
+                        pc++
+                    }
                 }
             }
         }
@@ -306,25 +538,17 @@ object ElfInspector {
         if (isKernelModule && detectedSet.add("ELF_TYPE:ET_REL")) {
             systemCalls.add("Relocatable ELF / Kernel Module (ET_REL)")
         }
-
-        // Check for hardcoded sensitive paths in string literals
-        val dangerousPaths = listOf(
-            "/system", "/vendor", "/product", "/apex", "/dev/block",
-            "/dev/kmem", "/dev/mem", "/proc/kallsyms", "/sys/kernel", "/proc/modules",
-            "/data/local/tmp", "/data/adb",
-            "/system/bin/su", "/system/xbin/su", "/sbin/su", "magisk", "kernelsu", "apatch"
-        )
-        for (dp in dangerousPaths) {
-            if (binaryText.contains(dp) && detectedSet.add("PATH:$dp")) {
-                if (dp.endsWith("/su") || dp == "magisk" || dp == "kernelsu" || dp == "apatch") {
-                    rootCalls.add("Root binary reference ($dp)")
-                } else {
-                    systemCalls.add("System/Kernel path reference ($dp)")
-                }
-            }
+        if (directSyscallsCount > 0 && !resolvedAnyDirectNr && detectedSet.add("DIRECT_SYSCALL:GENERIC")) {
+            systemCalls.add("Direct kernel syscall instructions ($directSyscallsCount sites)")
         }
-        if (Regex("""\bsu\b""").containsMatchIn(binaryText) && detectedSet.add("PATH:su_word")) {
-            rootCalls.add("Root binary reference (su)")
+        if (hasRwxSegment && detectedSet.add("ANOMALY:RWX")) {
+            systemCalls.add("RWX memory segment / executable stack (potential shellcode or packer)")
+        }
+        if (isPacked && detectedSet.add("ANOMALY:UPX")) {
+            systemCalls.add("Packed executable detected (UPX!)")
+        }
+        if (isStripped && !isDynamic && directSyscallsCount > 0 && detectedSet.add("ANOMALY:STATIC_STRIPPED_SVC")) {
+            systemCalls.add("Stripped static ELF invoking kernel syscalls directly ($directSyscallsCount sites)")
         }
 
         val totalFindings = deletions.size + rootCalls.size + networkCalls.size + executionCalls.size + ptraceCalls.size + systemCalls.size
@@ -344,7 +568,12 @@ object ElfInspector {
             networkCalls = networkCalls,
             executionCalls = executionCalls,
             ptraceCalls = ptraceCalls,
-            systemCalls = systemCalls
+            systemCalls = systemCalls,
+            isStripped = isStripped,
+            hasRwxSegment = hasRwxSegment,
+            isPacked = isPacked,
+            directSyscallsCount = directSyscallsCount,
+            neededLibraries = neededLibraries.toList()
         )
     }
 
