@@ -69,6 +69,7 @@ import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.running.RunningAppsActivity
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.provider.archive.isArchivePath
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.ftpserver.FtpServerService
@@ -243,11 +244,11 @@ class FileListActivity : AppActivity() {
             }
             fragmentA = FileListFragment().putArgs(FileListFragment.Args(intentA))
 
-            val intentB = Intent(intent)
-            if (intentB.extraPath == null) {
-                intentB.extraPath = Settings.FILE_LIST_DEFAULT_DIRECTORY_RIGHT.valueCompat
+            val intentB = Intent().apply {
+                extraPath = Settings.FILE_LIST_DEFAULT_DIRECTORY_RIGHT.valueCompat
             }
             fragmentB = FileListFragment().putArgs(FileListFragment.Args(intentB))
+            intent.putExtra(EXTRA_HANDLED_ON_CREATE, true)
 
             supportFragmentManager.commit {
                 add(R.id.containerPanelA, fragmentA, TAG_PANEL_A)
@@ -381,15 +382,40 @@ class FileListActivity : AppActivity() {
             }
         }
 
+        val highlightFile = intent.getStringExtra(EXTRA_HIGHLIGHT_FILE_PATH)?.also {
+            intent.removeExtra(EXTRA_HIGHLIGHT_FILE_PATH)
+        }
+        val alreadyHandled = intent.getBooleanExtra(EXTRA_HANDLED_ON_CREATE, false)
+        if (alreadyHandled) {
+            intent.removeExtra(EXTRA_NAVIGATE_TO_PATH)
+            return
+        }
+
         val navigatePath = intent.getStringExtra(EXTRA_NAVIGATE_TO_PATH)
         if (!navigatePath.isNullOrBlank()) {
             intent.removeExtra(EXTRA_NAVIGATE_TO_PATH)
+            intent.putExtra(EXTRA_HANDLED_ON_CREATE, true)
             try {
                 val path = Paths.get(navigatePath)
                 if (this::fragmentA.isInitialized) {
-                    activeFragment.navigateTo(path)
+                    activeFragment.navigateToAndHighlight(path, highlightFile)
                 }
             } catch (ignored: Throwable) {}
+            return
+        }
+
+        if (intent.action == Intent.ACTION_VIEW) {
+            val viewPath = intent.extraPath
+            if (viewPath != null && this::fragmentA.isInitialized) {
+                intent.putExtra(EXTRA_HANDLED_ON_CREATE, true)
+                val resolvedDir = if (!viewPath.isArchivePath && viewPath.isLinuxPath && viewPath.toFile().isFile) {
+                    viewPath.parent ?: viewPath
+                } else {
+                    viewPath
+                }
+                val targetHighlight = highlightFile ?: if (resolvedDir != viewPath) viewPath.toString() else null
+                activeFragment.navigateToAndHighlight(resolvedDir, targetHighlight)
+            }
         }
     }
 
@@ -2357,6 +2383,8 @@ class FileListActivity : AppActivity() {
     companion object {
         const val EXTRA_SHOW_APKTOOL_PROGRESS = "me.zhanghai.android.files.filelist.extra.SHOW_APKTOOL_PROGRESS"
         const val EXTRA_NAVIGATE_TO_PATH = "me.zhanghai.android.files.filelist.extra.NAVIGATE_TO_PATH"
+        const val EXTRA_HIGHLIGHT_FILE_PATH = "me.zhanghai.android.files.filelist.extra.HIGHLIGHT_FILE_PATH"
+        private const val EXTRA_HANDLED_ON_CREATE = "me.zhanghai.android.files.filelist.extra.HANDLED_ON_CREATE"
         private const val TAG_PANEL_A = "panel_a"
         private const val TAG_PANEL_B = "panel_b"
         private const val KEY_ACTIVE_PANEL = "active_panel"
@@ -2371,6 +2399,17 @@ class FileListActivity : AppActivity() {
             FileListActivity::class.createIntent()
                 .setAction(Intent.ACTION_VIEW)
                 .apply { extraPath = path }
+
+        fun createLocateFileIntent(context: Context, filePath: Path): Intent {
+            val parentDir = filePath.parent ?: Paths.get("/storage/emulated/0")
+            return Intent(context, FileListActivity::class.java).apply {
+                action = Intent.ACTION_VIEW
+                extraPath = parentDir
+                putExtra(EXTRA_NAVIGATE_TO_PATH, parentDir.toString())
+                putExtra(EXTRA_HIGHLIGHT_FILE_PATH, filePath.toString())
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+            }
+        }
     }
 
     class OpenFileContract : ActivityResultContract<List<MimeType>, Path?>() {

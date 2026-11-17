@@ -2758,4 +2758,12 @@
     <string name="om_proc_kill_script_confirm_msg">Do you want to terminate the running script?\n\n• Script: %1$s\n• PID: %2$d\n• Path: %3$s</string>
     <string name="om_proc_kill_script_wait_fmt">Close (%1$ds)</string>
     <string name="om_proc_kill_script_now">Close script</string>
+    <string name="om_smart_open_video_title">Open video</string>
+    <string name="om_smart_open_watch_video">Watch video</string>
+    <string name="om_smart_open_watch_video_sub">Play in built-in video player</string>
+    <string name="om_smart_open_location">Open location</string>
+    <string name="om_smart_open_location_sub">Show file in explorer</string>
+    <string name="om_smart_open_staged_toast">Imported from external location to %1$s</string>
+    <string name="om_smart_open_resolving">Opening file…</string>
+    <string name="om_smart_open_error">Could not open file</string>
 </resources>

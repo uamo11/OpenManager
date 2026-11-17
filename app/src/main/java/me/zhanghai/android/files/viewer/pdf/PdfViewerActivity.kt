@@ -45,6 +45,7 @@ import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.databinding.ActivityPdfViewerBinding
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.file.fileProviderUri
+import me.zhanghai.android.files.filelist.SmartUriPathResolver
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.size
@@ -392,12 +393,38 @@ class PdfViewerActivity : AppActivity() {
                 shareDocument()
                 return true
             }
+            R.id.action_open_location -> {
+                openLocationInExplorer()
+                return true
+            }
             R.id.action_open_external -> {
                 openExternal()
                 return true
             }
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun openLocationInExplorer() {
+        lifecycleScope.launch {
+            try {
+                val ok = SmartUriPathResolver.locateCurrentOrIncomingInExplorer(
+                    this@PdfViewerActivity,
+                    intent,
+                    currentPath
+                )
+                if (!isUiAlive) return@launch
+                if (ok) {
+                    finish()
+                } else {
+                    Toast.makeText(this@PdfViewerActivity, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Throwable) {
+                if (isUiAlive) {
+                    Toast.makeText(this@PdfViewerActivity, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun showThemeSelectionDialog() {

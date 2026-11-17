@@ -154,9 +154,13 @@ class FileListAdapter(
 
     var visualPerformanceMode: Boolean = false
 
+    var highlightedPath: Path? = null
+
     fun refreshVisibleItems() {
         notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
     }
+
+    fun getPositionForPath(path: Path): Int = filePositionMap[path] ?: -1
 
     fun replaceSelectedFiles(files: FileItemSet) {
         val changedFiles = fileItemSetOf()

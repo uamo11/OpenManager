@@ -41,6 +41,12 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_open_location"
+        android:orderInCategory="55"
+        android:title="@string/om_smart_open_location"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_open_external"
         android:orderInCategory="60"
         android:title="@string/file_item_action_open_with"

@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
+import me.zhanghai.android.files.filelist.SmartUriPathResolver
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
@@ -47,12 +48,16 @@ class VideoPlayerActivity : AppActivity() {
     private lateinit var seekBarVideo: SeekBar
     private lateinit var ivVideoPlayPause: ImageView
     private lateinit var btnVideoPlayPause: FrameLayout
+    private lateinit var btnVideoLocate: ImageButton
     private lateinit var btnVideoAspect: ImageButton
 
+    private var currentPath: Path? = null
+    private var externalUri: Uri? = null
     private var tempFile: File? = null
     private var isUserTracking = false
     private var isControlsVisible = true
     private var isAspectFill = false
+    private var isLocating = false
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -88,20 +93,28 @@ class VideoPlayerActivity : AppActivity() {
         seekBarVideo = findViewById(R.id.seekBarVideo)
         ivVideoPlayPause = findViewById(R.id.ivVideoPlayPause)
         btnVideoPlayPause = findViewById(R.id.btnVideoPlayPause)
+        btnVideoLocate = findViewById(R.id.btnVideoLocate)
         btnVideoAspect = findViewById(R.id.btnVideoAspect)
         val btnVideoBack = findViewById<ImageButton>(R.id.btnVideoBack)
 
-        val path = intent.extraPath
-        if (path == null) {
+        currentPath = intent.extraPath
+        externalUri = intent.data
+        if (currentPath == null && externalUri == null) {
             Toast.makeText(this, R.string.om_video_invalid_path, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        tvVideoTitle.text = path.fileName.toString()
+        val customDisplayName = intent.getStringExtra(EXTRA_DISPLAY_NAME)
+        tvVideoTitle.text = customDisplayName
+            ?: currentPath?.fileName?.toString()
+            ?: externalUri?.lastPathSegment?.substringAfterLast('/')
+            ?: getString(R.string.om_video_title)
         tvVideoTitle.isSelected = true
 
         btnVideoBack.setOnClickListener { finish() }
+
+        btnVideoLocate.setOnClickListener { locateVideoInExplorer() }
 
         btnVideoPlayPause.setOnClickListener {
             togglePlayPause()
@@ -153,33 +166,46 @@ class VideoPlayerActivity : AppActivity() {
             }
         })
 
-        initVideo(path)
+        initVideo(currentPath, externalUri)
     }
 
-    private fun initVideo(path: Path) {
+    private fun initVideo(path: Path?, uri: Uri?) {
         lifecycleScope.launch {
             try {
-                val videoFile: File = if (!path.isArchivePath && path.isLinuxPath) {
+                var needsCleanup = false
+                val videoFile: File = if (path != null && !path.isArchivePath && path.isLinuxPath && path.toFile().canRead()) {
                     path.toFile()
                 } else {
+                    needsCleanup = true
                     withContext(Dispatchers.IO) {
-                        val ext = path.fileName.toString().substringAfterLast('.', "tmp")
+                        val rawName = tvVideoTitle.text?.toString() ?: path?.fileName?.toString() ?: "video.mp4"
+                        val ext = rawName.substringAfterLast('.', "mp4").takeIf { it.isNotBlank() && it.length <= 6 } ?: "mp4"
                         val temp = File(cacheDir, "video_preview_${System.currentTimeMillis()}.$ext")
-                        path.newInputStream().use { input ->
-                            FileOutputStream(temp).use { output ->
-                                input.copyTo(output)
+                        if (path != null) {
+                            path.newInputStream().use { input ->
+                                FileOutputStream(temp).use { output ->
+                                    input.copyTo(output, bufferSize = 64 * 1024)
+                                }
                             }
+                        } else if (uri != null) {
+                            contentResolver.openInputStream(uri)?.use { input ->
+                                FileOutputStream(temp).use { output ->
+                                    input.copyTo(output, bufferSize = 64 * 1024)
+                                }
+                            } ?: throw IllegalStateException("Cannot open video URI")
+                        } else {
+                            throw IllegalStateException("No video source")
                         }
                         temp
                     }
                 }
                 if (!isUiAlive) {
-                    if (path.isArchivePath || !path.isLinuxPath) {
+                    if (needsCleanup) {
                         videoFile.delete()
                     }
                     return@launch
                 }
-                if (path.isArchivePath || !path.isLinuxPath) {
+                if (needsCleanup) {
                     tempFile = videoFile
                 }
 
@@ -290,7 +316,35 @@ class VideoPlayerActivity : AppActivity() {
         tempFile = null
     }
 
+    private fun locateVideoInExplorer() {
+        if (isLocating) return
+        isLocating = true
+        lifecycleScope.launch {
+            try {
+                val ok = SmartUriPathResolver.locateCurrentOrIncomingInExplorer(
+                    this@VideoPlayerActivity,
+                    intent,
+                    currentPath
+                )
+                if (!isUiAlive) return@launch
+                if (ok) {
+                    finish()
+                } else {
+                    Toast.makeText(this@VideoPlayerActivity, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
+                }
+            } catch (_: Throwable) {
+                if (isUiAlive) {
+                    Toast.makeText(this@VideoPlayerActivity, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                isLocating = false
+            }
+        }
+    }
+
     companion object {
+        const val EXTRA_DISPLAY_NAME = "me.zhanghai.android.files.viewer.video.extra.DISPLAY_NAME"
+
         fun start(context: Context, path: Path) {
             val intent = Intent(context, VideoPlayerActivity::class.java).apply {
                 extraPath = path

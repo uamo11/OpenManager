@@ -2654,4 +2654,12 @@
     <string name="om_proc_kill_script_confirm_msg">¿Deseas finalizar el script en ejecución?\n\n• Script: %1$s\n• PID: %2$d\n• Ruta: %3$s</string>
     <string name="om_proc_kill_script_wait_fmt">Cerrar (%1$ds)</string>
     <string name="om_proc_kill_script_now">Cerrar script</string>
+    <string name="om_smart_open_video_title">Abrir video</string>
+    <string name="om_smart_open_watch_video">Ver video</string>
+    <string name="om_smart_open_watch_video_sub">Reproducir en el visor integrado</string>
+    <string name="om_smart_open_location">Abrir ubicación</string>
+    <string name="om_smart_open_location_sub">Mostrar archivo en el explorador</string>
+    <string name="om_smart_open_staged_toast">Importado desde ubicación externa en %1$s</string>
+    <string name="om_smart_open_resolving">Abriendo archivo…</string>
+    <string name="om_smart_open_error">No se pudo abrir el archivo</string>
 </resources>

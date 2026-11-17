@@ -112,6 +112,7 @@ import me.zhanghai.android.files.navigation.BookmarkDirectories
 import me.zhanghai.android.files.navigation.BookmarkDirectory
 import me.zhanghai.android.files.navigation.NavigationFragment
 import me.zhanghai.android.files.navigation.NavigationRootMapLiveData
+import me.zhanghai.android.files.provider.archive.archiveFile
 import me.zhanghai.android.files.provider.archive.createArchiveRootPath
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
@@ -217,6 +218,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private var pendingSafIsObb = false
     private var lastPromptedSafPath: Path? = null
+    private var pendingHighlightPath: String? = null
+    private val highlightHandler = Handler(Looper.getMainLooper())
+    private var clearHighlightRunnable: Runnable? = null
 
     private val requestSafPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -497,17 +501,47 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val dividerPaint = Paint().apply {
             style = Paint.Style.FILL
         }
+        val highlightFillPaint = Paint().apply {
+            style = Paint.Style.FILL
+        }
+        val highlightBarPaint = Paint().apply {
+            style = Paint.Style.FILL
+        }
         binding.recyclerView.addItemDecoration(object : RecyclerView.ItemDecoration() {
             override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
-                if (!Settings.FILE_LIST_DIVIDERS.valueCompat) return
-                dividerPaint.color = adapter.palette?.dividerLineColor
-                    ?: OpenManagerPalette.from(parent.context).dividerLineColor
+                val activePalette = adapter.palette ?: OpenManagerPalette.from(parent.context)
+                val highlightTarget = adapter.highlightedPath
+                val highlightPos = if (highlightTarget != null) {
+                    adapter.getPositionForPath(highlightTarget)
+                } else {
+                    -1
+                }
+                val drawDividers = Settings.FILE_LIST_DIVIDERS.valueCompat
+                if (drawDividers) {
+                    dividerPaint.color = activePalette.dividerLineColor
+                }
+                if (highlightPos >= 0) {
+                    val accent = activePalette.accentColor
+                    highlightFillPaint.color = (accent and 0x00FFFFFF) or 0x2E000000
+                    highlightBarPaint.color = accent
+                }
                 val left = parent.paddingLeft.toFloat()
                 val right = (parent.width - parent.paddingRight).toFloat()
-                for (i in 0 until parent.childCount - 1) {
+                val barWidth = 3f * parent.resources.displayMetrics.density
+                for (i in 0 until parent.childCount) {
                     val child = parent.getChildAt(i)
-                    val bottom = child.bottom.toFloat()
-                    c.drawRect(left, bottom - 1f, right, bottom, dividerPaint)
+                    if (highlightPos >= 0 && parent.getChildAdapterPosition(child) == highlightPos) {
+                        c.drawRect(
+                            left, child.top.toFloat(), right, child.bottom.toFloat(), highlightFillPaint
+                        )
+                        c.drawRect(
+                            left, child.top.toFloat(), left + barWidth, child.bottom.toFloat(), highlightBarPaint
+                        )
+                    }
+                    if (drawDividers && i < parent.childCount - 1) {
+                        val bottom = child.bottom.toFloat()
+                        c.drawRect(left, bottom - 1f, right, bottom, dividerPaint)
+                    }
                 }
             }
         })
@@ -708,13 +742,30 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                             Environment.DIRECTORY_DOWNLOADS
                         ).path
                     )
-                else ->
-                    if (path != null) {
-                        val mimeType = intent.type?.asMimeTypeOrNull()
-                        if (mimeType != null && path.isArchiveFile(mimeType)) {
-                            path = path.createArchiveRootPath()
+                else -> {
+                    val explicitHighlight = intent.getStringExtra(FileListActivity.EXTRA_HIGHLIGHT_FILE_PATH)
+                    if (!explicitHighlight.isNullOrBlank()) {
+                        pendingHighlightPath = explicitHighlight
+                        val highlightName = try {
+                            Paths.get(explicitHighlight).fileName?.toString()
+                        } catch (_: Throwable) {
+                            explicitHighlight.substringAfterLast('/')
                         }
+                        if (highlightName?.startsWith(".") == true &&
+                            !Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
+                        ) {
+                            Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(true)
+                        }
+                    } else if (path != null && !path.isArchivePath && path.isLinuxPath && path.toFile().isFile) {
+                        pendingHighlightPath = path.toString()
+                        if (path.fileName?.toString()?.startsWith(".") == true &&
+                            !Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
+                        ) {
+                            Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(true)
+                        }
+                        path = path.parent
                     }
+                }
             }
             if (path == null) {
                 path = Settings.FILE_LIST_DEFAULT_DIRECTORY.valueCompat
@@ -798,6 +849,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         if (viewModel.fileListStateful is Failure) {
             viewModel.reload()
         }
+    }
+
+    override fun onDestroyView() {
+        clearHighlightRunnable?.let { highlightHandler.removeCallbacks(it) }
+        clearHighlightRunnable = null
+        super.onDestroyView()
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -1224,7 +1281,83 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         if (stateful is Success) {
             viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
+            applyPendingHighlightIfReady()
         }
+    }
+
+    fun navigateToAndHighlight(dirPath: Path, highlightFilePath: String?) {
+        if (!highlightFilePath.isNullOrBlank()) {
+            pendingHighlightPath = highlightFilePath
+            val fileName = try {
+                Paths.get(highlightFilePath).fileName?.toString()
+            } catch (_: Throwable) {
+                highlightFilePath.substringAfterLast('/')
+            }
+            if (fileName?.startsWith(".") == true && !Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat) {
+                Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(true)
+            }
+        }
+        val targetDir = if (!dirPath.isArchivePath && dirPath.isLinuxPath && dirPath.toFile().isFile) {
+            if (pendingHighlightPath == null) {
+                pendingHighlightPath = dirPath.toString()
+            }
+            dirPath.parent ?: dirPath
+        } else {
+            dirPath
+        }
+        val sameDir = try {
+            viewModel.hasTrail && currentPath == targetDir
+        } catch (_: Throwable) {
+            false
+        }
+        if (sameDir && !viewModel.searchState.isSearching) {
+            if (!applyPendingHighlightIfReady()) {
+                viewModel.reload()
+            }
+        } else {
+            navigateTo(targetDir)
+        }
+    }
+
+    private fun applyPendingHighlightIfReady(): Boolean {
+        val target = pendingHighlightPath ?: return false
+        val targetName = try {
+            Paths.get(target).fileName?.toString()
+        } catch (_: Throwable) {
+            target.substringAfterLast('/')
+        }
+        var matchedPos = -1
+        var matchedPath: Path? = null
+        for (i in 0 until adapter.itemCount) {
+            val item = adapter.getItemOrNull(i) ?: continue
+            if (item.isParentDirectoryItem) continue
+            if (item.path.toString() == target || (targetName != null && item.name == targetName)) {
+                matchedPos = i
+                matchedPath = item.path
+                break
+            }
+        }
+        if (matchedPos < 0 || matchedPath == null) {
+            return false
+        }
+        pendingHighlightPath = null
+        adapter.highlightedPath = matchedPath
+        binding.recyclerView.post {
+            if (!isAdded) return@post
+            val offset = (binding.recyclerView.height / 3).coerceAtLeast(0)
+            layoutManager.scrollToPositionWithOffset(matchedPos, offset)
+            binding.recyclerView.invalidateItemDecorations()
+        }
+        clearHighlightRunnable?.let { highlightHandler.removeCallbacks(it) }
+        val clearRunnable = Runnable {
+            adapter.highlightedPath = null
+            if (isAdded) {
+                binding.recyclerView.invalidateItemDecorations()
+            }
+        }
+        clearHighlightRunnable = clearRunnable
+        highlightHandler.postDelayed(clearRunnable, 4000L)
+        return true
     }
 
     private fun getSubtitle(files: List<FileItem>): String {
@@ -1308,6 +1441,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     override fun navigateUp() {
         if (!canNavigateUp) return
         collapseSearchView()
+        if (currentPath.isArchivePath && currentPath.parent == null) {
+            try {
+                pendingHighlightPath = currentPath.archiveFile.toString()
+            } catch (_: Throwable) {}
+        }
         if (!viewModel.navigateUp()) {
             val parent = currentPath.parentOrArchiveParent
             if (parent != null) {
@@ -1322,6 +1460,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         collapseSearchView()
         if (isHomeOrRootPath(currentPath)) {
             return
+        }
+        if (currentPath.isArchivePath && currentPath.parent == null) {
+            try {
+                pendingHighlightPath = currentPath.archiveFile.toString()
+            } catch (_: Throwable) {}
         }
         if (!viewModel.navigateUp()) {
             val parent = currentPath.parentOrArchiveParent
@@ -2207,6 +2350,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             navigateTo(file.listablePath)
             return
         }
+        val hasExtension = fileName.contains('.') && fileName.substringAfterLast('.', "").isNotBlank()
+        if (file.mimeType.isPdf || ext == "pdf" || fileName.endsWith(".pdf", true) ||
+            (!hasExtension && isPdfByMagic(file.path))
+        ) {
+            PdfViewerActivity.start(requireContext(), file.path)
+            return
+        }
         if (!file.path.isArchivePath && ScriptRunnerHelper.isExecutableOrScript(file)) {
             ScriptRunnerHelper.showScriptActionDialog(requireActivity(), file)
             return
@@ -2239,7 +2389,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             FontViewerDialogFragment.show(file.path, childFragmentManager)
             return
         }
-        val hasExtension = fileName.contains('.') && fileName.substringAfterLast('.', "").isNotBlank()
         if (!hasExtension) {
             // Archivo sin especificador de tipo de archivo (ej. sample_unknown, sin .sh ni .mp3) -> Menú "Abrir con..." estilo MT Manager
             OpenFileAsDialogFragment.show(file.path, childFragmentManager)
@@ -2249,8 +2398,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             AudioPlayerDialogFragment.show(file.path, childFragmentManager)
             return
         }
-        if (file.mimeType.isVideo) {
-            VideoPlayerActivity.start(requireContext(), file.path)
+        if (file.mimeType.isVideo ||
+            SmartFileOpenEngine.classifySmartOpen(file.mimeType.value, fileName) == SmartOpenKind.VIDEO
+        ) {
+            if (viewModel.searchState.isSearching && !file.path.isArchivePath) {
+                showSearchVideoActionDialog(file)
+            } else {
+                VideoPlayerActivity.start(requireContext(), file.path)
+            }
             return
         }
         if (file.mimeType.isSqlite || fileName.endsWith(".db", true) || fileName.endsWith(".sqlite", true) || fileName.endsWith(".sqlite3", true)) {
@@ -2272,10 +2427,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             ElfInfoDialogFragment.show(file.path, childFragmentManager)
             return
         }
-        if (file.mimeType.isPdf || fileExtension == "pdf" || fileName.endsWith(".pdf", true)) {
-            PdfViewerActivity.start(requireContext(), file.path)
-            return
-        }
         if (file.mimeType.isDocx || fileExtension == "docx" || fileExtension == "doc" || fileExtension == "dotx" || fileExtension == "dot"
             || fileName.endsWith(".docx", true) || fileName.endsWith(".doc", true)) {
             DocxViewerActivity.start(requireContext(), file.path)
@@ -2287,6 +2438,42 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         // Archivos desconocidos o formatos no identificados -> diálogo "Abrir como" tipo MT Manager
         OpenFileAsDialogFragment.show(file.path, childFragmentManager)
+    }
+
+    private fun isPdfByMagic(path: Path): Boolean {
+        return try {
+            path.newInputStream().use { input ->
+                val buf = ByteArray(16)
+                val read = input.read(buf)
+                read > 0 && SmartFileOpenEngine.hasPdfMagicHeader(buf.copyOf(read))
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun showSearchVideoActionDialog(file: FileItem) {
+        val options = arrayOf(
+            getString(R.string.om_smart_open_watch_video),
+            getString(R.string.om_smart_open_location)
+        )
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(file.name)
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> VideoPlayerActivity.start(requireContext(), file.path)
+                    1 -> {
+                        val parent = file.path.parent
+                        if (parent != null) {
+                            collapseSearchView()
+                            viewModel.stopSearching()
+                            navigateToAndHighlight(parent, file.path.toString())
+                        }
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun isTextFileOrProbableText(path: Path): Boolean {
