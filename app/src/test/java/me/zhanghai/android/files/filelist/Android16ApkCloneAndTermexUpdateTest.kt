@@ -101,7 +101,7 @@ class Android16ApkCloneAndTermexUpdateTest {
                 manifest.packageName = "com.original.quetta"
                 manifest.setVersionCode(208)
                 manifest.setVersionName("2.0.8")
-                manifest.setMinSdkVersion(26)
+                manifest.setMinSdkVersion(23)
                 manifest.setTargetSdkVersion(35)
                 manifest.setApplicationLabel("Quetta")
                 manifest.setExtractNativeLibs(false)
