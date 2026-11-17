@@ -37,7 +37,13 @@ class AboutFragment : Fragment() {
         activity.setSupportActionBar(binding.toolbar)
         activity.supportActionBar!!.setDisplayHomeAsUpEnabled(true)
 
-        // Card 1: OpenManager repository & licenses
+        // Card 1: OpenManager repository, updates & licenses
+        binding.versionLayout.setOnClickListener {
+            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true)
+        }
+        binding.checkUpdateLayout.setOnClickListener {
+            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true)
+        }
         binding.gitHubLayout.setOnClickListener { startActivitySafe(GITHUB_URI.createViewIntent()) }
         binding.licensesLayout.setOnClickListener { LicensesDialogFragment.show(this) }
         binding.privacyPolicyLayout.setOnClickListener {

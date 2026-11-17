@@ -1098,6 +1098,10 @@
     <string name="settings_auto_check_updates_summary">Comprobar al abrir la app si hay una nueva versión y notificar mediante una ventana.</string>
     <string name="settings_check_update_title">Buscar actualizaciones</string>
     <string name="settings_check_update_summary" translatable="false">GitHub: github.com/uamo11/OpenManager</string>
+    <string name="settings_check_update_dynamic_summary">Actual: %1$s (%2$s) • Última vez: %3$s</string>
+    <string name="settings_check_update_never">Nunca</string>
+    <string name="settings_check_update_just_now">Hace un momento</string>
+    <string name="about_check_update_summary">Comprobar si hay una nueva versión en GitHub</string>
     <string name="update_checking_title">Buscar actualizaciones</string>
     <string name="update_checking_message">Comprobando versiones disponibles en GitHub…</string>
     <string name="update_up_to_date_title">OpenManager está al día</string>
@@ -1111,14 +1115,21 @@
     <string name="update_target_apk_label">Archivo: %1$s (%2$s)</string>
     <string name="update_changelog_label">Novedades y mejoras:</string>
     <string name="update_action_download_and_install">Descargar e instalar</string>
+    <string name="update_action_install_ready">Instalar ahora (ya descargado)</string>
     <string name="update_action_view_on_github">Ver en GitHub</string>
     <string name="update_action_later">Más tarde</string>
+    <string name="update_action_skip_version">Omitir versión</string>
+    <string name="update_version_skipped_toast">Se omitirán avisos automáticos de %1$s</string>
+    <string name="update_auto_disabled_toast">Auto-actualizaciones desactivadas (puedes reactivarlas en Ajustes)</string>
     <string name="update_downloading_title">Descargando actualización…</string>
     <string name="update_downloading_format">%1$s / %2$s (%3$d%%)</string>
+    <string name="update_resuming_format">Reanudando %1$s / %2$s (%3$d%%)</string>
     <string name="update_download_speed_format">%1$s/s</string>
+    <string name="update_speed_eta_format">%1$s/s • ~%2$s</string>
     <string name="update_download_success_title">Descarga completada</string>
     <string name="update_download_failed_title">Error al descargar</string>
     <string name="update_download_failed_message">No se pudo descargar el archivo de actualización: %1$s</string>
+    <string name="update_corrupt_apk_error">El APK descargado está incompleto o dañado</string>
     <string name="update_check_error_title">Error al buscar actualizaciones</string>
     <string name="update_check_error_message">No se pudo obtener información desde GitHub: %1$s\nPor favor, verifica tu conexión a Internet o inténtalo más tarde.</string>
     <string name="update_installing_title">Iniciando instalación…</string>

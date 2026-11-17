@@ -42,9 +42,14 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
 
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_check_for_update))?.setOnPreferenceClickListener {
-            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true)
+            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true) {
+                if (isAdded) {
+                    refreshUpdateCheckSummary()
+                }
+            }
             true
         }
+        refreshUpdateCheckSummary()
 
         findPreference<androidx.preference.Preference>(getString(R.string.pref_key_view_error_logs))?.setOnPreferenceClickListener {
             val logsDir = me.zhanghai.android.files.app.CrashHandler.ensureLogsDirectory() ?: java.io.File("/storage/emulated/0/OpenManager/logs")
@@ -308,11 +313,43 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         CustomThemeHelper.sync()
     }
 
+    private fun refreshUpdateCheckSummary() {
+        val ctx = context ?: return
+        me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(ctx)
+        findPreference<androidx.preference.SwitchPreferenceCompat>(
+            getString(R.string.pref_key_auto_check_updates)
+        )?.isChecked = Settings.AUTO_CHECK_UPDATES.valueCompat
+
+        val checkPref = findPreference<androidx.preference.Preference>(
+            getString(R.string.pref_key_check_for_update)
+        ) ?: return
+        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(ctx)
+        val lastCheckMs = prefs.getLong(
+            me.zhanghai.android.files.update.UpdateChecker.PREF_LAST_CHECK_TIME,
+            0L
+        )
+        val channelLabel = getString(
+            if (me.zhanghai.android.files.update.UpdateChecker.isDebugBuild(ctx)) {
+                R.string.update_channel_debug
+            } else {
+                R.string.update_channel_release
+            }
+        )
+        val relative = me.zhanghai.android.files.update.UpdateChecker.formatRelativeLastCheck(ctx, lastCheckMs)
+        checkPref.summary = getString(
+            R.string.settings_check_update_dynamic_summary,
+            "v${me.zhanghai.android.files.BuildConfig.VERSION_NAME}",
+            channelLabel,
+            relative
+        )
+    }
+
     override fun onResume() {
         super.onResume()
 
         me.zhanghai.android.files.provider.root.SuperuserDetector.invalidateCache()
         findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
+        refreshUpdateCheckSummary()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Refresh locale preference summary because we aren't notified for an external change

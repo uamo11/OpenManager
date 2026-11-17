@@ -127,6 +127,9 @@ private fun initializeTerminalBinTools() {
             me.zhanghai.android.files.terminal.TerminalExpansionManager.ensureBinTools(application)
         } catch (_: Throwable) {}
         try {
+            me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(application)
+        } catch (_: Throwable) {}
+        try {
             me.zhanghai.android.files.update.UpdateChecker.cleanupInstalledUpdateApks(application)
         } catch (_: Throwable) {}
     }

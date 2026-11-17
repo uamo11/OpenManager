@@ -1202,6 +1202,10 @@
     <string name="settings_auto_check_updates_summary">Check for updates on app launch and notify with a window.</string>
     <string name="settings_check_update_title">Check for updates</string>
     <string name="settings_check_update_summary" translatable="false">GitHub: github.com/uamo11/OpenManager</string>
+    <string name="settings_check_update_dynamic_summary">Current: %1$s (%2$s) • Last check: %3$s</string>
+    <string name="settings_check_update_never">Never</string>
+    <string name="settings_check_update_just_now">Just now</string>
+    <string name="about_check_update_summary">Verify latest release on GitHub</string>
     <string name="update_checking_title">Check for updates</string>
     <string name="update_checking_message">Checking latest release on GitHub…</string>
     <string name="update_up_to_date_title">OpenManager is up to date</string>
@@ -1215,14 +1219,21 @@
     <string name="update_target_apk_label">Package: %1$s (%2$s)</string>
     <string name="update_changelog_label">Changelog &amp; Improvements:</string>
     <string name="update_action_download_and_install">Download &amp; Install</string>
+    <string name="update_action_install_ready">Install now (downloaded)</string>
     <string name="update_action_view_on_github">View on GitHub</string>
     <string name="update_action_later">Later</string>
+    <string name="update_action_skip_version">Skip version</string>
+    <string name="update_version_skipped_toast">Version %1$s skipped for automatic alerts</string>
+    <string name="update_auto_disabled_toast">Auto-updates disabled (can be re-enabled in Settings)</string>
     <string name="update_downloading_title">Downloading update…</string>
     <string name="update_downloading_format">%1$s / %2$s (%3$d%%)</string>
+    <string name="update_resuming_format">Resuming %1$s / %2$s (%3$d%%)</string>
     <string name="update_download_speed_format">%1$s/s</string>
+    <string name="update_speed_eta_format">%1$s/s • ~%2$s</string>
     <string name="update_download_success_title">Download completed</string>
     <string name="update_download_failed_title">Download failed</string>
     <string name="update_download_failed_message">Could not download update file: %1$s</string>
+    <string name="update_corrupt_apk_error">Downloaded APK is incomplete or corrupted</string>
     <string name="update_check_error_title">Check failed</string>
     <string name="update_check_error_message">Could not retrieve update info from GitHub: %1$s\nPlease check your internet connection and try again.</string>
     <string name="update_installing_title">Installing update…</string>

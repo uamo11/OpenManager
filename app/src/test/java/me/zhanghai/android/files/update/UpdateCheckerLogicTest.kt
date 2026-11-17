@@ -11,6 +11,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.net.HttpURLConnection
 
 class UpdateCheckerLogicTest {
 
@@ -238,9 +240,72 @@ class UpdateCheckerLogicTest {
         assertTrue("Formatted size should be around 35.2 MB, was $formatted", formatted.contains("MB"))
     }
 
+    private fun resolveMainFile(relPath: String): File {
+        val f1 = File("src/main/$relPath")
+        return if (f1.exists()) f1 else File("app/src/main/$relPath")
+    }
+
     @Test
-    fun testAutoUpdateDefaultIsOff() {
-        val defaultAutoCheckUpdates = false
-        assertFalse("Auto check updates must default to false (disabled)", defaultAutoCheckUpdates)
+    fun testAutoUpdateDefaultIsOnAndToggleableInSettings() {
+        val prefsFile = resolveMainFile("res/values/donottranslate_prefs.xml")
+        assertTrue("donottranslate_prefs.xml must exist", prefsFile.exists())
+        val prefsXml = prefsFile.readText()
+        assertTrue(
+            "pref_default_value_auto_check_updates must default to true",
+            prefsXml.contains("<bool name=\"pref_default_value_auto_check_updates\">true</bool>")
+        )
+
+        val settingsFile = resolveMainFile("res/xml/settings.xml")
+        assertTrue("settings.xml must exist", settingsFile.exists())
+        val settingsXml = settingsFile.readText()
+        assertTrue(
+            "Settings must expose SwitchPreferenceCompat for pref_key_auto_check_updates",
+            settingsXml.contains("<SwitchPreferenceCompat") &&
+                settingsXml.contains("@string/pref_key_auto_check_updates")
+        )
+    }
+
+    @Test
+    fun testShouldNotifyAutoUpdateRespectsSkippedVersionOnlyOnAutoChecks() {
+        // Older or equal never notifies
+        assertFalse(UpdateChecker.shouldNotifyAutoUpdate("1.9.73", "1.9.73", null, isManual = false))
+        assertFalse(UpdateChecker.shouldNotifyAutoUpdate("1.9.72", "1.9.73", null, isManual = true))
+
+        // Skipped version suppresses auto check, but manual check still notifies
+        assertFalse(UpdateChecker.shouldNotifyAutoUpdate("1.9.74", "1.9.73", "1.9.74", isManual = false))
+        assertTrue(UpdateChecker.shouldNotifyAutoUpdate("1.9.74", "1.9.73", "1.9.74", isManual = true))
+
+        // Newer release beyond skipped version resumes auto notification
+        assertTrue(UpdateChecker.shouldNotifyAutoUpdate("1.9.75", "1.9.73", "1.9.74", isManual = false))
+    }
+
+    @Test
+    fun testResolveDownloadResumeHandles206Partial200FullAnd416Reset() {
+        val partial = UpdateChecker.resolveDownloadResume(HttpURLConnection.HTTP_PARTIAL, 1024L * 1024L)
+        assertTrue(partial.append)
+        assertFalse(partial.resetTempBeforeRetry)
+        assertEquals(1024L * 1024L, partial.startOffset)
+
+        val full = UpdateChecker.resolveDownloadResume(HttpURLConnection.HTTP_OK, 1024L)
+        assertFalse(full.append)
+        assertFalse(full.resetTempBeforeRetry)
+        assertEquals(0L, full.startOffset)
+
+        val reset = UpdateChecker.resolveDownloadResume(416, 4096L)
+        assertFalse(reset.append)
+        assertTrue(reset.resetTempBeforeRetry)
+        assertEquals(0L, reset.startOffset)
+    }
+
+    @Test
+    fun testZipHeaderMagicAndEtaFormatting() {
+        assertTrue(UpdateChecker.hasZipLocalFileHeaderMagic(byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x14)))
+        assertFalse(UpdateChecker.hasZipLocalFileHeaderMagic(byteArrayOf(0x3C, 0x68, 0x74, 0x6D)))
+        assertFalse(UpdateChecker.hasZipLocalFileHeaderMagic(byteArrayOf(0x50, 0x4B, 0x03), readCount = 3))
+
+        assertEquals("--s", UpdateChecker.formatEtaSeconds(1000L, 0L))
+        assertEquals("10s", UpdateChecker.formatEtaSeconds(10_000L, 1_000L))
+        assertEquals("1m 5s", UpdateChecker.formatEtaSeconds(65_000L, 1_000L))
+        assertEquals("1h 1m", UpdateChecker.formatEtaSeconds(3_660_000L, 1_000L))
     }
 }

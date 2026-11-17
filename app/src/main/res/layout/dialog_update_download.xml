@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootDownloadCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -51,6 +52,7 @@
     </LinearLayout>
 
     <View
+        android:id="@+id/dividerDownloadTop"
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#383838"
@@ -96,6 +98,7 @@
     </LinearLayout>
 
     <View
+        android:id="@+id/dividerDownloadBottom"
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#383838"

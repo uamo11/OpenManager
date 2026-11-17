@@ -8,10 +8,16 @@ package me.zhanghai.android.files.update
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -20,18 +26,25 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.PreferenceManager
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.checkbox.MaterialCheckBox
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import java.io.File
+import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 import java8.nio.file.Paths
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.BuildConfig
@@ -42,6 +55,7 @@ import me.zhanghai.android.files.filelist.ApkInstallHelper
 import me.zhanghai.android.files.filelist.DirectorySnapshotCache
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.bindToLifecycle
 import me.zhanghai.android.files.ui.dismissSafely
 import me.zhanghai.android.files.ui.isUiAlive
@@ -74,16 +88,98 @@ object UpdateChecker {
     const val GITHUB_RELEASES_LIST_URL = "https://api.github.com/repos/$GITHUB_REPO/releases?per_page=20"
     const val GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
     const val GITHUB_RELEASES_ATOM_URL = "https://github.com/$GITHUB_REPO/releases.atom"
-    private const val PREF_LAST_CHECK_TIME = "pref_last_update_check_time"
+    const val PREF_LAST_CHECK_TIME = "pref_last_update_check_time"
     private const val PREF_PENDING_UPDATE_APK_PATH = "pref_pending_update_apk_path"
     private const val PREF_PENDING_UPDATE_VERSION = "pref_pending_update_version"
+    private const val PREF_AUTO_UPDATE_V2_MIGRATED = "pref_auto_update_default_v2_migrated"
+    private const val PREF_SKIPPED_UPDATE_VERSION = "pref_skipped_update_version"
+    private const val PREF_CACHED_ETAG = "pref_update_etag"
+    private const val PREF_CACHED_RELEASE_JSON = "pref_update_cached_release_json"
     private const val AUTO_CHECK_COOLDOWN_MS = 2 * 60 * 60 * 1000L // 2 hours
+    private const val AUTO_STARTUP_DELAY_MS = 2_500L
     private const val MIN_CLEANUP_AGE_MS = 15_000L
     private const val STALE_TMP_AGE_MS = 3_600_000L
+    private const val DOWNLOAD_BUFFER_SIZE = 65_536
     private val UPDATE_APK_NAME_REGEX = Regex("(?i)^OpenManager-v([0-9][0-9.]*).*\\.apk$")
 
     @Volatile
     var isDownloadingUpdate = false
+
+    private val isCheckingUpdate = AtomicBoolean(false)
+    private var activeUpdateDialogRef: WeakReference<AlertDialog>? = null
+
+    data class ResumeDecision(
+        val startOffset: Long,
+        val append: Boolean,
+        val resetTempBeforeRetry: Boolean
+    )
+
+    fun ensureAutoUpdateDefaultMigrated(context: Context) {
+        runCatching {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            if (!prefs.getBoolean(PREF_AUTO_UPDATE_V2_MIGRATED, false)) {
+                Settings.AUTO_CHECK_UPDATES.putValue(true)
+                prefs.edit().putBoolean(PREF_AUTO_UPDATE_V2_MIGRATED, true).apply()
+            }
+        }
+    }
+
+    fun shouldNotifyAutoUpdate(
+        latestVersion: String,
+        currentVersion: String,
+        skippedVersion: String?,
+        isManual: Boolean
+    ): Boolean {
+        if (!isVersionNewer(latestVersion, currentVersion)) return false
+        if (!isManual && !skippedVersion.isNullOrBlank() && !isVersionNewer(latestVersion, skippedVersion)) {
+            return false
+        }
+        return true
+    }
+
+    fun resolveDownloadResume(httpCode: Int, existingTempBytes: Long): ResumeDecision {
+        return when {
+            httpCode == HttpURLConnection.HTTP_PARTIAL && existingTempBytes > 0L ->
+                ResumeDecision(existingTempBytes, append = true, resetTempBeforeRetry = false)
+            httpCode == 416 ->
+                ResumeDecision(0L, append = false, resetTempBeforeRetry = true)
+            else ->
+                ResumeDecision(0L, append = false, resetTempBeforeRetry = false)
+        }
+    }
+
+    fun hasZipLocalFileHeaderMagic(headerBytes: ByteArray, readCount: Int = headerBytes.size): Boolean {
+        return readCount >= 4 &&
+            headerBytes[0] == 0x50.toByte() &&
+            headerBytes[1] == 0x4B.toByte() &&
+            headerBytes[2] == 0x03.toByte() &&
+            headerBytes[3] == 0x04.toByte()
+    }
+
+    fun formatEtaSeconds(remainingBytes: Long, bytesPerSec: Long): String {
+        if (remainingBytes <= 0L || bytesPerSec <= 0L) return "--s"
+        val sec = (remainingBytes / bytesPerSec).coerceAtLeast(1L)
+        return when {
+            sec < 60L -> "${sec}s"
+            sec < 3600L -> "${sec / 60L}m ${sec % 60L}s"
+            else -> "${sec / 3600L}h ${(sec % 3600L) / 60L}m"
+        }
+    }
+
+    fun formatRelativeLastCheck(
+        context: Context,
+        lastCheckMs: Long,
+        nowMs: Long = System.currentTimeMillis()
+    ): String {
+        if (lastCheckMs <= 0L) return context.getString(R.string.settings_check_update_never)
+        val diff = (nowMs - lastCheckMs).coerceAtLeast(0L)
+        return when {
+            diff < 60_000L -> context.getString(R.string.settings_check_update_just_now)
+            diff < 3_600_000L -> "${diff / 60_000L} min"
+            diff < 86_400_000L -> "${diff / 3_600_000L} h"
+            else -> "${diff / 86_400_000L} d"
+        }
+    }
 
     fun shouldDeleteUpdateCandidate(
         fileName: String,
@@ -613,7 +709,21 @@ object UpdateChecker {
         return String.format(Locale.US, "%.1f %s", value, units[digitGroups])
     }
 
-    fun openConnectionWithRedirects(urlString: String, maxRedirects: Int = 5): HttpURLConnection {
+    fun isNetworkAvailable(context: Context): Boolean {
+        return runCatching {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+                ?: return true
+            val network = cm.activeNetwork ?: return false
+            val caps = cm.getNetworkCapabilities(network) ?: return false
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        }.getOrDefault(true)
+    }
+
+    fun openConnectionWithRedirects(
+        urlString: String,
+        maxRedirects: Int = 5,
+        rangeStartBytes: Long = 0L
+    ): HttpURLConnection {
         var url = URL(urlString)
         var redirects = 0
         while (redirects < maxRedirects) {
@@ -622,6 +732,9 @@ object UpdateChecker {
             connection.connectTimeout = 15000
             connection.readTimeout = 30000
             connection.setRequestProperty("User-Agent", "OpenManager-Android/${BuildConfig.VERSION_NAME}")
+            if (rangeStartBytes > 0L) {
+                connection.setRequestProperty("Range", "bytes=$rangeStartBytes-")
+            }
             connection.connect()
             val code = connection.responseCode
             if (code == HttpURLConnection.HTTP_MOVED_PERM ||
@@ -643,7 +756,7 @@ object UpdateChecker {
         throw IOException("Too many redirects ($maxRedirects)")
     }
 
-    private fun executeHttpGet(urlString: String): Pair<Int, String> {
+    private fun executeHttpGet(urlString: String, etag: String? = null): Triple<Int, String, String?> {
         val url = URL(urlString)
         val conn = (url.openConnection() as HttpURLConnection).apply {
             connectTimeout = 12000
@@ -651,15 +764,19 @@ object UpdateChecker {
             instanceFollowRedirects = true
             setRequestProperty("Accept", "application/vnd.github.v3+json, application/atom+xml, */*")
             setRequestProperty("User-Agent", "OpenManager-Android/${BuildConfig.VERSION_NAME}")
+            if (!etag.isNullOrBlank()) {
+                setRequestProperty("If-None-Match", etag)
+            }
         }
         return try {
             val code = conn.responseCode
-            val body = if (code in 200..299) {
-                conn.inputStream.bufferedReader().use { it.readText() }
-            } else {
-                conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            val responseEtag = conn.getHeaderField("ETag")
+            val body = when {
+                code == HttpURLConnection.HTTP_NOT_MODIFIED -> ""
+                code in 200..299 -> conn.inputStream.bufferedReader().use { it.readText() }
+                else -> conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
             }
-            Pair(code, body)
+            Triple(code, body, responseEtag ?: etag)
         } finally {
             conn.disconnect()
         }
@@ -668,48 +785,63 @@ object UpdateChecker {
     suspend fun fetchLatestRelease(context: Context): ReleaseInfo? = withContext(Dispatchers.IO) {
         val isDebug = isDebugBuild(context)
         val curVer = BuildConfig.VERSION_NAME
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val cachedEtag = prefs.getString(PREF_CACHED_ETAG, null)
+        val cachedJson = prefs.getString(PREF_CACHED_RELEASE_JSON, null)
 
-        // 1. Primary: Query GitHub Releases List API (/releases?per_page=20)
+        // 1. Primary: Lightweight /releases/latest with conditional ETag caching
         try {
-            val (code, response) = executeHttpGet(GITHUB_RELEASES_LIST_URL)
-            if (code == 200 && response.isNotBlank()) {
-                val info = parseReleaseListJson(response, isDebug, curVer)
-                if (info != null) return@withContext info
+            val effectiveEtag = if (!cachedJson.isNullOrBlank()) cachedEtag else null
+            val (code, response, responseEtag) = executeHttpGet(GITHUB_LATEST_RELEASE_URL, effectiveEtag)
+            if (code == HttpURLConnection.HTTP_NOT_MODIFIED && !cachedJson.isNullOrBlank()) {
+                val cachedInfo = parseReleaseJson(cachedJson, isDebug)
+                if (cachedInfo != null) return@withContext cachedInfo
+            } else if (code == 200 && response.isNotBlank()) {
+                val info = parseReleaseJson(response, isDebug)
+                if (info != null) {
+                    prefs.edit()
+                        .putString(PREF_CACHED_RELEASE_JSON, response)
+                        .apply {
+                            if (!responseEtag.isNullOrBlank()) putString(PREF_CACHED_ETAG, responseEtag)
+                        }
+                        .apply()
+                    return@withContext info
+                }
             }
         } catch (_: Exception) {
-            // Network or parse issue, continue to fallbacks
+            // Network, rate limit or parse issue, continue to fallbacks
         }
 
         // 2. Secondary: Zero-rate-limit Atom feed fallback (/releases.atom)
-        // Publicly cached, no 60 req/hr anonymous API rate limit
         try {
-            val (code, response) = executeHttpGet(GITHUB_RELEASES_ATOM_URL)
+            val (code, response, _) = executeHttpGet(GITHUB_RELEASES_ATOM_URL)
             if (code == 200 && response.isNotBlank()) {
                 val info = parseReleaseAtomFeed(response, isDebug, curVer)
                 if (info != null) return@withContext info
             }
         } catch (_: Exception) {
-            // Continue to latest release endpoint
+            // Continue to releases list endpoint
         }
 
-        // 3. Tertiary: Direct /releases/latest endpoint
-        try {
-            val (code, response) = executeHttpGet(GITHUB_LATEST_RELEASE_URL)
-            if (code == 200 && response.isNotBlank()) {
-                val info = parseReleaseJson(response, isDebug)
-                if (info != null) return@withContext info
-            } else {
-                throw IOException("GitHub API HTTP $code: $response")
-            }
-        } catch (e: Exception) {
-            throw e
+        // 3. Tertiary: Releases list API (/releases?per_page=20)
+        val (code, response, _) = executeHttpGet(GITHUB_RELEASES_LIST_URL)
+        if (code == 200 && response.isNotBlank()) {
+            val info = parseReleaseListJson(response, isDebug, curVer)
+            if (info != null) return@withContext info
+        } else {
+            throw IOException("GitHub API HTTP $code: $response")
         }
 
         null
     }
 
-    fun checkUpdate(activity: FragmentActivity, isManual: Boolean) {
-        if (activity.isFinishing || activity.isDestroyed) return
+    fun checkUpdate(
+        activity: FragmentActivity,
+        isManual: Boolean,
+        onCheckFinished: (() -> Unit)? = null
+    ) {
+        ensureAutoUpdateDefaultMigrated(activity)
+        if (!activity.isUiAlive) return
 
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val now = System.currentTimeMillis()
@@ -719,6 +851,10 @@ object UpdateChecker {
             if (now - lastCheck < AUTO_CHECK_COOLDOWN_MS) {
                 return
             }
+        }
+
+        if (!isCheckingUpdate.compareAndSet(false, true)) {
+            return
         }
 
         var loadingDialog: AlertDialog? = null
@@ -734,10 +870,19 @@ object UpdateChecker {
             }
         }
 
-        activity.lifecycleScope.launch {
+        val checkJob = activity.lifecycleScope.launch {
             try {
+                if (!isManual) {
+                    delay(AUTO_STARTUP_DELAY_MS)
+                    if (!activity.isUiAlive || !Settings.AUTO_CHECK_UPDATES.valueCompat || !isNetworkAvailable(activity)) {
+                        return@launch
+                    }
+                } else if (!isNetworkAvailable(activity)) {
+                    throw IOException(activity.getString(R.string.om_termex_network_error))
+                }
+
                 val releaseInfo = fetchLatestRelease(activity)
-                prefs.edit().putLong(PREF_LAST_CHECK_TIME, now).apply()
+                prefs.edit().putLong(PREF_LAST_CHECK_TIME, System.currentTimeMillis()).apply()
 
                 loadingDialog?.dismissSafely()
                 if (!activity.isUiAlive) return@launch
@@ -746,62 +891,155 @@ object UpdateChecker {
                     if (isManual) {
                         activity.showSafeDialog {
                             setTitle(R.string.update_check_error_title)
-                            setMessage(activity.getString(R.string.update_check_error_message, activity.getString(R.string.om_update_info_unavailable)))
-                            setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true) }
+                            setMessage(
+                                activity.getString(
+                                    R.string.update_check_error_message,
+                                    activity.getString(R.string.om_update_info_unavailable)
+                                )
+                            )
+                            setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true, onCheckFinished) }
                             setNegativeButton(android.R.string.cancel, null)
                         }
                     }
                     return@launch
                 }
 
-                val hasUpdate = isVersionNewer(releaseInfo.version, BuildConfig.VERSION_NAME)
-                if (hasUpdate) {
+                val skippedVersion = prefs.getString(PREF_SKIPPED_UPDATE_VERSION, null)
+                if (shouldNotifyAutoUpdate(releaseInfo.version, BuildConfig.VERSION_NAME, skippedVersion, isManual)) {
                     showUpdateDialog(activity, releaseInfo)
-                } else {
-                    if (isManual) {
-                        val isDebug = isDebugBuild(activity)
-                        val channelStr = activity.getString(if (isDebug) R.string.update_channel_debug else R.string.update_channel_release)
-                        MaterialAlertDialogBuilder(activity)
-                            .setTitle(R.string.update_up_to_date_title)
-                            .setMessage(activity.getString(R.string.update_up_to_date_message, "v" + BuildConfig.VERSION_NAME, channelStr))
-                            .setPositiveButton(android.R.string.ok, null)
-                            .show()
+                } else if (isManual && !isVersionNewer(releaseInfo.version, BuildConfig.VERSION_NAME)) {
+                    val isDebug = isDebugBuild(activity)
+                    val channelStr = activity.getString(
+                        if (isDebug) R.string.update_channel_debug else R.string.update_channel_release
+                    )
+                    activity.showSafeDialog {
+                        setTitle(R.string.update_up_to_date_title)
+                        setMessage(
+                            activity.getString(
+                                R.string.update_up_to_date_message,
+                                "v" + BuildConfig.VERSION_NAME,
+                                channelStr
+                            )
+                        )
+                        setPositiveButton(android.R.string.ok, null)
                     }
                 }
+            } catch (e: CancellationException) {
+                loadingDialog?.dismissSafely()
             } catch (e: Exception) {
-                if (activity.isFinishing || activity.isDestroyed) return@launch
-                loadingDialog?.dismiss()
+                loadingDialog?.dismissSafely()
+                if (!activity.isUiAlive) return@launch
                 if (isManual) {
                     val errorMsg = e.localizedMessage ?: e.message ?: e.toString()
-                    MaterialAlertDialogBuilder(activity)
-                        .setTitle(R.string.update_check_error_title)
-                        .setMessage(activity.getString(R.string.update_check_error_message, errorMsg))
-                        .setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true) }
-                        .setNegativeButton(android.R.string.cancel, null)
-                        .show()
+                    activity.showSafeDialog {
+                        setTitle(R.string.update_check_error_title)
+                        setMessage(activity.getString(R.string.update_check_error_message, errorMsg))
+                        setPositiveButton(R.string.retry) { _, _ -> checkUpdate(activity, isManual = true, onCheckFinished) }
+                        setNegativeButton(android.R.string.cancel, null)
+                    }
+                }
+            } finally {
+                isCheckingUpdate.set(false)
+                if (activity.isUiAlive) {
+                    onCheckFinished?.invoke()
                 }
             }
         }
+        loadingDialog?.setOnCancelListener { checkJob.cancel() }
+    }
+
+    private fun makeRoundedBg(fillColor: Int, strokeColor: Int, radiusDp: Float, density: Float): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusDp * density
+            setColor(fillColor)
+            setStroke((1f * density).toInt().coerceAtLeast(1), strokeColor)
+        }
+    }
+
+    private fun resolveUpdatesDir(context: Context): File {
+        val baseDir = File("/storage/emulated/0/OpenManager/updates")
+        return if (baseDir.exists() || baseDir.mkdirs()) {
+            baseDir
+        } else {
+            File(context.cacheDir, "updates").apply { mkdirs() }
+        }
+    }
+
+    private fun isValidDownloadedApk(context: Context, file: File, expectedSize: Long): Boolean {
+        if (!file.exists() || !file.isFile || file.length() <= 0L) return false
+        if (expectedSize > 0L && file.length() != expectedSize) return false
+        val hasMagic = runCatching {
+            FileInputStream(file).use { ins ->
+                val header = ByteArray(4)
+                val read = ins.read(header)
+                hasZipLocalFileHeaderMagic(header, read)
+            }
+        }.getOrDefault(false)
+        if (!hasMagic) return false
+
+        val pkgInfo = runCatching {
+            context.packageManager.getPackageArchiveInfo(file.absolutePath, 0)
+        }.getOrNull() ?: return false
+        return pkgInfo.packageName == context.packageName
+    }
+
+    private fun findExistingValidUpdateApk(context: Context, releaseInfo: ReleaseInfo): File? {
+        val fileName = releaseInfo.targetAsset.name
+        val expectedSize = releaseInfo.targetAsset.size
+        val candidates = listOf(
+            File("/storage/emulated/0/OpenManager/updates", fileName),
+            File(File(context.cacheDir, "updates"), fileName)
+        )
+        return candidates.firstOrNull { isValidDownloadedApk(context, it, expectedSize) }
     }
 
     fun showUpdateDialog(activity: FragmentActivity, releaseInfo: ReleaseInfo) {
-        if (activity.isFinishing || activity.isDestroyed) return
+        if (!activity.isUiAlive) return
 
+        activeUpdateDialogRef?.get()?.dismissSafely()
+
+        val palette = OpenManagerPalette.from(activity)
+        val density = activity.resources.displayMetrics.density
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_update_available, null)
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(view)
             .setCancelable(true)
             .create()
+            .bindToLifecycle(activity)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        activeUpdateDialogRef = WeakReference(dialog)
 
+        val rootUpdateCard = view.findViewById<View>(R.id.rootUpdateCard)
         val tvUpdateTitle = view.findViewById<TextView>(R.id.tvUpdateTitle)
         val tvUpdateChannel = view.findViewById<TextView>(R.id.tvUpdateChannel)
+        val dividerUpdateTop = view.findViewById<View>(R.id.dividerUpdateTop)
+        val boxUpdateVersion = view.findViewById<View>(R.id.boxUpdateVersion)
         val tvUpdateVersionInfo = view.findViewById<TextView>(R.id.tvUpdateVersionInfo)
         val tvUpdateFileInfo = view.findViewById<TextView>(R.id.tvUpdateFileInfo)
+        val tvUpdateChangelogHeader = view.findViewById<TextView>(R.id.tvUpdateChangelogHeader)
+        val scrollUpdateChangelog = view.findViewById<View>(R.id.scrollUpdateChangelog)
         val tvUpdateChangelog = view.findViewById<TextView>(R.id.tvUpdateChangelog)
-        val btnUpdateLater = view.findViewById<Button>(R.id.btnUpdateLater)
-        val btnUpdateGitHub = view.findViewById<Button>(R.id.btnUpdateGitHub)
-        val btnUpdateDownload = view.findViewById<Button>(R.id.btnUpdateDownload)
+        val dividerUpdateBottom = view.findViewById<View>(R.id.dividerUpdateBottom)
+        val btnUpdateLater = view.findViewById<MaterialButton>(R.id.btnUpdateLater)
+        val btnUpdateSkip = view.findViewById<MaterialButton>(R.id.btnUpdateSkip)
+        val btnUpdateGitHub = view.findViewById<MaterialButton>(R.id.btnUpdateGitHub)
+        val btnUpdateDownload = view.findViewById<MaterialButton>(R.id.btnUpdateDownload)
+        val cbAutoCheckUpdates = view.findViewById<MaterialCheckBox>(R.id.cbAutoCheckUpdates)
+
+        rootUpdateCard?.background = makeRoundedBg(palette.dialogBg, palette.dividerLineColor, 16f, density)
+        boxUpdateVersion?.background = makeRoundedBg(palette.cardBg, palette.dividerLineColor, 8f, density)
+        scrollUpdateChangelog?.background = makeRoundedBg(palette.cardBg, palette.dividerLineColor, 8f, density)
+        dividerUpdateTop?.setBackgroundColor(palette.dividerLineColor)
+        dividerUpdateBottom?.setBackgroundColor(palette.dividerLineColor)
+        tvUpdateTitle.setTextColor(palette.textPrimary)
+        tvUpdateVersionInfo.setTextColor(palette.textPrimary)
+        tvUpdateFileInfo.setTextColor(palette.textSecondary)
+        tvUpdateChangelogHeader?.setTextColor(palette.accentColor)
+        tvUpdateChangelog.setTextColor(palette.filePrimaryText)
+        btnUpdateLater.setTextColor(palette.textSecondary)
+        btnUpdateSkip?.setTextColor(palette.textSecondary)
+        btnUpdateGitHub.setTextColor(palette.accentColor)
 
         tvUpdateTitle.text = activity.getString(R.string.update_available_title)
 
@@ -810,10 +1048,12 @@ object UpdateChecker {
         )
         tvUpdateChannel.text = activity.getString(R.string.update_detected_channel, channelLabel)
         tvUpdateChannel.setTextColor(
-            ContextCompat.getColor(
-                activity,
-                if (releaseInfo.isDebugChannel) android.R.color.holo_blue_light else android.R.color.holo_green_light
-            )
+            when {
+                releaseInfo.isDebugChannel && palette.isDark -> Color.parseColor("#64B5F6")
+                releaseInfo.isDebugChannel -> Color.parseColor("#1565C0")
+                palette.isDark -> Color.parseColor("#81C784")
+                else -> Color.parseColor("#2E7D32")
+            }
         )
 
         val newVerText = activity.getString(R.string.update_new_version_label, "v" + releaseInfo.version)
@@ -834,25 +1074,64 @@ object UpdateChecker {
         }
         tvUpdateChangelog.text = cleanReleaseNotes(rawChangelog)
 
+        cbAutoCheckUpdates?.apply {
+            setTextColor(palette.textSecondary)
+            buttonTintList = ColorStateList.valueOf(palette.accentColor)
+            isChecked = Settings.AUTO_CHECK_UPDATES.valueCompat
+            setOnCheckedChangeListener { _, isChecked ->
+                Settings.AUTO_CHECK_UPDATES.putValue(isChecked)
+                if (!isChecked) {
+                    Toast.makeText(activity, R.string.update_auto_disabled_toast, Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
         btnUpdateLater.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
+        }
+
+        btnUpdateSkip?.setOnClickListener {
+            PreferenceManager.getDefaultSharedPreferences(activity).edit()
+                .putString(PREF_SKIPPED_UPDATE_VERSION, releaseInfo.version)
+                .apply()
+            Toast.makeText(
+                activity,
+                activity.getString(R.string.update_version_skipped_toast, "v" + releaseInfo.version),
+                Toast.LENGTH_SHORT
+            ).show()
+            dialog.dismissSafely()
         }
 
         btnUpdateGitHub.setOnClickListener {
             activity.startActivitySafe(Intent(Intent.ACTION_VIEW, Uri.parse(releaseInfo.htmlUrl)))
         }
 
+        val preDownloadedApk = findExistingValidUpdateApk(activity, releaseInfo)
+        if (preDownloadedApk != null) {
+            btnUpdateDownload.setText(R.string.update_action_install_ready)
+        }
+
         btnUpdateDownload.setOnClickListener {
-            dialog.dismiss()
-            downloadAndInstall(activity, releaseInfo)
+            dialog.dismissSafely()
+            if (preDownloadedApk != null && isValidDownloadedApk(activity, preDownloadedApk, releaseInfo.targetAsset.size)) {
+                PreferenceManager.getDefaultSharedPreferences(activity).edit()
+                    .putString(PREF_PENDING_UPDATE_APK_PATH, preDownloadedApk.absolutePath)
+                    .putString(PREF_PENDING_UPDATE_VERSION, releaseInfo.version)
+                    .apply()
+                launchApkInstallation(activity, preDownloadedApk)
+            } else {
+                downloadAndInstall(activity, releaseInfo)
+            }
         }
 
         dialog.show()
     }
 
     fun downloadAndInstall(activity: FragmentActivity, releaseInfo: ReleaseInfo) {
-        if (activity.isFinishing || activity.isDestroyed) return
+        if (!activity.isUiAlive) return
 
+        val palette = OpenManagerPalette.from(activity)
+        val density = activity.resources.displayMetrics.density
         val view = LayoutInflater.from(activity).inflate(R.layout.dialog_update_download, null)
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(view)
@@ -861,11 +1140,25 @@ object UpdateChecker {
             .bindToLifecycle(activity)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
 
+        val rootDownloadCard = view.findViewById<View>(R.id.rootDownloadCard)
+        val tvDownloadTitle = view.findViewById<TextView>(R.id.tvDownloadTitle)
         val tvDownloadFilename = view.findViewById<TextView>(R.id.tvDownloadFilename)
+        val dividerDownloadTop = view.findViewById<View>(R.id.dividerDownloadTop)
         val pbDownloadProgress = view.findViewById<LinearProgressIndicator>(R.id.pbDownloadProgress)
         val tvDownloadStats = view.findViewById<TextView>(R.id.tvDownloadStats)
         val tvDownloadSpeed = view.findViewById<TextView>(R.id.tvDownloadSpeed)
+        val dividerDownloadBottom = view.findViewById<View>(R.id.dividerDownloadBottom)
         val btnCancelDownload = view.findViewById<Button>(R.id.btnCancelDownload)
+
+        rootDownloadCard?.background = makeRoundedBg(palette.dialogBg, palette.dividerLineColor, 16f, density)
+        dividerDownloadTop?.setBackgroundColor(palette.dividerLineColor)
+        dividerDownloadBottom?.setBackgroundColor(palette.dividerLineColor)
+        tvDownloadTitle?.setTextColor(palette.textPrimary)
+        tvDownloadFilename.setTextColor(palette.textSecondary)
+        tvDownloadStats.setTextColor(palette.textPrimary)
+        tvDownloadSpeed.setTextColor(if (palette.isDark) Color.parseColor("#81C784") else Color.parseColor("#2E7D32"))
+        pbDownloadProgress.setIndicatorColor(palette.accentColor)
+        pbDownloadProgress.trackColor = palette.dividerLineColor
 
         tvDownloadFilename.text = releaseInfo.targetAsset.name
         pbDownloadProgress.progress = 0
@@ -874,10 +1167,12 @@ object UpdateChecker {
         tvDownloadSpeed.text = activity.getString(R.string.update_download_speed_format, "0 MB")
 
         var downloadJob: Job? = null
+        var userCancelled = false
 
         btnCancelDownload.setOnClickListener {
+            userCancelled = true
             downloadJob?.cancel()
-            dialog.dismiss()
+            dialog.dismissSafely()
         }
 
         dialog.show()
@@ -888,70 +1183,150 @@ object UpdateChecker {
             isDownloadingUpdate = true
             try {
                 withContext(Dispatchers.IO) {
-                    val baseDir = File("/storage/emulated/0/OpenManager/updates")
-                    val updatesDir = if (baseDir.exists() || baseDir.mkdirs()) {
-                        baseDir
-                    } else {
-                        File(activity.cacheDir, "updates").apply { mkdirs() }
+                    val existingValid = findExistingValidUpdateApk(activity, releaseInfo)
+                    if (existingValid != null) {
+                        finalFile = existingValid
+                        return@withContext
                     }
 
+                    val updatesDir = resolveUpdatesDir(activity)
                     val apkName = releaseInfo.targetAsset.name
                     val destinationFile = File(updatesDir, apkName)
                     val temporaryFile = File(updatesDir, "$apkName.tmp")
                     finalFile = destinationFile
                     tempFile = temporaryFile
 
-                    if (temporaryFile.exists()) {
+                    val expectedSize = releaseInfo.targetAsset.size
+                    var existingTempBytes = if (temporaryFile.exists() && temporaryFile.isFile) temporaryFile.length() else 0L
+                    if (expectedSize > 0L && existingTempBytes >= expectedSize) {
                         temporaryFile.delete()
+                        existingTempBytes = 0L
                     }
 
-                    val connection = openConnectionWithRedirects(releaseInfo.targetAsset.downloadUrl)
-                    val totalBytes = if (releaseInfo.targetAsset.size > 0) {
-                        releaseInfo.targetAsset.size
-                    } else {
-                        connection.contentLength.toLong()
-                    }
+                    var connection = openConnectionWithRedirects(
+                        releaseInfo.targetAsset.downloadUrl,
+                        rangeStartBytes = existingTempBytes
+                    )
+                    try {
+                        var decision = resolveDownloadResume(connection.responseCode, existingTempBytes)
+                        if (decision.resetTempBeforeRetry) {
+                            connection.disconnect()
+                            temporaryFile.delete()
+                            existingTempBytes = 0L
+                            connection = openConnectionWithRedirects(
+                                releaseInfo.targetAsset.downloadUrl,
+                                rangeStartBytes = 0L
+                            )
+                            decision = resolveDownloadResume(connection.responseCode, 0L)
+                        }
 
-                    var downloadedBytes = 0L
-                    var lastUpdateTime = SystemClock.elapsedRealtime()
-                    var bytesSinceLastUpdate = 0L
+                        val responseCode = connection.responseCode
+                        if (responseCode !in 200..299) {
+                            throw IOException("HTTP $responseCode")
+                        }
 
-                    connection.inputStream.use { input ->
-                        FileOutputStream(temporaryFile).use { output ->
-                            val buffer = ByteArray(16384)
-                            var read: Int
-                            while (input.read(buffer).also { read = it } != -1) {
-                                output.write(buffer, 0, read)
-                                downloadedBytes += read
-                                bytesSinceLastUpdate += read
+                        val responseLen = connection.contentLength.toLong()
+                        val totalBytes = when {
+                            decision.append && responseLen > 0L -> decision.startOffset + responseLen
+                            expectedSize > 0L -> expectedSize
+                            else -> responseLen
+                        }
 
-                                val nowTime = SystemClock.elapsedRealtime()
-                                val timeDiff = nowTime - lastUpdateTime
-                                if (timeDiff >= 150L) {
-                                    val percent = if (totalBytes > 0) ((downloadedBytes * 100) / totalBytes).toInt() else 0
-                                    val speedBytesPerSec = (bytesSinceLastUpdate * 1000L) / timeDiff
-                                    val curDownloaded = downloadedBytes
-                                    withContext(Dispatchers.Main) {
-                                        if (!activity.isFinishing && !activity.isDestroyed) {
-                                            pbDownloadProgress.progress = percent.coerceIn(0, 100)
-                                            tvDownloadStats.text = activity.getString(
-                                                R.string.update_downloading_format,
-                                                formatSize(curDownloaded),
-                                                formatSize(totalBytes),
-                                                percent
-                                            )
-                                            tvDownloadSpeed.text = activity.getString(
-                                                R.string.update_download_speed_format,
-                                                formatSize(speedBytesPerSec)
-                                            )
-                                        }
-                                    }
-                                    lastUpdateTime = nowTime
-                                    bytesSinceLastUpdate = 0L
+                        var downloadedBytes = decision.startOffset
+                        var lastUpdateTime = SystemClock.elapsedRealtime()
+                        var bytesSinceLastUpdate = 0L
+                        var smoothedSpeed = 0L
+                        var isResumedSession = decision.append
+
+                        if (isResumedSession && totalBytes > 0L) {
+                            val initPct = ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100)
+                            val curStr = formatSize(downloadedBytes)
+                            val totStr = formatSize(totalBytes)
+                            withContext(Dispatchers.Main) {
+                                if (activity.isUiAlive) {
+                                    pbDownloadProgress.progress = initPct
+                                    tvDownloadStats.text = activity.getString(
+                                        R.string.update_resuming_format,
+                                        curStr,
+                                        totStr,
+                                        initPct
+                                    )
                                 }
                             }
-                            output.flush()
                         }
+
+                        connection.inputStream.use { input ->
+                            FileOutputStream(temporaryFile, decision.append).use { output ->
+                                val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+                                var read: Int
+                                while (input.read(buffer).also { read = it } != -1) {
+                                    coroutineContext.ensureActive()
+                                    output.write(buffer, 0, read)
+                                    downloadedBytes += read
+                                    bytesSinceLastUpdate += read
+
+                                    val nowTime = SystemClock.elapsedRealtime()
+                                    val timeDiff = nowTime - lastUpdateTime
+                                    if (timeDiff >= 150L) {
+                                        val percent = if (totalBytes > 0L) ((downloadedBytes * 100) / totalBytes).toInt() else 0
+                                        val instantSpeed = (bytesSinceLastUpdate * 1000L) / timeDiff
+                                        smoothedSpeed = if (smoothedSpeed <= 0L) {
+                                            instantSpeed
+                                        } else {
+                                            (smoothedSpeed * 3L + instantSpeed) / 4L
+                                        }
+                                        val curDownloaded = downloadedBytes
+                                        val etaStr = formatEtaSeconds(totalBytes - curDownloaded, smoothedSpeed)
+                                        val speedNow = smoothedSpeed
+                                        val resumedFlag = isResumedSession
+                                        isResumedSession = false
+                                        withContext(Dispatchers.Main) {
+                                            if (activity.isUiAlive) {
+                                                pbDownloadProgress.progress = percent.coerceIn(0, 100)
+                                                val statsRes = if (resumedFlag) {
+                                                    R.string.update_resuming_format
+                                                } else {
+                                                    R.string.update_downloading_format
+                                                }
+                                                tvDownloadStats.text = activity.getString(
+                                                    statsRes,
+                                                    formatSize(curDownloaded),
+                                                    formatSize(totalBytes),
+                                                    percent
+                                                )
+                                                tvDownloadSpeed.text = if (totalBytes > 0L && speedNow > 0L) {
+                                                    activity.getString(
+                                                        R.string.update_speed_eta_format,
+                                                        formatSize(speedNow),
+                                                        etaStr
+                                                    )
+                                                } else {
+                                                    activity.getString(
+                                                        R.string.update_download_speed_format,
+                                                        formatSize(speedNow)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        lastUpdateTime = nowTime
+                                        bytesSinceLastUpdate = 0L
+                                    }
+                                }
+                                output.flush()
+                            }
+                        }
+
+                        if (totalBytes > 0L && (downloadedBytes != totalBytes || temporaryFile.length() != totalBytes)) {
+                            throw IOException("Incomplete download ($downloadedBytes / $totalBytes bytes)")
+                        }
+                    } finally {
+                        connection.disconnect()
+                    }
+
+                    val validationSize = if (totalBytes > 0L) totalBytes else expectedSize
+                    if (!isValidDownloadedApk(activity, temporaryFile, expectedSize = validationSize)) {
+                        temporaryFile.delete()
+                        throw IOException(activity.getString(R.string.update_corrupt_apk_error))
                     }
 
                     if (destinationFile.exists()) {
@@ -961,6 +1336,7 @@ object UpdateChecker {
                         temporaryFile.copyTo(destinationFile, overwrite = true)
                         temporaryFile.delete()
                     }
+                    runCatching { DirectorySnapshotCache.invalidate(Paths.get(updatesDir.absolutePath)) }
                 }
 
                 dialog.dismissSafely()
@@ -977,9 +1353,10 @@ object UpdateChecker {
                 }
             } catch (e: CancellationException) {
                 dialog.dismissSafely()
-                tempFile?.delete()
+                if (userCancelled) {
+                    tempFile?.delete()
+                }
             } catch (e: Exception) {
-                tempFile?.delete()
                 dialog.dismissSafely()
                 if (!activity.isUiAlive) return@launch
                 val errorMsg = e.localizedMessage ?: e.message ?: e.toString()

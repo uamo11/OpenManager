@@ -296,6 +296,7 @@ class FileListActivity : AppActivity() {
         setupBackPressedHandler()
         checkAutoCleanRecycleBin()
 
+        me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(this)
         if (savedInstanceState == null && Settings.AUTO_CHECK_UPDATES.valueCompat) {
             me.zhanghai.android.files.update.UpdateChecker.checkUpdate(this, isManual = false)
         }

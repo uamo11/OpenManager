@@ -2,6 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootUpdateCard"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
@@ -50,6 +51,7 @@
     </LinearLayout>
 
     <View
+        android:id="@+id/dividerUpdateTop"
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#383838"
@@ -57,6 +59,7 @@
 
     <!-- Version & File Info Grid -->
     <LinearLayout
+        android:id="@+id/boxUpdateVersion"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -86,6 +89,7 @@
 
     <!-- Changelog Section Header -->
     <TextView
+        android:id="@+id/tvUpdateChangelogHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/update_changelog_label"
@@ -115,6 +119,7 @@
     </androidx.core.widget.NestedScrollView>
 
     <View
+        android:id="@+id/dividerUpdateBottom"
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#383838"
@@ -142,12 +147,12 @@
             app:iconGravity="textStart"
             app:iconTint="#FFFFFF"
             app:iconPadding="8dp"
-            android:layout_marginBottom="8dp" />
+            android:layout_marginBottom="6dp" />
 
         <!-- Secondary actions -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="44dp"
+            android:layout_height="42dp"
             android:orientation="horizontal"
             android:gravity="center">
 
@@ -156,13 +161,27 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
+                android:layout_weight="0.9"
                 android:minWidth="0dp"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="@string/update_action_later"
                 android:textColor="#9E9E9E"
-                android:textSize="13sp"
+                android:textSize="12sp"
+                app:cornerRadius="8dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnUpdateSkip"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1.05"
+                android:minWidth="0dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
+                android:text="@string/update_action_skip_version"
+                android:textColor="#9E9E9E"
+                android:textSize="12sp"
                 app:cornerRadius="8dp" />
 
             <com.google.android.material.button.MaterialButton
@@ -170,15 +189,24 @@
                 style="@style/Widget.MaterialComponents.Button.TextButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
-                android:layout_weight="1.2"
+                android:layout_weight="1.05"
                 android:minWidth="0dp"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"
                 android:text="@string/update_action_view_on_github"
                 android:textColor="#64B5F6"
-                android:textSize="13sp"
+                android:textSize="12sp"
                 app:cornerRadius="8dp" />
         </LinearLayout>
+
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbAutoCheckUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="36dp"
+            android:layout_marginTop="2dp"
+            android:text="@string/settings_auto_check_updates_title"
+            android:textSize="12.5sp" />
     </LinearLayout>
 
 </LinearLayout>
