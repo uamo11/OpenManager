@@ -52,22 +52,22 @@ class Android16ApkCloneAndTermexUpdateTest {
             }
             if (eocdOff < 0) return null
 
-            val eocdBuf = ByteBuffer.wrap(tail, eocdOff, tailSize - eocdOff).order(ByteOrder.LITTLE_ENDIAN)
-            val cdSize = eocdBuf.getInt(12).toLong() and 0xFFFFFFFFL
-            val cdOffset = eocdBuf.getInt(16).toLong() and 0xFFFFFFFFL
+            val tailBuf = ByteBuffer.wrap(tail).order(ByteOrder.LITTLE_ENDIAN)
+            val cdSize = tailBuf.getInt(eocdOff + 12).toLong() and 0xFFFFFFFFL
+            val cdOffset = tailBuf.getInt(eocdOff + 16).toLong() and 0xFFFFFFFFL
             val cdBytes = ByteArray(cdSize.toInt())
             raf.seek(cdOffset)
             raf.readFully(cdBytes)
 
+            val cdBuf = ByteBuffer.wrap(cdBytes).order(ByteOrder.LITTLE_ENDIAN)
             var pos = 0
             while (pos + 46 <= cdBytes.size) {
-                val cdBuf = ByteBuffer.wrap(cdBytes, pos, cdBytes.size - pos).order(ByteOrder.LITTLE_ENDIAN)
-                if (cdBuf.getInt(0) != 0x02014B50) break
-                val nameLen = cdBuf.getShort(28).toInt() and 0xFFFF
-                val extraLen = cdBuf.getShort(30).toInt() and 0xFFFF
-                val commentLen = cdBuf.getShort(32).toInt() and 0xFFFF
+                if (cdBuf.getInt(pos) != 0x02014B50) break
+                val nameLen = cdBuf.getShort(pos + 28).toInt() and 0xFFFF
+                val extraLen = cdBuf.getShort(pos + 30).toInt() and 0xFFFF
+                val commentLen = cdBuf.getShort(pos + 32).toInt() and 0xFFFF
                 val name = String(cdBytes, pos + 46, nameLen, StandardCharsets.UTF_8)
-                val lfhOffset = cdBuf.getInt(42).toLong() and 0xFFFFFFFFL
+                val lfhOffset = cdBuf.getInt(pos + 42).toLong() and 0xFFFFFFFFL
                 if (name == entryName) {
                     val lfh = ByteArray(30)
                     raf.seek(lfhOffset)
