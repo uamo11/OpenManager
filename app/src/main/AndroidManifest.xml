@@ -571,6 +571,14 @@
             android:name="me.zhanghai.android.files.ftpserver.FtpServerReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name="me.zhanghai.android.files.update.UpdateCleanupReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name="me.zhanghai.android.files.app.CrashReportActivity"
             android:process=":crash"

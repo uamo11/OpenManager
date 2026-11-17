@@ -1082,6 +1082,7 @@ object ScriptRunnerHelper {
 
     fun showPreferencesDialog(activity: Activity, path: Path? = null) {
         val sp = activity.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val palette = OpenManagerPalette.from(activity)
         val defaultEnv = if (TerminalExpansionManager.isTermexInstalled(activity)) "termex" else "system"
         val savedEnv = sp.getString(KEY_EXEC_ENV, defaultEnv) ?: defaultEnv
         val isRoot = TerminalExpansionManager.isRootAvailable()
@@ -1089,24 +1090,56 @@ object ScriptRunnerHelper {
 
         val scriptPath = path?.let { if (it.isLinuxPath) it.toFile().absolutePath else it.toString() }
         val binding = ScriptPreferencesDialogBinding.inflate(LayoutInflater.from(activity))
+        binding.radioSystem.setTextColor(palette.textPrimary)
+        binding.radioTermex.setTextColor(palette.textPrimary)
+        binding.checkRoot.setTextColor(palette.textPrimary)
+        binding.checkTracer.setTextColor(palette.textPrimary)
+        binding.tvSystemEnvSummary.setTextColor(palette.textSecondary)
+        binding.tvTracerSummary.setTextColor(palette.textSecondary)
+
         binding.checkTracer.isChecked = ScriptTracerPreferences.isTracerEnabled(activity, scriptPath)
+
+        fun refreshExtensionStatus(selectIfInstalled: Boolean = false) {
+            val installed = TerminalExpansionManager.isTermexInstalled(activity)
+            if (installed) {
+                val ver = TerminalExpansionManager.getTermexVersion(activity) ?: "3.10"
+                binding.tvTermexEnvSummary.text =
+                    activity.getString(R.string.script_pref_termex_installed_format, ver)
+                binding.tvTermexEnvSummary.setTextColor(
+                    if (palette.isDark) Color.parseColor("#81C784") else Color.parseColor("#2E7D32")
+                )
+                if (selectIfInstalled) {
+                    binding.radioTermex.isChecked = true
+                }
+            } else {
+                binding.tvTermexEnvSummary.text =
+                    activity.getString(R.string.script_pref_termex_not_installed_summary)
+                binding.tvTermexEnvSummary.setTextColor(palette.textSecondary)
+                if (binding.radioTermex.isChecked) {
+                    binding.radioSystem.isChecked = true
+                }
+            }
+        }
+
         if (savedEnv == "termex" && TerminalExpansionManager.isTermexInstalled(activity)) {
             binding.radioTermex.isChecked = true
         } else {
             binding.radioSystem.isChecked = true
         }
+        refreshExtensionStatus()
 
-        binding.radioTermex.setOnClickListener {
+        val onTermexPrompt = View.OnClickListener {
             if (!TerminalExpansionManager.isTermexInstalled(activity)) {
+                binding.radioSystem.isChecked = true
                 TerminalExpansionManager.showExpansionInstallerDialog(activity) {
-                    if (TerminalExpansionManager.isTermexInstalled(activity)) {
-                        binding.radioTermex.isChecked = true
-                    } else {
-                        binding.radioSystem.isChecked = true
-                    }
+                    refreshExtensionStatus(selectIfInstalled = true)
                 }
+            } else {
+                refreshExtensionStatus(selectIfInstalled = true)
             }
         }
+        binding.radioTermex.setOnClickListener(onTermexPrompt)
+        binding.tvTermexEnvSummary.setOnClickListener(onTermexPrompt)
 
         // Hide root option completely when no root is available on the device
         if (isRoot) {
@@ -1117,10 +1150,14 @@ object ScriptRunnerHelper {
             binding.checkRoot.isChecked = false
         }
 
-        MaterialAlertDialogBuilder(activity)
+        val prefDialog = MaterialAlertDialogBuilder(activity)
             .setView(binding.root)
             .setPositiveButton(android.R.string.ok) { _, _ ->
-                val chosenEnv = if (binding.radioTermex.isChecked) "termex" else "system"
+                val chosenEnv = if (binding.radioTermex.isChecked && TerminalExpansionManager.isTermexInstalled(activity)) {
+                    "termex"
+                } else {
+                    "system"
+                }
                 val chosenRoot = if (isRoot) binding.checkRoot.isChecked else false
                 sp.edit()
                     .putString(KEY_EXEC_ENV, chosenEnv)
@@ -1129,7 +1166,8 @@ object ScriptRunnerHelper {
                 ScriptTracerPreferences.setTracerEnabled(activity, scriptPath, binding.checkTracer.isChecked)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        prefDialog.show()
     }
 
     private fun editScriptOrBinary(activity: Activity, path: Path) {

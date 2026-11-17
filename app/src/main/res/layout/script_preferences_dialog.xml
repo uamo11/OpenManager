@@ -27,14 +27,34 @@
             android:text="@string/script_pref_system_env"
             android:textAppearance="?textAppearanceSubtitle1" />
 
+        <TextView
+            android:id="@+id/tvSystemEnvSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="40dp"
+            android:paddingEnd="8dp"
+            android:text="@string/script_pref_system_summary"
+            android:textAppearance="?textAppearanceCaption"
+            android:textColor="?android:textColorSecondary" />
+
         <RadioButton
             android:id="@+id/radioTermex"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:paddingStart="8dp"
             android:text="@string/script_pref_termex_env"
             android:textAppearance="?textAppearanceSubtitle1" />
+
+        <TextView
+            android:id="@+id/tvTermexEnvSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="40dp"
+            android:paddingEnd="8dp"
+            android:text="@string/script_pref_termex_not_installed_summary"
+            android:textAppearance="?textAppearanceCaption"
+            android:textColor="?android:textColorSecondary" />
     </RadioGroup>
 
     <View

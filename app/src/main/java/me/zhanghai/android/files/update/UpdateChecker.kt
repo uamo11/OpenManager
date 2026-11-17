@@ -36,9 +36,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.compat.longVersionCodeCompat
 import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.filelist.ApkInstallHelper
+import me.zhanghai.android.files.filelist.DirectorySnapshotCache
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.terminal.TerminalExpansionManager
 import me.zhanghai.android.files.ui.bindToLifecycle
 import me.zhanghai.android.files.ui.dismissSafely
 import me.zhanghai.android.files.ui.isUiAlive
@@ -72,7 +75,117 @@ object UpdateChecker {
     const val GITHUB_LATEST_RELEASE_URL = "https://api.github.com/repos/$GITHUB_REPO/releases/latest"
     const val GITHUB_RELEASES_ATOM_URL = "https://github.com/$GITHUB_REPO/releases.atom"
     private const val PREF_LAST_CHECK_TIME = "pref_last_update_check_time"
+    private const val PREF_PENDING_UPDATE_APK_PATH = "pref_pending_update_apk_path"
+    private const val PREF_PENDING_UPDATE_VERSION = "pref_pending_update_version"
     private const val AUTO_CHECK_COOLDOWN_MS = 2 * 60 * 60 * 1000L // 2 hours
+    private const val MIN_CLEANUP_AGE_MS = 15_000L
+    private const val STALE_TMP_AGE_MS = 3_600_000L
+    private val UPDATE_APK_NAME_REGEX = Regex("(?i)^OpenManager-v([0-9][0-9.]*).*\\.apk$")
+
+    @Volatile
+    var isDownloadingUpdate = false
+
+    fun shouldDeleteUpdateCandidate(
+        fileName: String,
+        filePath: String,
+        currentVersion: String,
+        pendingPath: String?,
+        pendingVersion: String?,
+        fileAgeMs: Long,
+        isDownloading: Boolean
+    ): Boolean {
+        if (isDownloading || fileAgeMs < MIN_CLEANUP_AGE_MS) return false
+        if (fileName.endsWith(".apk.tmp", ignoreCase = true)) {
+            return fileAgeMs > STALE_TMP_AGE_MS
+        }
+        if (!fileName.endsWith(".apk", ignoreCase = true)) return false
+        if (!pendingPath.isNullOrBlank() && filePath == pendingPath && !pendingVersion.isNullOrBlank()) {
+            return !isVersionNewer(pendingVersion, currentVersion)
+        }
+        val match = UPDATE_APK_NAME_REGEX.matchEntire(fileName) ?: return false
+        val apkVersion = match.groupValues[1]
+        return !isVersionNewer(apkVersion, currentVersion)
+    }
+
+    fun cleanupInstalledUpdateApks(context: Context) {
+        runCatching {
+            val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            val pendingPath = prefs.getString(PREF_PENDING_UPDATE_APK_PATH, null)
+            val pendingVersion = prefs.getString(PREF_PENDING_UPDATE_VERSION, null)
+            val currentVersion = BuildConfig.VERSION_NAME
+            val currentVersionCode = BuildConfig.VERSION_CODE.toLong()
+            val now = System.currentTimeMillis()
+            val updatesDirs = listOf(
+                File("/storage/emulated/0/OpenManager/updates"),
+                File(context.cacheDir, "updates")
+            )
+
+            var clearedPending = false
+            for (dir in updatesDirs) {
+                if (!dir.exists() || !dir.isDirectory) continue
+                val children = dir.listFiles() ?: continue
+                var deletedInDir = false
+                for (file in children) {
+                    if (!file.isFile) continue
+                    val ageMs = (now - file.lastModified()).coerceAtLeast(0L)
+                    if (!shouldDeleteUpdateCandidate(
+                            fileName = file.name,
+                            filePath = file.absolutePath,
+                            currentVersion = currentVersion,
+                            pendingPath = pendingPath,
+                            pendingVersion = pendingVersion,
+                            fileAgeMs = ageMs,
+                            isDownloading = isDownloadingUpdate
+                        )
+                    ) {
+                        continue
+                    }
+
+                    if (file.name.endsWith(".apk", ignoreCase = true)) {
+                        val pkgInfo = runCatching {
+                            context.packageManager.getPackageArchiveInfo(file.absolutePath, 0)
+                        }.getOrNull()
+                        if (pkgInfo != null &&
+                            (pkgInfo.packageName != context.packageName ||
+                                pkgInfo.longVersionCodeCompat > currentVersionCode)
+                        ) {
+                            continue
+                        }
+                    }
+
+                    val isPendingTarget = pendingPath != null && file.absolutePath == pendingPath
+                    if (runCatching { file.delete() }.getOrDefault(false)) {
+                        deletedInDir = true
+                        if (isPendingTarget) clearedPending = true
+                    }
+                }
+                if (deletedInDir) {
+                    runCatching { DirectorySnapshotCache.invalidate(Paths.get(dir.absolutePath)) }
+                }
+            }
+
+            if (clearedPending) {
+                prefs.edit()
+                    .remove(PREF_PENDING_UPDATE_APK_PATH)
+                    .remove(PREF_PENDING_UPDATE_VERSION)
+                    .apply()
+            }
+
+            if (TerminalExpansionManager.isTermexInstalled(context)) {
+                listOf(
+                    File(context.cacheDir, "termex_install.apk"),
+                    File(context.cacheDir, "termex_bootstrap.zip")
+                ).forEach { cacheArtifact ->
+                    if (cacheArtifact.exists() && cacheArtifact.isFile) {
+                        val ageMs = (now - cacheArtifact.lastModified()).coerceAtLeast(0L)
+                        if (ageMs >= MIN_CLEANUP_AGE_MS) {
+                            runCatching { cacheArtifact.delete() }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     fun isDebugBuild(context: Context): Boolean {
         return BuildConfig.DEBUG || ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0)
@@ -772,6 +885,7 @@ object UpdateChecker {
         downloadJob = activity.lifecycleScope.launch {
             var tempFile: File? = null
             var finalFile: File? = null
+            isDownloadingUpdate = true
             try {
                 withContext(Dispatchers.IO) {
                     val baseDir = File("/storage/emulated/0/OpenManager/updates")
@@ -855,6 +969,10 @@ object UpdateChecker {
                 Toast.makeText(activity, activity.getString(R.string.update_download_success_title), Toast.LENGTH_SHORT).show()
 
                 finalFile?.let { installedFile ->
+                    PreferenceManager.getDefaultSharedPreferences(activity).edit()
+                        .putString(PREF_PENDING_UPDATE_APK_PATH, installedFile.absolutePath)
+                        .putString(PREF_PENDING_UPDATE_VERSION, releaseInfo.version)
+                        .apply()
                     launchApkInstallation(activity, installedFile)
                 }
             } catch (e: CancellationException) {
@@ -871,6 +989,8 @@ object UpdateChecker {
                     setPositiveButton(R.string.retry) { _, _ -> downloadAndInstall(activity, releaseInfo) }
                     setNegativeButton(android.R.string.cancel, null)
                 }
+            } finally {
+                isDownloadingUpdate = false
             }
         }
     }

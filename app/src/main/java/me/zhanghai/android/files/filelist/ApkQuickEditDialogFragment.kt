@@ -9,6 +9,7 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -245,110 +246,127 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                 val selectedLoc = installLocationMap.find { it.second == selectedLocText }?.first ?: -1
 
                 val autoSign = cbAutoSign.isChecked
-
                 val hostActivity = activity ?: return@setOnClickListener
-                val savingDialog = MaterialAlertDialogBuilder(hostActivity)
-                    .setTitle(R.string.apk_quick_edit)
-                    .setMessage(R.string.apk_quick_edit_saving)
-                    .setCancelable(false)
-                    .create()
-                    .bindToLifecycle(hostActivity)
-                savingDialog.show()
 
-                hostActivity.lifecycleScope.launch(Dispatchers.IO) {
-                    var tempInputFile: File? = null
-                    try {
-                        val inputApk: File = if (file.path.isLinuxPath) {
-                            file.path.toFile()
-                        } else {
-                            val tmp = File(hostActivity.cacheDir, "qe_in_${System.currentTimeMillis()}_${file.name}")
-                            file.path.newInputStream().use { inp ->
-                                FileOutputStream(tmp).use { out -> inp.copyTo(out) }
-                            }
-                            tempInputFile = tmp
-                            tmp
-                        }
+                fun startQuickEditSave(finalTargetSdk: Int?) {
+                    val savingDialog = MaterialAlertDialogBuilder(hostActivity)
+                        .setTitle(R.string.apk_quick_edit)
+                        .setMessage(R.string.apk_quick_edit_saving)
+                        .setCancelable(false)
+                        .create()
+                        .bindToLifecycle(hostActivity)
+                    savingDialog.show()
 
-                        val baseName = file.name.removeSuffix(".apk")
-                        val parentDir = if (file.path.isLinuxPath) {
-                            file.path.toFile().parentFile ?: hostActivity.cacheDir
-                        } else {
-                            hostActivity.cacheDir
-                        }
-
-                        var outputApk = File(parentDir, "${baseName}_edited.apk")
-                        var counter = 1
-                        while (outputApk.exists()) {
-                            outputApk = File(parentDir, "${baseName}_edited_$counter.apk")
-                            counter++
-                        }
-
-                        val options = ApkQuickEditEngine.QuickEditOptions(
-                            appName = newAppName,
-                            packageName = newPackage.takeIf { it.isNotBlank() },
-                            versionCode = newVerCode,
-                            versionName = newVerName,
-                            minSdkVersion = minSdkRaw,
-                            targetSdkVersion = targetSdkRaw,
-                            installLocation = selectedLoc,
-                            newIconBytes = selectedIconBytes,
-                            debuggable = cbDebuggable.isChecked,
-                            extractNativeLibs = cbExtractNativeLibs.isChecked,
-                            autoSign = autoSign,
-                            signingScheme = ApkSignerHelper.SignScheme.V1_AND_V2
-                        )
-
-                        ApkQuickEditEngine.applyQuickEdit(inputApk, outputApk, options) { progress ->
-                            hostActivity.lifecycleScope.launch(Dispatchers.Main.immediate) {
-                                if (hostActivity.isUiAlive && savingDialog.isShowing) {
-                                    savingDialog.setMessage(progress)
-                                }
-                            }
-                        }
-
-                        withContext(Dispatchers.Main) {
-                            savingDialog.dismissSafely()
-                            alertDialog.dismissSafely()
-                            if (!hostActivity.isUiAlive) return@withContext
-
-                            (hostActivity as? FileListActivity)?.activeFragment?.reload()
-
-                            val rootLayout = hostActivity.findViewById<View>(android.R.id.content)
-                            if (rootLayout != null) {
-                                val snackbar = Snackbar.make(
-                                    rootLayout,
-                                    hostActivity.getString(R.string.apk_quick_edit_success, outputApk.name),
-                                    Snackbar.LENGTH_LONG
-                                )
-                                snackbar.setAction(R.string.install) {
-                                    (hostActivity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
-                                }
-                                snackbar.show()
+                    hostActivity.lifecycleScope.launch(Dispatchers.IO) {
+                        var tempInputFile: File? = null
+                        try {
+                            val inputApk: File = if (file.path.isLinuxPath) {
+                                file.path.toFile()
                             } else {
-                                Toast.makeText(
-                                    hostActivity,
-                                    hostActivity.getString(R.string.apk_quick_edit_success, outputApk.name),
-                                    Toast.LENGTH_LONG
-                                ).show()
+                                val tmp = File(hostActivity.cacheDir, "qe_in_${System.currentTimeMillis()}_${file.name}")
+                                file.path.newInputStream().use { inp ->
+                                    FileOutputStream(tmp).use { out -> inp.copyTo(out) }
+                                }
+                                tempInputFile = tmp
+                                tmp
                             }
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "ApkQuickEdit")
-                        withContext(Dispatchers.Main) {
-                            savingDialog.dismissSafely()
-                            if (hostActivity.isUiAlive) {
-                                Toast.makeText(
-                                    hostActivity,
-                                    hostActivity.getString(R.string.apk_quick_edit_error, e.message ?: e.javaClass.simpleName),
-                                    Toast.LENGTH_LONG
-                                ).show()
+
+                            val baseName = file.name.removeSuffix(".apk")
+                            val parentDir = if (file.path.isLinuxPath) {
+                                file.path.toFile().parentFile ?: hostActivity.cacheDir
+                            } else {
+                                hostActivity.cacheDir
                             }
+
+                            var outputApk = File(parentDir, "${baseName}_edited.apk")
+                            var counter = 1
+                            while (outputApk.exists()) {
+                                outputApk = File(parentDir, "${baseName}_edited_$counter.apk")
+                                counter++
+                            }
+
+                            val options = ApkQuickEditEngine.QuickEditOptions(
+                                appName = newAppName,
+                                packageName = newPackage.takeIf { it.isNotBlank() },
+                                versionCode = newVerCode,
+                                versionName = newVerName,
+                                minSdkVersion = minSdkRaw,
+                                targetSdkVersion = finalTargetSdk,
+                                installLocation = selectedLoc,
+                                newIconBytes = selectedIconBytes,
+                                debuggable = cbDebuggable.isChecked,
+                                extractNativeLibs = cbExtractNativeLibs.isChecked,
+                                autoSign = autoSign,
+                                signingScheme = ApkSignerHelper.SignScheme.V1_AND_V2
+                            )
+
+                            ApkQuickEditEngine.applyQuickEdit(inputApk, outputApk, options) { progress ->
+                                hostActivity.lifecycleScope.launch(Dispatchers.Main.immediate) {
+                                    if (hostActivity.isUiAlive && savingDialog.isShowing) {
+                                        savingDialog.setMessage(progress)
+                                    }
+                                }
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                savingDialog.dismissSafely()
+                                alertDialog.dismissSafely()
+                                if (!hostActivity.isUiAlive) return@withContext
+
+                                (hostActivity as? FileListActivity)?.activeFragment?.reload()
+
+                                val rootLayout = hostActivity.findViewById<View>(android.R.id.content)
+                                if (rootLayout != null) {
+                                    val snackbar = Snackbar.make(
+                                        rootLayout,
+                                        hostActivity.getString(R.string.apk_quick_edit_success, outputApk.name),
+                                        Snackbar.LENGTH_LONG
+                                    )
+                                    snackbar.setAction(R.string.install) {
+                                        (hostActivity as? FileListActivity)?.activeFragment?.installApkFile(outputApk)
+                                    }
+                                    snackbar.show()
+                                } else {
+                                    Toast.makeText(
+                                        hostActivity,
+                                        hostActivity.getString(R.string.apk_quick_edit_success, outputApk.name),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "ApkQuickEdit")
+                            withContext(Dispatchers.Main) {
+                                savingDialog.dismissSafely()
+                                if (hostActivity.isUiAlive) {
+                                    Toast.makeText(
+                                        hostActivity,
+                                        hostActivity.getString(R.string.apk_quick_edit_error, e.message ?: e.javaClass.simpleName),
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        } finally {
+                            tempInputFile?.delete()
                         }
-                    } finally {
-                        tempInputFile?.delete()
                     }
                 }
+
+                if (Build.VERSION.SDK_INT >= 35 && targetSdkRaw != null && targetSdkRaw < 24) {
+                    MaterialAlertDialogBuilder(hostActivity)
+                        .setTitle("targetSdk demasiado bajo para Android 15/16")
+                        .setMessage(
+                            "Android 15/16 bloquea la instalación de apps con targetSdk $targetSdkRaw (< 24). ¿Deseas ajustarlo a API 24 (Android 7.0) para permitir la instalación?"
+                        )
+                        .setPositiveButton("Subir a API 24") { _, _ -> startQuickEditSave(24) }
+                        .setNegativeButton("Mantener ($targetSdkRaw)") { _, _ -> startQuickEditSave(targetSdkRaw) }
+                        .setNeutralButton(android.R.string.cancel, null)
+                        .show()
+                    return@setOnClickListener
+                }
+
+                startQuickEditSave(targetSdkRaw)
             }
         }
 

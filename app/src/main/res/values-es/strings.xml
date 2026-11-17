@@ -410,7 +410,10 @@
     <string name="script_action_edit">EDITAR</string>
     <string name="script_action_execute">EJECUTAR</string>
     <string name="script_pref_system_env">Ejecutar en entorno del sistema</string>
-    <string name="script_pref_termex_env">Ejecutar en entorno de paquete de extensión (Termex)</string>
+    <string name="script_pref_system_summary">Shell integrado de Android (/system/bin/sh)</string>
+    <string name="script_pref_termex_env">Ejecutar en entorno de extensión Linux</string>
+    <string name="script_pref_termex_installed_format">✓ Instalado y listo (%1$s) — Bash, curl, awk, grep, sed, tar</string>
+    <string name="script_pref_termex_not_installed_summary">No instalado — toca para descargar complemento (GNU Bash 5 + utilidades)</string>
     <string name="script_pref_root_privileges">Ejecutar con privilegios de root</string>
     <string name="file_properties_permission_selinux_context">Contexto de SELinux</string>
     <string name="file_properties_permission_set_selinux_context_title">Cambiar el contexto de SELinux</string>
@@ -2503,16 +2506,16 @@
     <string name="om_term_process_terminated">Proceso terminado</string>
 
     <string name="om_termex_installer_error_format">Error al iniciar instalador: %1$s</string>
-    <string name="om_termex_dialog_desc">El Paquete de Expansión de Terminal proporciona un entorno Linux completo con GNU Bash 5.x, utilidades coreutils, tuberías avanzadas y soporte para scripts complejos.\n\nActualmente no se encuentra instalado en este dispositivo.</string>
-    <string name="om_termex_install_local_format">📦 Instalar APK detectado (%1$s - %2$sMB)</string>
-    <string name="om_termex_download_install">⬇️ Descargar e instalar automáticamente</string>
-    <string name="om_termex_pick_apk">📂 Seleccionar APK del almacenamiento</string>
-    <string name="om_termex_dialog_title">Expansión de Terminal (Termex)</string>
-    <string name="om_termex_pick_chooser">Seleccionar APK de Termex</string>
-    <string name="om_termex_place_apk_hint">Coloque termex_v3008_arm64.apk en su carpeta Descargas</string>
-    <string name="om_termex_connecting">Conectando al servidor…</string>
-    <string name="om_termex_downloading_title">Descargando Paquete de Expansión</string>
-    <string name="om_termex_download_failed_format">No se pudo descargar automáticamente: %1$s.\nPuede colocar termex_v3008_arm64.apk en /sdcard/Download.</string>
+    <string name="om_termex_dialog_desc">Esta extensión instala GNU Bash 5, coreutils, curl, grep, awk, sed, tar y xz para ejecutar scripts avanzados sin las limitaciones de /system/bin/sh.\n\nAndroid lo instala como un complemento APK ligero (~10 MB) generado automáticamente desde los paquetes oficiales de Termux para tu CPU (%1$s). También es compatible con MT Termex.</string>
+    <string name="om_termex_install_local_format">Instalar APK local (%1$s • %2$s MB)</string>
+    <string name="om_termex_download_install">Descargar e instalar</string>
+    <string name="om_termex_pick_apk">Elegir APK</string>
+    <string name="om_termex_dialog_title">Extensión Linux (Bash y Herramientas)</string>
+    <string name="om_termex_pick_chooser">Seleccionar APK de Extensión</string>
+    <string name="om_termex_place_apk_hint">No se encontró selector. Puedes colocar el APK de extensión en /sdcard/Download</string>
+    <string name="om_termex_connecting">Conectando con paquetes de Termux…</string>
+    <string name="om_termex_downloading_title">Instalando Extensión Linux</string>
+    <string name="om_termex_download_failed_format">No se pudo descargar: %1$s.\nVerifica tu conexión o elige un APK local.</string>
     <string name="om_termex_network_error">Error de red</string>
 
     <string name="om_dex_subtitle_format">%1$d clases  •  %2$d cadenas</string>

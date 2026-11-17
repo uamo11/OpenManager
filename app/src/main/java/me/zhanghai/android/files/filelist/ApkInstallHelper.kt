@@ -37,8 +37,9 @@ object ApkInstallHelper {
         val targetTmpPath = "/data/local/tmp/om_root_install_${System.currentTimeMillis()}.apk"
 
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
+        val bypassLowTargetFlag = if (Build.VERSION.SDK_INT >= 34) "--bypass-low-target-sdk-block " else ""
         // Flags: -r (replace existing), -d (allow downgrade), -t (allow test packages), -g (grant permissions)
-        val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
+        val installCmd = "pm install -r -d -t $grantPermFlag$bypassLowTargetFlag${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
             "cp ${apkFile.absolutePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
@@ -106,7 +107,8 @@ object ApkInstallHelper {
         val targetTmpPath = "/data/local/tmp/om_shizuku_install_${System.currentTimeMillis()}.apk"
 
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
-        val installCmd = "pm install -r -d -t $grantPermFlag${targetTmpPath.escapeShellArg()}"
+        val bypassLowTargetFlag = if (Build.VERSION.SDK_INT >= 34) "--bypass-low-target-sdk-block " else ""
+        val installCmd = "pm install -r -d -t $grantPermFlag$bypassLowTargetFlag${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
             "cp ${apkFile.absolutePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",

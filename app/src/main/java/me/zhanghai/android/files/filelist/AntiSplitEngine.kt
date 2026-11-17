@@ -7,11 +7,13 @@ package me.zhanghai.android.files.filelist
 
 import android.content.Context
 import com.reandroid.apk.APKLogger
+import com.reandroid.apk.AndroidManifestBlockSplitSanitizer
 import com.reandroid.apk.ApkBundle
 import com.reandroid.apk.ApkModule
 import com.reandroid.apkeditor.common.AndroidManifestHelper
 import com.reandroid.app.AndroidManifest
 import com.reandroid.archive.ZipEntryMap
+import com.reandroid.archive.writer.ZipAligner
 import com.reandroid.arsc.chunk.TableBlock
 import com.reandroid.arsc.chunk.xml.ResXmlAttribute
 import com.reandroid.arsc.chunk.xml.ResXmlElement
@@ -28,9 +30,15 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.UUID
+import java.util.regex.Pattern
 import java.util.zip.ZipFile
 
 object AntiSplitEngine {
+
+    private val SIGNATURE_STRIP_PATTERN: Pattern = Pattern.compile(
+        "^(?:META-INF/.*\\.(?:SF|RSA|DSA|EC)|META-INF/MANIFEST\\.MF|stamp-cert-sha256)$",
+        Pattern.CASE_INSENSITIVE
+    )
 
     data class AntiSplitOptions(
         val autoSign: Boolean = true,
@@ -228,11 +236,8 @@ object AntiSplitEngine {
                     mergedModule.setExtractNativeLibs(options.extractNativeLibs)
                 } catch (ignored: Exception) {}
 
-                mergedModule.refreshTable()
-                mergedModule.refreshManifest()
-
                 logger?.invoke("Generating consolidated APK file...")
-                mergedModule.writeApk(unsignedApk)
+                writeAlignedUnsignedApk(mergedModule, unsignedApk)
             }
 
             if (!unsignedApk.exists() || unsignedApk.length() == 0L) {
@@ -257,6 +262,53 @@ object AntiSplitEngine {
             e.printStackTrace()
             logger?.invoke("Exception during merge: ${e.message}")
             return false
+        }
+    }
+
+    /**
+     * Strips stale signing/split artifacts, enforces uncompressed resources.arsc and 16-KB ELF
+     * page alignment (Android 15/16), refreshes manifest/table and writes the unsigned APK.
+     */
+    fun writeAlignedUnsignedApk(module: ApkModule, outputApk: File) {
+        try {
+            AndroidManifestBlockSplitSanitizer().sanitize(module)
+        } catch (_: Exception) {}
+        sanitizeManifest(module)
+
+        try {
+            module.setApkSignatureBlock(null)
+        } catch (_: Exception) {}
+        try {
+            module.zipEntryMap?.removeIf(SIGNATURE_STRIP_PATTERN)
+        } catch (_: Exception) {}
+
+        try {
+            val uf = module.uncompressedFiles
+            val zipMap = module.zipEntryMap
+            if (uf != null) {
+                uf.addPath("resources.arsc")
+                if (zipMap != null) {
+                    uf.apply(zipMap)
+                }
+            }
+        } catch (_: Exception) {}
+
+        if (module.hasTableBlock()) {
+            try { module.refreshTable() } catch (_: Exception) {}
+        }
+        if (module.hasAndroidManifest()) {
+            try { module.refreshManifest() } catch (_: Exception) {}
+        }
+
+        outputApk.parentFile?.let { if (!it.exists()) it.mkdirs() }
+        module.createApkFileWriter(outputApk).use { writer ->
+            val aligner = ZipAligner.apkAligner().apply {
+                clearFileAlignment()
+                setDefaultAlignment(4)
+                setFileAlignment(ZipAligner.PREDICATE_NATIVE_LIBS, 16384)
+            }
+            writer.zipAligner = aligner
+            writer.write()
         }
     }
 

@@ -9,14 +9,18 @@ import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import java.security.MessageDigest
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -145,6 +149,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         layoutIconContainer.setOnClickListener(openViewerListener)
 
         var parsedPackageName: String? = null
+        var hasSignatureMismatch = false
 
         try {
             var packageInfoFlags = PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNATURES
@@ -210,9 +215,23 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                     val pkgName = packageInfo.packageName
                     if (pkgName != null) {
                         try {
-                            val installedInfo = packageManager.getPackageInfo(pkgName, 0)
-                            tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat})"
-                            tvInstalled.setTextColor(Color.parseColor("#81C784"))
+                            val installedSigFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                                PackageManager.GET_SIGNING_CERTIFICATES
+                            } else {
+                                @Suppress("DEPRECATION")
+                                PackageManager.GET_SIGNATURES
+                            }
+                            val installedInfo = packageManager.getPackageInfo(pkgName, installedSigFlags)
+                            val apkSigSha = getSigningCertSha256(packageInfo)
+                            val installedSigSha = getSigningCertSha256(installedInfo)
+                            hasSignatureMismatch = apkSigSha != null && installedSigSha != null && apkSigSha != installedSigSha
+                            if (hasSignatureMismatch) {
+                                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat}) • ⚠️ Otra firma"
+                                tvInstalled.setTextColor(Color.parseColor("#FFB74D"))
+                            } else {
+                                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat})"
+                                tvInstalled.setTextColor(Color.parseColor("#81C784"))
+                            }
 
                             val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                             val installedAppInfo = installedInfo.applicationInfo
@@ -298,11 +317,43 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
 
         btnInstall.setOnClickListener {
             val hostActivity = activity as? FragmentActivity
+            val capturedListener = listener
+            val targetPkg = parsedPackageName
+            if (hasSignatureMismatch && !isRootAvailable && targetPkg != null) {
+                dialog.dismiss()
+                val dialogContext = hostActivity ?: context
+                MaterialAlertDialogBuilder(dialogContext)
+                    .setTitle("⚠️ Firma diferente detectada")
+                    .setMessage(
+                        "La app \"$targetPkg\" ya está instalada con otra firma digital. Android rechazará la actualización a menos que primero desinstales la app actual o clones el APK con otro nombre de paquete."
+                    )
+                    .setPositiveButton("Clonar paquete") { _, _ ->
+                        if (hostActivity != null) {
+                            ApkQuickEditDialogFragment.show(file, hostActivity)
+                        }
+                    }
+                    .setNeutralButton("Desinstalar actual") { _, _ ->
+                        try {
+                            dialogContext.startActivity(
+                                Intent(Intent.ACTION_DELETE, Uri.fromParts("package", targetPkg, null))
+                            )
+                        } catch (_: Exception) {}
+                    }
+                    .setNegativeButton("Intentar instalar") { _, _ ->
+                        if (isShizukuAvailable && hostActivity != null) {
+                            installApkWithShizuku(hostActivity, file)
+                        } else {
+                            capturedListener.installApk(file)
+                        }
+                    }
+                    .show()
+                return@setOnClickListener
+            }
             dialog.dismiss()
             when {
-                isRootAvailable -> listener.installApkWithRoot(file)
+                isRootAvailable -> capturedListener.installApkWithRoot(file)
                 isShizukuAvailable && hostActivity != null -> installApkWithShizuku(hostActivity, file)
-                else -> listener.installApk(file)
+                else -> capturedListener.installApk(file)
             }
         }
 
@@ -516,6 +567,22 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
     }
 
+    private fun getSigningCertSha256(info: PackageInfo?): String? {
+        if (info == null) return null
+        val bytes: ByteArray? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray()
+        } else {
+            @Suppress("DEPRECATION")
+            info.signatures?.firstOrNull()?.toByteArray()
+        }
+        if (bytes == null) return null
+        return try {
+            MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02X".format(it) }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private fun getSdkName(apiLevel: Int): String = when (apiLevel) {
         21 -> "5.0"
         22 -> "5.1"
@@ -532,6 +599,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         33 -> "13"
         34 -> "14"
         35 -> "15"
+        36 -> "16"
         else -> "$apiLevel"
     }
 

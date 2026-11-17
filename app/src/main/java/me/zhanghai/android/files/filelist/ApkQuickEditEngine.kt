@@ -8,11 +8,24 @@ package me.zhanghai.android.files.filelist
 import com.reandroid.apk.ApkModule
 import com.reandroid.archive.ByteInputSource
 import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
+import com.reandroid.arsc.chunk.xml.ResXmlAttribute
+import com.reandroid.arsc.chunk.xml.ResXmlElement
 import com.reandroid.arsc.value.ValueType
 import java.io.File
 
 object ApkQuickEditEngine {
 
+    const val ATTR_NAME = 0x01010003
+    const val ATTR_MANAGE_SPACE_ACTIVITY = 0x01010004
+    const val ATTR_PERMISSION = 0x01010006
+    const val ATTR_READ_PERMISSION = 0x01010007
+    const val ATTR_WRITE_PERMISSION = 0x01010008
+    const val ATTR_SHARED_USER_ID = 0x0101000b
+    const val ATTR_TASK_AFFINITY = 0x01010012
+    const val ATTR_AUTHORITIES = 0x01010018
+    const val ATTR_TARGET_ACTIVITY = 0x01010202
+    const val ATTR_SHARED_USER_LABEL = 0x01010261
+    const val ATTR_BACKUP_AGENT = 0x0101027f
     const val ATTR_INSTALL_LOCATION = 0x010102b7
 
     data class QuickEditInfo(
@@ -111,9 +124,25 @@ object ApkQuickEditEngine {
                     ?: throw IllegalStateException("AndroidManifest.xml no encontrado en el APK")
 
                 onProgress?.invoke("Actualizando atributos del manifiesto...")
-                options.packageName?.takeIf { it.isNotBlank() }?.let {
-                    manifest.packageName = it.trim()
+                val oldPackage = try { manifest.packageName?.trim().orEmpty() } catch (_: Exception) { "" }
+                val newPackage = options.packageName?.trim()?.takeIf { it.isNotEmpty() }
+
+                if (newPackage != null && newPackage != oldPackage) {
+                    clonePackageInManifest(module, manifest, oldPackage, newPackage)
+                } else if (newPackage != null) {
+                    manifest.packageName = newPackage
                 }
+
+                if (options.autoSign || (newPackage != null && newPackage != oldPackage)) {
+                    try {
+                        val root = manifest.manifestElement
+                        root?.removeAttributesWithId(ATTR_SHARED_USER_ID)
+                        root?.removeAttributesWithName("sharedUserId")
+                        root?.removeAttributesWithId(ATTR_SHARED_USER_LABEL)
+                        root?.removeAttributesWithName("sharedUserLabel")
+                    } catch (_: Exception) {}
+                }
+
                 options.appName?.takeIf { it.isNotBlank() }?.let {
                     manifest.setApplicationLabel(it.trim())
                 }
@@ -146,7 +175,11 @@ object ApkQuickEditEngine {
                     try { manifest.isDebuggable = debug } catch (ignored: Exception) {}
                 }
                 options.extractNativeLibs?.let { extract ->
-                    try { manifest.isExtractNativeLibs = extract } catch (ignored: Exception) {}
+                    try {
+                        module.setExtractNativeLibs(extract)
+                    } catch (_: Exception) {
+                        try { manifest.isExtractNativeLibs = extract } catch (ignored: Exception) {}
+                    }
                 }
 
                 // Replace launcher icon if new bytes are provided
@@ -180,8 +213,8 @@ object ApkQuickEditEngine {
                     }
                 }
 
-                onProgress?.invoke("Guardando archivo APK modificado...")
-                module.writeApk(unsignedFile)
+                onProgress?.invoke("Alineando y empaquetando APK...")
+                AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedFile)
             }
 
             if (options.autoSign) {
@@ -195,6 +228,180 @@ object ApkQuickEditEngine {
             if (options.autoSign && unsignedFile.exists()) {
                 unsignedFile.delete()
             }
+        }
+    }
+
+    private fun clonePackageInManifest(
+        module: ApkModule,
+        manifest: AndroidManifestBlock,
+        oldPackage: String,
+        newPackage: String
+    ) {
+        if (oldPackage.isNotEmpty()) {
+            // 1. Expand relative component class names (.MainActivity -> oldPackage.MainActivity) BEFORE changing package
+            try {
+                manifest.ensureFullClassNames()
+            } catch (_: Exception) {}
+
+            val manifestEl = manifest.manifestElement
+            if (manifestEl != null) {
+                val classAttrTargets = listOf(
+                    ATTR_TARGET_ACTIVITY to "targetActivity",
+                    ATTR_BACKUP_AGENT to "backupAgent",
+                    ATTR_MANAGE_SPACE_ACTIVITY to "manageSpaceActivity"
+                )
+                val componentTags = setOf(
+                    "application", "activity", "activity-alias", "service", "receiver", "provider"
+                )
+                val allElementsIter = manifestEl.recursiveElements()
+                while (allElementsIter.hasNext()) {
+                    val el = allElementsIter.next() ?: continue
+                    if (el.name in componentTags) {
+                        expandRelativeClassAttr(el, ATTR_NAME, "name", oldPackage)
+                    }
+                    for ((attrId, attrName) in classAttrTargets) {
+                        expandRelativeClassAttr(el, attrId, attrName, oldPackage)
+                    }
+                }
+
+                // 2. Rename custom <permission> definitions to avoid INSTALL_FAILED_DUPLICATE_PERMISSION (Android 13-16)
+                val renamedPermissions = LinkedHashMap<String, String>()
+                val permIter = manifestEl.getElements("permission")
+                while (permIter.hasNext()) {
+                    val permEl = permIter.next() ?: continue
+                    val nameAttr = findAttr(permEl, ATTR_NAME, "name") ?: continue
+                    val oldPerm = resolveAttrString(module, nameAttr) ?: continue
+                    val newPerm = when {
+                        oldPerm.contains(oldPackage) -> oldPerm.replace(oldPackage, newPackage)
+                        !oldPerm.startsWith("android.permission.") && !oldPerm.contains(newPackage) ->
+                            "$newPackage.permission.${oldPerm.substringAfterLast('.')}"
+                        else -> oldPerm
+                    }
+                    if (newPerm != oldPerm) {
+                        nameAttr.setValueAsString(newPerm)
+                        renamedPermissions[oldPerm] = newPerm
+                    }
+                }
+
+                // 3. Rewrite permission references and taskAffinity across all manifest elements
+                val refIter = manifestEl.recursiveElements()
+                while (refIter.hasNext()) {
+                    val el = refIter.next() ?: continue
+                    val tag = el.name
+                    if (tag == "uses-permission" || tag == "uses-permission-sdk-23") {
+                        val nameAttr = findAttr(el, ATTR_NAME, "name")
+                        if (nameAttr != null) {
+                            rewritePermissionAttr(module, nameAttr, oldPackage, newPackage, renamedPermissions)
+                        }
+                    }
+                    findAttr(el, ATTR_PERMISSION, "permission")?.let {
+                        rewritePermissionAttr(module, it, oldPackage, newPackage, renamedPermissions)
+                    }
+                    findAttr(el, ATTR_READ_PERMISSION, "readPermission")?.let {
+                        rewritePermissionAttr(module, it, oldPackage, newPackage, renamedPermissions)
+                    }
+                    findAttr(el, ATTR_WRITE_PERMISSION, "writePermission")?.let {
+                        rewritePermissionAttr(module, it, oldPackage, newPackage, renamedPermissions)
+                    }
+                    findAttr(el, ATTR_TASK_AFFINITY, "taskAffinity")?.let { attr ->
+                        val cur = resolveAttrString(module, attr)
+                        if (cur != null) {
+                            val updated = when {
+                                cur == oldPackage -> newPackage
+                                cur.startsWith("$oldPackage.") -> newPackage + cur.removePrefix(oldPackage)
+                                else -> cur
+                            }
+                            if (updated != cur) {
+                                attr.setValueAsString(updated)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Rewrite <provider android:authorities> to prevent INSTALL_FAILED_CONFLICTING_PROVIDER
+            val appEl = manifest.applicationElement
+            if (appEl != null) {
+                val provIter = appEl.getElements("provider")
+                while (provIter.hasNext()) {
+                    val provEl = provIter.next() ?: continue
+                    val authAttr = findAttr(provEl, ATTR_AUTHORITIES, "authorities") ?: continue
+                    val rawAuth = resolveAttrString(module, authAttr) ?: continue
+                    val rewritten = rawAuth.split(';')
+                        .mapNotNull { token ->
+                            val auth = token.trim()
+                            if (auth.isEmpty()) {
+                                null
+                            } else when {
+                                auth.contains(oldPackage) -> auth.replace(oldPackage, newPackage)
+                                !auth.contains(newPackage) -> "$newPackage.provider.$auth"
+                                else -> auth
+                            }
+                        }
+                        .joinToString(";")
+                    if (rewritten.isNotEmpty() && rewritten != rawAuth) {
+                        authAttr.setValueAsString(rewritten)
+                    }
+                }
+            }
+        }
+
+        // 5. Set the new package name last
+        manifest.packageName = newPackage
+    }
+
+    private fun findAttr(el: ResXmlElement, resId: Int, fallbackName: String): ResXmlAttribute? =
+        el.searchAttributeByResourceId(resId) ?: el.searchAttributeByName(fallbackName)
+
+    private fun resolveAttrString(module: ApkModule, attr: ResXmlAttribute): String? {
+        if (attr.valueType == ValueType.STRING) {
+            return attr.valueAsString
+        }
+        if (attr.valueType == ValueType.REFERENCE && module.hasTableBlock()) {
+            return try {
+                module.tableBlock?.getResource(attr.data)?.get()?.valueAsString
+            } catch (_: Exception) {
+                null
+            }
+        }
+        return null
+    }
+
+    private fun expandRelativeClassAttr(
+        el: ResXmlElement,
+        resId: Int,
+        attrName: String,
+        oldPackage: String
+    ) {
+        val attr = findAttr(el, resId, attrName) ?: return
+        if (attr.valueType != ValueType.STRING) return
+        val cur = attr.valueAsString?.trim() ?: return
+        if (cur.isEmpty() || cur.startsWith("@")) return
+        val expanded = when {
+            cur.startsWith(".") -> "$oldPackage$cur"
+            !cur.contains(".") -> "$oldPackage.$cur"
+            else -> cur
+        }
+        if (expanded != cur) {
+            attr.setValueAsString(expanded)
+        }
+    }
+
+    private fun rewritePermissionAttr(
+        module: ApkModule,
+        attr: ResXmlAttribute,
+        oldPackage: String,
+        newPackage: String,
+        renamedPermissions: Map<String, String>
+    ) {
+        val cur = resolveAttrString(module, attr) ?: return
+        val mapped = renamedPermissions[cur] ?: when {
+            cur.startsWith("android.permission.") -> cur
+            cur.contains(oldPackage) -> cur.replace(oldPackage, newPackage)
+            else -> cur
+        }
+        if (mapped != cur) {
+            attr.setValueAsString(mapped)
         }
     }
 }

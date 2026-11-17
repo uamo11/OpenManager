@@ -19,31 +19,62 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import androidx.core.content.FileProvider
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import me.zhanghai.android.files.R
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import me.zhanghai.android.files.app.application
-import me.zhanghai.android.files.provider.root.DeadManProtectionManager
-import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
+import com.reandroid.apk.ApkModule
+import com.reandroid.archive.ByteInputSource
+import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
+import com.reandroid.arsc.value.ValueType
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
-import java.io.InputStream
+import java.io.IOException
 import java.net.HttpURLConnection
-import java.net.URL
+import java.nio.charset.StandardCharsets
+import java.util.ArrayDeque
+import java.util.Locale
+import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
+import java8.nio.file.Paths
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.app.application
+import me.zhanghai.android.files.file.fileProviderUri
+import me.zhanghai.android.files.filelist.AntiSplitEngine
+import me.zhanghai.android.files.filelist.ApkSignerHelper
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.update.UpdateChecker
+import me.zhanghai.android.files.util.createInstallPackageIntent
 
 object TerminalExpansionManager {
+    const val OM_TERMEX_PACKAGE = "com.y.om.termex"
     const val TERMEX_PACKAGE = "bin.mt.termex"
+    private val SUPPORTED_PACKAGES = listOf(OM_TERMEX_PACKAGE, TERMEX_PACKAGE)
+    private const val ATTR_HAS_CODE = 0x0101000c
 
-    // Primary and fallback download URLs for Termex ARM64 APK
-    private const val TERMEX_DOWNLOAD_URL =
-        "https://github.com/xxnonxxp11/OpenManager/releases/download/v1.9.28/termex_v3008_arm64.apk"
-    private const val TERMEX_FALLBACK_URL =
-        "https://github.com/xxnonxxp11/OpenManager/releases/download/v1.9.27/termex_v3008_arm64.apk"
+    // Official self-hosted release asset (optional) and Termux upstream bootstrap archive
+    private const val PREBUILT_TERMEX_URL_TEMPLATE =
+        "https://github.com/uamo11/OpenManager/releases/latest/download/OpenManager-TermEx-%s.apk"
+    private const val TERMUX_BOOTSTRAP_URL_TEMPLATE =
+        "https://github.com/termux/termux-packages/releases/latest/download/bootstrap-%s.zip"
+
+    private val CORE_CLI_TOOLS = listOf(
+        "coreutils", "grep", "gawk", "sed", "find", "tar",
+        "gzip", "bzip2", "xz", "unzip", "curl", "diff", "patch", "nano"
+    )
+    private val SYSTEM_LIBS = setOf("libc.so", "libdl.so", "libm.so", "liblog.so")
+    private val SO_DEP_SCAN_REGEX = Regex("(lib[a-zA-Z0-9_+.-]+?\\.so(?:\\.[0-9][0-9.]*)?)\\u0000")
+    private val SO_VERSION_NORM_REGEX = Regex("^(lib[a-zA-Z0-9_+.-]+?)\\.so\\.([0-9][0-9.]*)$")
 
     private const val EXTENDED_SYSTEM_PATH =
         "/system/bin:/system/xbin:/vendor/bin:/product/bin:/apex/com.android.runtime/bin:/apex/com.android.art/bin:/sbin:/data/adb/ksu/bin:/data/adb/ap/bin:/data/adb/magisk"
@@ -57,19 +88,36 @@ object TerminalExpansionManager {
         val isRoot: Boolean
     )
 
-    fun isTermexInstalled(context: Context = application): Boolean {
-        return try {
-            context.packageManager.getPackageInfo(TERMEX_PACKAGE, 0)
-            true
-        } catch (_: Exception) {
-            false
+    fun resolveDeviceArchPair(): Pair<String, String> {
+        val abi = Build.SUPPORTED_ABIS.firstOrNull()?.lowercase(Locale.US) ?: "arm64-v8a"
+        return when {
+            abi.contains("arm64") || abi.contains("aarch64") -> "arm64-v8a" to "aarch64"
+            abi.contains("armeabi") || abi == "arm" -> "armeabi-v7a" to "arm"
+            abi.contains("x86_64") -> "x86_64" to "x86_64"
+            abi.contains("x86") || abi.contains("i686") -> "x86" to "i686"
+            else -> "arm64-v8a" to "aarch64"
         }
     }
 
+    fun getInstalledTermexPackage(context: Context = application): String? {
+        for (pkg in SUPPORTED_PACKAGES) {
+            try {
+                context.packageManager.getPackageInfo(pkg, 0)
+                return pkg
+            } catch (_: Exception) {
+            }
+        }
+        return null
+    }
+
+    fun isTermexInstalled(context: Context = application): Boolean =
+        getInstalledTermexPackage(context) != null
+
     fun getTermexVersion(context: Context = application): String? {
+        val pkg = getInstalledTermexPackage(context) ?: return null
         return try {
-            val info = context.packageManager.getPackageInfo(TERMEX_PACKAGE, 0)
-            val name = info.versionName ?: "v3.8"
+            val info = context.packageManager.getPackageInfo(pkg, 0)
+            val name = info.versionName ?: "3.10"
             val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64"
             "$name $abi"
         } catch (_: Exception) {
@@ -87,23 +135,23 @@ object TerminalExpansionManager {
     }
 
     /**
-     * Finds bash executable either from Termex native library dir or extracted in filesDir/termex/bin.
+     * Finds bash executable either from the extension native library dir or extracted in filesDir/termex/bin.
      */
     fun getBashExecutable(context: Context = application): File? {
-        if (!isTermexInstalled(context)) return null
+        val pkg = getInstalledTermexPackage(context) ?: return null
         try {
-            val pkgInfo = context.packageManager.getPackageInfo(TERMEX_PACKAGE, 0)
+            val pkgInfo = context.packageManager.getPackageInfo(pkg, 0)
             val nativeLibDir = pkgInfo.applicationInfo?.nativeLibraryDir ?: ""
             val apkPath = pkgInfo.applicationInfo?.sourceDir ?: ""
 
             val termexDir = File(context.filesDir, "termex")
             val binDir = File(termexDir, "bin").apply { mkdirs() }
-            val libDir = File(termexDir, "lib").apply { mkdirs() }
+            File(termexDir, "lib").apply { mkdirs() }
 
             // 1. Check native library directory (bash, libbash.so)
             val candidates = arrayOf(
-                File(nativeLibDir, "bash"),
-                File(nativeLibDir, "libbash.so")
+                File(nativeLibDir, "libbash.so"),
+                File(nativeLibDir, "bash")
             )
             for (cand in candidates) {
                 if (cand.exists() && cand.canExecute()) {
@@ -117,7 +165,7 @@ object TerminalExpansionManager {
                 return privateBash
             }
 
-            // 3. Extract bash or libbash.so from Termex APK if available
+            // 3. Extract bash or libbash.so from extension APK if available
             if (apkPath.isNotEmpty() && File(apkPath).exists()) {
                 extractTermexBinary(apkPath, "bash", privateBash)
                 if (privateBash.exists() && privateBash.length() > 0) {
@@ -183,24 +231,7 @@ object TerminalExpansionManager {
             apktoolFile.setExecutable(true, false)
         } catch (_: Throwable) {}
 
-        // 3. Deploy bash wrapper script if Termex bash is found
-        val bashExecutable = getBashExecutable(context)
-        if (bashExecutable != null && bashExecutable.exists()) {
-            val bashWrapper = File(binDir, "bash")
-            val bashContent = """
-                #!/system/bin/sh
-                exec "${bashExecutable.absolutePath}" "${'$'}@"
-            """.trimIndent() + "\n"
-            try {
-                if (!bashWrapper.exists() || bashWrapper.readText() != bashContent) {
-                    bashWrapper.writeText(bashContent)
-                }
-                bashWrapper.setReadable(true, false)
-                bashWrapper.setExecutable(true, false)
-            } catch (_: Throwable) {}
-        }
-
-        // 4. Aggressively purge any legacy files or scripts (rm, rmdir, om_tracer, etc.) from binDir.
+        // 3. Aggressively purge any legacy files or scripts (rm, rmdir, om_tracer, bash, etc.) from binDir.
         // Android 10+ (targetSdk 29+) SELinux strictly blocks untrusted apps from executing
         // scripts or binaries from internal storage (app_data_file) via execve (W^X violation).
         // Only apktool and .apk_path are allowed in binDir. Any other file is deleted immediately.
@@ -317,6 +348,41 @@ object TerminalExpansionManager {
                     fi
                 }
 
+                if [ -n "${'$'}OM_TERMEX_NATIVE_DIR" ] && [ -d "${'$'}OM_TERMEX_NATIVE_DIR" ]; then
+                    for _om_cmd in grep gawk sed find tar gzip bzip2 xz unzip curl diff patch nano; do
+                        if [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_${'$'}{_om_cmd}.so" ]; then
+                            eval "${'$'}{_om_cmd}() { \"${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_${'$'}{_om_cmd}.so\" \"\${'$'}@\"; }"
+                            export -f "${'$'}_om_cmd" 2>/dev/null || true
+                        fi
+                    done
+                    if [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_grep.so" ]; then
+                        egrep() { "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_grep.so" -E "${'$'}@"; }
+                        fgrep() { "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_grep.so" -F "${'$'}@"; }
+                        export -f egrep fgrep 2>/dev/null || true
+                    fi
+                    if [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_gawk.so" ]; then
+                        awk() { "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_gawk.so" "${'$'}@"; }
+                        export -f awk 2>/dev/null || true
+                    fi
+                    if [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_gzip.so" ]; then
+                        gunzip() { "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_gzip.so" -d "${'$'}@"; }
+                        export -f gunzip 2>/dev/null || true
+                    fi
+                    if [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_bzip2.so" ]; then
+                        bunzip2() { "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_bzip2.so" -d "${'$'}@"; }
+                        export -f bunzip2 2>/dev/null || true
+                    fi
+                    if [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_coreutils.so" ]; then
+                        for _om_applet in head tail sort uniq wc cut tr base64 sha256sum md5sum realpath stat seq tee; do
+                            eval "${'$'}{_om_applet}() { \"${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_coreutils.so\" --coreutils-prog=${'$'}{_om_applet} \"\${'$'}@\"; }"
+                            export -f "${'$'}_om_applet" 2>/dev/null || true
+                        done
+                    fi
+                    if [ -n "${'$'}PREFIX" ] && [ -f "${'$'}PREFIX/etc/bash.bashrc" ]; then
+                        . "${'$'}PREFIX/etc/bash.bashrc" 2>/dev/null || true
+                    fi
+                fi
+
                 export -f rm rmdir unlink 2>/dev/null || true
             """.trimIndent() + "\n"
             if (!initFile.exists() || initFile.readText() != rcContent) {
@@ -385,9 +451,10 @@ object TerminalExpansionManager {
             )
         }
 
-        if (useTermex && isTermexInstalled(context)) {
+        val installedPkg = getInstalledTermexPackage(context)
+        if (useTermex && installedPkg != null) {
             try {
-                val pkgInfo = context.packageManager.getPackageInfo(TERMEX_PACKAGE, 0)
+                val pkgInfo = context.packageManager.getPackageInfo(installedPkg, 0)
                 val nativeLibDir = pkgInfo.applicationInfo?.nativeLibraryDir ?: ""
                 val apkPath = pkgInfo.applicationInfo?.sourceDir ?: ""
 
@@ -395,10 +462,17 @@ object TerminalExpansionManager {
                 val libDir = File(termexDir, "lib")
                 libDir.mkdirs()
 
-                // Check if auxiliary libraries need extraction
-                val marker = File(libDir, "libandroid-support.so")
-                if (!marker.exists() || marker.length() == 0L) {
-                    extractTermexAuxLibraries(apkPath, libDir, termexDir)
+                if (installedPkg == TERMEX_PACKAGE) {
+                    // Legacy bin.mt.termex auxiliary libraries live under lib/<abi>/lib/
+                    val marker = File(libDir, "libandroid-support.so")
+                    if (!marker.exists() || marker.length() == 0L) {
+                        extractTermexAuxLibraries(apkPath, libDir, termexDir)
+                    }
+                } else {
+                    val bashrcMarker = File(termexDir, "etc/bash.bashrc")
+                    if (!bashrcMarker.exists()) {
+                        extractTermexAuxLibraries(apkPath, libDir, termexDir)
+                    }
                 }
 
                 val bashBin = getBashExecutable(context)
@@ -406,7 +480,8 @@ object TerminalExpansionManager {
                     val prompt = "\$([ \$? == 0 ] && echo '\\[\\e[1;32m\\]' || echo '\\[\\e[1;31m\\]')\$([ \$UID == 0 ] && echo '#' || echo '➜') \\[\\e[1;36m\\]\\w\\[\\e[m\\] "
                     val env = arrayOf(
                         "PREFIX=${termexDir.absolutePath}",
-                        "LD_LIBRARY_PATH=${libDir.absolutePath}:$nativeLibDir",
+                        "LD_LIBRARY_PATH=$nativeLibDir:${libDir.absolutePath}",
+                        "OM_TERMEX_NATIVE_DIR=$nativeLibDir",
                         "PATH=$nativeLibDir:$EXTENDED_SYSTEM_PATH:${binDir.absolutePath}",
                         "SHELL=${bashBin.absolutePath}",
                         "TERM=xterm-256color",
@@ -538,7 +613,7 @@ object TerminalExpansionManager {
     }
 
     /**
-     * Scans storage for any existing Termex APK (e.g. in /sdcard/Download or Downloads).
+     * Scans storage for any existing Termex / Linux extension APK.
      */
     fun findLocalTermexApk(context: Context = application): File? {
         val searchDirs = listOfNotNull(
@@ -554,7 +629,8 @@ object TerminalExpansionManager {
             if (!dir.exists() || !dir.isDirectory) continue
             val found = dir.listFiles { f ->
                 f.isFile && f.extension.equals("apk", ignoreCase = true) &&
-                    (f.name.contains("termex", ignoreCase = true) || f.name.contains("mterm", ignoreCase = true))
+                    (f.name.contains("termex", ignoreCase = true) ||
+                        f.name.contains("mterm", ignoreCase = true))
             }?.firstOrNull()
             if (found != null && found.length() > 0) {
                 return found
@@ -564,137 +640,325 @@ object TerminalExpansionManager {
     }
 
     /**
-     * Launches system PackageInstaller via FileProvider for a given APK file.
+     * Launches system PackageInstaller via OpenManager's custom FileProvider.
      */
     fun installApkFile(activity: Activity, apkFile: File): Boolean {
         return try {
-            val uri = FileProvider.getUriForFile(
-                activity,
-                "${activity.packageName}.file_provider",
-                apkFile
-            )
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/vnd.android.package-archive")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                Paths.get(apkFile.absolutePath).fileProviderUri
+            } else {
+                Uri.fromFile(apkFile)
             }
+            val intent = uri.createInstallPackageIntent()
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             activity.startActivity(intent)
             true
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(activity, activity.getString(R.string.om_termex_installer_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                activity,
+                activity.getString(R.string.om_termex_installer_error_format, e.message ?: ""),
+                Toast.LENGTH_LONG
+            ).show()
             false
         }
     }
 
+    fun normalizeSoFileName(libName: String): String {
+        val match = SO_VERSION_NORM_REGEX.matchEntire(libName) ?: return libName
+        return "${match.groupValues[1]}_${match.groupValues[2].replace('.', '_')}.so"
+    }
+
+    fun normalizeElfVersionedSoNames(elfBytes: ByteArray): ByteArray {
+        val out = elfBytes.copyOf()
+        val iso = String(out, StandardCharsets.ISO_8859_1)
+        for (match in SO_DEP_SCAN_REGEX.findAll(iso)) {
+            val start = match.range.first
+            if (start > 0 && isIdentByte(out[start - 1])) continue
+            val libName = match.groupValues[1]
+            val normalized = normalizeSoFileName(libName)
+            if (normalized != libName && normalized.length == libName.length) {
+                val repl = normalized.toByteArray(StandardCharsets.US_ASCII)
+                System.arraycopy(repl, 0, out, start, repl.size)
+            }
+        }
+        return out
+    }
+
+    private fun isIdentByte(b: Byte): Boolean {
+        val c = b.toInt() and 0xFF
+        return (c in 'a'.code..'z'.code) ||
+            (c in 'A'.code..'Z'.code) ||
+            (c in '0'.code..'9'.code) ||
+            c == '_'.code
+    }
+
+    private fun isElfBytes(bytes: ByteArray): Boolean =
+        bytes.size >= 4 &&
+            bytes[0] == 0x7f.toByte() &&
+            bytes[1] == 'E'.code.toByte() &&
+            bytes[2] == 'L'.code.toByte() &&
+            bytes[3] == 'F'.code.toByte()
+
+    private fun extractNeededLibs(elfBytes: ByteArray): Set<String> {
+        val iso = String(elfBytes, StandardCharsets.ISO_8859_1)
+        val libs = LinkedHashSet<String>()
+        for (match in SO_DEP_SCAN_REGEX.findAll(iso)) {
+            val start = match.range.first
+            if (start > 0 && isIdentByte(elfBytes[start - 1])) continue
+            val name = match.groupValues[1]
+            if (name !in SYSTEM_LIBS) {
+                libs.add(name)
+            }
+        }
+        return libs
+    }
+
     /**
-     * Shows an interactive, user-friendly dialog to install the Terminal Expansion Pack (Termex).
-     * Provides 3 options:
-     * 1. 1-tap install if an APK was detected on local storage.
-     * 2. Automatic download & install with progress bar.
-     * 3. Select APK from storage.
+     * Packages GNU Bash, coreutils and standard CLI utilities together with transitive shared
+     * libraries from a Termux bootstrap ZIP into a signed, dex-less, SELinux-compatible APK.
+     */
+    fun buildTermexApkFromBootstrap(
+        bootstrapZip: File,
+        outputApk: File,
+        apkAbi: String,
+        onProgress: ((String) -> Unit)? = null
+    ): Boolean {
+        if (!bootstrapZip.exists() || bootstrapZip.length() == 0L) return false
+
+        val apkFiles = LinkedHashMap<String, ByteArray>()
+        ZipFile(bootstrapZip).use { zip ->
+            val symlinks = HashMap<String, String>()
+            zip.getEntry("SYMLINKS.txt")?.let { symEntry ->
+                val text = zip.getInputStream(symEntry).bufferedReader(StandardCharsets.UTF_8).use { it.readText() }
+                for (rawLine in text.lineSequence()) {
+                    val idx = rawLine.indexOf('\u2190')
+                    if (idx <= 0) continue
+                    val target = rawLine.substring(0, idx).trim()
+                    val linkPath = rawLine.substring(idx + 1).trim().removePrefix("./").trimStart('/')
+                    if (target.isNotEmpty() && linkPath.isNotEmpty()) {
+                        symlinks[linkPath] = target
+                    }
+                }
+            }
+
+            fun resolveZipEntry(rawPath: String): ZipEntry? {
+                var cur = rawPath.removePrefix("./").trimStart('/')
+                val visited = HashSet<String>()
+                for (hop in 0 until 6) {
+                    zip.getEntry(cur)?.let { if (!it.isDirectory) return it }
+                    if (!visited.add(cur)) break
+                    val targetRaw = symlinks[cur] ?: break
+                    val parent = cur.substringBeforeLast('/', "")
+                    val combined = if (targetRaw.startsWith("/")) {
+                        targetRaw.trimStart('/')
+                    } else if (parent.isEmpty()) {
+                        targetRaw
+                    } else {
+                        "$parent/$targetRaw"
+                    }
+                    val parts = ArrayDeque<String>()
+                    for (seg in combined.split('/')) {
+                        when (seg) {
+                            "", "." -> {}
+                            ".." -> if (parts.isNotEmpty()) parts.removeLast()
+                            else -> parts.addLast(seg)
+                        }
+                    }
+                    cur = parts.joinToString("/")
+                }
+                return null
+            }
+
+            fun readEntryBytes(entry: ZipEntry): ByteArray {
+                return zip.getInputStream(entry).use { ins ->
+                    val bos = ByteArrayOutputStream(entry.size.coerceIn(1024L, 4L * 1024 * 1024).toInt())
+                    ins.copyTo(bos)
+                    bos.toByteArray()
+                }
+            }
+
+            onProgress?.invoke("Extrayendo GNU Bash y utilidades Linux…")
+            val bashEntry = resolveZipEntry("bin/bash") ?: return false
+            val bashRaw = readEntryBytes(bashEntry)
+            if (!isElfBytes(bashRaw)) return false
+
+            val libQueue = ArrayDeque<String>()
+            val processedLibs = HashSet<String>()
+
+            apkFiles["lib/$apkAbi/libbash.so"] = normalizeElfVersionedSoNames(bashRaw)
+            extractNeededLibs(bashRaw).forEach { libQueue.addLast(it) }
+
+            for (tool in CORE_CLI_TOOLS) {
+                val entry = resolveZipEntry("bin/$tool") ?: continue
+                val toolRaw = readEntryBytes(entry)
+                if (!isElfBytes(toolRaw)) continue
+                apkFiles["lib/$apkAbi/libom_cmd_$tool.so"] = normalizeElfVersionedSoNames(toolRaw)
+                extractNeededLibs(toolRaw).forEach { libQueue.addLast(it) }
+            }
+
+            while (libQueue.isNotEmpty()) {
+                val libName = libQueue.removeFirst()
+                if (!processedLibs.add(libName)) continue
+                val libEntry = resolveZipEntry("lib/$libName") ?: continue
+                val libRaw = readEntryBytes(libEntry)
+                if (!isElfBytes(libRaw)) continue
+                extractNeededLibs(libRaw).forEach { dep ->
+                    if (dep !in processedLibs) libQueue.addLast(dep)
+                }
+                val normalizedName = normalizeSoFileName(libName)
+                val destPath = "lib/$apkAbi/$normalizedName"
+                if (!apkFiles.containsKey(destPath)) {
+                    apkFiles[destPath] = normalizeElfVersionedSoNames(libRaw)
+                }
+            }
+
+            zip.getEntry("etc/bash.bashrc")?.let { rcEntry ->
+                if (!rcEntry.isDirectory) {
+                    apkFiles["assets/etc/bash.bashrc"] = readEntryBytes(rcEntry)
+                }
+            }
+        }
+
+        if (!apkFiles.containsKey("lib/$apkAbi/libbash.so")) return false
+
+        onProgress?.invoke("Empaquetando y firmando complemento APK…")
+        val module = ApkModule()
+        val manifest = AndroidManifestBlock.empty()
+        manifest.packageName = OM_TERMEX_PACKAGE
+        manifest.versionCode = 3010
+        manifest.versionName = "3.10"
+        manifest.minSdkVersion = 23
+        manifest.targetSdkVersion = 34
+        manifest.setApplicationLabel("OpenManager Linux Extension")
+        manifest.setExtractNativeLibs(true)
+        manifest.getOrCreateApplicationElement()
+            .getOrCreateAndroidAttribute("hasCode", ATTR_HAS_CODE).apply {
+                valueType = ValueType.BOOLEAN
+                valueAsBoolean = false
+            }
+        module.setManifest(manifest)
+
+        for ((entryPath, content) in apkFiles) {
+            module.add(ByteInputSource(content, entryPath))
+        }
+
+        val parent = outputApk.parentFile ?: outputApk.absoluteFile.parentFile
+        parent?.let { if (!it.exists()) it.mkdirs() }
+        val unsignedTmp = File.createTempFile("om_termex_unsigned_", ".apk", parent)
+        return try {
+            AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedTmp)
+            module.close()
+            ApkSignerHelper.signFileDirect(unsignedTmp, outputApk, ApkSignerHelper.SignScheme.V1_AND_V2)
+            outputApk.exists() && outputApk.length() > 0L
+        } finally {
+            try { module.close() } catch (_: Exception) {}
+            unsignedTmp.delete()
+        }
+    }
+
+    /**
+     * Shows a simple, clear MT-style dialog to install the Linux Extension (Bash + CLI tools).
      */
     fun showExpansionInstallerDialog(activity: Activity, onInstalled: (() -> Unit)? = null) {
         val density = activity.resources.displayMetrics.density
+        val palette = OpenManagerPalette.from(activity)
+        val (apkAbi, _) = resolveDeviceArchPair()
         val localApk = findLocalTermexApk(activity)
 
         val layout = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (18 * density).toInt()
-            setPadding(pad, pad, pad, pad)
+            val padH = (24 * density).toInt()
+            val padTop = (12 * density).toInt()
+            val padBottom = (4 * density).toInt()
+            setPadding(padH, padTop, padH, padBottom)
         }
 
         val tvDesc = TextView(activity).apply {
-            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_dialog_desc)
-            setTextColor(Color.parseColor("#CCCCCC"))
-            textSize = 13.5f
+            text = activity.getString(R.string.om_termex_dialog_desc, apkAbi)
+            setTextColor(palette.textSecondary)
+            textSize = 14f
         }
         layout.addView(tvDesc)
 
+        var dialogRef: AlertDialog? = null
         if (localApk != null) {
-            val mb = String.format("%.1f", localApk.length() / (1024.0 * 1024.0))
+            val mb = String.format(Locale.US, "%.1f", localApk.length() / (1024.0 * 1024.0))
             val btnLocal = Button(activity).apply {
-                text = activity.getString(me.zhanghai.android.files.R.string.om_termex_install_local_format, localApk.name, mb)
-                setBackgroundColor(Color.parseColor("#2E7D32"))
-                setTextColor(Color.WHITE)
-                val mTop = (16 * density).toInt()
-                val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                lp.topMargin = mTop
+                text = activity.getString(R.string.om_termex_install_local_format, localApk.name, mb)
+                setBackgroundColor(palette.accentColor)
+                setTextColor(palette.onAccentColor)
+                val lp = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                lp.topMargin = (16 * density).toInt()
                 layoutParams = lp
-            }
-            btnLocal.setOnClickListener {
-                installApkFile(activity, localApk)
+                setOnClickListener {
+                    dialogRef?.dismissSafely()
+                    installApkFile(activity, localApk)
+                    onInstalled?.invoke()
+                }
             }
             layout.addView(btnLocal)
         }
 
-        val btnDownload = Button(activity).apply {
-            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_download_install)
-            setBackgroundColor(Color.parseColor("#1565C0"))
-            setTextColor(Color.WHITE)
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            lp.topMargin = (12 * density).toInt()
-            layoutParams = lp
-        }
-        layout.addView(btnDownload)
-
-        val btnPick = Button(activity).apply {
-            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_pick_apk)
-            setBackgroundColor(Color.parseColor("#424242"))
-            setTextColor(Color.WHITE)
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-            lp.topMargin = (10 * density).toInt()
-            layoutParams = lp
-        }
-        layout.addView(btnPick)
-
         val dialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(me.zhanghai.android.files.R.string.om_termex_dialog_title)
+            .setTitle(R.string.om_termex_dialog_title)
             .setView(layout)
+            .setPositiveButton(R.string.om_termex_download_install) { _, _ ->
+                downloadAndInstallTermex(activity, onInstalled)
+            }
+            .setNeutralButton(R.string.om_termex_pick_apk) { _, _ ->
+                try {
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "application/vnd.android.package-archive"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                    }
+                    activity.startActivity(
+                        Intent.createChooser(intent, activity.getString(R.string.om_termex_pick_chooser))
+                    )
+                } catch (_: Exception) {
+                    Toast.makeText(activity, R.string.om_termex_place_apk_hint, Toast.LENGTH_LONG).show()
+                }
+            }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
-
-        btnDownload.setOnClickListener {
-            dialog.dismiss()
-            downloadAndInstallTermex(activity, onInstalled)
-        }
-
-        btnPick.setOnClickListener {
-            dialog.dismiss()
-            try {
-                val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                    type = "application/vnd.android.package-archive"
-                    addCategory(Intent.CATEGORY_OPENABLE)
+            .apply {
+                if (activity is FragmentActivity) {
+                    bindToLifecycle(activity)
                 }
-                activity.startActivity(Intent.createChooser(intent, activity.getString(me.zhanghai.android.files.R.string.om_termex_pick_chooser)))
-            } catch (_: Exception) {
-                Toast.makeText(activity, me.zhanghai.android.files.R.string.om_termex_place_apk_hint, Toast.LENGTH_LONG).show()
             }
-        }
-
+        dialogRef = dialog
         dialog.show()
     }
 
     /**
-     * Downloads the Termex APK in background with an interactive progress dialog
-     * and automatically invokes the PackageInstaller upon completion.
+     * Downloads the prebuilt Linux Extension APK (or builds it locally from official Termux
+     * bootstrap packages) and launches Android's PackageInstaller.
      */
     fun downloadAndInstallTermex(activity: Activity, onCompleted: (() -> Unit)? = null) {
         val density = activity.resources.displayMetrics.density
+        val palette = OpenManagerPalette.from(activity)
+        val (apkAbi, termuxArch) = resolveDeviceArchPair()
+
         val progressLayout = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = (20 * density).toInt()
-            setPadding(pad, pad, pad, pad)
+            val pad = (24 * density).toInt()
+            setPadding(pad, (16 * density).toInt(), pad, pad)
         }
 
         val tvStatus = TextView(activity).apply {
-            text = activity.getString(me.zhanghai.android.files.R.string.om_termex_connecting)
+            text = activity.getString(R.string.om_termex_connecting)
             textSize = 14f
-            setTextColor(Color.parseColor("#E0E0E0"))
+            setTextColor(palette.textPrimary)
         }
         val progressBar = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
             isIndeterminate = true
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (12 * density).toInt())
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (12 * density).toInt()
+            )
             lp.topMargin = (14 * density).toInt()
             layoutParams = lp
         }
@@ -703,102 +967,142 @@ object TerminalExpansionManager {
         progressLayout.addView(progressBar)
 
         val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(me.zhanghai.android.files.R.string.om_termex_downloading_title)
+            .setTitle(R.string.om_termex_downloading_title)
             .setView(progressLayout)
             .setCancelable(false)
-            .setNegativeButton(android.R.string.cancel) { d, _ ->
-                d.dismiss()
-            }
+            .setNegativeButton(android.R.string.cancel) { d, _ -> d.dismiss() }
             .create()
+            .apply {
+                if (activity is FragmentActivity) {
+                    bindToLifecycle(activity)
+                }
+            }
 
         progressDialog.show()
 
         var isCancelled = false
         progressDialog.setOnDismissListener { isCancelled = true }
 
-        CoroutineScope(Dispatchers.IO).launch {
-            val downloadFile = File(activity.cacheDir, "termex_install.apk")
+        val scope = (activity as? FragmentActivity)?.lifecycleScope ?: CoroutineScope(Dispatchers.Main)
+        scope.launch(Dispatchers.IO) {
+            val outputApk = File(activity.cacheDir, "termex_install.apk")
+            val bootstrapFile = File(activity.cacheDir, "termex_bootstrap.zip")
             var downloadSuccess = false
             var errorMsg: String? = null
 
-            val urlsToTry = listOf(TERMEX_DOWNLOAD_URL, TERMEX_FALLBACK_URL)
-            for (urlStr in urlsToTry) {
-                if (isCancelled) break
+            suspend fun downloadToFile(urlStr: String, targetFile: File, labelPrefix: String): Boolean {
                 var conn: HttpURLConnection? = null
-                try {
-                    val url = URL(urlStr)
-                    conn = url.openConnection() as HttpURLConnection
-                    conn.connectTimeout = 15000
-                    conn.readTimeout = 25000
-                    conn.instanceFollowRedirects = true
-
+                return try {
+                    conn = UpdateChecker.openConnectionWithRedirects(urlStr)
                     val code = conn.responseCode
-                    if (code in 200..299) {
-                        val contentLength = conn.contentLength.toLong()
-                        val totalMb = if (contentLength > 0) String.format("%.1f", contentLength / (1024.0 * 1024.0)) else "?"
+                    if (code !in 200..299) {
+                        errorMsg = "HTTP $code"
+                        return false
+                    }
+                    val contentLength = conn.contentLength.toLong()
+                    val totalMb = if (contentLength > 0) {
+                        String.format(Locale.US, "%.1f", contentLength / (1024.0 * 1024.0))
+                    } else "?"
 
-                        withContext(Dispatchers.Main) {
-                            if (!isCancelled) {
-                                progressBar.isIndeterminate = contentLength <= 0
-                                if (contentLength > 0) {
-                                    progressBar.max = 100
-                                    progressBar.progress = 0
-                                }
+                    withContext(Dispatchers.Main) {
+                        if (!isCancelled && !activity.isFinishing && !activity.isDestroyed) {
+                            progressBar.isIndeterminate = contentLength <= 0
+                            if (contentLength > 0) {
+                                progressBar.max = 100
+                                progressBar.progress = 0
                             }
                         }
+                    }
 
-                        conn.inputStream.use { input ->
-                            FileOutputStream(downloadFile).use { output ->
-                                val buffer = ByteArray(32768)
-                                var bytesRead: Int
-                                var downloadedBytes = 0L
+                    var lastUiUpdate = 0L
+                    conn.inputStream.use { input ->
+                        FileOutputStream(targetFile).use { output ->
+                            val buffer = ByteArray(32768)
+                            var bytesRead: Int
+                            var downloadedBytes = 0L
+                            while (input.read(buffer).also { bytesRead = it } != -1) {
+                                if (isCancelled) return false
+                                output.write(buffer, 0, bytesRead)
+                                downloadedBytes += bytesRead
 
-                                while (input.read(buffer).also { bytesRead = it } != -1) {
-                                    if (isCancelled) break
-                                    output.write(buffer, 0, bytesRead)
-                                    downloadedBytes += bytesRead
-
-                                    val curMb = String.format("%.1f", downloadedBytes / (1024.0 * 1024.0))
+                                val now = System.currentTimeMillis()
+                                if (now - lastUiUpdate >= 150L) {
+                                    lastUiUpdate = now
+                                    val curMb = String.format(Locale.US, "%.1f", downloadedBytes / (1024.0 * 1024.0))
                                     val pct = if (contentLength > 0) ((downloadedBytes * 100) / contentLength).toInt() else 0
-
                                     withContext(Dispatchers.Main) {
-                                        if (!isCancelled) {
+                                        if (!isCancelled && !activity.isFinishing && !activity.isDestroyed) {
                                             if (contentLength > 0) {
-                                                progressBar.progress = pct
-                                                tvStatus.text = "Descargando: $curMb MB / $totalMb MB ($pct%)"
+                                                progressBar.progress = pct.coerceIn(0, 100)
+                                                tvStatus.text = "$labelPrefix $curMb MB / $totalMb MB ($pct%)"
                                             } else {
-                                                tvStatus.text = "Descargando: $curMb MB descargados"
+                                                tvStatus.text = "$labelPrefix $curMb MB"
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-
-                        if (!isCancelled && downloadFile.length() > 0) {
-                            downloadSuccess = true
-                            break
+                            output.flush()
                         }
                     }
+                    targetFile.exists() && targetFile.length() > 0L
                 } catch (t: Throwable) {
-                    errorMsg = t.message
+                    if (t is CancellationException) throw t
+                    errorMsg = t.localizedMessage ?: t.javaClass.simpleName
+                    false
                 } finally {
                     conn?.disconnect()
                 }
             }
 
-            withContext(Dispatchers.Main) {
-                if (progressDialog.isShowing) {
-                    progressDialog.dismiss()
+            try {
+                // 1. Try prebuilt OpenManager TermEx release APK if published
+                val prebuiltUrl = String.format(Locale.US, PREBUILT_TERMEX_URL_TEMPLATE, termuxArch)
+                if (downloadToFile(prebuiltUrl, outputApk, "Descargando:")) {
+                    downloadSuccess = true
                 }
 
-                if (downloadSuccess && downloadFile.exists() && downloadFile.length() > 0) {
-                    installApkFile(activity, downloadFile)
+                // 2. Fallback & primary self-hosted builder: official Termux bootstrap for device ABI
+                if (!downloadSuccess && !isCancelled) {
+                    outputApk.delete()
+                    val bootstrapUrl = String.format(Locale.US, TERMUX_BOOTSTRAP_URL_TEMPLATE, termuxArch)
+                    if (downloadToFile(bootstrapUrl, bootstrapFile, "Descargando:")) {
+                        withContext(Dispatchers.Main) {
+                            if (!isCancelled && !activity.isFinishing && !activity.isDestroyed) {
+                                progressBar.isIndeterminate = true
+                                tvStatus.text = "Empaquetando entorno Linux ($apkAbi)…"
+                            }
+                        }
+                        downloadSuccess = buildTermexApkFromBootstrap(bootstrapFile, outputApk, apkAbi) { step ->
+                            scope.launch(Dispatchers.Main) {
+                                if (!isCancelled && !activity.isFinishing && !activity.isDestroyed) {
+                                    tvStatus.text = step
+                                }
+                            }
+                        }
+                        if (!downloadSuccess && errorMsg == null) {
+                            errorMsg = "Error al construir el paquete APK ($apkAbi)"
+                        }
+                    }
+                }
+            } finally {
+                bootstrapFile.delete()
+            }
+
+            withContext(Dispatchers.Main) {
+                progressDialog.dismissSafely()
+                if (activity.isFinishing || activity.isDestroyed) return@withContext
+
+                if (downloadSuccess && outputApk.exists() && outputApk.length() > 0L) {
+                    installApkFile(activity, outputApk)
                     onCompleted?.invoke()
                 } else if (!isCancelled) {
                     Toast.makeText(
                         activity,
-                        activity.getString(me.zhanghai.android.files.R.string.om_termex_download_failed_format, errorMsg ?: activity.getString(me.zhanghai.android.files.R.string.om_termex_network_error)),
+                        activity.getString(
+                            R.string.om_termex_download_failed_format,
+                            errorMsg ?: activity.getString(R.string.om_termex_network_error)
+                        ),
                         Toast.LENGTH_LONG
                     ).show()
                 }

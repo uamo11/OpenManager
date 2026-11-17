@@ -56,6 +56,13 @@ object DirectorySnapshotCache {
         }
     }
 
+    fun invalidate(path: Path) {
+        val key = getKey(path)
+        synchronized(cache) {
+            cache.remove(key)
+        }
+    }
+
     fun clear() {
         synchronized(cache) {
             cache.evictAll()

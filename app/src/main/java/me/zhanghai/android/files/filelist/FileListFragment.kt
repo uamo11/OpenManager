@@ -3297,20 +3297,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     fun installApkFile(file: File) {
-        val uri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
-            androidx.core.content.FileProvider.getUriForFile(
-                requireContext(),
-                requireContext().packageName + ".file_provider",
-                file
-            )
+        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Paths.get(file.absolutePath).fileProviderUri
         } else {
-            android.net.Uri.fromFile(file)
+            Uri.fromFile(file)
         }
-        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        startActivitySafe(intent)
+        startActivitySafe(uri.createInstallPackageIntent())
     }
 
     companion object {
