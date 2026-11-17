@@ -1197,6 +1197,7 @@ object UpdateChecker {
                     tempFile = temporaryFile
 
                     val expectedSize = releaseInfo.targetAsset.size
+                    var totalBytes = expectedSize
                     var existingTempBytes = if (temporaryFile.exists() && temporaryFile.isFile) temporaryFile.length() else 0L
                     if (expectedSize > 0L && existingTempBytes >= expectedSize) {
                         temporaryFile.delete()
@@ -1226,7 +1227,7 @@ object UpdateChecker {
                         }
 
                         val responseLen = connection.contentLength.toLong()
-                        val totalBytes = when {
+                        totalBytes = when {
                             decision.append && responseLen > 0L -> decision.startOffset + responseLen
                             expectedSize > 0L -> expectedSize
                             else -> responseLen
