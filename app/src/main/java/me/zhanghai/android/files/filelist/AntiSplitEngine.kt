@@ -230,14 +230,8 @@ object AntiSplitEngine {
                 val mergedModule: ApkModule = bundle.mergeModules(false)
 
                 logger?.invoke("Sanitizing AndroidManifest...")
-                sanitizeManifest(mergedModule)
-
-                try {
-                    mergedModule.setExtractNativeLibs(options.extractNativeLibs)
-                } catch (ignored: Exception) {}
-
                 logger?.invoke("Generating consolidated APK file...")
-                writeAlignedUnsignedApk(mergedModule, unsignedApk)
+                writeAlignedUnsignedApk(mergedModule, unsignedApk, options.extractNativeLibs)
             }
 
             if (!unsignedApk.exists() || unsignedApk.length() == 0L) {
@@ -269,7 +263,14 @@ object AntiSplitEngine {
      * Strips stale signing/split artifacts, enforces uncompressed resources.arsc and 16-KB ELF
      * page alignment (Android 15/16), refreshes manifest/table and writes the unsigned APK.
      */
-    fun writeAlignedUnsignedApk(module: ApkModule, outputApk: File) {
+    fun writeAlignedUnsignedApk(
+        module: ApkModule,
+        outputApk: File,
+        extractNativeLibs: Boolean? = null
+    ) {
+        val effectiveExtract = extractNativeLibs
+            ?: try { module.androidManifest?.isExtractNativeLibs } catch (_: Exception) { null }
+
         try {
             AndroidManifestBlockSplitSanitizer().sanitize(module)
         } catch (_: Exception) {}
@@ -282,15 +283,14 @@ object AntiSplitEngine {
             module.zipEntryMap?.removeIf(SIGNATURE_STRIP_PATTERN)
         } catch (_: Exception) {}
 
+        if (effectiveExtract != null) {
+            try {
+                module.setExtractNativeLibs(effectiveExtract)
+            } catch (_: Exception) {}
+        }
         try {
-            val uf = module.uncompressedFiles
-            val zipMap = module.zipEntryMap
-            if (uf != null) {
-                uf.addPath("resources.arsc")
-                if (zipMap != null) {
-                    uf.apply(zipMap)
-                }
-            }
+            module.uncompressedFiles?.addPath("resources.arsc")
+            module.updateUncompressedFiles()
         } catch (_: Exception) {}
 
         if (module.hasTableBlock()) {

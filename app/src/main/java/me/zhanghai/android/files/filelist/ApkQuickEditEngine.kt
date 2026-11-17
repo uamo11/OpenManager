@@ -214,7 +214,7 @@ object ApkQuickEditEngine {
                 }
 
                 onProgress?.invoke("Alineando y empaquetando APK...")
-                AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedFile)
+                AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedFile, options.extractNativeLibs)
             }
 
             if (options.autoSign) {

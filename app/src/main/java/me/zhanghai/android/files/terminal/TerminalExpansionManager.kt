@@ -847,7 +847,7 @@ object TerminalExpansionManager {
         parent?.let { if (!it.exists()) it.mkdirs() }
         val unsignedTmp = File.createTempFile("om_termex_unsigned_", ".apk", parent)
         return try {
-            AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedTmp)
+            AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedTmp, extractNativeLibs = true)
             module.close()
             ApkSignerHelper.signFileDirect(unsignedTmp, outputApk, ApkSignerHelper.SignScheme.V1_AND_V2)
             outputApk.exists() && outputApk.length() > 0L
