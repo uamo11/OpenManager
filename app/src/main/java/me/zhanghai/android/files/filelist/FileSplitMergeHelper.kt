@@ -6,8 +6,7 @@
 package me.zhanghai.android.files.filelist
 
 import android.app.Activity
-import android.app.ProgressDialog
-import android.content.Context
+import android.content.res.ColorStateList
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -15,30 +14,52 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java8.nio.file.Path
+import java8.nio.file.StandardCopyOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java8.nio.file.Path
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
+import me.zhanghai.android.files.file.fileSize
+import me.zhanghai.android.files.provider.common.copyTo
+import me.zhanghai.android.files.provider.common.deleteIfExists
+import me.zhanghai.android.files.provider.common.moveTo
+import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.provider.common.newOutputStream
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
+import java.io.OutputStream
 import java.util.Locale
 
 object FileSplitMergeHelper {
 
+    private val PART_EXT_REGEX = Regex("\\.part\\d+$", RegexOption.IGNORE_CASE)
+    private val PART_NUM_REGEX = Regex("\\.part(\\d+)$", RegexOption.IGNORE_CASE)
+    private val THREE_DIGIT_EXT_REGEX = Regex("\\.(\\d{3})$")
+    private val THREE_DIGITS_ONLY_REGEX = Regex("^\\d{3}$")
+
     fun showSplitDialog(activity: Activity, fileItem: FileItem, onComplete: () -> Unit) {
-        val srcFile = fileItem.path.toFile()
-        if (!srcFile.exists() || srcFile.isDirectory) {
+        if (!activity.isUiAlive) return
+        if (fileItem.attributes.isDirectory) {
             Toast.makeText(activity, "Cannot split directories", Toast.LENGTH_SHORT).show()
             return
         }
+        val parentPath = fileItem.path.parent ?: run {
+            Toast.makeText(activity, R.string.om_split_apk_access_error, Toast.LENGTH_SHORT).show()
+            return
+        }
 
-        val totalLength = srcFile.length()
+        val totalLength = fileItem.attributes.fileSize
         val context = activity
+        val palette = OpenManagerPalette.from(context)
 
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -46,8 +67,9 @@ object FileSplitMergeHelper {
         }
 
         val infoText = TextView(context).apply {
-            text = "${srcFile.name} (${formatSize(totalLength)})"
+            text = "${fileItem.name} (${formatSize(totalLength)})"
             textSize = 15f
+            setTextColor(palette.textPrimary)
             setPadding(0, 0, 0, 16)
         }
         container.addView(infoText)
@@ -63,6 +85,7 @@ object FileSplitMergeHelper {
 
         var selectedSize = sizes[1].first // default 10MB
         val rbIdMap = mutableMapOf<Int, Long>()
+        val tintList = ColorStateList.valueOf(palette.accentColor)
 
         for ((sizeBytes, label) in sizes) {
             val viewId = android.view.View.generateViewId()
@@ -70,6 +93,8 @@ object FileSplitMergeHelper {
             val rb = RadioButton(context).apply {
                 text = label
                 id = viewId
+                setTextColor(palette.textPrimary)
+                buttonTintList = tintList
                 if (sizeBytes == selectedSize) isChecked = true
                 setOnClickListener { selectedSize = sizeBytes }
             }
@@ -80,11 +105,15 @@ object FileSplitMergeHelper {
         val rbCustom = RadioButton(context).apply {
             text = "Custom (MB)"
             id = customId
+            setTextColor(palette.textPrimary)
+            buttonTintList = tintList
         }
         radioGroup.addView(rbCustom)
 
         val customInput = EditText(context).apply {
             hint = "e.g. 15"
+            setTextColor(palette.textPrimary)
+            setHintTextColor(palette.textSecondary)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             visibility = android.view.View.GONE
         }
@@ -100,7 +129,7 @@ object FileSplitMergeHelper {
             }
         }
 
-        MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.split_file_title)
             .setView(container)
             .setPositiveButton(R.string.split_file_btn_split) { _, _ ->
@@ -110,89 +139,187 @@ object FileSplitMergeHelper {
                 } else {
                     selectedSize
                 }
-                executeSplit(activity, srcFile, finalSize, onComplete)
+                executeSplit(activity, fileItem, parentPath, finalSize, onComplete)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        if (activity is LifecycleOwner) {
+            dialog.bindToLifecycle(activity)
+        }
+        if (activity.isUiAlive) {
+            dialog.show()
+        }
     }
 
-    private fun executeSplit(activity: Activity, srcFile: File, partSizeBytes: Long, onComplete: () -> Unit) {
-        val progress = ProgressDialog(activity).apply {
-            setMessage(activity.getString(R.string.split_file_progress))
-            setCancelable(false)
-            show()
-        }
+    private fun performSplitWork(
+        srcPath: Path,
+        parentPath: Path,
+        srcName: String,
+        totalBytes: Long,
+        partSizeBytes: Long,
+        onProgressPercent: ((Int) -> Unit)? = null
+    ): Int {
+        var partIndex = 0
+        var output: OutputStream? = null
+        val createdPartPaths = mutableListOf<Path>()
+        try {
+            srcPath.newInputStream().use { input ->
+                val buffer = ByteArray(64 * 1024)
+                var currentPartBytes = 0L
+                var totalRead = 0L
+                var lastPct = -1
+                var bytesRead: Int
 
-        CoroutineScope(Dispatchers.IO).launch {
-            var partIndex = 1
-            var totalParts = 0
-            var output: FileOutputStream? = null
-            try {
-                FileInputStream(srcFile).use { input ->
-                    val buffer = ByteArray(64 * 1024)
-                    var currentPartBytes = 0L
-                    var partFile = File(srcFile.parentFile, "${srcFile.name}.part$partIndex")
-                    output = FileOutputStream(partFile)
-
-                    var bytesRead: Int
-                    while (input.read(buffer).also { bytesRead = it } != -1) {
-                        output!!.write(buffer, 0, bytesRead)
-                        currentPartBytes += bytesRead
-
-                        if (currentPartBytes >= partSizeBytes) {
-                            output!!.flush()
-                            output!!.close()
-                            output = null
-                            partIndex++
-                            currentPartBytes = 0L
-                            partFile = File(srcFile.parentFile, "${srcFile.name}.part$partIndex")
-                            output = FileOutputStream(partFile)
+                while (input.read(buffer).also { bytesRead = it } != -1) {
+                    if (bytesRead == 0) continue
+                    if (output == null || currentPartBytes >= partSizeBytes) {
+                        output?.flush()
+                        output?.close()
+                        output = null
+                        partIndex++
+                        currentPartBytes = 0L
+                        val partPath = parentPath.resolve("$srcName.part$partIndex")
+                        createdPartPaths.add(partPath)
+                        output = partPath.newOutputStream()
+                    }
+                    output!!.write(buffer, 0, bytesRead)
+                    currentPartBytes += bytesRead
+                    totalRead += bytesRead
+                    if (totalBytes > 0L && onProgressPercent != null) {
+                        val pct = ((totalRead * 100L) / totalBytes).toInt().coerceIn(0, 100)
+                        if (pct != lastPct) {
+                            lastPct = pct
+                            onProgressPercent(pct)
                         }
                     }
-                    output?.flush()
-                    output?.close()
-                    output = null
-                    totalParts = partIndex
                 }
+                output?.flush()
+                output?.close()
+                output = null
 
-                withContext(Dispatchers.Main) {
-                    if (!activity.isFinishing && !activity.isDestroyed) {
-                        try { progress.dismiss() } catch (ignored: Exception) {}
+                if (partIndex == 0) {
+                    // Preserve single empty part if source file is 0 bytes
+                    partIndex = 1
+                    val partPath = parentPath.resolve("$srcName.part1")
+                    createdPartPaths.add(partPath)
+                    partPath.newOutputStream().close()
+                }
+            }
+            return partIndex
+        } catch (e: Exception) {
+            runCatching { output?.close() }
+            output = null
+            for (partial in createdPartPaths) {
+                runCatching { partial.deleteIfExists() }
+            }
+            throw e
+        } finally {
+            runCatching { output?.close() }
+        }
+    }
+
+    private fun executeSplit(
+        activity: Activity,
+        fileItem: FileItem,
+        parentPath: Path,
+        partSizeBytes: Long,
+        onComplete: () -> Unit
+    ) {
+        val baseMsg = activity.getString(R.string.split_file_progress)
+        val totalBytes = fileItem.attributes.fileSize
+        val srcPath = fileItem.path
+        val srcName = fileItem.name
+
+        if (activity is FragmentActivity) {
+            activity.runWithProgressDialog(
+                title = activity.getString(R.string.split_file_title),
+                initialMessage = baseMsg
+            ) { updateMessage ->
+                var lastUiUpdateMs = 0L
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        performSplitWork(srcPath, parentPath, srcName, totalBytes, partSizeBytes) { pct ->
+                            val now = System.currentTimeMillis()
+                            if (now - lastUiUpdateMs >= 150L || pct == 100) {
+                                lastUiUpdateMs = now
+                                updateMessage("$baseMsg ($pct%)")
+                            }
+                        }
+                    }
+                }
+                if (!activity.isUiAlive) return@runWithProgressDialog
+                result.fold(
+                    onSuccess = { totalParts ->
                         Toast.makeText(
                             activity,
                             activity.getString(R.string.split_file_success, totalParts),
                             Toast.LENGTH_LONG
                         ).show()
                         onComplete()
+                    },
+                    onFailure = { e ->
+                        e.printStackTrace()
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.om_split_error_format, e.message ?: ""),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    if (!activity.isFinishing && !activity.isDestroyed) {
-                        try { progress.dismiss() } catch (ignored: Exception) {}
-                        Toast.makeText(activity, activity.getString(R.string.om_split_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                )
+            }
+            return
+        }
+
+        val progress = MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.split_file_title)
+            .setMessage(baseMsg)
+            .setCancelable(false)
+            .create()
+        if (activity is LifecycleOwner) {
+            progress.bindToLifecycle(activity)
+        }
+        if (activity.isUiAlive) progress.show()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = runCatching {
+                performSplitWork(srcPath, parentPath, srcName, totalBytes, partSizeBytes)
+            }
+            withContext(Dispatchers.Main) {
+                progress.dismissSafely()
+                if (!activity.isUiAlive) return@withContext
+                result.fold(
+                    onSuccess = { totalParts ->
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.split_file_success, totalParts),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onComplete()
+                    },
+                    onFailure = { e ->
+                        e.printStackTrace()
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.om_split_error_format, e.message ?: ""),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                }
-            } finally {
-                try {
-                    output?.close()
-                } catch (ignored: Exception) {}
+                )
             }
         }
     }
 
     fun isSplitPart(fileItem: FileItem): Boolean {
         val name = fileItem.name.lowercase(Locale.ROOT)
-        return name.contains(Regex("\\.part\\d+$")) || name.contains(Regex("\\.\\d{3}$"))
+        return name.contains(PART_EXT_REGEX) || name.contains(THREE_DIGIT_EXT_REGEX)
     }
 
     private fun extractPartNumber(name: String): Int {
-        val partMatch = Regex("\\.part(\\d+)$", RegexOption.IGNORE_CASE).find(name)
+        val partMatch = PART_NUM_REGEX.find(name)
         if (partMatch != null) {
             return partMatch.groupValues[1].toIntOrNull() ?: Int.MAX_VALUE
         }
-        val numMatch = Regex("\\.(\\d{3})$").find(name)
+        val numMatch = THREE_DIGIT_EXT_REGEX.find(name)
         if (numMatch != null) {
             return numMatch.groupValues[1].toIntOrNull() ?: Int.MAX_VALUE
         }
@@ -204,10 +331,10 @@ object FileSplitMergeHelper {
         val baseName: String
         val isPartFormat: Boolean
 
-        if (name.contains(Regex("\\.part\\d+$", RegexOption.IGNORE_CASE))) {
+        if (name.contains(PART_EXT_REGEX)) {
             baseName = name.substringBeforeLast(".part")
             isPartFormat = true
-        } else if (name.contains(Regex("\\.\\d{3}$"))) {
+        } else if (name.contains(THREE_DIGIT_EXT_REGEX)) {
             baseName = name.substringBeforeLast(".")
             isPartFormat = false
         } else {
@@ -217,35 +344,42 @@ object FileSplitMergeHelper {
         return allFiles.filter {
             val siblingName = it.name
             if (isPartFormat) {
-                siblingName.startsWith(baseName + ".part", ignoreCase = true)
+                siblingName.startsWith("$baseName.part", ignoreCase = true)
             } else {
-                siblingName.startsWith(baseName + ".", ignoreCase = true) && siblingName.substringAfterLast(".").matches(Regex("\\d{3}"))
+                siblingName.startsWith("$baseName.", ignoreCase = true) &&
+                    siblingName.substringAfterLast(".").matches(THREE_DIGITS_ONLY_REGEX)
             }
         }.sortedWith(compareBy({ extractPartNumber(it.name) }, { it.name.lowercase(Locale.ROOT) }))
     }
 
     fun showMergeDialog(activity: Activity, firstPart: FileItem, allFiles: List<FileItem>, onComplete: () -> Unit) {
+        if (!activity.isUiAlive) return
         val parts = findSplitParts(firstPart, allFiles)
         if (parts.isEmpty()) {
             Toast.makeText(activity, "No parts found to merge", Toast.LENGTH_SHORT).show()
             return
         }
+        val parentPath = firstPart.path.parent ?: run {
+            Toast.makeText(activity, R.string.om_split_apk_access_error, Toast.LENGTH_SHORT).show()
+            return
+        }
 
         val firstName = firstPart.name
-        val targetName = if (firstName.contains(Regex("\\.part\\d+$", RegexOption.IGNORE_CASE))) {
+        val targetName = if (firstName.contains(PART_EXT_REGEX)) {
             firstName.substringBeforeLast(".part")
-        } else if (firstName.contains(Regex("\\.\\d{3}$"))) {
+        } else if (firstName.contains(THREE_DIGIT_EXT_REGEX)) {
             firstName.substringBeforeLast(".")
         } else {
-            firstName + ".merged"
+            "$firstName.merged"
         }
 
         var totalSize = 0L
         for (part in parts) {
-            totalSize += part.attributes.size()
+            totalSize += part.attributes.fileSize
         }
 
         val context = activity
+        val palette = OpenManagerPalette.from(context)
         val container = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(48, 24, 48, 16)
@@ -254,6 +388,7 @@ object FileSplitMergeHelper {
         val infoText = TextView(context).apply {
             text = context.getString(R.string.merge_files_parts_detected, parts.size, formatSize(totalSize))
             textSize = 15f
+            setTextColor(palette.textPrimary)
             setPadding(0, 0, 0, 16)
         }
         container.addView(infoText)
@@ -261,89 +396,184 @@ object FileSplitMergeHelper {
         val nameLabel = TextView(context).apply {
             text = context.getString(R.string.merge_files_target_label)
             textSize = 13f
+            setTextColor(palette.textSecondary)
         }
         container.addView(nameLabel)
 
         val nameInput = EditText(context).apply {
             setText(targetName)
+            setTextColor(palette.textPrimary)
+            setHintTextColor(palette.textSecondary)
         }
         container.addView(nameInput)
 
         val checkDelete = CheckBox(context).apply {
             text = context.getString(R.string.merge_files_delete_parts)
+            setTextColor(palette.textPrimary)
+            buttonTintList = ColorStateList.valueOf(palette.accentColor)
             isChecked = false
             setPadding(0, 16, 0, 0)
         }
         container.addView(checkDelete)
 
-        MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.merge_files_title)
             .setView(container)
             .setPositiveButton(R.string.merge_files_btn_merge) { _, _ ->
-                val finalName = nameInput.text.toString().trim().ifEmpty { targetName }
-                val destFile = File(firstPart.path.toFile().parentFile, finalName)
-                executeMerge(activity, parts, destFile, checkDelete.isChecked, onComplete)
+                val rawName = nameInput.text.toString().trim().ifEmpty { targetName }
+                val finalName = rawName.replace('/', '_').replace('\\', '_')
+                val destPath = parentPath.resolve(finalName)
+                executeMerge(activity, parts, parentPath, destPath, finalName, totalSize, checkDelete.isChecked, onComplete)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        if (activity is LifecycleOwner) {
+            dialog.bindToLifecycle(activity)
+        }
+        if (activity.isUiAlive) {
+            dialog.show()
+        }
+    }
+
+    private fun performMergeWork(
+        parts: List<FileItem>,
+        parentPath: Path,
+        destPath: Path,
+        destName: String,
+        totalBytes: Long,
+        deleteParts: Boolean,
+        onProgressPercent: ((Int) -> Unit)? = null
+    ) {
+        val tempDestPath = parentPath.resolve(".${destName}.om_merge_tmp_${System.currentTimeMillis()}")
+        try {
+            tempDestPath.newOutputStream().use { output ->
+                val buffer = ByteArray(64 * 1024)
+                var mergedBytes = 0L
+                var lastPct = -1
+                for (part in parts) {
+                    part.path.newInputStream().use { input ->
+                        var read: Int
+                        while (input.read(buffer).also { read = it } != -1) {
+                            output.write(buffer, 0, read)
+                            mergedBytes += read
+                            if (totalBytes > 0L && onProgressPercent != null) {
+                                val pct = ((mergedBytes * 100L) / totalBytes).toInt().coerceIn(0, 100)
+                                if (pct != lastPct) {
+                                    lastPct = pct
+                                    onProgressPercent(pct)
+                                }
+                            }
+                        }
+                    }
+                }
+                output.flush()
+            }
+
+            try {
+                tempDestPath.moveTo(destPath, StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: Exception) {
+                tempDestPath.copyTo(destPath, StandardCopyOption.REPLACE_EXISTING)
+                runCatching { tempDestPath.deleteIfExists() }
+            }
+
+            if (deleteParts) {
+                for (part in parts) {
+                    runCatching { part.path.deleteIfExists() }
+                }
+            }
+        } catch (e: Exception) {
+            runCatching { tempDestPath.deleteIfExists() }
+            throw e
+        }
     }
 
     private fun executeMerge(
         activity: Activity,
         parts: List<FileItem>,
-        destFile: File,
+        parentPath: Path,
+        destPath: Path,
+        destName: String,
+        totalBytes: Long,
         deleteParts: Boolean,
         onComplete: () -> Unit
     ) {
-        val progress = ProgressDialog(activity).apply {
-            setMessage(activity.getString(R.string.merge_files_progress))
-            setCancelable(false)
-            show()
-        }
+        val baseMsg = activity.getString(R.string.merge_files_progress)
 
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                FileOutputStream(destFile).use { output ->
-                    val buffer = ByteArray(64 * 1024)
-                    for (part in parts) {
-                        val partFile = part.path.toFile()
-                        FileInputStream(partFile).use { input ->
-                            var read: Int
-                            while (input.read(buffer).also { read = it } != -1) {
-                                output.write(buffer, 0, read)
+        if (activity is FragmentActivity) {
+            activity.runWithProgressDialog(
+                title = activity.getString(R.string.merge_files_title),
+                initialMessage = baseMsg
+            ) { updateMessage ->
+                var lastUiUpdateMs = 0L
+                val result = runCatching {
+                    withContext(Dispatchers.IO) {
+                        performMergeWork(parts, parentPath, destPath, destName, totalBytes, deleteParts) { pct ->
+                            val now = System.currentTimeMillis()
+                            if (now - lastUiUpdateMs >= 150L || pct == 100) {
+                                lastUiUpdateMs = now
+                                updateMessage("$baseMsg ($pct%)")
                             }
                         }
                     }
-                    output.flush()
                 }
-
-                if (deleteParts) {
-                    for (part in parts) {
-                        try {
-                            part.path.toFile().delete()
-                        } catch (ignored: Exception) {}
-                    }
-                }
-
-                withContext(Dispatchers.Main) {
-                    if (!activity.isFinishing && !activity.isDestroyed) {
-                        try { progress.dismiss() } catch (ignored: Exception) {}
+                if (!activity.isUiAlive) return@runWithProgressDialog
+                result.fold(
+                    onSuccess = {
                         Toast.makeText(
                             activity,
-                            activity.getString(R.string.merge_files_success, destFile.name),
+                            activity.getString(R.string.merge_files_success, destName),
                             Toast.LENGTH_LONG
                         ).show()
                         onComplete()
+                    },
+                    onFailure = { e ->
+                        e.printStackTrace()
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.om_merge_error_format, e.message ?: ""),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                withContext(Dispatchers.Main) {
-                    if (!activity.isFinishing && !activity.isDestroyed) {
-                        try { progress.dismiss() } catch (ignored: Exception) {}
-                        Toast.makeText(activity, activity.getString(R.string.om_merge_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                )
+            }
+            return
+        }
+
+        val progress = MaterialAlertDialogBuilder(activity)
+            .setTitle(R.string.merge_files_title)
+            .setMessage(baseMsg)
+            .setCancelable(false)
+            .create()
+        if (activity is LifecycleOwner) {
+            progress.bindToLifecycle(activity)
+        }
+        if (activity.isUiAlive) progress.show()
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val result = runCatching {
+                performMergeWork(parts, parentPath, destPath, destName, totalBytes, deleteParts)
+            }
+            withContext(Dispatchers.Main) {
+                progress.dismissSafely()
+                if (!activity.isUiAlive) return@withContext
+                result.fold(
+                    onSuccess = {
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.merge_files_success, destName),
+                            Toast.LENGTH_LONG
+                        ).show()
+                        onComplete()
+                    },
+                    onFailure = { e ->
+                        e.printStackTrace()
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.om_merge_error_format, e.message ?: ""),
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
-                }
+                )
             }
         }
     }
@@ -352,10 +582,10 @@ object FileSplitMergeHelper {
         if (bytes <= 0) return "0 B"
         if (bytes < 1024) return "$bytes B"
         val kb = bytes.toDouble() / 1024
-        if (kb < 1024) return String.format("%.1f KB", kb)
+        if (kb < 1024) return String.format(Locale.US, "%.1f KB", kb)
         val mb = kb / 1024
-        if (mb < 1024) return String.format("%.1f MB", mb)
+        if (mb < 1024) return String.format(Locale.US, "%.1f MB", mb)
         val gb = mb / 1024
-        return String.format("%.2f GB", gb)
+        return String.format(Locale.US, "%.2f GB", gb)
     }
 }

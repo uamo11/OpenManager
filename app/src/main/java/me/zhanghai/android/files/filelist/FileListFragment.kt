@@ -50,6 +50,7 @@ import androidx.core.view.isVisible
 import androidx.core.view.updatePaddingRelative
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.GridLayoutManager
@@ -132,6 +133,10 @@ import me.zhanghai.android.files.ui.ScrollingViewOnApplyWindowInsetsListener
 import me.zhanghai.android.files.ui.SpeedDialViewOnBackPressedCallback
 import me.zhanghai.android.files.ui.ThemedFastScroller
 import me.zhanghai.android.files.ui.ToolbarActionMode
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
 import me.zhanghai.android.files.util.DebouncedRunnable
 import me.zhanghai.android.files.util.Failure
 import me.zhanghai.android.files.util.Loading
@@ -2548,6 +2553,24 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun installApk(file: FileItem) {
+        if (ApkInstallHelper.isSplitApkBundleName(file.name)) {
+            val hostActivity = activity as? FragmentActivity
+            if (hostActivity != null) {
+                hostActivity.runWithProgressDialog(
+                    title = hostActivity.getString(R.string.om_split_install_title),
+                    initialMessage = hostActivity.getString(R.string.loading)
+                ) { updateMsg ->
+                    val (ok, err) = ApkInstallHelper.installSplitBundleWithPackageInstaller(
+                        hostActivity,
+                        file
+                    ) { statusMsg -> updateMsg(statusMsg) }
+                    if (!ok && hostActivity.isUiAlive) {
+                        Toast.makeText(hostActivity, err, Toast.LENGTH_LONG).show()
+                    }
+                }
+                return
+            }
+        }
         val path = file.path
         val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (!path.isArchivePath) path.fileProviderUri else null
@@ -2563,15 +2586,19 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun installApkWithRoot(file: FileItem) {
+        val hostActivity = activity ?: return
         val progressDialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.installing_with_root)
             .setMessage(R.string.loading)
             .setCancelable(false)
-            .show()
+            .create()
+            .bindToLifecycle(viewLifecycleOwner)
+        progressDialog.show()
 
         viewLifecycleOwner.lifecycleScope.launch {
-            val (success, message) = ApkInstallHelper.installWithRoot(requireContext(), file)
-            progressDialog.dismiss()
+            val (success, message) = ApkInstallHelper.installWithRoot(hostActivity, file)
+            progressDialog.dismissSafely()
+            if (!isUiAlive) return@launch
             if (success) {
                 showToast(getString(R.string.root_install_success))
             } else {
@@ -2579,6 +2606,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     .setTitle(R.string.error)
                     .setMessage(getString(R.string.root_install_failed, message))
                     .setPositiveButton(android.R.string.ok, null)
+                    .create()
+                    .bindToLifecycle(viewLifecycleOwner)
                     .show()
             }
         }

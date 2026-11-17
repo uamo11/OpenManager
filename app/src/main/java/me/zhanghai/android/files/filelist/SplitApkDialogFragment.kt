@@ -6,17 +6,23 @@
 package me.zhanghai.android.files.filelist
 
 import android.app.Dialog
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
@@ -24,15 +30,18 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.fileSize
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.dismissSafely
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.ui.runWithProgressDialog
+import me.zhanghai.android.files.ui.showSafeDialog
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.putArgs
 import me.zhanghai.android.files.util.show
 import java.io.File
 import java.io.FileOutputStream
-import java8.nio.file.Paths
+import java.util.zip.ZipFile
 
 class SplitApkDialogFragment : AppCompatDialogFragment() {
     private val args by args<Args>()
@@ -44,48 +53,132 @@ class SplitApkDialogFragment : AppCompatDialogFragment() {
         val context = requireContext()
         val file = args.file
         val sizeStr = file.attributes.fileSize.formatHumanReadable(context)
+        val palette = OpenManagerPalette.from(context)
 
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_split_apk_actions, null)
+        val root = view.findViewById<View>(R.id.splitDialogRoot)
         val tvTitle = view.findViewById<TextView>(R.id.tvSplitApkTitle)
         val tvSubtitle = view.findViewById<TextView>(R.id.tvSplitApkSubtitle)
+        val divider = view.findViewById<View>(R.id.splitDialogDivider)
         val btnAntiSplit = view.findViewById<MaterialButton>(R.id.btnActionAntiSplit)
         val btnInstall = view.findViewById<MaterialButton>(R.id.btnActionInstall)
         val btnExplore = view.findViewById<MaterialButton>(R.id.btnActionExplore)
         val btnSign = view.findViewById<MaterialButton>(R.id.btnActionSign)
 
+        root.setBackgroundColor(Color.TRANSPARENT)
         tvTitle.text = file.name
-        tvSubtitle.text = "Paquete dividido • $sizeStr"
+        tvTitle.setTextColor(palette.textPrimary)
+        tvSubtitle.text = context.getString(R.string.om_split_subtitle_basic_format, sizeStr)
+        tvSubtitle.setTextColor(palette.textSecondary)
+        divider.setBackgroundColor(palette.dividerLineColor)
+
+        val cardTint = ColorStateList.valueOf(palette.cardBg)
+        val antiSplitAccent = if (palette.isDark) 0xFFFFB300.toInt() else 0xFFE65100.toInt()
+        btnAntiSplit.backgroundTintList = cardTint
+        btnAntiSplit.setTextColor(palette.textPrimary)
+        btnAntiSplit.strokeColor = ColorStateList.valueOf(antiSplitAccent)
+        btnAntiSplit.iconTint = ColorStateList.valueOf(antiSplitAccent)
+
+        for (btn in listOf(btnInstall, btnExplore, btnSign)) {
+            btn.backgroundTintList = cardTint
+            btn.setTextColor(palette.textPrimary)
+        }
 
         val dialog = MaterialAlertDialogBuilder(context)
             .setView(view)
             .create()
 
+        dialog.setOnShowListener {
+            val density = context.resources.displayMetrics.density
+            dialog.window?.setBackgroundDrawable(GradientDrawable().apply {
+                cornerRadius = 20f * density
+                setColor(palette.dialogBg)
+            })
+        }
+
+        if (file.path.isLinuxPath) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                val splitCount = runCatching {
+                    ZipFile(file.path.toFile()).use { ApkInstallHelper.collectSplitApkEntries(it).size }
+                }.getOrDefault(0)
+                if (splitCount > 0) {
+                    withContext(Dispatchers.Main) {
+                        if (isAdded && dialog.isShowing) {
+                            tvSubtitle.text = context.getString(
+                                R.string.om_split_subtitle_count_format,
+                                sizeStr,
+                                splitCount
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         btnAntiSplit.setOnClickListener {
             val hostActivity = activity as? FragmentActivity
-            dialog.dismiss()
+            dialog.dismissSafely()
             if (hostActivity != null) {
                 performAntiSplit(hostActivity, file)
             }
         }
 
         btnInstall.setOnClickListener {
-            dialog.dismiss()
-            if (ApkInstallHelper.isRootAvailable()) {
-                listener.installApkWithRoot(file)
-            } else {
-                listener.installApk(file)
+            val hostActivity = activity as? FragmentActivity
+            val parentListener = parentFragment as? Listener
+            dialog.dismissSafely()
+            when {
+                ApkInstallHelper.isRootAvailable() && parentListener != null -> {
+                    parentListener.installApkWithRoot(file)
+                }
+                ApkInstallHelper.isShizukuAvailable() && hostActivity != null -> {
+                    hostActivity.runWithProgressDialog(
+                        title = hostActivity.getString(R.string.om_split_install_title),
+                        initialMessage = hostActivity.getString(R.string.loading)
+                    ) {
+                        val (success, msg) = ApkInstallHelper.installWithShizuku(hostActivity, file)
+                        if (!hostActivity.isUiAlive) return@runWithProgressDialog
+                        if (success) {
+                            Toast.makeText(hostActivity, msg, Toast.LENGTH_LONG).show()
+                        } else {
+                            hostActivity.showSafeDialog {
+                                setTitle(R.string.error)
+                                setMessage(msg)
+                                setPositiveButton(android.R.string.ok, null)
+                            }
+                        }
+                    }
+                }
+                hostActivity != null -> {
+                    hostActivity.runWithProgressDialog(
+                        title = hostActivity.getString(R.string.om_split_install_title),
+                        initialMessage = hostActivity.getString(R.string.loading)
+                    ) { updateMsg ->
+                        val (ok, err) = ApkInstallHelper.installSplitBundleWithPackageInstaller(
+                            hostActivity,
+                            file
+                        ) { statusMsg -> updateMsg(statusMsg) }
+                        if (!ok && hostActivity.isUiAlive) {
+                            Toast.makeText(hostActivity, err, Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
             }
         }
 
         btnExplore.setOnClickListener {
-            dialog.dismiss()
-            listener.viewApk(file)
+            val parentListener = parentFragment as? Listener
+            dialog.dismissSafely()
+            parentListener?.viewApk(file)
         }
 
         btnSign.setOnClickListener {
-            dialog.dismiss()
-            ApkSignerHelper.showSignDialog(requireActivity(), file.path) {
-                (activity as? FileListActivity)?.activeFragment?.reload()
+            val hostActivity = activity as? FragmentActivity
+            dialog.dismissSafely()
+            if (hostActivity != null) {
+                ApkSignerHelper.showSignDialog(hostActivity, file.path) {
+                    (hostActivity as? FileListActivity)?.activeFragment?.reload()
+                }
             }
         }
 

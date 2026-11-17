@@ -37,6 +37,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import java8.nio.file.Path
+import java8.nio.file.Paths
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -603,17 +604,18 @@ class PdfViewerActivity : AppActivity() {
         }
         val file = localFile ?: tempFile
         if (file != null && file.exists()) {
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                this,
-                "${packageName}.file_provider",
-                file
-            )
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            try {
+                val uri = Paths.get(file.absolutePath).fileProviderUri
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/pdf"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivitySafe(Intent.createChooser(intent, getString(R.string.share)))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
             }
-            startActivitySafe(Intent.createChooser(intent, getString(R.string.share)))
         }
     }
 
@@ -632,16 +634,17 @@ class PdfViewerActivity : AppActivity() {
         }
         val file = localFile ?: tempFile
         if (file != null && file.exists()) {
-            val uri = androidx.core.content.FileProvider.getUriForFile(
-                this,
-                "${packageName}.file_provider",
-                file
-            )
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/pdf")
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            try {
+                val uri = Paths.get(file.absolutePath).fileProviderUri
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, "application/pdf")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivitySafe(Intent.createChooser(intent, getString(R.string.file_item_action_open_with)))
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
             }
-            startActivitySafe(Intent.createChooser(intent, getString(R.string.file_item_action_open_with)))
         }
     }
 

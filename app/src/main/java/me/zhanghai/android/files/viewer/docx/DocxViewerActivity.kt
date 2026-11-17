@@ -39,6 +39,7 @@ import androidx.interpolator.view.animation.FastOutSlowInInterpolator
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Path
+import java8.nio.file.Paths
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -633,11 +634,7 @@ class DocxViewerActivity : AppActivity() {
         val file = localFile ?: tempFile
         if (file != null && file.exists()) {
             try {
-                val uri = androidx.core.content.FileProvider.getUriForFile(
-                    this,
-                    "${packageName}.file_provider",
-                    file
-                )
+                val uri = Paths.get(file.absolutePath).fileProviderUri
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     putExtra(Intent.EXTRA_STREAM, uri)
@@ -668,11 +665,7 @@ class DocxViewerActivity : AppActivity() {
         val file = localFile ?: tempFile
         if (file != null && file.exists()) {
             try {
-                val uri = androidx.core.content.FileProvider.getUriForFile(
-                    this,
-                    "${packageName}.file_provider",
-                    file
-                )
+                val uri = Paths.get(file.absolutePath).fileProviderUri
                 val intent = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

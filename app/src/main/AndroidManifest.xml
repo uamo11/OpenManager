@@ -579,6 +579,10 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name="me.zhanghai.android.files.filelist.SplitApkInstallReceiver"
+            android:exported="false" />
+
         <activity
             android:name="me.zhanghai.android.files.app.CrashReportActivity"
             android:process=":crash"

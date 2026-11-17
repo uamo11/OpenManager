@@ -2780,4 +2780,12 @@
     <string name="om_smart_open_staged_toast">Imported from external location to %1$s</string>
     <string name="om_smart_open_resolving">Opening file…</string>
     <string name="om_smart_open_error">Could not open file</string>
+    <string name="om_split_install_title">Installing split package</string>
+    <string name="om_split_install_preparing_format">Preparing split %1$d/%2$d (%3$s)…</string>
+    <string name="om_split_install_no_apks_found">No installable APK splits found inside this package</string>
+    <string name="om_split_install_unknown_sources_needed">Grant \'Install unknown apps\' permission to OpenManager and try again</string>
+    <string name="om_split_install_success_format">Installed successfully: %1$s</string>
+    <string name="om_split_install_failed_format">Could not install %1$s: %2$s</string>
+    <string name="om_split_subtitle_count_format">Split package • %1$s • %2$d splits</string>
+    <string name="om_split_subtitle_basic_format">Split package • %1$s</string>
 </resources>

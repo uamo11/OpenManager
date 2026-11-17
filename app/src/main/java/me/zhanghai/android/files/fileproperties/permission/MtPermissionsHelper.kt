@@ -34,6 +34,7 @@ import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
 import me.zhanghai.android.files.provider.common.toModeString
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.enumSetOf
 import me.zhanghai.android.files.util.escapeShellArg
 import java.io.File
@@ -488,6 +489,7 @@ object MtPermissionsHelper {
         CoroutineScope(Dispatchers.IO).launch {
             if (path.isArchivePath) {
                 withContext(Dispatchers.Main) {
+                    if (context is Activity && !context.isUiAlive) return@withContext
                     Toast.makeText(context, "No se pueden modificar permisos de un archivo comprimido", Toast.LENGTH_SHORT).show()
                 }
                 return@launch
@@ -540,6 +542,7 @@ object MtPermissionsHelper {
             }
 
             withContext(Dispatchers.Main) {
+                if (context is Activity && !context.isUiAlive) return@withContext
                 if (recursive && fileItem != null) {
                     try {
                         FileJobService.setMode(path, newMode, recursive, uppercaseX, context)

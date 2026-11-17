@@ -1,3 +1,35 @@
+# OpenManager v2.0.75: Instalador Nativo de Splits (.apks/.xapk/.apkm), Compatibilidad Android 16, Termex Propio y Auto-Updates Mejoradas
+
+### 📦 Instalador Nativo Multi-APK para `.apks`, `.xapk` y `.apkm`
+- **Instalación Directa sin Root (`PackageInstaller.Session`) y por Root / Shizuku (`pm install-create`)**:
+  - Ahora al pulsar **Instalar** sobre un paquete `.apks`, `.xapk` o `.apkm` en `SplitApkDialogFragment` (o desde la lista de archivos), OpenManager extrae y transmite todos los splits APK en orden (`base.apk` primero) dentro de una sesión multi-APK real de Android.
+  - Nuevo `SplitApkInstallReceiver` con diagnóstico claro en español e inglés para conflictos de firma, incompatibilidad de arquitectura/SDK, almacenamiento o bloqueo del sistema, y tematización completa del diálogo de splits para **Modo Claro / Oscuro / AMOLED** mostrando el recuento real de splits detectados.
+
+### 🤖 Compatibilidad Android 16 en APKs Clonados y AntiSplit
+- **Saneado Avanzado de Manifest (`ApkQuickEditEngine`)**:
+  - Al clonar un paquete ahora reescribe automáticamente `<provider android:authorities>`, `<permission>`, `<uses-permission>` propios, `taskAffinity`, nombres de clase relativos y elimina `sharedUserId`, evitando los bloqueos típicos de `"La app no se instaló"` en Android 15/16.
+- **AntiSplit Alineado y Firmado Limpio (`AntiSplitEngine` + `ApkSignerHelper`)**:
+  - Alineado ZIP a **16 KB (`16384`)** para `.so` sin comprimir cuando `extractNativeLibs="false"`, `resources.arsc` sin comprimir a 4 bytes, limpieza de `META-INF`/`stamp-cert-sha256` y re-firmado V1/V2/V3 con avisos de firma diferente o `targetSdk < 24` y flag `--bypass-low-target-sdk-block` en Root/Shizuku.
+
+### 🐧 Expansión Linux Termex Propia y Limpieza Segura Post-Update
+- **Constructor Propio de Termex (`TerminalExpansionManager`)**:
+  - Descarga el bootstrap oficial de Termux y construye automáticamente un APK nativo firmado (`com.y.om.termex`) compatible con Android moderno, normalizando `.so.<ver>` y resolviendo enlaces simbólicos sin depender de servidores externos caídos.
+- **Limpieza Automática de APKs de Actualización**:
+  - `UpdateCleanupReceiver` (`MY_PACKAGE_REPLACED`) e inicio en frío eliminan de forma segura únicamente el `.apk` de actualización ya instalado (verificando firma y versión) e invalidan la caché de directorio.
+
+### 🔄 Sistema de Actualizaciones Mejorado (Auto-Updates Activas por Defecto)
+- **Activadas por Defecto y Apagables al Instante**:
+  - Las auto-comprobaciones vienen habilitadas tras actualizar, con interruptor directo tanto en **Ajustes** como dentro del propio diálogo de nueva versión y botón **Omitir versión**.
+- **Motor Resiliente con Caché `ETag` y Descargas Reanudables (`Range 206`)**:
+  - Diferimiento de 2.5 s al iniciar, guarda atómica de concurrencia, velocidad en tiempo real/ETA, verificación mágica ZIP (`PK`) y del paquete antes de instalar, e instalación sin redescarga si el APK ya está completo en disco.
+
+### 🛡️ Estabilidad en Visores, Cifrado y Herramientas de Archivo
+- **Corrección de 4 Cierres en Visor PDF y DOCX**: Reemplazado `androidx.core.content.FileProvider` (no registrado) por `Paths.get(...).fileProviderUri` al compartir o abrir externamente documentos locales o temporales.
+- **Cifrado/Descifrado AES-256 Seguro (`FileEncryptDecryptHelper`)**: Escritura en archivo temporal atómico antes de reemplazar el destino (evita perder un archivo existente si se introduce una contraseña incorrecta) y borrado en memoria de claves/contraseñas.
+- **Utilidades y Ciclo de Vida (`FileSplitMergeHelper`, `FileSwapNamesHelper`, `MtPermissionsHelper`)**: Eliminado el último `ProgressDialog` heredado, soporte NIO `Path` (Linux/Root/SAF), limpieza de partes incompletas ante error, colores adaptados a `OpenManagerPalette` y guardas `bindToLifecycle`/`isUiAlive`.
+
+---
+
 # OpenManager v1.9.73: Apertura Inteligente de Archivos, Ubicaciones Complejas y Auditor Avanzado de Scripts/ELF v2
 
 ### 📂 Apertura Inteligente de Archivos y Ubicaciones Complejas
