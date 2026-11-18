@@ -143,15 +143,17 @@ class FileListAdapter(
             }
         }
 
-    var isFlinging: Boolean = false
+    private var _isFlinging: Boolean = false
+    var isFlinging: Boolean
+        get() = _isFlinging
         set(value) {
             updateFlingState(value)
         }
 
     fun updateFlingState(flinging: Boolean, firstVisible: Int = -1, lastVisible: Int = -1) {
-        if (field == flinging) return
-        val stoppedFlinging = field && !flinging
-        field = flinging
+        if (_isFlinging == flinging) return
+        val stoppedFlinging = _isFlinging && !flinging
+        _isFlinging = flinging
         if (stoppedFlinging && thumbnailLoadMode == 1) {
             val range = SettingsUiLogic.computeVisibleRefreshRange(firstVisible, lastVisible, itemCount)
             if (range != null) {
@@ -442,6 +444,7 @@ class FileListAdapter(
             null
         }
 
+        val path = file.path
         holder.descriptionText?.isVisible = true
         val lastModificationTime = attributes.lastModifiedTime().toInstant().formatMtDate()
         val pathStr = path.toString()
@@ -464,7 +467,6 @@ class FileListAdapter(
             isVisible = true
             setImageResource(iconRes)
         }
-        val path = file.path
         holder.directoryThumbnailImage?.isVisible = isDirectory
         holder.thumbnailOutlineView?.isVisible = !isDirectory
         val canDecodeBitmaps = thumbnailLoadMode != 2 &&
