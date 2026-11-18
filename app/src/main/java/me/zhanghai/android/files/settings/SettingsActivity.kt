@@ -39,20 +39,6 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
         val args = intent.extras?.getArgsOrNull<Args>()
         val savedInstanceState = savedInstanceState ?: args?.savedInstanceState
         if (BuildConfig.DEBUG && savedInstanceState == null) {
-            intent.getStringExtra("DEMO_LOCALE")?.let { loc ->
-                when (loc) {
-                    "es" -> {
-                        if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != "es") {
-                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("es"))
-                        }
-                    }
-                    "reset" -> {
-                        if (!AppCompatDelegate.getApplicationLocales().isEmpty) {
-                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
-                        }
-                    }
-                }
-            }
             intent.getStringExtra("DEMO_THEME")?.let { theme ->
                 when (theme) {
                     "dark" -> {
@@ -85,6 +71,28 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
         findViewById<View>(android.R.id.content)
         if (savedInstanceState == null) {
             supportFragmentManager.commit { add<SettingsFragment>(android.R.id.content) }
+        }
+        if (BuildConfig.DEBUG && savedInstanceState == null) {
+            val demoLocale = intent.getStringExtra("DEMO_LOCALE")
+            if (!demoLocale.isNullOrEmpty()) {
+                intent.removeExtra("DEMO_LOCALE")
+                window.decorView.post {
+                    if (isFinishing || isDestroyed) return@post
+                    val targetLocales = when (demoLocale) {
+                        "es" -> LocaleListCompat.forLanguageTags("es")
+                        "reset" -> LocaleListCompat.getEmptyLocaleList()
+                        else -> null
+                    } ?: return@post
+                    val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                    if (currentTags != targetLocales.toLanguageTags()) {
+                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                            setApplicationLocalesPre33(targetLocales)
+                        } else {
+                            AppCompatDelegate.setApplicationLocales(targetLocales)
+                        }
+                    }
+                }
+            }
         }
     }
 

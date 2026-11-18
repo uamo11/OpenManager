@@ -188,7 +188,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 
 # 28-34. Redesigned Settings & Terminal Workstation HUD Screenshots (Spanish across Dark, AMOLED & Light)
 echo ">>> Priming Spanish locale for Settings & Terminal showcase screenshots..."
-adb shell am start -W -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE es --es DEMO_THEME dark || true
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE es --es DEMO_THEME dark || true
 sleep 3
 
 capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE es --es DEMO_THEME dark --es DEMO_ACTIVE_CHIP key_category_visual_performance" \
@@ -217,7 +217,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
     "34_terminal_running_script_es.png" "Terminal Workstation HUD Running a.sh (ES)"
 
 echo ">>> Resetting locale after showcase captures..."
-adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset --es DEMO_THEME dark || true
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset --es DEMO_THEME dark || true
 sleep 2
 
 # 28. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution

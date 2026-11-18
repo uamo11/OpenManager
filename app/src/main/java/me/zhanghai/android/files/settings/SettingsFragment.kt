@@ -78,6 +78,7 @@ class SettingsFragment : Fragment() {
         super.onActivityCreated(savedInstanceState)
 
         val activity = requireActivity() as AppCompatActivity
+        activity.setTitle(R.string.settings_title)
         activity.setSupportActionBar(binding.toolbar)
         activity.supportActionBar!!.setDisplayHomeAsUpEnabled(true)
 
