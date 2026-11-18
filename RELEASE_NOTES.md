@@ -25,6 +25,14 @@
 - **Motor Resiliente con Caché `ETag` y Descargas Reanudables (`Range 206`)**:
   - Diferimiento de 2.5 s al iniciar, guarda atómica de concurrencia, velocidad en tiempo real/ETA, verificación mágica ZIP (`PK`) y del paquete antes de instalar, e instalación sin redescarga si el APK ya está completo en disco.
 
+### 💻 Rediseño Profesional del Terminal HUD y Teclas Extra (`v2.0.75`)
+- **Cápsula Interactiva de Sesión y Barra HUD Workstation (`44dp`)**:
+  - La antigua burbuja plana `SHELL` ahora es una cápsula de estado viva (`SH ▾` / `ROOT # ▾` / `BASH ▾`) con punto e halo de estado en tiempo real, cambio rápido entre entorno **Sistema** y **Termex**, chip de ruta actual tocable para copiar al portapapeles (`CWD`), control segmentado de zoom (`- | 14sp | +`), contador en vivo de `PID · mm:ss` en la barra superior y botón dedicado de señal de parada (`SIGINT` / `SIGKILL`).
+- **Teclas Extra 3D Táctiles y Modificadores Inteligentes (`TerminalExtraKeysView`)**:
+  - Superficies biseladas con ripple acotado, borde superior de `1dp`, 3 filas ergonómicas con tecla `⌨` para mostrar/ocultar el teclado del sistema, toque simple (*one-shot*) y pulsación larga para bloqueo fijo (`LOCKED`) en `Ctrl`/`Alt`, repetición continua segura por umbral de desplazamiento (`scaledTouchSlop`) y adaptación automática al tema Claro / Oscuro / AMOLED.
+- **Estabilidad de Renderizado VSYNC e Insets IME (`DetachableSessionClient`)**:
+  - Consolidación de repintado por frame `postOnAnimation` con `AtomicBoolean`, lectura acotada de trazas (16 KB) para evitar fugas de memoria o bloqueos en ráfagas rápidas de salida, transición edge-to-edge con ajuste preciso al teclado (`ime()`) y diálogo de preferencias del terminal tematizado con `OpenManagerPalette`.
+
 ### 🎨 Tematización Global (Claro / Oscuro / AMOLED) y Corrección de Contraste en Diálogos
 - **`OpenManagerPalette.applyToDialogSurface` en el Explorador y Visor SQLite**:
   - Corregido el texto blanco ilegible sobre fondo blanco en listas desplegables (`item_dialog_action_with_icon`) al usar **Modo Claro**.

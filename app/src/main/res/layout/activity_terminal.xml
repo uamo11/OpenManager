@@ -7,11 +7,11 @@
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootTerminal"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="#0D1117"
-    android:fitsSystemWindows="true">
+    android:background="#0D1117">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/appBarLayout"
@@ -20,7 +20,7 @@
         android:background="#161B22"
         app:elevation="0dp">
 
-        <!-- 1. Sleek MaterialToolbar with Back, Monospace Title/Subtitle, and Action Icons -->
+        <!-- 1. Workstation MaterialToolbar with Monospace Title, Live Runtime Subtitle & Action Icons -->
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -30,7 +30,6 @@
             app:titleTextColor="#F0F6FC"
             app:subtitleTextColor="#8B949E">
 
-            <!-- Action Buttons Container in Toolbar -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
@@ -40,9 +39,20 @@
                 android:paddingEnd="4dp">
 
                 <ImageButton
+                    android:id="@+id/btnStopSession"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="2dp"
+                    android:visibility="gone"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@drawable/ic_terminal_stop_24dp"
+                    app:tint="#F85149"
+                    android:contentDescription="@string/om_term_stop_signal" />
+
+                <ImageButton
                     android:id="@+id/btnScriptAudit"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="2dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/shield_icon_white_24dp"
@@ -51,8 +61,8 @@
 
                 <ImageButton
                     android:id="@+id/btnCopyScreen"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="2dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/copy_icon_control_normal_24dp"
@@ -61,8 +71,8 @@
 
                 <ImageButton
                     android:id="@+id/btnDeadManSkull"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="2dp"
                     android:visibility="gone"
                     android:background="?attr/selectableItemBackgroundBorderless"
@@ -72,8 +82,8 @@
 
                 <ImageButton
                     android:id="@+id/btnOverflowMenu"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:src="@drawable/more_vertical_icon_white_24dp"
                     app:tint="#C9D1D9"
@@ -81,128 +91,175 @@
             </LinearLayout>
         </com.google.android.material.appbar.MaterialToolbar>
 
-        <!-- 2. Developer Subheader / Session HUD Strip -->
+        <!-- 2. Workstation Session HUD Strip: [● SH ▾]  [ 📁 ~/sdcard ]  [ − | 14sp | + ] -->
         <LinearLayout
             android:id="@+id/layoutTerminalHud"
             android:layout_width="match_parent"
-            android:layout_height="38dp"
+            android:layout_height="44dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@drawable/bg_terminal_hud_bar"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp">
+            android:background="#121720"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp">
 
-            <!-- Mode Badge (Root / Termex / System / Finished) -->
+            <!-- Interactive Environment & Status Capsule -->
             <LinearLayout
                 android:id="@+id/layoutSessionBadge"
                 android:layout_width="wrap_content"
-                android:layout_height="24dp"
+                android:layout_height="30dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_terminal_hud_pill"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp">
+                android:paddingStart="9dp"
+                android:paddingEnd="8dp"
+                android:clickable="true"
+                android:focusable="true">
 
-                <TextView
-                    android:id="@+id/tvSessionDot"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="●"
-                    android:textColor="#3FB950"
-                    android:textSize="9sp" />
+                <FrameLayout
+                    android:layout_width="14dp"
+                    android:layout_height="14dp">
+
+                    <View
+                        android:id="@+id/viewSessionDotHalo"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp" />
+
+                    <View
+                        android:id="@+id/viewSessionDot"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:layout_gravity="center" />
+                </FrameLayout>
 
                 <TextView
                     android:id="@+id/tvSessionLabel"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="5dp"
-                    android:text="SHELL"
-                    android:textColor="#E6EDF3"
-                    android:textSize="10.5sp"
+                    android:text="SH"
+                    android:textColor="#86EFAC"
+                    android:textSize="11.5sp"
                     android:textStyle="bold"
+                    android:letterSpacing="0.03"
                     android:fontFamily="monospace" />
+
+                <TextView
+                    android:id="@+id/tvSessionChevron"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="▾"
+                    android:textColor="#8B949E"
+                    android:textSize="10sp" />
             </LinearLayout>
 
-            <!-- Current CWD / Breadcrumb Monospace -->
+            <!-- Recessed Tap-to-Copy Working Directory Chip -->
             <LinearLayout
+                android:id="@+id/layoutCwdChip"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="30dp"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingStart="10dp"
-                android:paddingEnd="8dp">
+                android:paddingEnd="10dp"
+                android:clickable="true"
+                android:focusable="true">
 
                 <ImageView
+                    android:id="@+id/ivCwdFolder"
                     android:layout_width="14dp"
                     android:layout_height="14dp"
                     android:src="@drawable/directory_icon_white_24dp"
-                    app:tint="#8B949E" />
+                    app:tint="#8B949E"
+                    android:contentDescription="@null" />
 
                 <TextView
                     android:id="@+id/tvTerminalBreadcrumb"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="5dp"
+                    android:layout_marginStart="6dp"
                     android:singleLine="true"
                     android:ellipsize="middle"
-                    android:text="~"
-                    android:textColor="#8B949E"
-                    android:textSize="11sp"
+                    android:text="~/sdcard"
+                    android:textColor="#C9D1D9"
+                    android:textSize="11.5sp"
                     android:fontFamily="monospace" />
             </LinearLayout>
 
-            <!-- Sleek Zoom Control Pill -->
+            <!-- Segmented Font-Size Stepper Pill -->
             <LinearLayout
                 android:id="@+id/layoutZoomPill"
                 android:layout_width="wrap_content"
-                android:layout_height="26dp"
+                android:layout_height="30dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:background="@drawable/bg_terminal_zoom_capsule">
 
                 <TextView
                     android:id="@+id/btnZoomOut"
-                    android:layout_width="26dp"
+                    android:layout_width="30dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="−"
                     android:textColor="#C9D1D9"
-                    android:textSize="14sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/om_terminal_decrease_font" />
+
+                <View
+                    android:id="@+id/viewZoomDivLeft"
+                    android:layout_width="1dp"
+                    android:layout_height="14dp"
+                    android:background="#30363D" />
 
                 <TextView
                     android:id="@+id/tvZoomSize"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:paddingHorizontal="4dp"
+                    android:paddingHorizontal="7dp"
                     android:gravity="center"
                     android:text="14sp"
                     android:textColor="#58A6FF"
-                    android:textSize="11sp"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
                     android:fontFamily="monospace"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/om_terminal_reset_font" />
 
+                <View
+                    android:id="@+id/viewZoomDivRight"
+                    android:layout_width="1dp"
+                    android:layout_height="14dp"
+                    android:background="#30363D" />
+
                 <TextView
                     android:id="@+id/btnZoomIn"
-                    android:layout_width="26dp"
+                    android:layout_width="30dp"
                     android:layout_height="match_parent"
                     android:gravity="center"
                     android:text="+"
                     android:textColor="#C9D1D9"
-                    android:textSize="13sp"
+                    android:textSize="14sp"
                     android:textStyle="bold"
                     android:background="?attr/selectableItemBackgroundBorderless"
                     android:contentDescription="@string/om_terminal_increase_font" />
             </LinearLayout>
         </LinearLayout>
+
+        <View
+            android:id="@+id/viewHudBottomDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#21262D" />
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- 3. Terminal Canvas Monitor Frame -->
     <FrameLayout
+        android:id="@+id/terminalContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -212,10 +269,10 @@
             android:id="@+id/terminalView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginStart="4dp"
-            android:layout_marginEnd="4dp"
-            android:layout_marginTop="2dp"
-            android:layout_marginBottom="2dp"
+            android:layout_marginStart="6dp"
+            android:layout_marginEnd="6dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp"
             android:background="#000000"
             android:focusable="true"
             android:focusableInTouchMode="true" />
@@ -258,11 +315,11 @@
         </LinearLayout>
     </FrameLayout>
 
-    <!-- 4. Tactical Extra Keys View -->
+    <!-- 4. Tactile Workstation Extra Keys Deck -->
     <me.zhanghai.android.files.terminal.TerminalExtraKeysView
         android:id="@+id/extraKeysView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0F1217" />
+        android:background="#10141C" />
 
 </LinearLayout>

@@ -18,6 +18,8 @@ import androidx.appcompat.widget.SwitchCompat
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
 
 class TerminalPreferencesDialog : DialogFragment() {
 
@@ -33,6 +35,7 @@ class TerminalPreferencesDialog : DialogFragment() {
             null,
             false
         )
+        OpenManagerPalette.from(ctx).applyToDialogSurface(container)
 
         val textStartPathValue = container.findViewById<TextView>(R.id.textStartPathValue)
         val textFontSizeValue = container.findViewById<TextView>(R.id.textFontSizeValue)
@@ -138,6 +141,6 @@ class TerminalPreferencesDialog : DialogFragment() {
 
         builder.setView(container)
         builder.setPositiveButton(android.R.string.ok, null)
-        return builder.create()
+        return builder.create().bindToLifecycle(this)
     }
 }

@@ -2788,4 +2788,14 @@
     <string name="om_split_install_failed_format">Could not install %1$s: %2$s</string>
     <string name="om_split_subtitle_count_format">Split package • %1$s • %2$d splits</string>
     <string name="om_split_subtitle_basic_format">Split package • %1$s</string>
+    <string name="om_term_toggle_keyboard">Show / hide keyboard</string>
+    <string name="om_term_stop_signal">Interrupt / stop</string>
+    <string name="om_term_send_sigint">Send Ctrl+C (SIGINT)</string>
+    <string name="om_term_force_kill">Force stop (SIGKILL)</string>
+    <string name="om_term_switch_system">Switch to System (sh)</string>
+    <string name="om_term_switch_termex">Switch to Termex (bash)</string>
+    <string name="om_term_cwd_copied_format">Directory copied: %1$s</string>
+    <string name="om_term_running_timer_format">Running • %1$s</string>
+    <string name="om_term_running_pid_timer_format">PID %1$d • %2$s</string>
+    <string name="om_term_modifier_locked_format">%1$s locked (tap to release)</string>
 </resources>

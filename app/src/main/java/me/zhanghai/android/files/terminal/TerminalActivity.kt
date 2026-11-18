@@ -9,9 +9,14 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.util.TypedValue
 import android.view.HapticFeedbackConstants
@@ -22,9 +27,15 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.widget.PopupMenu
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.termux.terminal.TerminalEmulator
 import com.termux.terminal.TerminalSession
@@ -35,35 +46,71 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
-import me.zhanghai.android.files.terminal.tracer.BinaryTracerDialog
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.isUiAlive
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 class TerminalActivity : AppActivity() {
 
+    private lateinit var rootTerminal: View
+    private lateinit var appBarLayout: AppBarLayout
     private lateinit var toolbar: MaterialToolbar
+    private lateinit var terminalContainer: View
     private lateinit var terminalView: TerminalView
     private lateinit var extraKeysView: TerminalExtraKeysView
+
+    private var layoutTerminalHud: View? = null
+    private var viewHudBottomDivider: View? = null
+    private var layoutSessionBadge: View? = null
+    private var viewSessionDotHalo: View? = null
+    private var viewSessionDot: View? = null
+    private var tvSessionLabel: TextView? = null
+    private var tvSessionChevron: TextView? = null
+    private var layoutCwdChip: View? = null
+    private var ivCwdFolder: ImageView? = null
+    private var tvTerminalBreadcrumb: TextView? = null
+    private var layoutZoomPill: View? = null
+    private var viewZoomDivLeft: View? = null
+    private var viewZoomDivRight: View? = null
     private var btnZoomOut: TextView? = null
     private var btnZoomIn: TextView? = null
     private var tvZoomSize: TextView? = null
+    private var btnStopSession: ImageButton? = null
     private var btnCopyScreen: ImageButton? = null
     private var btnScriptAudit: ImageButton? = null
     private var btnDeadManSkull: ImageButton? = null
     private var btnOverflowMenu: ImageButton? = null
-    private var layoutDeadManAlertBadge: android.widget.LinearLayout? = null
-    private var tvSessionDot: TextView? = null
-    private var tvSessionLabel: TextView? = null
-    private var tvTerminalBreadcrumb: TextView? = null
-    private var layoutSessionBadge: View? = null
+    private var layoutDeadManAlertBadge: View? = null
+
     private var lastDeadManTarget: String = ""
     private var lastDeadManCmd: String = ""
+    private var currentCwd: String = "/storage/emulated/0"
+
+    private var lastIsRunning: Boolean = false
+    private var lastIsRoot: Boolean = false
+    private var lastIsTermex: Boolean = false
+    private var lastExitStatus: Int? = null
+    private var lastIsLightChrome: Boolean = false
 
     private var terminalSession: TerminalSession? = null
+    private var detachableClient: DetachableSessionClient? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var currentPid: Int = -1
     private lateinit var pinchScaleDetector: ScaleGestureDetector
     private var isPinching: Boolean = false
+
+    private val runtimeHandler = Handler(Looper.getMainLooper())
+    private val runtimeTickRunnable = object : Runnable {
+        override fun run() {
+            if (!isUiAlive) return
+            if (terminalSession?.isRunning == true) {
+                updateRunningSubtitle()
+                runtimeHandler.postDelayed(this, 1000L)
+            }
+        }
+    }
 
     companion object {
         const val EXTRA_PATH = "me.zhanghai.android.files.terminal.extra.PATH"
@@ -102,54 +149,205 @@ class TerminalActivity : AppActivity() {
         }
     }
 
+    /**
+     * Detachable [TerminalSessionClient] that coalesces rapid PTY output onto VSYNC display frames
+     * and prevents leaking destroyed [TerminalActivity] instances across background reattachment.
+     */
+    private class DetachableSessionClient(
+        private val appContext: Context,
+        host: TerminalActivity
+    ) : TerminalSessionClient {
+
+        @Volatile
+        private var hostActivity: TerminalActivity? = host
+        private val frameScheduled = AtomicBoolean(false)
+        private val mainHandler = Handler(Looper.getMainLooper())
+
+        fun attach(activity: TerminalActivity) {
+            hostActivity = activity
+        }
+
+        fun detach(activity: TerminalActivity) {
+            if (hostActivity === activity) {
+                hostActivity = null
+            }
+        }
+
+        override fun onTextChanged(changedSession: TerminalSession) {
+            if (frameScheduled.compareAndSet(false, true)) {
+                val activity = hostActivity
+                val targetView = activity?.takeIf { it.isUiAlive }?.terminalView
+                if (targetView != null) {
+                    targetView.postOnAnimation {
+                        frameScheduled.set(false)
+                        val live = hostActivity
+                        if (live != null && live.isUiAlive) {
+                            live.terminalView.onScreenUpdated()
+                        }
+                        ScriptExecutionManager.notifyOutputUpdated()
+                    }
+                } else {
+                    mainHandler.post {
+                        frameScheduled.set(false)
+                        ScriptExecutionManager.notifyOutputUpdated()
+                    }
+                }
+            }
+        }
+
+        override fun onTerminalDataReceived(
+            session: TerminalSession,
+            data: ByteArray,
+            offset: Int,
+            length: Int
+        ) {
+            val activity = hostActivity ?: return
+            if (!activity.isUiAlive || length <= 0) return
+            val boundedLength = length.coerceAtMost(16384)
+            val chunk = String(data, offset, boundedLength, Charsets.UTF_8)
+            val activeScript = ScriptExecutionManager.activeScriptPath
+                ?: activity.intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
+                ?: activity.intent.getStringExtra(EXTRA_PATH)
+            BinaryTracerEngine.parseTerminalChunk(chunk, activity, session, activeScript)
+        }
+
+        override fun onTitleChanged(changedSession: TerminalSession) {
+            val title = changedSession.title
+            if (title.isNullOrEmpty()) return
+            ScriptExecutionManager.notifyTitleChanged(title)
+            val activity = hostActivity ?: return
+            activity.runOnUiThread {
+                if (!activity.isUiAlive) return@runOnUiThread
+                if (title.contains("/") || title.startsWith("~")) {
+                    activity.updateCwdDisplay(title)
+                }
+            }
+        }
+
+        override fun onSessionFinished(finishedSession: TerminalSession) {
+            val activity = hostActivity
+            if (activity != null) {
+                activity.runOnUiThread {
+                    if (!activity.isUiAlive) return@runOnUiThread
+                    activity.stopRuntimeTicker()
+                    activity.toolbar.subtitle = activity.getString(
+                        R.string.om_term_finished_code_format,
+                        finishedSession.exitStatus
+                    )
+                    activity.updateHudState(
+                        isRoot = ScriptExecutionManager.isRoot,
+                        isTermex = ScriptExecutionManager.isTermex,
+                        isRunning = false,
+                        exitStatus = finishedSession.exitStatus
+                    )
+                }
+            }
+            ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, appContext)
+        }
+
+        override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
+            val cm = appContext.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            cm?.setPrimaryClip(ClipData.newPlainText("terminal", text))
+            val activity = hostActivity
+            if (activity != null && activity.isUiAlive) {
+                Toast.makeText(activity, R.string.terminal_copy, Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        override fun onPasteTextFromClipboard(session: TerminalSession?) {
+            val activity = hostActivity
+            if (activity != null && activity.isUiAlive) {
+                activity.pasteFromClipboard()
+            }
+        }
+
+        override fun onBell(session: TerminalSession) {}
+
+        override fun onColorsChanged(session: TerminalSession) {
+            val activity = hostActivity
+            if (activity != null && activity.isUiAlive) {
+                activity.terminalView.onScreenUpdated()
+            }
+        }
+
+        override fun onTerminalCursorStateChange(state: Boolean) {}
+
+        override fun setTerminalShellPid(session: TerminalSession, pid: Int) {
+            ScriptExecutionManager.activePid = pid
+            ScriptExecutionService.updateNotification(appContext)
+            val activity = hostActivity ?: return
+            activity.runOnUiThread {
+                if (!activity.isUiAlive) return@runOnUiThread
+                activity.currentPid = pid
+                activity.updateRunningSubtitle()
+            }
+        }
+
+        override fun getTerminalCursorStyle(): Int = TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
+
+        override fun logError(tag: String?, message: String?) {}
+        override fun logWarn(tag: String?, message: String?) {}
+        override fun logInfo(tag: String?, message: String?) {}
+        override fun logDebug(tag: String?, message: String?) {}
+        override fun logVerbose(tag: String?, message: String?) {}
+        override fun logStackTraceWithMessage(tag: String?, message: String?, e: Exception?) {}
+        override fun logStackTrace(tag: String?, e: Exception?) {}
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_terminal)
 
+        rootTerminal = findViewById(R.id.rootTerminal)
+        appBarLayout = findViewById(R.id.appBarLayout)
         toolbar = findViewById(R.id.toolbar)
+        terminalContainer = findViewById(R.id.terminalContainer)
         terminalView = findViewById(R.id.terminalView)
         extraKeysView = findViewById(R.id.extraKeysView)
+
+        layoutTerminalHud = findViewById(R.id.layoutTerminalHud)
+        viewHudBottomDivider = findViewById(R.id.viewHudBottomDivider)
+        layoutSessionBadge = findViewById(R.id.layoutSessionBadge)
+        viewSessionDotHalo = findViewById(R.id.viewSessionDotHalo)
+        viewSessionDot = findViewById(R.id.viewSessionDot)
+        tvSessionLabel = findViewById(R.id.tvSessionLabel)
+        tvSessionChevron = findViewById(R.id.tvSessionChevron)
+        layoutCwdChip = findViewById(R.id.layoutCwdChip)
+        ivCwdFolder = findViewById(R.id.ivCwdFolder)
+        tvTerminalBreadcrumb = findViewById(R.id.tvTerminalBreadcrumb)
+        layoutZoomPill = findViewById(R.id.layoutZoomPill)
+        viewZoomDivLeft = findViewById(R.id.viewZoomDivLeft)
+        viewZoomDivRight = findViewById(R.id.viewZoomDivRight)
         btnZoomOut = findViewById(R.id.btnZoomOut)
         btnZoomIn = findViewById(R.id.btnZoomIn)
         tvZoomSize = findViewById(R.id.tvZoomSize)
+        btnStopSession = findViewById(R.id.btnStopSession)
         btnCopyScreen = findViewById(R.id.btnCopyScreen)
         btnScriptAudit = findViewById(R.id.btnScriptAudit)
         btnDeadManSkull = findViewById(R.id.btnDeadManSkull)
         btnOverflowMenu = findViewById(R.id.btnOverflowMenu)
         layoutDeadManAlertBadge = findViewById(R.id.layoutDeadManAlertBadge)
-        tvSessionDot = findViewById(R.id.tvSessionDot)
-        tvSessionLabel = findViewById(R.id.tvSessionLabel)
-        tvTerminalBreadcrumb = findViewById(R.id.tvTerminalBreadcrumb)
-        layoutSessionBadge = findViewById(R.id.layoutSessionBadge)
 
-        layoutSessionBadge?.setOnClickListener {
-            val modeStr = if (ScriptExecutionManager.isRoot) "Root (UID 0)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else "Android system shell (sh)"
-            Toast.makeText(this, "Entorno: $modeStr", Toast.LENGTH_SHORT).show()
-        }
-
-        btnScriptAudit?.setOnClickListener {
-            showScriptAuditDialog()
-        }
-        btnOverflowMenu?.setOnClickListener {
-            showOverflowMenu(it)
-        }
-
-        btnDeadManSkull?.setOnClickListener {
-            if (lastDeadManTarget.isNotEmpty()) {
-                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
-            }
-        }
-        layoutDeadManAlertBadge?.setOnClickListener {
-            if (lastDeadManTarget.isNotEmpty()) {
-                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
-            }
-        }
-
-        setupToolbar()
+        setupEdgeToEdgeInsets()
+        setupControls()
         setupPinchZoomDetector()
         setupExtraKeys()
         applyPreferences()
         startTerminalSession()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyPreferences()
+        if (terminalSession?.isRunning == true) {
+            startRuntimeTicker()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopRuntimeTicker()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -161,26 +359,72 @@ class TerminalActivity : AppActivity() {
         }
     }
 
-    fun showScriptAuditDialog() {
-        val activeScript = ScriptExecutionManager.activeScriptPath
-            ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
-            ?: intent.getStringExtra(EXTRA_PATH)
-        me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(this, activeScript)
-    }
+    private fun setupEdgeToEdgeInsets() {
+        val topBarMask = WindowInsetsCompat.Type.statusBars() or WindowInsetsCompat.Type.displayCutout()
+        ViewCompat.setOnApplyWindowInsetsListener(appBarLayout) { view, insets ->
+            val bars = insets.getInsets(topBarMask)
+            view.setPadding(bars.left, bars.top, bars.right, 0)
+            insets
+        }
 
-    fun showDeadManSkullAlert(target: String, cmd: String) {
-        lastDeadManTarget = target
-        lastDeadManCmd = cmd
-        runOnUiThread {
-            btnDeadManSkull?.visibility = View.VISIBLE
-            layoutDeadManAlertBadge?.visibility = View.VISIBLE
-            DeadManProtectionManager.showDeadManProtectionDialog(this, target, cmd)
+        val bottomBarMask = WindowInsetsCompat.Type.navigationBars() or WindowInsetsCompat.Type.ime()
+        ViewCompat.setOnApplyWindowInsetsListener(rootTerminal) { view, insets ->
+            val bars = insets.getInsets(bottomBarMask)
+            view.setPadding(0, 0, 0, bars.bottom)
+            insets
         }
     }
 
-    private fun setupToolbar() {
+    private fun setupControls() {
         toolbar.setNavigationOnClickListener {
             finish()
+        }
+
+        layoutSessionBadge?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            showSessionQuickMenu(it)
+        }
+
+        layoutCwdChip?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            val pathToCopy = currentCwd.ifBlank { "/storage/emulated/0" }
+            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+            cm?.setPrimaryClip(ClipData.newPlainText("Terminal CWD", pathToCopy))
+            Toast.makeText(
+                this,
+                getString(R.string.om_term_cwd_copied_format, pathToCopy),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+
+        btnStopSession?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            showStopSignalMenu(it)
+        }
+
+        btnScriptAudit?.setOnClickListener {
+            showScriptAuditDialog()
+        }
+
+        btnCopyScreen?.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            copyTerminalTranscript()
+        }
+
+        btnDeadManSkull?.setOnClickListener {
+            if (lastDeadManTarget.isNotEmpty()) {
+                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
+            }
+        }
+
+        layoutDeadManAlertBadge?.setOnClickListener {
+            if (lastDeadManTarget.isNotEmpty()) {
+                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
+            }
+        }
+
+        btnOverflowMenu?.setOnClickListener {
+            showOverflowMenu(it)
         }
 
         btnZoomOut?.setOnClickListener {
@@ -197,12 +441,29 @@ class TerminalActivity : AppActivity() {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             TerminalSettings.setFontSize(this, TerminalSettings.DEFAULT_FONT_SIZE_SP)
             applyPreferences()
-            Toast.makeText(this, getString(R.string.om_term_zoom_reset_format, TerminalSettings.DEFAULT_FONT_SIZE_SP), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                this,
+                getString(R.string.om_term_zoom_reset_format, TerminalSettings.DEFAULT_FONT_SIZE_SP),
+                Toast.LENGTH_SHORT
+            ).show()
         }
+    }
 
-        btnCopyScreen?.setOnClickListener {
-            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            copyTerminalTranscript()
+    fun showScriptAuditDialog() {
+        val activeScript = ScriptExecutionManager.activeScriptPath
+            ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
+            ?: intent.getStringExtra(EXTRA_PATH)
+        me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(this, activeScript)
+    }
+
+    fun showDeadManSkullAlert(target: String, cmd: String) {
+        lastDeadManTarget = target
+        lastDeadManCmd = cmd
+        runOnUiThread {
+            if (!isUiAlive) return@runOnUiThread
+            btnDeadManSkull?.visibility = View.VISIBLE
+            layoutDeadManAlertBadge?.visibility = View.VISIBLE
+            DeadManProtectionManager.showDeadManProtectionDialog(this, target, cmd)
         }
     }
 
@@ -271,10 +532,33 @@ class TerminalActivity : AppActivity() {
                 terminalSession?.write(keyStr)
             }
         }
-        extraKeysView.onOverflowMenuClick = { anchor ->
-            showOverflowMenu(anchor)
+        extraKeysView.onToggleKeyboardClick = {
+            toggleSoftKeyboard()
+        }
+        extraKeysView.onModifierLockedToast = { modName ->
+            Toast.makeText(
+                this,
+                getString(R.string.om_term_modifier_locked_format, modName),
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
+
+    private fun toggleSoftKeyboard() {
+        terminalView.requestFocus()
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager ?: return
+        val imeVisible = ViewCompat.getRootWindowInsets(terminalView)
+            ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        if (imeVisible) {
+            imm.hideSoftInputFromWindow(terminalView.windowToken, 0)
+        } else {
+            imm.showSoftInput(terminalView, InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).roundToInt()
+
+    private fun dpF(v: Float): Float = v * resources.displayMetrics.density
 
     private fun applyPreferences() {
         val fontSizeSp = TerminalSettings.getFontSize(this)
@@ -287,11 +571,193 @@ class TerminalActivity : AppActivity() {
         terminalView.setTypeface(Typeface.MONOSPACE)
         tvZoomSize?.text = "${fontSizeSp}sp"
 
-        if (TerminalSettings.isKeepBlackTheme(this)) {
-            terminalView.setBackgroundColor(Color.BLACK)
-            window.statusBarColor = Color.parseColor("#161B22")
-            window.navigationBarColor = Color.parseColor("#0F1217")
+        val appPalette = OpenManagerPalette.from(this)
+        val keepBlack = TerminalSettings.isKeepBlackTheme(this)
+        val isLightChrome = !keepBlack && !appPalette.isDark
+        val isAmoledChrome = appPalette.isAmoled || keepBlack
+        lastIsLightChrome = isLightChrome
+
+        val appBarBg = when {
+            isLightChrome -> appPalette.appBarBg
+            isAmoledChrome -> 0xFF0A0D12.toInt()
+            else -> 0xFF161B22.toInt()
         }
+        val hudBg = when {
+            isLightChrome -> 0xFFF1F5F9.toInt()
+            isAmoledChrome -> 0xFF07090D.toInt()
+            else -> 0xFF121720.toInt()
+        }
+        val dividerColor = when {
+            isLightChrome -> appPalette.dividerLineColor
+            isAmoledChrome -> 0xFF1B222D.toInt()
+            else -> 0xFF21262D.toInt()
+        }
+        val canvasFrameBg = when {
+            isLightChrome -> 0xFFE2E8F0.toInt()
+            keepBlack || isAmoledChrome -> Color.BLACK
+            else -> 0xFF0D1117.toInt()
+        }
+        val titleText = if (isLightChrome) appPalette.textPrimary else 0xFFF0F6FC.toInt()
+        val subtitleText = if (isLightChrome) appPalette.textSecondary else 0xFF8B949E.toInt()
+        val iconTint = if (isLightChrome) appPalette.iconTint else 0xFFC9D1D9.toInt()
+        val chipBg = when {
+            isLightChrome -> 0xFFFFFFFF.toInt()
+            isAmoledChrome -> 0xFF10151E.toInt()
+            else -> 0xFF181F2B.toInt()
+        }
+        val chipBorder = when {
+            isLightChrome -> 0xFFCBD5E1.toInt()
+            isAmoledChrome -> 0xFF1E2736.toInt()
+            else -> 0xFF2A3444.toInt()
+        }
+        val chipText = if (isLightChrome) appPalette.textPrimary else 0xFFC9D1D9.toInt()
+        val rippleColor = if (isLightChrome) 0x200F172A else 0x30FFFFFF
+
+        rootTerminal.setBackgroundColor(canvasFrameBg)
+        appBarLayout.setBackgroundColor(appBarBg)
+        toolbar.setBackgroundColor(appBarBg)
+        toolbar.setTitleTextColor(titleText)
+        toolbar.setSubtitleTextColor(subtitleText)
+        toolbar.navigationIcon?.setTint(titleText)
+
+        btnCopyScreen?.imageTintList = ColorStateList.valueOf(iconTint)
+        btnOverflowMenu?.imageTintList = ColorStateList.valueOf(iconTint)
+        btnScriptAudit?.imageTintList = ColorStateList.valueOf(
+            if (isLightChrome) appPalette.accentColor else 0xFF58A6FF.toInt()
+        )
+
+        layoutTerminalHud?.setBackgroundColor(hudBg)
+        viewHudBottomDivider?.setBackgroundColor(dividerColor)
+
+        layoutCwdChip?.apply {
+            val chipShape = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpF(9f)
+                setColor(chipBg)
+                setStroke(dp(1), chipBorder)
+            }
+            val mask = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = dpF(9f)
+                setColor(Color.WHITE)
+            }
+            background = RippleDrawable(ColorStateList.valueOf(rippleColor), chipShape, mask)
+        }
+        ivCwdFolder?.imageTintList = ColorStateList.valueOf(subtitleText)
+        tvTerminalBreadcrumb?.setTextColor(chipText)
+
+        layoutZoomPill?.background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpF(15f)
+            setColor(chipBg)
+            setStroke(dp(1), chipBorder)
+        }
+        viewZoomDivLeft?.setBackgroundColor(chipBorder)
+        viewZoomDivRight?.setBackgroundColor(chipBorder)
+        btnZoomOut?.setTextColor(chipText)
+        btnZoomIn?.setTextColor(chipText)
+        tvZoomSize?.setTextColor(if (isLightChrome) appPalette.accentColor else 0xFF58A6FF.toInt())
+
+        terminalContainer.setBackgroundColor(canvasFrameBg)
+        terminalView.setBackgroundColor(if (keepBlack || isAmoledChrome) Color.BLACK else 0xFF0D1117.toInt())
+
+        val extraDeckBg = when {
+            isLightChrome -> 0xFFEEF2F6.toInt()
+            isAmoledChrome -> 0xFF090C10.toInt()
+            else -> 0xFF10141C.toInt()
+        }
+        @Suppress("DEPRECATION")
+        window.statusBarColor = appBarBg
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = extraDeckBg
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = isLightChrome
+            isAppearanceLightNavigationBars = isLightChrome
+        }
+
+        extraKeysView.applyTheme(isLightChrome, isAmoledChrome, appPalette.accentColor)
+        renderSessionBadge()
+    }
+
+    private fun renderSessionBadge() {
+        val spec = TerminalUiHelper.computeSessionBadge(
+            isRunning = lastIsRunning,
+            isRoot = lastIsRoot,
+            isTermex = lastIsTermex,
+            exitStatus = lastExitStatus,
+            isLightChrome = lastIsLightChrome
+        )
+        viewSessionDotHalo?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(spec.haloColor)
+        }
+        viewSessionDot?.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(spec.dotColor)
+        }
+        tvSessionLabel?.text = spec.label
+        tvSessionLabel?.setTextColor(spec.textColor)
+        tvSessionChevron?.setTextColor(spec.textColor)
+
+        val pillShape = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpF(15f)
+            setColor(spec.bgColor)
+            setStroke(dp(1), spec.strokeColor)
+        }
+        val mask = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dpF(15f)
+            setColor(Color.WHITE)
+        }
+        val rippleColor = if (lastIsLightChrome) 0x200F172A else 0x35FFFFFF
+        layoutSessionBadge?.background = RippleDrawable(
+            ColorStateList.valueOf(rippleColor),
+            pillShape,
+            mask
+        )
+    }
+
+    private fun updateCwdDisplay(rawPath: String?) {
+        if (!rawPath.isNullOrBlank()) {
+            val normalized = rawPath.trim()
+            val cleanCwd = if (File(normalized).isFile) {
+                File(normalized).parent ?: normalized
+            } else if (!normalized.startsWith("~") && normalized.contains('/')) {
+                val leaf = normalized.substringAfterLast('/')
+                if (leaf.contains('.') && !leaf.startsWith('.')) {
+                    normalized.substringBeforeLast('/').ifEmpty { "/" }
+                } else {
+                    normalized
+                }
+            } else {
+                normalized
+            }
+            currentCwd = cleanCwd
+        }
+        tvTerminalBreadcrumb?.text = TerminalUiHelper.formatBreadcrumbPath(currentCwd)
+    }
+
+    private fun updateRunningSubtitle() {
+        if (terminalSession?.isRunning != true) return
+        val startMs = ScriptExecutionManager.startTimeMillis
+        val elapsedSec = if (startMs > 0L) ((System.currentTimeMillis() - startMs) / 1000L).coerceAtLeast(0L) else 0L
+        val elapsedStr = TerminalUiHelper.formatElapsedSeconds(elapsedSec)
+        toolbar.subtitle = if (currentPid > 0) {
+            getString(R.string.om_term_running_pid_timer_format, currentPid, elapsedStr)
+        } else {
+            getString(R.string.om_term_running_timer_format, elapsedStr)
+        }
+    }
+
+    private fun startRuntimeTicker() {
+        runtimeHandler.removeCallbacks(runtimeTickRunnable)
+        updateRunningSubtitle()
+        runtimeHandler.postDelayed(runtimeTickRunnable, 1000L)
+    }
+
+    private fun stopRuntimeTicker() {
+        runtimeHandler.removeCallbacks(runtimeTickRunnable)
     }
 
     private fun updateHudState(
@@ -301,113 +767,44 @@ class TerminalActivity : AppActivity() {
         exitStatus: Int? = null,
         cwd: String? = null
     ) {
-        runOnUiThread {
-            if (isRunning) {
-                tvSessionDot?.text = "●"
-                tvSessionDot?.setTextColor(Color.parseColor("#3FB950"))
-                val label = when {
-                    isRoot -> "ROOT (#)"
-                    isTermex -> "TERMEX"
-                    else -> "SHELL"
+        val applyUi = {
+            if (isUiAlive) {
+                lastIsRoot = isRoot
+                lastIsTermex = isTermex
+                lastIsRunning = isRunning
+                lastExitStatus = exitStatus
+                btnStopSession?.isVisible = isRunning
+                renderSessionBadge()
+                if (cwd != null) {
+                    updateCwdDisplay(cwd)
                 }
-                tvSessionLabel?.text = label
-            } else {
-                tvSessionDot?.text = "●"
-                tvSessionDot?.setTextColor(Color.parseColor("#F85149"))
-                val codeStr = exitStatus?.let { " $it" } ?: ""
-                tvSessionLabel?.text = "EXIT$codeStr"
-            }
-
-            if (cwd != null) {
-                val displayPath = when {
-                    cwd.startsWith("/storage/emulated/0") -> cwd.replace("/storage/emulated/0", "~")
-                    cwd.startsWith("/data/data/me.zhanghai.android.files") -> cwd.replace("/data/data/me.zhanghai.android.files", "[app]")
-                    else -> cwd
+                if (isRunning) {
+                    startRuntimeTicker()
+                } else {
+                    stopRuntimeTicker()
                 }
-                tvTerminalBreadcrumb?.text = displayPath
             }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            applyUi()
+        } else {
+            runOnUiThread(applyUi)
         }
     }
 
-    private fun startTerminalSession(forceRootOverride: Boolean? = null) {
-        val initialCommand = intent.getStringExtra(EXTRA_COMMAND)
-
-        val sessionClient = object : TerminalSessionClient {
-            override fun onTextChanged(changedSession: TerminalSession) {
-                terminalView.onScreenUpdated()
-                ScriptExecutionManager.notifyOutputUpdated()
-            }
-
-            override fun onTerminalDataReceived(session: TerminalSession, data: ByteArray, offset: Int, length: Int) {
-                val chunk = String(data, offset, length, Charsets.UTF_8)
-                val activeScript = ScriptExecutionManager.activeScriptPath
-                    ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
-                    ?: intent.getStringExtra(EXTRA_PATH)
-                BinaryTracerEngine.parseTerminalChunk(chunk, this@TerminalActivity, session, activeScript)
-            }
-
-            override fun onTitleChanged(changedSession: TerminalSession) {
-                runOnUiThread {
-                    val title = changedSession.title
-                    if (!title.isNullOrEmpty()) {
-                        toolbar.subtitle = title
-                        ScriptExecutionManager.notifyTitleChanged(title)
-                        if (title.contains("/") || title.startsWith("~")) {
-                            tvTerminalBreadcrumb?.text = title
-                        }
-                    }
-                }
-            }
-
-            override fun onSessionFinished(finishedSession: TerminalSession) {
-                runOnUiThread {
-                    toolbar.subtitle = getString(R.string.om_term_finished_code_format, finishedSession.exitStatus)
-                    updateHudState(
-                        isRoot = ScriptExecutionManager.isRoot,
-                        isTermex = ScriptExecutionManager.isTermex,
-                        isRunning = false,
-                        exitStatus = finishedSession.exitStatus
-                    )
-                }
-                ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, this@TerminalActivity)
-            }
-
-            override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
-                val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                cm?.setPrimaryClip(ClipData.newPlainText("terminal", text))
-                Toast.makeText(this@TerminalActivity, R.string.terminal_copy, Toast.LENGTH_SHORT).show()
-            }
-
-            override fun onPasteTextFromClipboard(session: TerminalSession?) {
-                pasteFromClipboard()
-            }
-
-            override fun onBell(session: TerminalSession) {}
-
-            override fun onColorsChanged(session: TerminalSession) {
-                terminalView.onScreenUpdated()
-            }
-
-            override fun onTerminalCursorStateChange(state: Boolean) {}
-
-            override fun setTerminalShellPid(session: TerminalSession, pid: Int) {
-                currentPid = pid
-                ScriptExecutionManager.activePid = pid
-                ScriptExecutionService.updateNotification(this@TerminalActivity)
-            }
-
-            override fun getTerminalCursorStyle(): Int {
-                return TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
-            }
-
-            override fun logError(tag: String?, message: String?) {}
-            override fun logWarn(tag: String?, message: String?) {}
-            override fun logInfo(tag: String?, message: String?) {}
-            override fun logDebug(tag: String?, message: String?) {}
-            override fun logVerbose(tag: String?, message: String?) {}
-            override fun logStackTraceWithMessage(tag: String?, message: String?, e: Exception?) {}
-            override fun logStackTrace(tag: String?, e: Exception?) {}
+    private fun startTerminalSession(
+        forceRootOverride: Boolean? = null,
+        forceTermexOverride: Boolean? = null
+    ) {
+        val initialCommand = if (forceRootOverride == null && forceTermexOverride == null) {
+            intent.getStringExtra(EXTRA_COMMAND)
+        } else {
+            null
         }
+
+        val sessionClient = DetachableSessionClient(applicationContext, this)
+        detachableClient?.detach(this)
+        detachableClient = sessionClient
 
         val viewClient = object : TerminalViewClient {
             override fun onScale(scale: Float): Float {
@@ -429,7 +826,6 @@ class TerminalActivity : AppActivity() {
             override fun shouldEnforceCharBasedInput(): Boolean = false
             override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
             override fun isTerminalViewSelected(): Boolean = true
-
             override fun copyModeChanged(copyMode: Boolean) {}
 
             override fun onKeyDown(keyCode: Int, e: KeyEvent?, session: TerminalSession?): Boolean {
@@ -439,7 +835,6 @@ class TerminalActivity : AppActivity() {
                         return true
                     }
                 }
-                // Volume Up / Down zoom shortcuts
                 if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
                     changeFontSizeBy(+1)
                     return true
@@ -452,31 +847,16 @@ class TerminalActivity : AppActivity() {
             }
 
             override fun onKeyUp(keyCode: Int, e: KeyEvent?): Boolean {
-                if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-                    return true
-                }
-                return false
+                return keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
             }
 
             override fun onLongPress(event: MotionEvent?): Boolean = false
-
-            override fun readControlKey(): Boolean {
-                return extraKeysView.consumeCtrl()
-            }
-
-            override fun readAltKey(): Boolean {
-                return extraKeysView.consumeAlt()
-            }
-
+            override fun readControlKey(): Boolean = extraKeysView.consumeCtrl()
+            override fun readAltKey(): Boolean = extraKeysView.consumeAlt()
             override fun readShiftKey(): Boolean = false
             override fun readFnKey(): Boolean = false
-
-            override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession?): Boolean {
-                return false
-            }
-
+            override fun onCodePoint(codePoint: Int, ctrlDown: Boolean, session: TerminalSession?): Boolean = false
             override fun onEmulatorSet() {}
-
             override fun logError(tag: String?, message: String?) {}
             override fun logWarn(tag: String?, message: String?) {}
             override fun logInfo(tag: String?, message: String?) {}
@@ -486,8 +866,10 @@ class TerminalActivity : AppActivity() {
             override fun logStackTrace(tag: String?, e: Exception?) {}
         }
 
-        // 1. Check if we can seamlessly reattach to existing running session
-        if (initialCommand == null && ScriptExecutionManager.hasActiveSession()) {
+        // 1. Reattach to active background session cleanly unless switching environment explicitly
+        if (forceRootOverride == null && forceTermexOverride == null &&
+            initialCommand == null && ScriptExecutionManager.hasActiveSession()
+        ) {
             val existingSession = ScriptExecutionManager.activeSession!!
             existingSession.updateTerminalSessionClient(sessionClient)
             terminalSession = existingSession
@@ -496,16 +878,18 @@ class TerminalActivity : AppActivity() {
             terminalView.setTerminalViewClient(viewClient)
             terminalView.attachSession(existingSession)
 
-            val mode = if (ScriptExecutionManager.isRoot) "Root (#)" else if (ScriptExecutionManager.isTermex) "Termex (bash)" else getString(R.string.om_term_mode_system)
             toolbar.title = ScriptExecutionManager.activeScriptName
-            toolbar.subtitle = if (existingSession.isRunning) getString(R.string.om_term_running_subtitle_format, mode) else getString(R.string.om_term_finished_code_format, existingSession.exitStatus)
+            val reattachCwd = ScriptExecutionManager.activeScriptPath ?: TerminalSettings.getStartPath(this)
             updateHudState(
                 isRoot = ScriptExecutionManager.isRoot,
                 isTermex = ScriptExecutionManager.isTermex,
                 isRunning = existingSession.isRunning,
                 exitStatus = if (existingSession.isRunning) null else existingSession.exitStatus,
-                cwd = ScriptExecutionManager.activeScriptPath
+                cwd = reattachCwd
             )
+            if (!existingSession.isRunning) {
+                toolbar.subtitle = getString(R.string.om_term_finished_code_format, existingSession.exitStatus)
+            }
             return
         }
 
@@ -527,7 +911,8 @@ class TerminalActivity : AppActivity() {
 
         val forceRoot = forceRootOverride
             ?: if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null
-        val forceTermex = if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null
+        val forceTermex = forceTermexOverride
+            ?: if (intent.hasExtra(EXTRA_FORCE_TERMEX)) intent.getBooleanExtra(EXTRA_FORCE_TERMEX, false) else null
 
         val activeScript = intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
             ?: intent.getStringExtra(EXTRA_PATH)
@@ -570,19 +955,111 @@ class TerminalActivity : AppActivity() {
             root = config.isRoot,
             termex = config.isTermex
         )
+        currentPid = session.pid
 
         terminalView.setTerminalViewClient(viewClient)
         terminalView.attachSession(session)
 
-        val mode = if (config.isRoot) "Root (#)" else if (config.isTermex) "Termex (bash)" else getString(R.string.om_term_mode_system)
         toolbar.title = scriptName
-        toolbar.subtitle = getString(R.string.om_term_running_subtitle_format, mode)
         updateHudState(
             isRoot = config.isRoot,
             isTermex = config.isTermex,
             isRunning = true,
             cwd = config.cwd
         )
+    }
+
+    private fun showStopSignalMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.apply {
+            add(Menu.NONE, 1, 1, R.string.om_term_send_sigint)
+            add(Menu.NONE, 2, 2, R.string.om_term_force_kill)
+        }
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    terminalSession?.write("\u0003")
+                    true
+                }
+                2 -> {
+                    ScriptExecutionManager.terminateShell(this)
+                    updateHudState(
+                        isRoot = ScriptExecutionManager.isRoot,
+                        isTermex = ScriptExecutionManager.isTermex,
+                        isRunning = false,
+                        exitStatus = 137
+                    )
+                    toolbar.subtitle = getString(R.string.om_term_finished_code_format, 137)
+                    Toast.makeText(this, R.string.om_term_process_terminated, Toast.LENGTH_SHORT).show()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun showSessionQuickMenu(anchor: View) {
+        val popup = PopupMenu(this, anchor)
+        popup.menu.apply {
+            if (terminalSession?.isRunning == true) {
+                add(Menu.NONE, 1, 1, R.string.om_term_send_sigint)
+                add(Menu.NONE, 2, 2, R.string.om_term_force_kill)
+            }
+            add(Menu.NONE, 3, 3, R.string.om_term_switch_system)
+            if (TerminalExpansionManager.isRootAvailable()) {
+                add(Menu.NONE, 4, 4, R.string.om_term_switch_root)
+            }
+            add(Menu.NONE, 5, 5, R.string.om_term_switch_termex)
+            add(Menu.NONE, 6, 6, R.string.om_term_new_clean_session)
+        }
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                1 -> {
+                    terminalSession?.write("\u0003")
+                    true
+                }
+                2 -> {
+                    ScriptExecutionManager.terminateShell(this)
+                    updateHudState(
+                        isRoot = ScriptExecutionManager.isRoot,
+                        isTermex = ScriptExecutionManager.isTermex,
+                        isRunning = false,
+                        exitStatus = 137
+                    )
+                    toolbar.subtitle = getString(R.string.om_term_finished_code_format, 137)
+                    Toast.makeText(this, R.string.om_term_process_terminated, Toast.LENGTH_SHORT).show()
+                    true
+                }
+                3 -> {
+                    startTerminalSession(forceRootOverride = false, forceTermexOverride = false)
+                    true
+                }
+                4 -> {
+                    startTerminalSession(forceRootOverride = true, forceTermexOverride = false)
+                    true
+                }
+                5 -> {
+                    if (TerminalExpansionManager.isTermexInstalled(this)) {
+                        startTerminalSession(forceRootOverride = false, forceTermexOverride = true)
+                    } else {
+                        TerminalExpansionManager.showExpansionInstallerDialog(this) {
+                            if (TerminalExpansionManager.isTermexInstalled(this)) {
+                                startTerminalSession(forceRootOverride = false, forceTermexOverride = true)
+                            }
+                        }
+                    }
+                    true
+                }
+                6 -> {
+                    startTerminalSession(forceRootOverride = false, forceTermexOverride = null)
+                    Toast.makeText(this, R.string.om_term_new_session_started, Toast.LENGTH_SHORT).show()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
     }
 
     private fun copyTerminalTranscript() {
@@ -663,7 +1140,7 @@ class TerminalActivity : AppActivity() {
                     true
                 }
                 9 -> {
-                    startTerminalSession()
+                    startTerminalSession(forceRootOverride = false, forceTermexOverride = null)
                     Toast.makeText(this, R.string.om_term_new_session_started, Toast.LENGTH_SHORT).show()
                     true
                 }
@@ -727,20 +1204,24 @@ class TerminalActivity : AppActivity() {
         return super.dispatchKeyEvent(event)
     }
 
+    @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         finish()
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        stopRuntimeTicker()
+        detachableClient?.detach(this)
+        detachableClient = null
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
         if (terminalSession?.isRunning == true) {
-            Toast.makeText(this, R.string.script_exec_running_background_toast, Toast.LENGTH_SHORT).show()
+            Toast.makeText(applicationContext, R.string.script_exec_running_background_toast, Toast.LENGTH_SHORT).show()
         } else {
             ScriptExecutionManager.clearSession()
-            ScriptExecutionService.stop(this)
+            ScriptExecutionService.stop(applicationContext)
         }
+        super.onDestroy()
     }
 }

@@ -2684,4 +2684,14 @@
     <string name="om_split_install_failed_format">No se pudo instalar %1$s: %2$s</string>
     <string name="om_split_subtitle_count_format">Paquete dividido • %1$s • %2$d splits</string>
     <string name="om_split_subtitle_basic_format">Paquete dividido • %1$s</string>
+    <string name="om_term_toggle_keyboard">Mostrar / ocultar teclado</string>
+    <string name="om_term_stop_signal">Interrumpir / detener</string>
+    <string name="om_term_send_sigint">Enviar Ctrl+C (Interrumpir)</string>
+    <string name="om_term_force_kill">Forzar cierre (SIGKILL)</string>
+    <string name="om_term_switch_system">Cambiar a Sistema (sh)</string>
+    <string name="om_term_switch_termex">Cambiar a Termex (bash)</string>
+    <string name="om_term_cwd_copied_format">Directorio copiado: %1$s</string>
+    <string name="om_term_running_timer_format">En ejecución • %1$s</string>
+    <string name="om_term_running_pid_timer_format">PID %1$d • %2$s</string>
+    <string name="om_term_modifier_locked_format">%1$s fijado (toca para soltar)</string>
 </resources>

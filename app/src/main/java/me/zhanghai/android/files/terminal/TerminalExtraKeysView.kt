@@ -19,10 +19,12 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
-import android.view.View
+import android.view.ViewConfiguration
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
+import me.zhanghai.android.files.terminal.TerminalUiHelper.ModifierState
+import kotlin.math.roundToInt
 
 class TerminalExtraKeysView @JvmOverloads constructor(
     context: Context,
@@ -30,45 +32,149 @@ class TerminalExtraKeysView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : LinearLayout(context, attrs, defStyleAttr) {
 
-    var onKeyString: ((String) -> Unit)? = null
-    var onOverflowMenuClick: ((View) -> Unit)? = null
+    data class DeckPalette(
+        val isLightChrome: Boolean,
+        val deckBg: Int,
+        val deckBorder: Int,
+        val keyFace: Int,
+        val keyShadow: Int,
+        val keyBorder: Int,
+        val navKeyFace: Int,
+        val navKeyBorder: Int,
+        val textPrimary: Int,
+        val textSecondary: Int,
+        val accentColor: Int,
+        val rippleColor: Int
+    ) {
+        val onAccentColor: Int
+            get() {
+                val r = ((accentColor shr 16) and 0xFF) / 255.0
+                val g = ((accentColor shr 8) and 0xFF) / 255.0
+                val b = (accentColor and 0xFF) / 255.0
+                val luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+                return if (luminance > 0.55) 0xFF121212.toInt() else Color.WHITE
+            }
+    }
 
-    var isCtrlActive: Boolean = false
+    var onKeyString: ((String) -> Unit)? = null
+    var onToggleKeyboardClick: (() -> Unit)? = null
+    var onModifierLockedToast: ((String) -> Unit)? = null
+
+    var ctrlState: ModifierState = ModifierState.OFF
         private set
-    var isAltActive: Boolean = false
+    var altState: ModifierState = ModifierState.OFF
         private set
+
+    val isCtrlActive: Boolean
+        get() = ctrlState != ModifierState.OFF
+    val isAltActive: Boolean
+        get() = altState != ModifierState.OFF
 
     private var ctrlButton: TextView? = null
     private var altButton: TextView? = null
     private val repeatHandler = Handler(Looper.getMainLooper())
     private var activeRepeatRunnable: Runnable? = null
 
+    private var deckPalette: DeckPalette = createDeckPalette(
+        isLightChrome = false,
+        isAmoled = false,
+        accentColor = 0xFF58A6FF.toInt()
+    )
+
     init {
         orientation = VERTICAL
-        // Obsidian terminal bar with hairline top divider
-        val topDivider = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            setColor(Color.parseColor("#0F1217"))
-            setStroke(dp(1), Color.parseColor("#21262D"))
-        }
-        background = topDivider
-        setPadding(dp(4), dp(4), dp(4), dp(6))
+        applyDeckBackground()
+        setPadding(dp(6), dp(6), dp(6), dp(6))
         buildKeys()
     }
 
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).roundToInt()
+
+    private fun dpF(v: Float): Float = v * resources.displayMetrics.density
+
+    private fun createDeckPalette(
+        isLightChrome: Boolean,
+        isAmoled: Boolean,
+        accentColor: Int
+    ): DeckPalette = when {
+        isLightChrome -> DeckPalette(
+            isLightChrome = true,
+            deckBg = 0xFFEEF2F6.toInt(),
+            deckBorder = 0xFFD5DCE6.toInt(),
+            keyFace = 0xFFFFFFFF.toInt(),
+            keyShadow = 0xFFCBD5E1.toInt(),
+            keyBorder = 0xFFD8E0EA.toInt(),
+            navKeyFace = 0xFFF8FAFC.toInt(),
+            navKeyBorder = 0xFFCBD5E1.toInt(),
+            textPrimary = 0xFF0F172A.toInt(),
+            textSecondary = 0xFF475569.toInt(),
+            accentColor = accentColor,
+            rippleColor = 0x220F172A
+        )
+        isAmoled -> DeckPalette(
+            isLightChrome = false,
+            deckBg = 0xFF090C10.toInt(),
+            deckBorder = 0xFF1C232E.toInt(),
+            keyFace = 0xFF151B24.toInt(),
+            keyShadow = 0xFF040608.toInt(),
+            keyBorder = 0xFF263040.toInt(),
+            navKeyFace = 0xFF1D2532.toInt(),
+            navKeyBorder = 0xFF323F54.toInt(),
+            textPrimary = 0xFFF0F6FC.toInt(),
+            textSecondary = 0xFF94A3B8.toInt(),
+            accentColor = accentColor,
+            rippleColor = 0x38FFFFFF
+        )
+        else -> DeckPalette(
+            isLightChrome = false,
+            deckBg = 0xFF10141C.toInt(),
+            deckBorder = 0xFF222A36.toInt(),
+            keyFace = 0xFF1B222E.toInt(),
+            keyShadow = 0xFF0A0D12.toInt(),
+            keyBorder = 0xFF2D3748.toInt(),
+            navKeyFace = 0xFF242E3E.toInt(),
+            navKeyBorder = 0xFF3B495E.toInt(),
+            textPrimary = 0xFFF0F6FC.toInt(),
+            textSecondary = 0xFF94A3B8.toInt(),
+            accentColor = accentColor,
+            rippleColor = 0x38FFFFFF
+        )
+    }
+
+    fun applyTheme(isLightChrome: Boolean, isAmoled: Boolean, accentColor: Int) {
+        val next = createDeckPalette(isLightChrome, isAmoled, accentColor)
+        if (next == deckPalette && childCount > 0) return
+        deckPalette = next
+        applyDeckBackground()
+        buildKeys()
+    }
+
+    private fun applyDeckBackground() {
+        val topBorderLayer = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(deckPalette.deckBorder)
+        }
+        val fillLayer = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            setColor(deckPalette.deckBg)
+        }
+        val layers = LayerDrawable(arrayOf(topBorderLayer, fillLayer))
+        layers.setLayerInset(1, 0, dp(1), 0, 0)
+        background = layers
+    }
 
     private fun buildKeys() {
+        stopRepeating()
         removeAllViews()
+        ctrlButton = null
+        altButton = null
 
-        // -------------------------------------------------------------
         // Row 0: Quick shell syntax chips & interrupt signals (Scrollable)
-        // -------------------------------------------------------------
         val scrollSymbols = HorizontalScrollView(context).apply {
             isHorizontalScrollBarEnabled = false
             overScrollMode = OVER_SCROLL_NEVER
             layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(34)).apply {
-                bottomMargin = dp(3)
+                bottomMargin = dp(4)
             }
         }
         val row0 = LinearLayout(context).apply {
@@ -77,109 +183,122 @@ class TerminalExtraKeysView @JvmOverloads constructor(
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
         }
         val row0Keys = arrayOf(
-            Pair("/", "/"),
-            Pair("-", "-"),
-            Pair("|", "|"),
-            Pair("$", "$"),
-            Pair("~", "~"),
-            Pair("*", "*"),
-            Pair("&", "&"),
-            Pair(">", ">"),
-            Pair("\"", "\""),
-            Pair("'", "'"),
-            Pair("Ctrl+C", "\u0003"),
-            Pair("Ctrl+D", "\u0004"),
-            Pair("Ctrl+Z", "\u001a"),
-            Pair("Clear", "\u000c")
+            "/" to "/",
+            "-" to "-",
+            "." to ".",
+            "|" to "|",
+            "$" to "$",
+            "~" to "~",
+            "*" to "*",
+            "&" to "&",
+            ">" to ">",
+            ">>" to ">>",
+            "\"" to "\"",
+            "'" to "'",
+            "=" to "=",
+            "(" to "(",
+            ")" to ")",
+            "^C" to "\u0003",
+            "^D" to "\u0004",
+            "^Z" to "\u001a",
+            "Clear" to "\u000c"
         )
         for ((label, action) in row0Keys) {
-            val isCombo = label.length > 2
-            val minW = if (isCombo) dp(60) else dp(38)
-            val btn = createChipButton(label, action, minW)
+            val minW = if (label.length >= 2) dp(50) else dp(38)
+            val btn = createChipButton(label, minW)
             btn.setOnClickListener {
                 performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                onKeyString?.invoke(action)
+                dispatchKeyAction(action)
             }
             row0.addView(btn)
         }
         scrollSymbols.addView(row0)
         addView(scrollSymbols)
 
-        // -------------------------------------------------------------
-        // Row 1: Esc, Tab, PgUp, Home, ▲, End, ⋮
-        // -------------------------------------------------------------
+        // Row 1: Esc | Tab | PgUp | Home | ▲ | End | ⌨
         val row1 = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(38)).apply {
-                bottomMargin = dp(3)
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(39)).apply {
+                bottomMargin = dp(4)
             }
         }
-
         val row1Keys = arrayOf(
-            Pair("Esc", "\u001b"),
-            Pair("Tab", "\t"),
-            Pair("PgUp", "\u001b[5~"),
-            Pair("Home", "\u001b[1~"),
-            Pair("▲", "\u001b[A"),
-            Pair("End", "\u001b[4~"),
-            Pair("⋮", "MENU")
+            "Esc" to "\u001b",
+            "Tab" to "\t",
+            "PgUp" to "\u001b[5~",
+            "Home" to "\u001b[1~",
+            "▲" to "\u001b[A",
+            "End" to "\u001b[4~",
+            "⌨" to "KEYBOARD"
         )
-
         for ((label, action) in row1Keys) {
             val btn = createStandardKeycap(label)
             if (label == "▲") {
                 attachRepeatableAction(btn, action)
+            } else if (action == "KEYBOARD") {
+                btn.setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    onToggleKeyboardClick?.invoke()
+                }
             } else {
                 btn.setOnClickListener {
                     performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    if (action == "MENU") {
-                        onOverflowMenuClick?.invoke(btn)
-                    } else {
-                        dispatchKeyAction(action)
-                    }
+                    dispatchKeyAction(action)
                 }
             }
             row1.addView(btn)
         }
         addView(row1)
 
-        // -------------------------------------------------------------
-        // Row 2: Ctrl, Alt, PgDn, ◀, ▼, ▶, ⌫
-        // -------------------------------------------------------------
+        // Row 2: Ctrl | Alt | PgDn | ◀ | ▼ | ▶ | ⌫
         val row2 = LinearLayout(context).apply {
             orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(38))
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(39))
         }
-
         val row2Keys = arrayOf(
-            Pair("Ctrl", "CTRL"),
-            Pair("Alt", "ALT"),
-            Pair("PgDn", "\u001b[6~"),
-            Pair("◀", "\u001b[D"),
-            Pair("▼", "\u001b[B"),
-            Pair("▶", "\u001b[C"),
-            Pair("⌫", "\u007f")
+            "Ctrl" to "CTRL",
+            "Alt" to "ALT",
+            "PgDn" to "\u001b[6~",
+            "◀" to "\u001b[D",
+            "▼" to "\u001b[B",
+            "▶" to "\u001b[C",
+            "⌫" to "\u007f"
         )
-
         for ((label, action) in row2Keys) {
             val btn = createStandardKeycap(label)
             when (action) {
                 "CTRL" -> {
                     ctrlButton = btn
-                    updateModifierKeycap(btn, isCtrlActive)
                     btn.setOnClickListener {
                         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        isCtrlActive = !isCtrlActive
+                        ctrlState = TerminalUiHelper.onTap(ctrlState)
                         updateModifierStyles()
+                    }
+                    btn.setOnLongClickListener {
+                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        ctrlState = TerminalUiHelper.onLongPress(ctrlState)
+                        updateModifierStyles()
+                        if (ctrlState == ModifierState.LOCKED) {
+                            onModifierLockedToast?.invoke("Ctrl")
+                        }
+                        true
                     }
                 }
                 "ALT" -> {
                     altButton = btn
-                    updateModifierKeycap(btn, isAltActive)
                     btn.setOnClickListener {
                         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        isAltActive = !isAltActive
+                        altState = TerminalUiHelper.onTap(altState)
                         updateModifierStyles()
+                    }
+                    btn.setOnLongClickListener {
+                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        altState = TerminalUiHelper.onLongPress(altState)
+                        updateModifierStyles()
+                        if (altState == ModifierState.LOCKED) {
+                            onModifierLockedToast?.invoke("Alt")
+                        }
+                        true
                     }
                 }
                 "\u001b[D", "\u001b[B", "\u001b[C", "\u007f" -> {
@@ -195,27 +314,24 @@ class TerminalExtraKeysView @JvmOverloads constructor(
             row2.addView(btn)
         }
         addView(row2)
+        updateModifierStyles()
     }
 
     private fun dispatchKeyAction(action: String) {
-        if (isCtrlActive && action.length == 1) {
-            val ch = action[0].uppercaseChar()
-            if (ch in 'A'..'Z') {
-                consumeCtrl()
-                onKeyString?.invoke((ch.code - 64).toChar().toString())
-                return
-            }
+        val (ctrlConsumed, nextCtrl) = TerminalUiHelper.consume(ctrlState)
+        val (altConsumed, nextAlt) = TerminalUiHelper.consume(altState)
+        val transformed = TerminalUiHelper.applyModifiersToKey(action, ctrlConsumed, altConsumed)
+        if (nextCtrl != ctrlState || nextAlt != altState) {
+            ctrlState = nextCtrl
+            altState = nextAlt
+            updateModifierStyles()
         }
-        if (isAltActive && action.length == 1) {
-            consumeAlt()
-            onKeyString?.invoke("\u001b$action")
-            return
-        }
-        onKeyString?.invoke(action)
+        onKeyString?.invoke(transformed)
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private fun attachRepeatableAction(btn: TextView, action: String) {
+        val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
         btn.setOnTouchListener { v, event ->
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -235,6 +351,15 @@ class TerminalExtraKeysView @JvmOverloads constructor(
                     activeRepeatRunnable = runnable
                     repeatHandler.postDelayed(runnable, 320L)
                     true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    if (event.x < -touchSlop || event.x > v.width + touchSlop ||
+                        event.y < -touchSlop || event.y > v.height + touchSlop
+                    ) {
+                        v.isPressed = false
+                        stopRepeating()
+                    }
+                    false
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     v.isPressed = false
@@ -256,9 +381,6 @@ class TerminalExtraKeysView @JvmOverloads constructor(
         stopRepeating()
     }
 
-    /**
-     * Builds a tactile, developer-grade keycap for rows 1 & 2
-     */
     private fun createStandardKeycap(label: String): TextView {
         val tv = TextView(context)
         val lp = LayoutParams(0, LayoutParams.MATCH_PARENT, 1f).apply {
@@ -273,42 +395,61 @@ class TerminalExtraKeysView @JvmOverloads constructor(
         when (label) {
             "▲", "◀", "▼", "▶" -> {
                 tv.textSize = 15f
-                tv.setTextColor(Color.parseColor("#F0F6FC"))
+                tv.setTextColor(deckPalette.textPrimary)
                 tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                applyKeycapStyle(tv, bgHex = "#282E38", strokeHex = "#3E4756")
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = deckPalette.navKeyFace,
+                    borderColor = deckPalette.navKeyBorder
+                )
             }
             "⌫" -> {
-                tv.textSize = 14f
-                tv.setTextColor(Color.parseColor("#FFA657"))
+                tv.textSize = 14.5f
+                tv.setTextColor(
+                    if (deckPalette.isLightChrome) 0xFFC2410C.toInt() else 0xFFFFA657.toInt()
+                )
                 tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                applyKeycapStyle(tv, bgHex = "#21262D", strokeHex = "#30363D")
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = deckPalette.navKeyFace,
+                    borderColor = deckPalette.navKeyBorder
+                )
             }
             "Ctrl", "Alt" -> {
-                tv.textSize = 12.5f
-                tv.setTextColor(Color.parseColor("#58A6FF"))
+                tv.textSize = 12f
+                tv.setTextColor(deckPalette.accentColor)
                 tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                applyKeycapStyle(tv, bgHex = "#161B22", strokeHex = "#30363D")
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = deckPalette.keyFace,
+                    borderColor = deckPalette.keyBorder
+                )
             }
-            "⋮" -> {
+            "⌨" -> {
                 tv.textSize = 15f
-                tv.setTextColor(Color.parseColor("#58A6FF"))
+                tv.setTextColor(deckPalette.accentColor)
                 tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                applyKeycapStyle(tv, bgHex = "#21262D", strokeHex = "#30363D")
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = deckPalette.navKeyFace,
+                    borderColor = deckPalette.navKeyBorder
+                )
             }
             else -> {
-                // Esc, Tab, Home, End, PgUp, PgDn
-                tv.textSize = 12.5f
-                tv.setTextColor(Color.parseColor("#E6EDF3"))
-                applyKeycapStyle(tv, bgHex = "#21262D", strokeHex = "#30363D")
+                tv.textSize = 12f
+                tv.setTextColor(deckPalette.textPrimary)
+                tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = deckPalette.keyFace,
+                    borderColor = deckPalette.keyBorder
+                )
             }
         }
         return tv
     }
 
-    /**
-     * Builds a sleek capsule chip for Row 0 with syntax-highlighted accents
-     */
-    private fun createChipButton(label: String, action: String, minWidthPx: Int): TextView {
+    private fun createChipButton(label: String, minWidthPx: Int): TextView {
         val tv = TextView(context)
         val lp = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT).apply {
             val m = dp(2)
@@ -316,118 +457,180 @@ class TerminalExtraKeysView @JvmOverloads constructor(
         }
         tv.layoutParams = lp
         tv.minWidth = minWidthPx
-        tv.setPadding(dp(8), 0, dp(8), 0)
+        tv.setPadding(dp(9), 0, dp(9), 0)
         tv.gravity = Gravity.CENTER
         tv.text = label
         tv.textSize = 12f
         tv.typeface = Typeface.MONOSPACE
+        val light = deckPalette.isLightChrome
 
         when (label) {
-            "Ctrl+C" -> {
-                tv.setTextColor(Color.parseColor("#FF7B72"))
+            "^C" -> {
+                tv.setTextColor(if (light) 0xFFB91C1C.toInt() else 0xFFFF7B72.toInt())
                 tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                applyKeycapStyle(tv, bgHex = "#3D1B1E", strokeHex = "#6E2228", radiusDp = 10)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = if (light) 0xFFFEE2E2.toInt() else 0xFF33181B.toInt(),
+                    borderColor = if (light) 0xFFFCA5A5.toInt() else 0xFF6E2228.toInt(),
+                    radiusDp = 9f
+                )
             }
-            "Ctrl+D" -> {
-                tv.setTextColor(Color.parseColor("#D2A8FF"))
-                applyKeycapStyle(tv, bgHex = "#2A1B38", strokeHex = "#582B7D", radiusDp = 10)
+            "^D" -> {
+                tv.setTextColor(if (light) 0xFF6D28D9.toInt() else 0xFFD2A8FF.toInt())
+                tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = if (light) 0xFFF3E8FF.toInt() else 0xFF241830.toInt(),
+                    borderColor = if (light) 0xFFD8B4FE.toInt() else 0xFF582B7D.toInt(),
+                    radiusDp = 9f
+                )
             }
-            "Ctrl+Z" -> {
-                tv.setTextColor(Color.parseColor("#FFA657"))
-                applyKeycapStyle(tv, bgHex = "#332212", strokeHex = "#663B19", radiusDp = 10)
+            "^Z" -> {
+                tv.setTextColor(if (light) 0xFFC2410C.toInt() else 0xFFFFA657.toInt())
+                tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = if (light) 0xFFFFEDD5.toInt() else 0xFF2D1E10.toInt(),
+                    borderColor = if (light) 0xFFFDBA74.toInt() else 0xFF663B19.toInt(),
+                    radiusDp = 9f
+                )
             }
             "Clear" -> {
-                tv.setTextColor(Color.parseColor("#79C0FF"))
+                tv.setTextColor(if (light) 0xFF0369A1.toInt() else 0xFF79C0FF.toInt())
                 tv.setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                applyKeycapStyle(tv, bgHex = "#122738", strokeHex = "#1D4F75", radiusDp = 10)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = if (light) 0xFFE0F2FE.toInt() else 0xFF112434.toInt(),
+                    borderColor = if (light) 0xFF7DD3FC.toInt() else 0xFF1D4F75.toInt(),
+                    radiusDp = 9f
+                )
             }
             "\"", "'" -> {
-                tv.setTextColor(Color.parseColor("#A5D6FF"))
-                applyKeycapStyle(tv, bgHex = "#161B22", strokeHex = "#30363D", radiusDp = 10)
+                tv.setTextColor(if (light) 0xFF0284C7.toInt() else 0xFFA5D6FF.toInt())
+                applyTactileKeycapStyle(tv, deckPalette.keyFace, deckPalette.keyBorder, radiusDp = 9f)
             }
             "$", "~" -> {
-                tv.setTextColor(Color.parseColor("#7EE787"))
-                applyKeycapStyle(tv, bgHex = "#161B22", strokeHex = "#30363D", radiusDp = 10)
+                tv.setTextColor(if (light) 0xFF047857.toInt() else 0xFF7EE787.toInt())
+                applyTactileKeycapStyle(tv, deckPalette.keyFace, deckPalette.keyBorder, radiusDp = 9f)
             }
-            "|", ">", "&" -> {
-                tv.setTextColor(Color.parseColor("#FFA657"))
-                applyKeycapStyle(tv, bgHex = "#161B22", strokeHex = "#30363D", radiusDp = 10)
+            "|", ">", ">>", "&" -> {
+                tv.setTextColor(if (light) 0xFFC2410C.toInt() else 0xFFFFA657.toInt())
+                applyTactileKeycapStyle(tv, deckPalette.keyFace, deckPalette.keyBorder, radiusDp = 9f)
             }
-            "/", "-", "*" -> {
-                tv.setTextColor(Color.parseColor("#79C0FF"))
-                applyKeycapStyle(tv, bgHex = "#161B22", strokeHex = "#30363D", radiusDp = 10)
+            "/", "-", "*", "=" -> {
+                tv.setTextColor(if (light) 0xFF1D4ED8.toInt() else 0xFF79C0FF.toInt())
+                applyTactileKeycapStyle(tv, deckPalette.keyFace, deckPalette.keyBorder, radiusDp = 9f)
             }
             else -> {
-                tv.setTextColor(Color.parseColor("#E6EDF3"))
-                applyKeycapStyle(tv, bgHex = "#161B22", strokeHex = "#30363D", radiusDp = 10)
+                tv.setTextColor(deckPalette.textPrimary)
+                applyTactileKeycapStyle(tv, deckPalette.keyFace, deckPalette.keyBorder, radiusDp = 9f)
             }
         }
         return tv
     }
 
-    private fun applyKeycapStyle(
+    private fun applyTactileKeycapStyle(
         tv: TextView,
-        bgHex: String,
-        strokeHex: String,
-        radiusDp: Int = 6,
-        strokeWidthDp: Int = 1
+        faceColor: Int,
+        borderColor: Int,
+        radiusDp: Float = 7f,
+        strokeWidthDp: Float = 1f,
+        shadowColor: Int = deckPalette.keyShadow
     ) {
-        val shape = GradientDrawable().apply {
-            cornerRadius = dp(radiusDp).toFloat()
-            setColor(Color.parseColor(bgHex))
-            setStroke(dp(strokeWidthDp), Color.parseColor(strokeHex))
+        val radiusPx = dpF(radiusDp)
+        val shadowLayer = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusPx
+            setColor(shadowColor)
         }
+        val faceLayer = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusPx
+            setColor(faceColor)
+            setStroke(dpF(strokeWidthDp).roundToInt().coerceAtLeast(1), borderColor)
+        }
+        val keycapLayers = LayerDrawable(arrayOf(shadowLayer, faceLayer))
+        keycapLayers.setLayerInset(1, 0, 0, 0, dpF(1.5f).roundToInt().coerceAtLeast(1))
 
-        val ripple = RippleDrawable(
-            ColorStateList.valueOf(Color.parseColor("#45FFFFFF")),
-            shape,
-            null
+        val mask = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radiusPx
+            setColor(Color.WHITE)
+        }
+        tv.background = RippleDrawable(
+            ColorStateList.valueOf(deckPalette.rippleColor),
+            keycapLayers,
+            mask
         )
-        tv.background = ripple
     }
 
-    private fun updateModifierKeycap(tv: TextView, isActive: Boolean) {
-        if (isActive) {
-            tv.setTextColor(Color.WHITE)
-            applyKeycapStyle(
-                tv,
-                bgHex = "#1F6FEB",
-                strokeHex = "#58A6FF",
-                radiusDp = 6,
-                strokeWidthDp = 2
-            )
-        } else {
-            tv.setTextColor(Color.parseColor("#58A6FF"))
-            applyKeycapStyle(
-                tv,
-                bgHex = "#161B22",
-                strokeHex = "#30363D",
-                radiusDp = 6,
-                strokeWidthDp = 1
-            )
+    private fun blendOverSurface(base: Int, overlay: Int, alphaRatio: Float): Int {
+        val inv = 1f - alphaRatio
+        val r = (Color.red(base) * inv + Color.red(overlay) * alphaRatio).roundToInt().coerceIn(0, 255)
+        val g = (Color.green(base) * inv + Color.green(overlay) * alphaRatio).roundToInt().coerceIn(0, 255)
+        val b = (Color.blue(base) * inv + Color.blue(overlay) * alphaRatio).roundToInt().coerceIn(0, 255)
+        return Color.rgb(r, g, b)
+    }
+
+    private fun updateModifierKeycap(tv: TextView, baseName: String, state: ModifierState) {
+        val accent = deckPalette.accentColor
+        when (state) {
+            ModifierState.LOCKED -> {
+                tv.text = "${baseName.uppercase()} ●"
+                tv.setTextColor(deckPalette.onAccentColor)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = accent,
+                    borderColor = deckPalette.textPrimary,
+                    radiusDp = 7f,
+                    strokeWidthDp = 1.5f
+                )
+            }
+            ModifierState.ONE_SHOT -> {
+                tv.text = "$baseName •"
+                tv.setTextColor(if (deckPalette.isLightChrome) accent else deckPalette.textPrimary)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = blendOverSurface(deckPalette.keyFace, accent, 0.24f),
+                    borderColor = accent,
+                    radiusDp = 7f,
+                    strokeWidthDp = 1.5f
+                )
+            }
+            ModifierState.OFF -> {
+                tv.text = baseName
+                tv.setTextColor(accent)
+                applyTactileKeycapStyle(
+                    tv,
+                    faceColor = deckPalette.keyFace,
+                    borderColor = deckPalette.keyBorder,
+                    radiusDp = 7f,
+                    strokeWidthDp = 1f
+                )
+            }
         }
     }
 
     private fun updateModifierStyles() {
-        ctrlButton?.let { updateModifierKeycap(it, isCtrlActive) }
-        altButton?.let { updateModifierKeycap(it, isAltActive) }
+        ctrlButton?.let { updateModifierKeycap(it, "Ctrl", ctrlState) }
+        altButton?.let { updateModifierKeycap(it, "Alt", altState) }
     }
 
     fun consumeCtrl(): Boolean {
-        val was = isCtrlActive
-        if (was) {
-            isCtrlActive = false
+        val (wasActive, next) = TerminalUiHelper.consume(ctrlState)
+        if (next != ctrlState) {
+            ctrlState = next
             updateModifierStyles()
         }
-        return was
+        return wasActive
     }
 
     fun consumeAlt(): Boolean {
-        val was = isAltActive
-        if (was) {
-            isAltActive = false
+        val (wasActive, next) = TerminalUiHelper.consume(altState)
+        if (next != altState) {
+            altState = next
             updateModifierStyles()
         }
-        return was
+        return wasActive
     }
 }
