@@ -83,7 +83,7 @@ object ApkInstallHelper {
                 SplitApkEntryInfo(
                     zipEntryName = item.entry.name,
                     sessionEntryName = "${index}_${item.sanitizedLeaf}",
-                    displayName = item.leaf,
+                    displayName = item.leafName,
                     uncompressedSize = item.entry.size
                 )
             }

@@ -25,7 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
-import me.zhanghai.android.files.file.fileSize
 import me.zhanghai.android.files.provider.common.copyTo
 import me.zhanghai.android.files.provider.common.deleteIfExists
 import me.zhanghai.android.files.provider.common.moveTo
@@ -57,7 +56,7 @@ object FileSplitMergeHelper {
             return
         }
 
-        val totalLength = fileItem.attributes.fileSize
+        val totalLength = fileItem.attributes.size()
         val context = activity
         val palette = OpenManagerPalette.from(context)
 
@@ -226,7 +225,7 @@ object FileSplitMergeHelper {
         onComplete: () -> Unit
     ) {
         val baseMsg = activity.getString(R.string.split_file_progress)
-        val totalBytes = fileItem.attributes.fileSize
+        val totalBytes = fileItem.attributes.size()
         val srcPath = fileItem.path
         val srcName = fileItem.name
 
@@ -375,7 +374,7 @@ object FileSplitMergeHelper {
 
         var totalSize = 0L
         for (part in parts) {
-            totalSize += part.attributes.fileSize
+            totalSize += part.attributes.size()
         }
 
         val context = activity
