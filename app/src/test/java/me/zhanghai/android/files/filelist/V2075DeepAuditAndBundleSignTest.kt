@@ -26,8 +26,8 @@ import java.util.zip.ZipOutputStream
 class V2075DeepAuditAndBundleSignTest {
 
     private fun resolveAppRoot(): File {
-        return File("src/main").takeIf { it.isDirectory }?.parentFile
-            ?: File("app/src/main").takeIf { it.isDirectory }?.parentFile
+        return File(".").takeIf { File(it, "src/main").isDirectory }
+            ?: File("app").takeIf { File(it, "src/main").isDirectory }
             ?: error("Could not locate app directory from ${File(".").absolutePath}")
     }
 
