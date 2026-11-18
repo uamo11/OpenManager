@@ -14,6 +14,7 @@ import androidx.preference.PreferenceGroup
 import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.archive.archiver.ArchiveSecurityPreferences
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
@@ -358,6 +359,27 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                     }
                 }
             }, 300)
+        }
+
+        if (BuildConfig.DEBUG) {
+            val demoCategory = activity?.intent?.getStringExtra("DEMO_CATEGORY")
+            val demoOpenPref = activity?.intent?.getStringExtra("DEMO_OPEN_PREF")
+            if (!demoCategory.isNullOrEmpty() || !demoOpenPref.isNullOrEmpty()) {
+                view.postDelayed({
+                    if (isAdded && !isDetached) {
+                        if (!demoCategory.isNullOrEmpty()) {
+                            scrollToCategory(demoCategory)
+                        }
+                        if (!demoOpenPref.isNullOrEmpty()) {
+                            view.postDelayed({
+                                if (isAdded && !isDetached) {
+                                    findPreference<Preference>(demoOpenPref)?.performClick()
+                                }
+                            }, 250)
+                        }
+                    }
+                }, 350)
+            }
         }
     }
 

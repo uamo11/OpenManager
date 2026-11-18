@@ -531,6 +531,29 @@ class FileListActivity : AppActivity() {
                             )
                         )
                     }
+                    "terminal_script_es" -> {
+                        val targetDir = java.io.File("/storage/emulated/0").takeIf { it.exists() && it.canWrite() }
+                            ?: filesDir
+                        val scriptFile = java.io.File(targetDir, "a.sh")
+                        scriptFile.writeText(
+                            "#!/system/bin/sh\n" +
+                                "echo \"Creando /storage/emulated/0/Music/prueba_openmanager.txt ...\"\n" +
+                                "echo \"Contenido guardado:\"\n" +
+                                "echo \"Hola, este es un archivo de prueba creado por script.\"\n" +
+                                "echo \"Fecha: \$(date)\"\n" +
+                                "printf \"¿Borrar este archivo? (s/n): \"\n" +
+                                "read -t 15 ans || true\n"
+                        )
+                        scriptFile.setExecutable(true, false)
+                        startActivity(
+                            me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                                context = this,
+                                path = targetDir.absolutePath,
+                                command = "sh '${scriptFile.absolutePath}'",
+                                activeScriptPath = scriptFile.absolutePath
+                            )
+                        )
+                    }
                     "terminal_imgui" -> {
                         startActivity(
                             me.zhanghai.android.files.terminal.TerminalActivity.createIntent(

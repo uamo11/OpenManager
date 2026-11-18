@@ -29,6 +29,7 @@ import androidx.core.view.isVisible
 import androidx.core.widget.ImageViewCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.SettingsFragmentBinding
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
@@ -84,6 +85,29 @@ class SettingsFragment : Fragment() {
         applySearchAndHeaderTheme(palette)
         populateQuickJumpChips(palette)
         setupSearchListeners()
+
+        if (BuildConfig.DEBUG) {
+            val actIntent = activity.intent
+            actIntent?.getStringExtra("DEMO_ACTIVE_CHIP")?.takeIf { it.isNotEmpty() }?.let { chipKey ->
+                activeChipKey = chipKey
+                refreshChipStyles(palette)
+            }
+            if (actIntent?.getStringExtra("DEMO_COLLAPSE_HEADER") == "true") {
+                binding.appBarLayout.post {
+                    if (isAdded) {
+                        binding.appBarLayout.setExpanded(false, false)
+                    }
+                }
+            }
+            actIntent?.getStringExtra("DEMO_SEARCH")?.takeIf { it.isNotEmpty() }?.let { q ->
+                binding.etSettingsSearch.postDelayed({
+                    if (isAdded) {
+                        binding.etSettingsSearch.setText(q)
+                        hideKeyboard()
+                    }
+                }, 250)
+            }
+        }
     }
 
     private fun applySearchAndHeaderTheme(palette: OpenManagerPalette) {

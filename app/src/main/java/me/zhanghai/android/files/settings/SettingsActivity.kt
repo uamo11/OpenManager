@@ -17,8 +17,12 @@ import androidx.fragment.app.add
 import androidx.fragment.app.commit
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.WriteWith
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.app.AppActivity
+import me.zhanghai.android.files.theme.custom.CustomThemeHelper
 import me.zhanghai.android.files.theme.custom.CustomThemeHelper.OnThemeChangedListener
+import me.zhanghai.android.files.theme.night.NightMode
+import me.zhanghai.android.files.theme.night.NightModeHelper
 import me.zhanghai.android.files.theme.night.NightModeHelper.OnNightModeChangedListener
 import me.zhanghai.android.files.util.BundleParceler
 import me.zhanghai.android.files.util.ParcelableArgs
@@ -26,6 +30,7 @@ import me.zhanghai.android.files.util.createIntent
 import me.zhanghai.android.files.util.getArgsOrNull
 import me.zhanghai.android.files.util.putArgs
 import me.zhanghai.android.files.util.startActivitySafe
+import me.zhanghai.android.files.util.valueCompat
 
 class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChangedListener {
     private var isRestarting = false
@@ -33,6 +38,47 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
     override fun onCreate(savedInstanceState: Bundle?) {
         val args = intent.extras?.getArgsOrNull<Args>()
         val savedInstanceState = savedInstanceState ?: args?.savedInstanceState
+        if (BuildConfig.DEBUG && savedInstanceState == null) {
+            intent.getStringExtra("DEMO_LOCALE")?.let { loc ->
+                when (loc) {
+                    "es" -> {
+                        if (AppCompatDelegate.getApplicationLocales().toLanguageTags() != "es") {
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags("es"))
+                        }
+                    }
+                    "reset" -> {
+                        if (!AppCompatDelegate.getApplicationLocales().isEmpty) {
+                            AppCompatDelegate.setApplicationLocales(LocaleListCompat.getEmptyLocaleList())
+                        }
+                    }
+                }
+            }
+            intent.getStringExtra("DEMO_THEME")?.let { theme ->
+                when (theme) {
+                    "dark" -> {
+                        Settings.BLACK_NIGHT_MODE.putValue(false)
+                        Settings.NIGHT_MODE.putValue(NightMode.ON)
+                        delegate.localNightMode = NightMode.ON.value
+                        NightModeHelper.sync()
+                        CustomThemeHelper.sync()
+                    }
+                    "amoled" -> {
+                        Settings.NIGHT_MODE.putValue(NightMode.ON)
+                        Settings.BLACK_NIGHT_MODE.putValue(true)
+                        delegate.localNightMode = NightMode.ON.value
+                        NightModeHelper.sync()
+                        CustomThemeHelper.sync()
+                    }
+                    "light" -> {
+                        Settings.BLACK_NIGHT_MODE.putValue(false)
+                        Settings.NIGHT_MODE.putValue(NightMode.OFF)
+                        delegate.localNightMode = NightMode.OFF.value
+                        NightModeHelper.sync()
+                        CustomThemeHelper.sync()
+                    }
+                }
+            }
+        }
         super.onCreate(savedInstanceState)
 
         // Calls ensureSubDecor().
