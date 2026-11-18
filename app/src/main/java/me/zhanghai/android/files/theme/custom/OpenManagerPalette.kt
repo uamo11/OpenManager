@@ -6,11 +6,22 @@
 package me.zhanghai.android.files.theme.custom
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.Configuration
+import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Button
+import android.widget.CompoundButton
+import android.widget.EditText
+import android.widget.ImageView
+import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.widget.CompoundButtonCompat
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.theme.night.NightMode
@@ -58,10 +69,140 @@ data class OpenManagerPalette(
             return if (luminance > 0.55) 0xFF121212.toInt() else 0xFFFFFFFF.toInt()
         }
 
+    /**
+     * Dynamically adapts dark-hardcoded XML dialog layouts to Light and True Black AMOLED modes,
+     * while leaving Default Dark Mode (MT style) pixel-identical.
+     */
+    fun applyToDialogSurface(
+        root: View,
+        cornerRadiusDp: Float = 0f,
+        strokeWidthDp: Float = 0f
+    ) {
+        if (isDark && !isAmoled) return
+
+        val density = root.resources.displayMetrics.density
+        if (cornerRadiusDp > 0f) {
+            root.background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = cornerRadiusDp * density
+                setColor(dialogBg)
+                if (strokeWidthDp > 0f) {
+                    setStroke((strokeWidthDp * density).toInt().coerceAtLeast(1), dividerLineColor)
+                }
+            }
+        } else {
+            root.setBackgroundColor(dialogBg)
+        }
+
+        val dividerLimitPx = (3f * density).toInt().coerceAtLeast(2)
+        val queue = ArrayDeque<View>()
+        if (root is ViewGroup) {
+            for (i in 0 until root.childCount) {
+                queue.addLast(root.getChildAt(i))
+            }
+        }
+
+        while (queue.isNotEmpty()) {
+            val v = queue.removeFirst()
+            when (v) {
+                is EditText -> {
+                    val bg = v.background
+                    if (bg is ColorDrawable && isNeutralColor(bg.color, 20)) {
+                        v.background = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = 8f * density
+                            setColor(cardBg)
+                            setStroke((1f * density).toInt().coerceAtLeast(1), dividerLineColor)
+                        }
+                    }
+                    v.setTextColor(textPrimary)
+                    v.setHintTextColor(textSecondary)
+                }
+                is CompoundButton -> {
+                    v.setTextColor(remapNeutralTextColor(v.currentTextColor, this))
+                    CompoundButtonCompat.setButtonTintList(v, ColorStateList.valueOf(accentColor))
+                }
+                is Button -> {
+                    val tintList = v.backgroundTintList
+                    if (tintList != null) {
+                        val defaultColor = tintList.defaultColor
+                        if (isNeutralColor(defaultColor, 20)) {
+                            v.backgroundTintList = ColorStateList.valueOf(cardBg)
+                            v.setTextColor(textPrimary)
+                        }
+                    } else {
+                        v.setTextColor(remapNeutralTextColor(v.currentTextColor, this))
+                    }
+                }
+                is TextView -> {
+                    val bg = v.background
+                    if (bg is ColorDrawable && isNeutralColor(bg.color, 20)) {
+                        v.background = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = 6f * density
+                            setColor(cardBg)
+                        }
+                    }
+                    v.setTextColor(remapNeutralTextColor(v.currentTextColor, this))
+                }
+                is ImageView -> {
+                    val imgTint = v.imageTintList
+                    if (imgTint != null && isNeutralColor(imgTint.defaultColor, 24)) {
+                        val ch = (imgTint.defaultColor shr 16) and 0xFF
+                        v.imageTintList = ColorStateList.valueOf(if (ch >= 0xC8) iconTint else textSecondary)
+                    }
+                }
+                is ViewGroup -> {
+                    val bg = v.background
+                    if (bg is ColorDrawable && isNeutralColor(bg.color, 20)) {
+                        v.background = GradientDrawable().apply {
+                            shape = GradientDrawable.RECTANGLE
+                            cornerRadius = 8f * density
+                            setColor(cardBg)
+                        }
+                    }
+                    for (i in 0 until v.childCount) {
+                        queue.addLast(v.getChildAt(i))
+                    }
+                }
+                else -> {
+                    val lp = v.layoutParams
+                    val bg = v.background
+                    val isThinDivider = lp != null && (
+                        (lp.height in 1..dividerLimitPx) || (lp.width in 1..dividerLimitPx)
+                    )
+                    if (isThinDivider && bg is ColorDrawable) {
+                        v.setBackgroundColor(dividerLineColor)
+                    }
+                }
+            }
+        }
+    }
+
     companion object {
         const val PANEL_CONTRAST_STANDARD = 0
         const val PANEL_CONTRAST_HIGH = 1
         const val PANEL_CONTRAST_UNIFORM = 2
+
+        fun isNeutralColor(@ColorInt color: Int, maxChannelDelta: Int = 20): Boolean {
+            val a = (color ushr 24) and 0xFF
+            if (a < 0x80) return false
+            val r = (color shr 16) and 0xFF
+            val g = (color shr 8) and 0xFF
+            val b = color and 0xFF
+            return maxOf(r, g, b) - minOf(r, g, b) <= maxChannelDelta
+        }
+
+        @ColorInt
+        fun remapNeutralTextColor(@ColorInt originalColor: Int, palette: OpenManagerPalette): Int {
+            if (palette.isDark && !palette.isAmoled) return originalColor
+            if (!isNeutralColor(originalColor, 24)) return originalColor
+            val r = (originalColor shr 16) and 0xFF
+            val g = (originalColor shr 8) and 0xFF
+            val b = originalColor and 0xFF
+            val lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+            return if (lum >= 0.78) palette.textPrimary else palette.textSecondary
+        }
 
         /**
          * Pure computation of [OpenManagerPalette] without Android framework dependencies,

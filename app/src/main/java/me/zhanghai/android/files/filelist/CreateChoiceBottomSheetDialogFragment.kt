@@ -14,6 +14,7 @@ import android.widget.TextView
 import androidx.fragment.app.FragmentManager
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 
 class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
@@ -38,6 +39,7 @@ class CreateChoiceBottomSheetDialogFragment : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        OpenManagerPalette.from(requireContext()).applyToDialogSurface(view)
 
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val navBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars())

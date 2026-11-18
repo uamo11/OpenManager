@@ -21,14 +21,36 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatDialog
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.LifecycleOwner
 import com.android.apksig.ApkSigner
 import com.android.apksig.ApkVerifier
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java8.nio.file.FileSystems
+import java8.nio.file.Path
+import java8.nio.file.Paths
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.provider.common.newOutputStream
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
+import me.zhanghai.android.files.ui.showSafeDialog
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.math.BigInteger
 import java.security.KeyPairGenerator
 import java.security.KeyStore
@@ -38,16 +60,9 @@ import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import java8.nio.file.FileSystems
-import java8.nio.file.Path
-import java8.nio.file.Paths
-import me.zhanghai.android.files.R
-import me.zhanghai.android.files.provider.common.newInputStream
-import me.zhanghai.android.files.provider.common.newOutputStream
-import org.bouncycastle.asn1.x500.X500Name
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipOutputStream
 
 object ApkSignerHelper {
 
@@ -58,6 +73,19 @@ object ApkSignerHelper {
     }
 
     private var cachedKeyPair: Pair<PrivateKey, X509Certificate>? = null
+
+    fun computeDefaultSignedOutputName(fileName: String): String {
+        val dotIdx = fileName.lastIndexOf('.')
+        if (dotIdx > 0 && dotIdx < fileName.length - 1) {
+            val ext = fileName.substring(dotIdx + 1)
+            val lowerExt = ext.lowercase(Locale.ROOT)
+            if (lowerExt in setOf("apk", "apks", "xapk", "apkm")) {
+                val stem = fileName.substring(0, dotIdx)
+                return "${stem}_signed.${lowerExt}"
+            }
+        }
+        return "${fileName}_signed.apk"
+    }
 
     @Synchronized
     fun getTestKeyPair(): Pair<PrivateKey, X509Certificate> {
@@ -87,15 +115,7 @@ object ApkSignerHelper {
         alias: String,
         keyPass: String
     ): Pair<PrivateKey, X509Certificate> {
-        val types = mutableListOf<String>()
-        if (file.name.endsWith(".p12", true) || file.name.endsWith(".pfx", true)) {
-            types.add("PKCS12")
-            types.add("JKS")
-        } else {
-            types.add("PKCS12")
-            types.add("JKS")
-        }
-        types.add("BKS")
+        val types = mutableListOf("PKCS12", "JKS", "BKS")
 
         var lastException: Exception? = null
         for (ksType in types.distinct()) {
@@ -142,6 +162,93 @@ object ApkSignerHelper {
             .sign()
     }
 
+    /**
+     * Signs every `.apk` split inside a `.apks`/`.xapk`/`.apkm` archive while preserving
+     * non-APK metadata/OBB entries intact. Returns the number of signed split APKs.
+     */
+    fun signSplitBundleDirect(
+        inputBundle: File,
+        outputBundle: File,
+        scheme: SignScheme = SignScheme.V1_AND_V2,
+        customKey: Pair<PrivateKey, X509Certificate>? = null
+    ): Int {
+        val keyPair = customKey ?: getTestKeyPair()
+        val workParent = outputBundle.parentFile ?: inputBundle.parentFile ?: File(".")
+        val workDir = File(workParent, ".om_sign_bundle_${System.currentTimeMillis()}_${System.nanoTime()}")
+        workDir.mkdirs()
+        val tempBundleOut = File(workDir, "signed_bundle.tmp")
+        var signedCount = 0
+
+        try {
+            ZipFile(inputBundle).use { zip ->
+                val splitEntries = ApkInstallHelper.collectSplitApkEntries(zip)
+                if (splitEntries.isEmpty()) {
+                    throw IllegalArgumentException("No APK splits found inside bundle")
+                }
+
+                ZipOutputStream(FileOutputStream(tempBundleOut)).use { zos ->
+                    val buffer = ByteArray(65536)
+                    val entries = zip.entries()
+                    while (entries.hasMoreElements()) {
+                        val entry = entries.nextElement()
+                        val name = entry.name
+                        if (name.contains("..") || name.startsWith("/") ||
+                            name.startsWith("__MACOSX/", ignoreCase = true)
+                        ) {
+                            continue
+                        }
+
+                        if (entry.isDirectory) {
+                            zos.putNextEntry(ZipEntry(name))
+                            zos.closeEntry()
+                        } else if (name.endsWith(".apk", ignoreCase = true) && entry.size != 0L) {
+                            val inSplit = File(workDir, "in_split.apk")
+                            val outSplit = File(workDir, "out_split.apk")
+                            zip.getInputStream(entry).use { input ->
+                                FileOutputStream(inSplit).use { output ->
+                                    var read: Int
+                                    while (input.read(buffer).also { read = it } != -1) {
+                                        output.write(buffer, 0, read)
+                                    }
+                                }
+                            }
+                            signFileDirect(inSplit, outSplit, scheme, keyPair)
+
+                            zos.putNextEntry(ZipEntry(name))
+                            FileInputStream(outSplit).use { input ->
+                                var read: Int
+                                while (input.read(buffer).also { read = it } != -1) {
+                                    zos.write(buffer, 0, read)
+                                }
+                            }
+                            zos.closeEntry()
+                            inSplit.delete()
+                            outSplit.delete()
+                            signedCount++
+                        } else {
+                            zos.putNextEntry(ZipEntry(name))
+                            zip.getInputStream(entry).use { input ->
+                                var read: Int
+                                while (input.read(buffer).also { read = it } != -1) {
+                                    zos.write(buffer, 0, read)
+                                }
+                            }
+                            zos.closeEntry()
+                        }
+                    }
+                }
+            }
+
+            if (signedCount == 0) {
+                throw IllegalArgumentException("No APK splits found inside bundle")
+            }
+            tempBundleOut.copyTo(outputBundle, overwrite = true)
+            return signedCount
+        } finally {
+            workDir.deleteRecursively()
+        }
+    }
+
     fun signApk(
         activity: Activity,
         apkPath: Path,
@@ -150,22 +257,21 @@ object ApkSignerHelper {
         showSignDialog(activity, apkPath, onComplete)
     }
 
-    /**
-     * Shows MT Manager style dialog for signing APK with:
-     * 1. 3 signing schemes: V1+V2 (recommended), V1 (JAR), V2 (Android 7.0+)
-     * 2. Keystore options: testkey (AOSP) or custom keystore (.jks/.keystore)
-     * 3. Output file name and overwrite option
-     */
     fun showSignDialog(
         activity: Activity,
         apkPath: Path,
         onComplete: ((Path?) -> Unit)? = null
     ) {
+        if (!activity.isUiAlive) return
         val context = activity
         val dialog = AppCompatDialog(context)
         dialog.supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_mt_sign_apk, null)
         dialog.setContentView(view)
+        if (activity is LifecycleOwner) {
+            dialog.bindToLifecycle(activity)
+        }
+        OpenManagerPalette.from(context).applyToDialogSurface(view, cornerRadiusDp = 14f)
 
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -177,21 +283,14 @@ object ApkSignerHelper {
         }
 
         val fileName = apkPath.fileName.toString()
-        val baseName = if (fileName.endsWith(".apk", ignoreCase = true)) {
-            fileName.substringBeforeLast(".apk")
-        } else {
-            fileName
-        }
-        val defaultTargetFileName = "${baseName}_signed.apk"
+        val defaultTargetFileName = computeDefaultSignedOutputName(fileName)
 
         val editOutputName = view.findViewById<EditText>(R.id.editOutputName)
         editOutputName.setText(defaultTargetFileName)
 
-        val rbSchemeV1V2 = view.findViewById<RadioButton>(R.id.rbSchemeV1V2)
         val rbSchemeV1 = view.findViewById<RadioButton>(R.id.rbSchemeV1)
         val rbSchemeV2 = view.findViewById<RadioButton>(R.id.rbSchemeV2)
 
-        val rbKeyTestkey = view.findViewById<RadioButton>(R.id.rbKeyTestkey)
         val rbKeyCustom = view.findViewById<RadioButton>(R.id.rbKeyCustom)
         val layoutCustomKeyOptions = view.findViewById<LinearLayout>(R.id.layoutCustomKeyOptions)
 
@@ -221,7 +320,6 @@ object ApkSignerHelper {
         }
 
         btnBrowseKeystore.setOnClickListener {
-            // Prompt to enter path or default common location
             val defaultPath = "/storage/emulated/0/Download"
             if (editKeystorePath.text.isNullOrEmpty()) {
                 editKeystorePath.setText("$defaultPath/my-release-key.jks")
@@ -236,7 +334,7 @@ object ApkSignerHelper {
             } catch (_: Exception) {
                 "/storage/emulated/0/Download"
             }
-            if (activity is androidx.fragment.app.FragmentActivity) {
+            if (activity is FragmentActivity) {
                 KeystoreGeneratorDialogFragment.show(activity, parentDir) { result ->
                     val target = result.jksFile ?: result.bksFile
                     target?.let { editKeystorePath.setText(it.absolutePath) }
@@ -249,7 +347,7 @@ object ApkSignerHelper {
         }
 
         btnCancelSign.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
         }
 
         btnConfirmSign.setOnClickListener {
@@ -276,7 +374,7 @@ object ApkSignerHelper {
                 return@setOnClickListener
             }
 
-            dialog.dismiss()
+            dialog.dismissSafely()
 
             signApkInternal(
                 activity = activity,
@@ -292,7 +390,67 @@ object ApkSignerHelper {
             )
         }
 
-        dialog.show()
+        if (activity.isUiAlive) {
+            dialog.show()
+        }
+    }
+
+    private fun runBackgroundWithDialog(
+        activity: Activity,
+        title: String,
+        message: String,
+        worker: () -> Unit
+    ) {
+        if (activity is FragmentActivity) {
+            activity.runWithProgressDialog(title = title, initialMessage = message) {
+                withContext(Dispatchers.IO) { worker() }
+            }
+            return
+        }
+
+        val progressDialog = MaterialAlertDialogBuilder(activity)
+            .setTitle(title)
+            .setMessage(message)
+            .setCancelable(false)
+            .create()
+        if (activity is LifecycleOwner) {
+            progressDialog.bindToLifecycle(activity)
+        }
+        if (activity.isUiAlive) {
+            progressDialog.show()
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                worker()
+            } finally {
+                withContext(Dispatchers.Main) {
+                    progressDialog.dismissSafely()
+                }
+            }
+        }
+    }
+
+    private fun showUiAlert(activity: Activity, title: CharSequence, message: CharSequence, onConfigure: (MaterialAlertDialogBuilder.() -> Unit)? = null) {
+        if (!activity.isUiAlive) return
+        if (activity is FragmentActivity) {
+            activity.showSafeDialog {
+                setTitle(title)
+                setMessage(message)
+                setPositiveButton(android.R.string.ok, null)
+                onConfigure?.invoke(this)
+            }
+        } else {
+            val d = MaterialAlertDialogBuilder(activity)
+                .setTitle(title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .apply { onConfigure?.invoke(this) }
+                .create()
+            if (activity is LifecycleOwner) {
+                d.bindToLifecycle(activity)
+            }
+            d.show()
+        }
     }
 
     private fun signApkInternal(
@@ -309,21 +467,20 @@ object ApkSignerHelper {
     ) {
         val parentDir = apkPath.parent ?: Paths.get("/storage/emulated/0/Download")
         val targetPath = parentDir.resolve(outputFileName)
+        val appContext = activity.applicationContext
 
-        val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.om_sign_progress_title)
-            .setMessage(activity.getString(R.string.om_sign_progress_msg_format, scheme.name))
-            .setCancelable(false)
-            .show()
-
-        kotlin.concurrent.thread {
+        runBackgroundWithDialog(
+            activity = activity,
+            title = activity.getString(R.string.om_sign_progress_title),
+            message = activity.getString(R.string.om_sign_progress_msg_format, scheme.name)
+        ) {
             var success = false
             var errorMsg: String? = null
             var tempInFile: File? = null
+            var shouldDeleteTempIn = false
             var tempOutFile: File? = null
 
             try {
-                // 1. Resolve key pair
                 val (privateKey, cert) = if (useCustomKey) {
                     val kf = File(customKeyPath)
                     if (!kf.exists() || !kf.canRead()) {
@@ -334,48 +491,33 @@ object ApkSignerHelper {
                     getTestKeyPair()
                 }
 
-                // 2. Prepare local files for ApkSigner
-                tempInFile = if (apkPath.fileSystem == FileSystems.getDefault()) {
+                val resolvedInFile = if (apkPath.fileSystem == FileSystems.getDefault()) {
                     File(apkPath.toString())
                 } else {
-                    val temp = File.createTempFile("apk_in_", ".apk", activity.cacheDir)
+                    shouldDeleteTempIn = true
+                    val tmp = File.createTempFile("apk_in_", ".apk", appContext.cacheDir)
                     apkPath.newInputStream().use { ins ->
-                        temp.outputStream().use { outs -> ins.copyTo(outs) }
+                        tmp.outputStream().use { outs -> ins.copyTo(outs, bufferSize = 65536) }
                     }
-                    temp
+                    tmp
+                }
+                tempInFile = resolvedInFile
+
+                val resolvedOutFile = File.createTempFile("apk_out_", ".apk", appContext.cacheDir)
+                tempOutFile = resolvedOutFile
+
+                if (ApkInstallHelper.isSplitApkArchiveFile(resolvedInFile)) {
+                    signSplitBundleDirect(resolvedInFile, resolvedOutFile, scheme, privateKey to cert)
+                } else {
+                    signFileDirect(resolvedInFile, resolvedOutFile, scheme, privateKey to cert)
                 }
 
-                tempOutFile = File.createTempFile("apk_out_", ".apk", activity.cacheDir)
-
-                // 3. Configure Google ApkSigner
-                val signerConfig = ApkSigner.SignerConfig.Builder(
-                    "CERT",
-                    privateKey,
-                    listOf(cert)
-                ).build()
-
-                val v1Enabled = (scheme == SignScheme.V1_AND_V2 || scheme == SignScheme.V1_ONLY)
-                val v2Enabled = (scheme == SignScheme.V1_AND_V2 || scheme == SignScheme.V2_ONLY)
-                val v3Enabled = (scheme == SignScheme.V1_AND_V2)
-
-                val builder = ApkSigner.Builder(listOf(signerConfig))
-                    .setInputApk(tempInFile)
-                    .setOutputApk(tempOutFile)
-                    .setOtherSignersSignaturesPreserved(false)
-                    .setV1SigningEnabled(v1Enabled)
-                    .setV2SigningEnabled(v2Enabled)
-                    .setV3SigningEnabled(v3Enabled)
-
-                val signer = builder.build()
-                signer.sign()
-
-                // 4. Copy output file to destination
                 if (targetPath.fileSystem == FileSystems.getDefault()) {
                     val destFile = File(targetPath.toString())
-                    tempOutFile.copyTo(destFile, overwrite = true)
+                    resolvedOutFile.copyTo(destFile, overwrite = true)
                 } else {
-                    tempOutFile.inputStream().use { ins ->
-                        targetPath.newOutputStream().use { outs -> ins.copyTo(outs) }
+                    resolvedOutFile.inputStream().use { ins ->
+                        targetPath.newOutputStream().use { outs -> ins.copyTo(outs, bufferSize = 65536) }
                     }
                 }
 
@@ -384,15 +526,14 @@ object ApkSignerHelper {
                 e.printStackTrace()
                 errorMsg = e.localizedMessage ?: e.javaClass.simpleName
             } finally {
-                if (tempInFile != null && tempInFile != File(apkPath.toString())) {
-                    tempInFile.delete()
+                if (shouldDeleteTempIn) {
+                    tempInFile?.delete()
                 }
                 tempOutFile?.delete()
             }
 
             activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
-                try { progressDialog.dismiss() } catch (ignored: Exception) {}
+                if (!activity.isUiAlive) return@runOnUiThread
                 if (success) {
                     Toast.makeText(
                         activity,
@@ -401,11 +542,11 @@ object ApkSignerHelper {
                     ).show()
                     onComplete?.invoke(targetPath)
                 } else {
-                    MaterialAlertDialogBuilder(activity)
-                        .setTitle(R.string.om_sign_error_title)
-                        .setMessage(errorMsg ?: activity.getString(R.string.om_sign_unknown_error))
-                        .setPositiveButton(android.R.string.ok, null)
-                        .show()
+                    showUiAlert(
+                        activity = activity,
+                        title = activity.getString(R.string.om_sign_error_title),
+                        message = errorMsg ?: activity.getString(R.string.om_sign_unknown_error)
+                    )
                     onComplete?.invoke(null)
                 }
             }
@@ -413,17 +554,19 @@ object ApkSignerHelper {
     }
 
     /**
-     * Inspects and verifies the APK signatures (V1, V2, V3) and shows certificate information.
+     * Inspects and verifies signatures (V1, V2, V3) for single APKs and multi-APK split bundles.
      */
     fun showVerifySignatureDialog(activity: Activity, apkPath: Path) {
-        val progressDialog = MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.om_verify_progress_title)
-            .setMessage(R.string.om_verify_progress_msg)
-            .setCancelable(false)
-            .show()
+        if (!activity.isUiAlive) return
+        val appContext = activity.applicationContext
 
-        kotlin.concurrent.thread {
+        runBackgroundWithDialog(
+            activity = activity,
+            title = activity.getString(R.string.om_verify_progress_title),
+            message = activity.getString(R.string.om_verify_progress_msg)
+        ) {
             var tempFile: File? = null
+            var shouldDeleteTemp = false
             var v1Ok = false
             var v2Ok = false
             var v3Ok = false
@@ -434,25 +577,90 @@ object ApkSignerHelper {
             var errorMsg: String? = null
 
             try {
-                tempFile = if (apkPath.fileSystem == FileSystems.getDefault()) {
+                val resolvedFile = if (apkPath.fileSystem == FileSystems.getDefault()) {
                     File(apkPath.toString())
                 } else {
-                    val temp = File.createTempFile("verify_", ".apk", activity.cacheDir)
+                    shouldDeleteTemp = true
+                    val tmp = File.createTempFile("verify_", ".apk", appContext.cacheDir)
                     apkPath.newInputStream().use { ins ->
-                        temp.outputStream().use { outs -> ins.copyTo(outs) }
+                        tmp.outputStream().use { outs -> ins.copyTo(outs, bufferSize = 65536) }
                     }
-                    temp
+                    tmp
+                }
+                tempFile = resolvedFile
+
+                var primaryCerts: List<X509Certificate> = emptyList()
+                if (ApkInstallHelper.isSplitApkArchiveFile(resolvedFile)) {
+                    val tempVerifyDir = File(
+                        appContext.cacheDir,
+                        "om_verify_splits_${System.currentTimeMillis()}_${System.nanoTime()}"
+                    ).apply { mkdirs() }
+                    try {
+                        ZipFile(resolvedFile).use { zip ->
+                            val splits = ApkInstallHelper.collectSplitApkEntries(zip)
+                            if (splits.isEmpty()) {
+                                throw IllegalArgumentException("No APK splits found inside bundle")
+                            }
+                            v1Ok = true
+                            v2Ok = true
+                            v3Ok = true
+                            var firstCertDigest: ByteArray? = null
+                            val sha256Md = MessageDigest.getInstance("SHA-256")
+                            val buffer = ByteArray(65536)
+
+                            for (split in splits) {
+                                val entry = zip.getEntry(split.zipEntryName) ?: continue
+                                val extracted = File(tempVerifyDir, split.sessionEntryName)
+                                try {
+                                    zip.getInputStream(entry).use { input ->
+                                        FileOutputStream(extracted).use { output ->
+                                            var read: Int
+                                            while (input.read(buffer).also { read = it } != -1) {
+                                                output.write(buffer, 0, read)
+                                            }
+                                        }
+                                    }
+                                    val res = ApkVerifier.Builder(extracted).build().verify()
+                                    if (!res.isVerified) {
+                                        val firstErr = res.errors.firstOrNull()?.toString() ?: "invalid signature"
+                                        errorMsg = "Split '${split.displayName}' verification failed: $firstErr"
+                                        break
+                                    }
+                                    v1Ok = v1Ok && res.isVerifiedUsingV1Scheme
+                                    v2Ok = v2Ok && res.isVerifiedUsingV2Scheme
+                                    v3Ok = v3Ok && res.isVerifiedUsingV3Scheme
+
+                                    val splitCerts = res.signerCertificates
+                                    if (splitCerts.isEmpty()) {
+                                        errorMsg = "Split '${split.displayName}' has missing signer certificate"
+                                        break
+                                    }
+                                    val digest = sha256Md.digest(splitCerts[0].encoded)
+                                    if (firstCertDigest == null) {
+                                        firstCertDigest = digest
+                                        primaryCerts = splitCerts
+                                    } else if (!firstCertDigest.contentEquals(digest)) {
+                                        errorMsg = "Split '${split.displayName}' has a mismatched signer certificate"
+                                        break
+                                    }
+                                } finally {
+                                    extracted.delete()
+                                }
+                            }
+                        }
+                    } finally {
+                        tempVerifyDir.deleteRecursively()
+                    }
+                } else {
+                    val result = ApkVerifier.Builder(resolvedFile).build().verify()
+                    v1Ok = result.isVerifiedUsingV1Scheme
+                    v2Ok = result.isVerifiedUsingV2Scheme
+                    v3Ok = result.isVerifiedUsingV3Scheme
+                    primaryCerts = result.signerCertificates
                 }
 
-                val verifier = ApkVerifier.Builder(tempFile).build()
-                val result = verifier.verify()
-                v1Ok = result.isVerifiedUsingV1Scheme
-                v2Ok = result.isVerifiedUsingV2Scheme
-                v3Ok = result.isVerifiedUsingV3Scheme
-
-                val certs = result.signerCertificates
-                if (certs.isNotEmpty()) {
-                    val c = certs[0]
+                if (errorMsg == null && primaryCerts.isNotEmpty()) {
+                    val c = primaryCerts[0]
                     val df = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                     val sb = StringBuilder()
                     sb.append(activity.getString(R.string.om_verify_cert_subject)).append(c.subjectX500Principal.name).append("\n")
@@ -471,20 +679,22 @@ object ApkSignerHelper {
                 e.printStackTrace()
                 errorMsg = e.localizedMessage ?: e.javaClass.simpleName
             } finally {
-                if (tempFile != null && tempFile != File(apkPath.toString())) {
-                    tempFile.delete()
+                if (shouldDeleteTemp) {
+                    tempFile?.delete()
                 }
             }
 
             activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
-                try { progressDialog.dismiss() } catch (ignored: Exception) {}
-                if (errorMsg != null) {
-                    MaterialAlertDialogBuilder(activity)
-                        .setTitle(R.string.om_verify_error_title)
-                        .setMessage(errorMsg)
-                        .setPositiveButton(R.string.close, null)
-                        .show()
+                if (!activity.isUiAlive) return@runOnUiThread
+                val currentErr = errorMsg
+                if (currentErr != null) {
+                    showUiAlert(
+                        activity = activity,
+                        title = activity.getString(R.string.om_verify_error_title),
+                        message = currentErr
+                    ) {
+                        setPositiveButton(R.string.close, null)
+                    }
                     return@runOnUiThread
                 }
 
@@ -504,16 +714,17 @@ object ApkSignerHelper {
                 }
 
                 val fullText = msg.toString()
-                MaterialAlertDialogBuilder(activity)
-                    .setTitle(R.string.om_verify_dialog_title)
-                    .setMessage(fullText)
-                    .setPositiveButton(android.R.string.ok, null)
-                    .setNeutralButton(R.string.copy) { _, _ ->
+                showUiAlert(
+                    activity = activity,
+                    title = activity.getString(R.string.om_verify_dialog_title),
+                    message = fullText
+                ) {
+                    setNeutralButton(R.string.copy) { _, _ ->
                         val cb = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         cb.setPrimaryClip(ClipData.newPlainText(activity.getString(R.string.om_verify_clip_label), fullText))
                         Toast.makeText(activity, R.string.om_copied_to_clipboard, Toast.LENGTH_SHORT).show()
                     }
-                    .show()
+                }
             }
         }
     }

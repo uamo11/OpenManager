@@ -14,6 +14,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.text.TextUtils
@@ -62,6 +63,8 @@ import me.zhanghai.android.files.provider.archive.archiveFile
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.dismissSafely
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.extraPath
@@ -92,6 +95,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         viewModel.fileLiveData
 
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_mt_file_properties, null)
+        val palette = OpenManagerPalette.from(context)
 
         val ivIcon = view.findViewById<ImageView>(R.id.ivPropIcon)
         val tvTitle = view.findViewById<TextView>(R.id.tvPropTitle)
@@ -132,10 +136,20 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         tvTitle.setOnClickListener { copyText(getString(R.string.om_label_name), tvTitle.text) }
 
         val density = context.resources.displayMetrics.density
+        val defaultValueColor = if (palette.isDark && !palette.isAmoled) {
+            Color.parseColor("#E0E0E0")
+        } else {
+            palette.textPrimary
+        }
+        val defaultLabelColor = if (palette.isDark && !palette.isAmoled) {
+            Color.parseColor("#9E9E9E")
+        } else {
+            palette.textSecondary
+        }
         fun addRow(
             label: String,
             initialValue: String,
-            valueColor: Int = Color.parseColor("#E0E0E0"),
+            valueColor: Int = defaultValueColor,
             boldValue: Boolean = false,
             singleLineMiddle: Boolean = false,
             onClick: ((TextView) -> Unit)? = null
@@ -148,7 +162,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             val tvLabel = TextView(context).apply {
                 layoutParams = TableRow.LayoutParams((115 * density).toInt(), TableRow.LayoutParams.WRAP_CONTENT)
                 text = label
-                setTextColor(Color.parseColor("#9E9E9E"))
+                setTextColor(defaultLabelColor)
                 textSize = 13f
             }
             val tvVal = TextView(context).apply {
@@ -266,6 +280,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                     })
                 } catch (_: Throwable) {}
                 withContext(Dispatchers.Main) {
+                    if (!isAdded) return@withContext
                     val humanSize = totalBytes.asFileSize().formatHumanReadable(context)
                     tvContents.text = "Carpetas: $folderCount · Archivos: $fileCount ($humanSize)"
                 }
@@ -285,6 +300,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 val report = PartitionInspector.inspect(path, context)
                 withContext(Dispatchers.Main) {
+                    if (!isAdded) return@withContext
                     tvFormat.text = "${report.formatName} (${report.magicDescription})"
                     tvFormat.setTextColor(Color.parseColor("#81C784"))
                     tvDetails.text = report.details ?: getString(R.string.om_prop_low_level_partition)
@@ -365,6 +381,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                 lifecycleScope.launch(Dispatchers.IO) {
                     val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(path)
                     withContext(Dispatchers.Main) {
+                        if (!isAdded) return@withContext
                         tvInterp.text = elfReport.interpreter ?: if (elfReport.isDynamic) getString(R.string.om_prop_elf_dynamic) else getString(R.string.om_prop_elf_static)
                         tvArch.text = "${elfReport.machineArch} · ${if (elfReport.isPie) "PIE ✓" else "Non-PIE ⚠️"}"
                         if (elfReport.totalFindings > 0) {
@@ -404,6 +421,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                         }
                     } catch (_: Throwable) {}
                     withContext(Dispatchers.Main) {
+                        if (!isAdded) return@withContext
                         if (!shebang.isNullOrBlank()) {
                             tvInterp.text = shebang
                         }
@@ -421,6 +439,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                                             .toByteArray(StandardCharsets.UTF_8)
                                         Files.write(path, converted)
                                         withContext(Dispatchers.Main) {
+                                            if (!isAdded) return@withContext
                                             tvLe.text = "LF (Unix)"
                                             tvLe.setTextColor(Color.parseColor("#81C784"))
                                             tvSizeOrContents.text = "${converted.size.toLong().asFileSize().formatHumanReadable(context)} (${converted.size} B)"
@@ -428,6 +447,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                                         }
                                     } catch (e: Exception) {
                                         withContext(Dispatchers.Main) {
+                                            if (!isAdded) return@withContext
                                             Toast.makeText(context, getString(R.string.om_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
                                         }
                                     }
@@ -517,6 +537,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                     val sha1Hex = sha1.digest().toHex()
                     val sha256Hex = sha256.digest().toHex()
                     withContext(Dispatchers.Main) {
+                        if (!isAdded) return@withContext
                         tvCrc.text = crcHex
                         tvMd5.text = md5Hex
                         tvSha1.text = sha1Hex
@@ -524,6 +545,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                     }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
+                        if (!isAdded) return@withContext
                         tvMd5.text = getString(R.string.om_error_format, e.message ?: "")
                     }
                 }
@@ -538,7 +560,12 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         val dialog = MaterialAlertDialogBuilder(context, theme)
             .setView(view)
             .create()
-        dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
+        val windowBgColor = if (palette.isDark && !palette.isAmoled) {
+            Color.parseColor("#303030")
+        } else {
+            palette.dialogBg
+        }
+        dialog.window?.setBackgroundDrawable(ColorDrawable(windowBgColor))
 
         // Bottom Buttons Bar (APK Info style)
         if (!path.isArchivePath) {
@@ -584,7 +611,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             btnAction3.setTextColor(Color.parseColor("#4CAF50"))
             btnAction3.setOnClickListener {
                 val act = activity
-                dialog.dismiss()
+                dialog.dismissSafely()
                 if (act != null) {
                     ScriptRunnerHelper.showScriptActionDialog(act, file)
                 }
@@ -594,7 +621,7 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
             btnAction3.text = getString(R.string.script_action_edit)
             btnAction3.setTextColor(Color.parseColor("#FFFFFF"))
             btnAction3.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 val intent = Intent(context, TextEditorActivity::class.java).apply {
                     action = Intent.ACTION_VIEW
                     extraPath = path
@@ -607,8 +634,10 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
         btnAction4.text = getString(android.R.string.ok)
         btnAction4.setTextColor(Color.parseColor("#2196F3"))
         btnAction4.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
         }
+
+        palette.applyToDialogSurface(view)
 
         return dialog
     }

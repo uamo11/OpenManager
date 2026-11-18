@@ -1,9 +1,11 @@
 # OpenManager v2.0.75: Instalador Nativo de Splits (.apks/.xapk/.apkm), Compatibilidad Android 16, Termex Propio y Auto-Updates Mejoradas
 
-### 📦 Instalador Nativo Multi-APK para `.apks`, `.xapk` y `.apkm`
+### 📦 Instalador, Firmado y Verificación Nativa para `.apks`, `.xapk` y `.apkm`
 - **Instalación Directa sin Root (`PackageInstaller.Session`) y por Root / Shizuku (`pm install-create`)**:
   - Ahora al pulsar **Instalar** sobre un paquete `.apks`, `.xapk` o `.apkm` en `SplitApkDialogFragment` (o desde la lista de archivos), OpenManager extrae y transmite todos los splits APK en orden (`base.apk` primero) dentro de una sesión multi-APK real de Android.
   - Nuevo `SplitApkInstallReceiver` con diagnóstico claro en español e inglés para conflictos de firma, incompatibilidad de arquitectura/SDK, almacenamiento o bloqueo del sistema, y tematización completa del diálogo de splits para **Modo Claro / Oscuro / AMOLED** mostrando el recuento real de splits detectados.
+- **Firmado y Verificación Multi-APK (`ApkSignerHelper`)**:
+  - Al pulsar **Firmar** o **Verificar firma** en `.apks`, `.xapk` o `.apkm`, firma todos los splits internos conservando metadatos/OBB intactos (con nombre de salida `<nombre>_signed.<ext>`) y valida que todos los splits estén firmados coherentemente con el mismo certificado.
 
 ### 🤖 Compatibilidad Android 16 en APKs Clonados y AntiSplit
 - **Saneado Avanzado de Manifest (`ApkQuickEditEngine`)**:
@@ -23,10 +25,15 @@
 - **Motor Resiliente con Caché `ETag` y Descargas Reanudables (`Range 206`)**:
   - Diferimiento de 2.5 s al iniciar, guarda atómica de concurrencia, velocidad en tiempo real/ETA, verificación mágica ZIP (`PK`) y del paquete antes de instalar, e instalación sin redescarga si el APK ya está completo en disco.
 
+### 🎨 Tematización Global (Claro / Oscuro / AMOLED) y Corrección de Contraste en Diálogos
+- **`OpenManagerPalette.applyToDialogSurface` en el Explorador y Visor SQLite**:
+  - Corregido el texto blanco ilegible sobre fondo blanco en listas desplegables (`item_dialog_action_with_icon`) al usar **Modo Claro**.
+  - Adaptados automáticamente el menú contextual de archivos (`MtFileMenuHelper`), menú de herramientas, hoja inferior de creación (`+`), diálogo APK (`OpenApkDialogFragment`), propiedades de archivo, permisos, firma de APK y el **Visor SQLite** (con soporte de apertura desde `content://` y tablas adaptadas a Claro/Oscuro/AMOLED).
+
 ### 🛡️ Estabilidad en Visores, Cifrado y Herramientas de Archivo
 - **Corrección de 4 Cierres en Visor PDF y DOCX**: Reemplazado `androidx.core.content.FileProvider` (no registrado) por `Paths.get(...).fileProviderUri` al compartir o abrir externamente documentos locales o temporales.
 - **Cifrado/Descifrado AES-256 Seguro (`FileEncryptDecryptHelper`)**: Escritura en archivo temporal atómico antes de reemplazar el destino (evita perder un archivo existente si se introduce una contraseña incorrecta) y borrado en memoria de claves/contraseñas.
-- **Utilidades y Ciclo de Vida (`FileSplitMergeHelper`, `FileSwapNamesHelper`, `MtPermissionsHelper`)**: Eliminado el último `ProgressDialog` heredado, soporte NIO `Path` (Linux/Root/SAF), limpieza de partes incompletas ante error, colores adaptados a `OpenManagerPalette` y guardas `bindToLifecycle`/`isUiAlive`.
+- **Rutas SAF/Root/Archivo y Prevención de ANRs/Fugas**: Migración de `FileSplitMergeHelper`, `FileSwapNamesHelper`, `ExportFileListHelper`, `CreateSymlinkHelper`, `FilePropertiesScriptTabFragment`, `OpenApkDialogFragment` (inspección de manifiesto/componentes dentro de ZIP/Root), `ApkSignerHelper` y `FileListActivity` a corrutinas en segundo plano con guardas de ciclo de vida (`bindToLifecycle` / `isUiAlive`), cancelación de alcance en `SuperuserStatusPreference` y sin hilos sueltos en el hilo principal.
 
 ---
 

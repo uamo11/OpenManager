@@ -15,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.topjohnwu.superuser.Shell
 import java8.nio.file.Files
@@ -34,6 +35,8 @@ import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
 import me.zhanghai.android.files.provider.common.toModeString
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.enumSetOf
 import me.zhanghai.android.files.util.escapeShellArg
@@ -424,6 +427,8 @@ object MtPermissionsHelper {
         updateUiFromMode(currentMode, updateOctalBox = true)
 
         val fileName = try { path.fileName?.toString() ?: path.toString() } catch (_: Throwable) { "" }
+        val palette = OpenManagerPalette.from(context)
+        palette.applyToDialogSurface(binding.root)
 
         val dialog = MaterialAlertDialogBuilder(context)
             .setTitle("${context.getString(R.string.file_properties_permission_set_mode_title)} · $fileName")
@@ -448,18 +453,29 @@ object MtPermissionsHelper {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .create()
+        if (context is LifecycleOwner) {
+            dialog.bindToLifecycle(context)
+        }
 
         dialog.setOnShowListener {
-            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.parseColor("#303030")))
+            val isDefaultDark = palette.isDark && !palette.isAmoled
+            val bgColor = if (isDefaultDark) Color.parseColor("#303030") else palette.dialogBg
+            val titleColor = if (isDefaultDark) Color.WHITE else palette.textPrimary
+            val posColor = if (isDefaultDark) Color.parseColor("#64B5F6") else palette.accentColor
+            val negColor = if (isDefaultDark) Color.parseColor("#BDBDBD") else palette.textSecondary
+
+            dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(bgColor))
             try {
                 val titleId = context.resources.getIdentifier("alertTitle", "id", "android")
                 val titleIdCompat = context.resources.getIdentifier("alertTitle", "id", context.packageName)
-                (dialog.findViewById<TextView>(titleId) ?: dialog.findViewById<TextView>(titleIdCompat))?.setTextColor(Color.WHITE)
+                (dialog.findViewById<TextView>(titleId) ?: dialog.findViewById<TextView>(titleIdCompat))?.setTextColor(titleColor)
             } catch (_: Throwable) {}
-            dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)?.setTextColor(Color.parseColor("#64B5F6"))
-            dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)?.setTextColor(Color.parseColor("#BDBDBD"))
+            dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)?.setTextColor(posColor)
+            dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)?.setTextColor(negColor)
         }
-        dialog.show()
+        if ((context as? Activity)?.isUiAlive != false) {
+            dialog.show()
+        }
     }
 
     fun applyPermissions(

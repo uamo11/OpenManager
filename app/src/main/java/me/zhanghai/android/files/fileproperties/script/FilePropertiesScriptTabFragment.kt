@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.topjohnwu.superuser.Shell
 import java8.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,11 +22,16 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.filelist.ScriptRunnerHelper
 import me.zhanghai.android.files.filelist.name
 import me.zhanghai.android.files.fileproperties.FilePropertiesTabFragment
+import me.zhanghai.android.files.fileproperties.permission.MtPermissionsHelper
+import me.zhanghai.android.files.provider.archive.isArchivePath
+import me.zhanghai.android.files.provider.common.PosixFileModeBit
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
 import me.zhanghai.android.files.util.Stateful
 import me.zhanghai.android.files.util.args
+import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.util.showToast
 import me.zhanghai.android.files.util.viewModels
@@ -181,11 +187,13 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
                         val lfText = text.replace("\r\n", "\n").replace("\r", "\n")
                         java8.nio.file.Files.write(args.path, lfText.toByteArray(StandardCharsets.UTF_8))
                         withContext(Dispatchers.Main) {
+                            if (!isUiAlive) return@withContext
                             showToast(R.string.file_properties_script_convert_success)
                             viewModel.reload()
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
+                            if (!isUiAlive) return@withContext
                             showToast(getString(R.string.om_script_convert_lf_error_format, e.message ?: ""))
                         }
                     }
@@ -196,12 +204,47 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
     }
 
     private fun toggleExecutePermission() {
+        val appContext = context?.applicationContext ?: return
         viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val file = args.path.toFile()
-                val current = file.canExecute()
-                val success = file.setExecutable(!current, false)
+                if (args.path.isArchivePath) {
+                    withContext(Dispatchers.Main) {
+                        if (!isUiAlive) return@withContext
+                        showToast(R.string.om_perm_archive_readonly)
+                    }
+                    return@launch
+                }
+
+                val current: Boolean
+                val success: Boolean
+                if (args.path.isLinuxPath) {
+                    val file = args.path.toFile()
+                    current = file.canExecute()
+                    var applied = file.setExecutable(!current, false)
+                    if (!applied && Shell.isAppGrantedRoot() == true) {
+                        val flag = if (!current) "+x" else "-x"
+                        val res = runCatching {
+                            Shell.cmd("chmod $flag ${file.absolutePath.escapeShellArg()}").exec()
+                        }.getOrNull()
+                        applied = res != null && (res.isSuccess || res.code == 0)
+                    }
+                    success = applied
+                } else {
+                    val permInfo = MtPermissionsHelper.getPermissions(appContext, args.path)
+                    current = PosixFileModeBit.OWNER_EXECUTE in permInfo.modeBits
+                    val flag = if (!current) "+x" else "-x"
+                    val res = if (Shell.isAppGrantedRoot() == true) {
+                        runCatching {
+                            Shell.cmd("chmod $flag ${args.path.toString().escapeShellArg()}").exec()
+                        }.getOrNull()
+                    } else {
+                        null
+                    }
+                    success = res != null && (res.isSuccess || res.code == 0)
+                }
+
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     if (success) {
                         showToast(if (!current) R.string.file_properties_script_permission_granted else R.string.file_properties_script_permission_revoked)
                         viewModel.reload()
@@ -211,6 +254,7 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
+                    if (!isUiAlive) return@withContext
                     showToast("Error: ${e.message}")
                 }
             }

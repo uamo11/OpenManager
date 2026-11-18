@@ -9,16 +9,28 @@ import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.res.ColorStateList
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Path
+import java8.nio.file.Paths
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
-import java.io.File
-import java.io.FileOutputStream
+import me.zhanghai.android.files.provider.archive.isArchivePath
+import me.zhanghai.android.files.provider.common.newOutputStream
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.isUiAlive
+import me.zhanghai.android.files.ui.runWithProgressDialog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -32,6 +44,7 @@ object ExportFileListHelper {
         selectedFiles: List<FileItem>?,
         onComplete: () -> Unit
     ) {
+        if (!activity.isUiAlive) return
         val filesToExport = if (!selectedFiles.isNullOrEmpty()) {
             selectedFiles.filter { !it.isParentDirectoryItem }
         } else {
@@ -44,6 +57,7 @@ object ExportFileListHelper {
         }
 
         val context = activity
+        val palette = OpenManagerPalette.from(context)
         val container = android.widget.LinearLayout(context).apply {
             orientation = android.widget.LinearLayout.VERTICAL
             setPadding(48, 24, 48, 16)
@@ -56,6 +70,7 @@ object ExportFileListHelper {
                 context.getString(R.string.export_file_list_all, filesToExport.size)
             }
             textSize = 15f
+            setTextColor(palette.textPrimary)
             setPadding(0, 0, 0, 16)
         }
         container.addView(scopeInfo)
@@ -63,6 +78,7 @@ object ExportFileListHelper {
         val formatLabel = TextView(context).apply {
             text = context.getString(R.string.export_file_list_format)
             textSize = 13f
+            setTextColor(palette.textSecondary)
         }
         container.addView(formatLabel)
 
@@ -75,10 +91,13 @@ object ExportFileListHelper {
         )
 
         var selectedFormat = 0
+        val tintList = ColorStateList.valueOf(palette.accentColor)
         for ((id, label) in formats) {
             val rb = RadioButton(context).apply {
                 text = label
                 this.id = id
+                setTextColor(palette.textPrimary)
+                buttonTintList = tintList
                 if (id == 0) isChecked = true
             }
             radioGroup.addView(rb)
@@ -89,7 +108,7 @@ object ExportFileListHelper {
             selectedFormat = checkedId
         }
 
-        MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.export_file_list_title)
             .setView(container)
             .setPositiveButton(R.string.export_file_list_copy_clipboard) { _, _ ->
@@ -104,34 +123,94 @@ object ExportFileListHelper {
                 onComplete()
             }
             .setNeutralButton(R.string.export_file_list_save_file) { _, _ ->
-                val text = generateExportText(filesToExport, selectedFormat)
-                val destFile = File(currentDir.toFile(), "file_list.txt")
-                try {
-                    FileOutputStream(destFile).use { out ->
-                        out.write(text.toByteArray(Charsets.UTF_8))
-                    }
-                    Toast.makeText(
-                        activity,
-                        context.getString(R.string.export_file_list_saved, destFile.name),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    onComplete()
-                } catch (e: Exception) {
-                    Toast.makeText(activity, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
+                saveExportToFileAsync(activity, currentDir, filesToExport, selectedFormat, onComplete)
             }
             .setNegativeButton(android.R.string.cancel, null)
-            .show()
+            .create()
+        if (activity is LifecycleOwner) {
+            dialog.bindToLifecycle(activity)
+        }
+        if (activity.isUiAlive) {
+            dialog.show()
+        }
     }
 
-    private fun generateExportText(files: List<FileItem>, format: Int): String {
+    private fun saveExportToFileAsync(
+        activity: Activity,
+        currentDir: Path,
+        filesToExport: List<FileItem>,
+        selectedFormat: Int,
+        onComplete: () -> Unit
+    ) {
+        val destPath = if (currentDir.isArchivePath) {
+            Paths.get("/storage/emulated/0/Download/file_list_${System.currentTimeMillis()}.txt")
+        } else {
+            currentDir.resolve("file_list.txt")
+        }
+        val destName = destPath.fileName.toString()
+
+        val writeWorker = {
+            val text = generateExportText(filesToExport, selectedFormat)
+            destPath.newOutputStream().use { out ->
+                out.write(text.toByteArray(Charsets.UTF_8))
+            }
+        }
+
+        if (activity is FragmentActivity) {
+            activity.runWithProgressDialog(
+                title = activity.getString(R.string.export_file_list_title),
+                initialMessage = activity.getString(R.string.loading)
+            ) {
+                val res = runCatching {
+                    withContext(Dispatchers.IO) { writeWorker() }
+                }
+                if (!activity.isUiAlive) return@runWithProgressDialog
+                res.fold(
+                    onSuccess = {
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.export_file_list_saved, destName),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        onComplete()
+                    },
+                    onFailure = { e ->
+                        Toast.makeText(activity, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            val res = runCatching { writeWorker() }
+            withContext(Dispatchers.Main) {
+                if (!activity.isUiAlive) return@withContext
+                res.fold(
+                    onSuccess = {
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.export_file_list_saved, destName),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        onComplete()
+                    },
+                    onFailure = { e ->
+                        Toast.makeText(activity, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+        }
+    }
+
+    internal fun generateExportText(files: List<FileItem>, format: Int): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val sb = StringBuilder()
 
         for (file in files) {
             val name = file.name
             val size = formatSize(file.attributes.size())
-            val path = file.path.toFile().absolutePath
+            val path = file.path.toUserFriendlyString()
             val date = dateFormat.format(Date(file.attributes.lastModifiedTime().toMillis()))
 
             when (format) {
@@ -148,10 +227,10 @@ object ExportFileListHelper {
         if (bytes <= 0) return "0 B"
         if (bytes < 1024) return "$bytes B"
         val kb = bytes.toDouble() / 1024
-        if (kb < 1024) return String.format("%.1f KB", kb)
+        if (kb < 1024) return String.format(Locale.US, "%.1f KB", kb)
         val mb = kb / 1024
-        if (mb < 1024) return String.format("%.1f MB", mb)
+        if (mb < 1024) return String.format(Locale.US, "%.1f MB", mb)
         val gb = mb / 1024
-        return String.format("%.2f GB", gb)
+        return String.format(Locale.US, "%.2f GB", gb)
     }
 }

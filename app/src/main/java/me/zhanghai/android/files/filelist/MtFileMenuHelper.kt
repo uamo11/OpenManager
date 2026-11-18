@@ -27,6 +27,9 @@ import me.zhanghai.android.files.file.asFileSize
 import me.zhanghai.android.files.file.fileSize
 import me.zhanghai.android.files.file.formatMtDate
 import me.zhanghai.android.files.provider.archive.isArchivePath
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.bindToLifecycle
+import me.zhanghai.android.files.ui.dismissSafely
 
 object MtFileMenuHelper {
 
@@ -51,6 +54,8 @@ object MtFileMenuHelper {
         dialog.supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_mt_file_menu, null)
         dialog.setContentView(view)
+        dialog.bindToLifecycle(fragment.viewLifecycleOwner)
+        OpenManagerPalette.from(context).applyToDialogSurface(view, cornerRadiusDp = 12f, strokeWidthDp = 1f)
 
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -63,7 +68,7 @@ object MtFileMenuHelper {
 
         // Close button
         view.findViewById<ImageView>(R.id.btnClose).setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
         }
 
         // Header: File Icon, Name, Details & Tap to copy path / Long press to copy name
@@ -146,7 +151,7 @@ object MtFileMenuHelper {
             tvCopyLabel.text = copyVerb
         }
         btnCopy.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             if (isArchivePath) {
                 if (oppositePath != null) {
                     fragment.copyFilesTo(targetFiles, oppositePath)
@@ -160,7 +165,7 @@ object MtFileMenuHelper {
             }
         }
         btnCopy.setOnLongClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             fragment.copyFiles(targetFiles)
             true
         }
@@ -181,7 +186,7 @@ object MtFileMenuHelper {
                 tvMoveLabel.text = "Mover"
             }
             btnMove.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 if (oppositePath != null) {
                     if (fragment.currentPath == oppositePath) {
                         Toast.makeText(context, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
@@ -193,7 +198,7 @@ object MtFileMenuHelper {
                 }
             }
             btnMove.setOnLongClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.cutFiles(targetFiles)
                 true
             }
@@ -206,7 +211,7 @@ object MtFileMenuHelper {
             btnDelete.isEnabled = false
         } else {
             btnDelete.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.confirmDeleteFiles(targetFiles)
             }
         }
@@ -218,7 +223,7 @@ object MtFileMenuHelper {
             btnRename.isEnabled = false
         } else {
             btnRename.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.showRenameFileDialog(file)
             }
         }
@@ -226,7 +231,7 @@ object MtFileMenuHelper {
         // 5. Tools
         val btnTools = view.findViewById<LinearLayout>(R.id.btnTools)
         btnTools.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             showToolsMenu(fragment, file, targetFiles)
         }
 
@@ -237,7 +242,7 @@ object MtFileMenuHelper {
             btnCompress.isEnabled = false
         } else {
             btnCompress.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.showCreateArchiveDialog(targetFiles)
             }
         }
@@ -249,7 +254,7 @@ object MtFileMenuHelper {
             btnProperties.isEnabled = false
         } else {
             btnProperties.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.showPropertiesDialog(file)
             }
         }
@@ -257,7 +262,7 @@ object MtFileMenuHelper {
         // 8. Share
         val btnShare = view.findViewById<LinearLayout>(R.id.btnShare)
         btnShare.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             fragment.shareFiles(targetFiles)
         }
 
@@ -268,7 +273,7 @@ object MtFileMenuHelper {
             btnOpenWith.isEnabled = false
         } else {
             btnOpenWith.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.openFileWith(file)
             }
         }
@@ -280,7 +285,7 @@ object MtFileMenuHelper {
             btnAddBookmark.isEnabled = false
         } else {
             btnAddBookmark.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.addBookmark(file)
             }
         }
@@ -308,6 +313,8 @@ object MtFileMenuHelper {
         dialog.supportRequestWindowFeature(Window.FEATURE_NO_TITLE)
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_mt_tools_menu, null)
         dialog.setContentView(view)
+        dialog.bindToLifecycle(fragment.viewLifecycleOwner)
+        OpenManagerPalette.from(context).applyToDialogSurface(view, cornerRadiusDp = 12f, strokeWidthDp = 1f)
 
         dialog.window?.apply {
             setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
@@ -319,14 +326,14 @@ object MtFileMenuHelper {
         }
 
         view.findViewById<ImageView>(R.id.btnCloseTools).setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
         }
 
         // Dividir archivo
         val toolSplitFile = view.findViewById<LinearLayout>(R.id.toolSplitFile)
         if (!isDirectory && !isArchivePath && isSingleFile && !isBlockPartition) {
             toolSplitFile.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.splitFile(file)
             }
         } else {
@@ -338,7 +345,7 @@ object MtFileMenuHelper {
         val toolMergeFiles = view.findViewById<LinearLayout>(R.id.toolMergeFiles)
         if (FileSplitMergeHelper.isSplitPart(file) && isSingleFile && !isBlockPartition) {
             toolMergeFiles.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.mergeFiles(file)
             }
         } else {
@@ -350,7 +357,7 @@ object MtFileMenuHelper {
         val toolEncryptFile = view.findViewById<LinearLayout>(R.id.toolEncryptFile)
         if (!isDirectory && !isArchivePath && isSingleFile && !isBlockPartition && !FileEncryptDecryptHelper.isEncryptedFile(file)) {
             toolEncryptFile.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 FileEncryptDecryptHelper.showEncryptDialog(activity, file) {
                     fragment.viewModel.reload()
                 }
@@ -364,7 +371,7 @@ object MtFileMenuHelper {
         val toolDecryptFile = view.findViewById<LinearLayout>(R.id.toolDecryptFile)
         if (!isDirectory && !isArchivePath && isSingleFile && !isBlockPartition && FileEncryptDecryptHelper.isEncryptedFile(file)) {
             toolDecryptFile.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 FileEncryptDecryptHelper.showDecryptDialog(activity, file) {
                     fragment.viewModel.reload()
                 }
@@ -378,7 +385,7 @@ object MtFileMenuHelper {
         val toolSwapNames = view.findViewById<LinearLayout>(R.id.toolSwapNames)
         if (!isReadOnly) {
             toolSwapNames.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 val list = targetFiles.toList()
                 if (list.size == 2) {
                     FileSwapNamesHelper.swap(context, list[0].path, list[1].path) {
@@ -398,7 +405,7 @@ object MtFileMenuHelper {
         val toolCreateSymlink = view.findViewById<LinearLayout>(R.id.toolCreateSymlink)
         if (!isArchivePath && isSingleFile && !isBlockPartition) {
             toolCreateSymlink.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.createSymlink(file)
             }
         } else {
@@ -410,7 +417,7 @@ object MtFileMenuHelper {
         val toolCreateShortcut = view.findViewById<LinearLayout>(R.id.toolCreateShortcut)
         if (isSingleFile) {
             toolCreateShortcut.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.createShortcut(file)
             }
         } else {
@@ -422,7 +429,7 @@ object MtFileMenuHelper {
         val toolPermissions = view.findViewById<LinearLayout>(R.id.toolPermissions)
         if (!isReadOnly && !isArchivePath && isSingleFile) {
             toolPermissions.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.showPermissionsDialog(file)
             }
         } else {
@@ -433,7 +440,7 @@ object MtFileMenuHelper {
         // Exportar lista de archivos
         val toolExportList = view.findViewById<LinearLayout>(R.id.toolExportList)
         toolExportList.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             val allFiles = fragment.viewModel.fileListStateful.value ?: emptyList()
             ExportFileListHelper.showDialog(activity, fragment.currentPath, allFiles, targetFiles.toList()) {
                 fragment.viewModel.clearSelectedFiles()
@@ -445,7 +452,7 @@ object MtFileMenuHelper {
         if (file.isArchiveFile && isSingleFile) {
             toolExtract.isVisible = true
             toolExtract.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 fragment.extractFile(file)
             }
         } else {
@@ -455,7 +462,7 @@ object MtFileMenuHelper {
         // Copiar ruta
         val toolCopyPath = view.findViewById<LinearLayout>(R.id.toolCopyPath)
         toolCopyPath.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             fragment.copyPath(file)
         }
 
@@ -467,7 +474,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolInjectToast.isVisible = true
             toolInjectToast.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ToastDialogInjectDialogFragment.show(file, fragment)
             }
         } else {
@@ -479,7 +486,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolCleanToasts.isVisible = true
             toolCleanToasts.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ToastDialogCleanDialogFragment.show(file, fragment)
             }
         } else {
@@ -491,7 +498,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolQuickEditApk.isVisible = true
             toolQuickEditApk.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ApkQuickEditDialogFragment.show(file, fragment)
             }
         } else {
@@ -503,7 +510,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolDecompileApk.isVisible = true
             toolDecompileApk.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ApktoolHelper.decompileApk(activity, file.path) {
                     fragment.viewModel.reload()
                 }
@@ -517,7 +524,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolDecompileJava?.isVisible = true
             toolDecompileJava?.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ApktoolHelper.decompileJava(activity, file.path) {
                     fragment.viewModel.reload()
                 }
@@ -531,7 +538,7 @@ object MtFileMenuHelper {
         if (isApktoolProj && isSingleFile) {
             toolRecompileApk.isVisible = true
             toolRecompileApk.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ApktoolHelper.recompileApk(activity, file.path) {
                     fragment.viewModel.reload()
                 }
@@ -545,7 +552,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolSignApk.isVisible = true
             toolSignApk.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ApkSignerHelper.showSignDialog(activity, file.path) {
                     fragment.viewModel.reload()
                 }
@@ -559,7 +566,7 @@ object MtFileMenuHelper {
         if (isApk && isSingleFile) {
             toolVerifySignature.isVisible = true
             toolVerifySignature.setOnClickListener {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 ApkSignerHelper.showVerifySignatureDialog(activity, file.path)
             }
         } else {

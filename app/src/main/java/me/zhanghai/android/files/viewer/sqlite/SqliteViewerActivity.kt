@@ -10,22 +10,27 @@ import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Spinner
 import android.widget.TableLayout
 import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
-import android.view.ViewGroup
 import androidx.appcompat.widget.Toolbar
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import java8.nio.file.Path
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
@@ -36,6 +41,7 @@ import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.extraPath
@@ -52,6 +58,7 @@ class SqliteViewerActivity : AppActivity() {
     private lateinit var btnPrevPage: Button
     private lateinit var btnNextPage: Button
     private lateinit var tvPageInfo: TextView
+    private lateinit var palette: OpenManagerPalette
 
     private var db: SQLiteDatabase? = null
     private var tempFile: File? = null
@@ -73,6 +80,7 @@ class SqliteViewerActivity : AppActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_sqlite_viewer)
+        palette = OpenManagerPalette.from(this)
 
         toolbar = findViewById(R.id.toolbarSqlite)
         spnTables = findViewById(R.id.spnTables)
@@ -85,17 +93,22 @@ class SqliteViewerActivity : AppActivity() {
         tvPageInfo = findViewById(R.id.tvPageInfo)
         toolbar.applyEdgeToEdgeInsets(applyTop = true, applyHorizontal = true)
         findViewById<View>(R.id.layoutPagination).applyEdgeToEdgeInsets(applyBottom = true, applyHorizontal = true)
+        applyPaletteTheme()
 
         toolbar.setNavigationOnClickListener { finish() }
 
         val path = intent.extraPath
-        if (path == null) {
+        val externalUri = intent.data
+        if (path == null && externalUri == null) {
             Toast.makeText(this, R.string.om_sqlite_invalid_path, Toast.LENGTH_SHORT).show()
             finish()
             return
         }
 
-        toolbar.title = path.fileName.toString()
+        val displayName = path?.fileName?.toString()
+            ?: externalUri?.lastPathSegment?.substringAfterLast('/')?.ifBlank { "database.db" }
+            ?: "database.db"
+        toolbar.title = displayName
         toolbar.subtitle = getString(R.string.om_sqlite_subtitle)
 
         btnPrevPage.setOnClickListener {
@@ -112,26 +125,60 @@ class SqliteViewerActivity : AppActivity() {
             }
         }
 
-        initDatabaseAsync(path)
+        initDatabaseAsync(path = path, externalUri = externalUri)
+    }
+
+    private fun applyPaletteTheme() {
+        if (palette.isDark && !palette.isAmoled) return
+        findViewById<View>(R.id.rootSqlite)?.setBackgroundColor(palette.screenBg)
+        toolbar.setBackgroundColor(palette.toolbarBg)
+        toolbar.setTitleTextColor(palette.textPrimary)
+        toolbar.setSubtitleTextColor(palette.textSecondary)
+        toolbar.navigationIcon?.setTint(palette.iconTint)
+        findViewById<View>(R.id.layoutTableSelector)?.setBackgroundColor(palette.appBarBg)
+        findViewById<ImageView>(R.id.ivTableIcon)?.setColorFilter(palette.iconTint)
+        spnTables.setPopupBackgroundDrawable(ColorDrawable(palette.dialogBg))
+        tvTableInfo.setTextColor(palette.textSecondary)
+        findViewById<View>(R.id.dividerSqlite)?.setBackgroundColor(palette.dividerLineColor)
+        tvEmpty.setTextColor(palette.textSecondary)
+        findViewById<View>(R.id.layoutPagination)?.setBackgroundColor(palette.bottomBarBg)
+        tvPageInfo.setTextColor(palette.textPrimary)
+        btnPrevPage.setTextColor(palette.accentColor)
+        btnNextPage.setTextColor(palette.accentColor)
+        window.statusBarColor = palette.toolbarBg
+        window.navigationBarColor = palette.bottomBarBg
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = palette.isLightStatusBar
+            isAppearanceLightNavigationBars = palette.isLightStatusBar
+        }
     }
 
     private fun escapeSqlIdentifier(name: String): String = "`" + name.replace("`", "``") + "`"
 
-    private fun initDatabaseAsync(path: Path) {
+    private fun initDatabaseAsync(path: Path?, externalUri: Uri?) {
         pbLoading.visibility = View.VISIBLE
         tvEmpty.visibility = View.GONE
 
         initJob?.cancel()
         initJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
+                tempFile?.delete()
+                tempFile = null
+
                 val dbFile: File
-                if (!path.isArchivePath && path.isLinuxPath) {
+                if (path != null && !path.isArchivePath && path.isLinuxPath) {
                     dbFile = path.toFile()
                 } else {
                     val temp = File(cacheDir, "sqlite_${System.currentTimeMillis()}.db")
-                    path.newInputStream().use { input ->
+                    val inStream = when {
+                        path != null -> path.newInputStream()
+                        externalUri != null -> contentResolver.openInputStream(externalUri)
+                            ?: throw IllegalStateException("Cannot open URI stream")
+                        else -> throw IllegalStateException("No database source")
+                    }
+                    inStream.use { input ->
                         FileOutputStream(temp).use { output ->
-                            input.copyTo(output)
+                            input.copyTo(output, bufferSize = 65536)
                         }
                     }
                     tempFile = temp
@@ -140,9 +187,7 @@ class SqliteViewerActivity : AppActivity() {
 
                 val openedDb = SQLiteDatabase.openDatabase(dbFile.absolutePath, null, SQLiteDatabase.OPEN_READONLY)
                 if (!isActive || isDestroyed || isFinishing) {
-                    try {
-                        openedDb.close()
-                    } catch (_: Exception) {}
+                    runCatching { openedDb.close() }
                     tempFile?.delete()
                     tempFile = null
                     return@launch
@@ -159,6 +204,7 @@ class SqliteViewerActivity : AppActivity() {
                         return@withContext
                     }
 
+                    val spinnerTextColor = if (palette.isDark && !palette.isAmoled) Color.WHITE else palette.textPrimary
                     val adapter = object : ArrayAdapter<String>(
                         this@SqliteViewerActivity,
                         android.R.layout.simple_spinner_dropdown_item,
@@ -166,13 +212,16 @@ class SqliteViewerActivity : AppActivity() {
                     ) {
                         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                             return super.getView(position, convertView, parent).apply {
-                                (this as? TextView)?.setTextColor(Color.WHITE)
+                                (this as? TextView)?.setTextColor(spinnerTextColor)
                             }
                         }
 
                         override fun getDropDownView(position: Int, convertView: View?, parent: ViewGroup): View {
                             return super.getDropDownView(position, convertView, parent).apply {
-                                (this as? TextView)?.setTextColor(Color.WHITE)
+                                if (!palette.isDark || palette.isAmoled) {
+                                    setBackgroundColor(palette.dialogBg)
+                                }
+                                (this as? TextView)?.setTextColor(spinnerTextColor)
                             }
                         }
                     }
@@ -188,12 +237,16 @@ class SqliteViewerActivity : AppActivity() {
                     }
                 }
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (e is CancellationException) throw e
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     if (!isUiAlive) return@withContext
                     pbLoading.visibility = View.GONE
-                    Toast.makeText(this@SqliteViewerActivity, getString(R.string.om_sqlite_open_error_format, e.message ?: ""), Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@SqliteViewerActivity,
+                        getString(R.string.om_sqlite_open_error_format, e.message ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
                     finish()
                 }
             }
@@ -238,7 +291,6 @@ class SqliteViewerActivity : AppActivity() {
                 val escapedTable = escapeSqlIdentifier(tableToQuery)
                 var rowCount = 0
 
-                // Count rows defensively
                 val countCursor = database.rawQuery("SELECT COUNT(*) FROM $escapedTable", null)
                 countCursor.use {
                     if (it.moveToFirst()) {
@@ -280,12 +332,16 @@ class SqliteViewerActivity : AppActivity() {
                     renderTableData(pageData)
                 }
             } catch (e: Exception) {
-                if (e is kotlinx.coroutines.CancellationException) throw e
+                if (e is CancellationException) throw e
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     if (!isUiAlive) return@withContext
                     pbLoading.visibility = View.GONE
-                    Toast.makeText(this@SqliteViewerActivity, getString(R.string.om_sqlite_query_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@SqliteViewerActivity,
+                        getString(R.string.om_sqlite_query_error_format, e.message ?: ""),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
         }
@@ -312,14 +368,33 @@ class SqliteViewerActivity : AppActivity() {
         val padH = (12 * density).toInt()
         val padV = (10 * density).toInt()
 
-        // Header Row
+        val isDefaultDark = palette.isDark && !palette.isAmoled
+        val headerBg = when {
+            palette.isAmoled -> 0xFF121212.toInt()
+            !palette.isDark -> 0xFFE8ECF2.toInt()
+            else -> Color.parseColor("#333333")
+        }
+        val headerText = if (isDefaultDark) Color.parseColor("#2196F3") else palette.accentColor
+        val evenBg = when {
+            palette.isAmoled -> 0xFF080808.toInt()
+            !palette.isDark -> 0xFFFFFFFF.toInt()
+            else -> Color.parseColor("#242424")
+        }
+        val oddBg = when {
+            palette.isAmoled -> 0xFF000000.toInt()
+            !palette.isDark -> 0xFFF4F6F9.toInt()
+            else -> Color.parseColor("#1E1E1E")
+        }
+        val nullTextColor = if (isDefaultDark) Color.parseColor("#777777") else palette.textSecondary
+        val cellTextColor = if (isDefaultDark) Color.WHITE else palette.textPrimary
+
         val headerRow = TableRow(this).apply {
-            setBackgroundColor(Color.parseColor("#333333"))
+            setBackgroundColor(headerBg)
         }
         for (name in data.columnNames) {
             val tv = TextView(this).apply {
                 text = name
-                setTextColor(Color.parseColor("#2196F3"))
+                setTextColor(headerText)
                 textSize = 13f
                 setTypeface(null, Typeface.BOLD)
                 setPadding(padH, padV, padH, padV)
@@ -329,15 +404,14 @@ class SqliteViewerActivity : AppActivity() {
         }
         tableData.addView(headerRow)
 
-        // Data Rows
         for ((rowIndex, rowData) in data.rows.withIndex()) {
             val row = TableRow(this).apply {
-                setBackgroundColor(if (rowIndex % 2 == 0) Color.parseColor("#242424") else Color.parseColor("#1E1E1E"))
+                setBackgroundColor(if (rowIndex % 2 == 0) evenBg else oddBg)
             }
             for (value in rowData) {
                 val tv = TextView(this).apply {
                     text = value
-                    setTextColor(if (value == "<null>") Color.parseColor("#777777") else Color.WHITE)
+                    setTextColor(if (value == "<null>") nullTextColor else cellTextColor)
                     textSize = 12f
                     setPadding(padH, padV, padH, padV)
                     setTextIsSelectable(true)
@@ -351,11 +425,7 @@ class SqliteViewerActivity : AppActivity() {
 
     @Synchronized
     private fun closeAndCleanupDb() {
-        try {
-            db?.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        runCatching { db?.close() }
         db = null
         tempFile?.delete()
         tempFile = null

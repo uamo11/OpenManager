@@ -273,7 +273,7 @@ class FileListActivity : AppActivity() {
         }
 
         if (Settings.REQUEST_ROOT_PERMISSION.valueCompat) {
-            kotlin.concurrent.thread {
+            lifecycleScope.launch(Dispatchers.IO) {
                 try {
                     me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher.initBuilder()
                     com.topjohnwu.superuser.Shell.getShell()
@@ -1319,11 +1319,11 @@ class FileListActivity : AppActivity() {
         if (days <= 0) {
             return
         }
-        kotlin.concurrent.thread(name = "AutoCleanRecycleBin") {
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val recycleDir = java.io.File(Settings.recycleBinDirectory.toString())
                 if (!recycleDir.exists() || !recycleDir.isDirectory) {
-                    return@thread
+                    return@launch
                 }
                 val cutoff = System.currentTimeMillis() - (days.toLong() * 24L * 60L * 60L * 1000L)
                 recycleDir.listFiles()?.forEach { file ->

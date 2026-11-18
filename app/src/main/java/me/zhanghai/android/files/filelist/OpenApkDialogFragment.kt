@@ -15,7 +15,9 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -42,6 +44,8 @@ import me.zhanghai.android.files.compat.longVersionCodeCompat
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.fileSize
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
+import me.zhanghai.android.files.ui.dismissSafely
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.ui.runWithProgressDialog
 import me.zhanghai.android.files.ui.showSafeDialog
@@ -305,13 +309,25 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
 
         val isRootAvailable = ApkInstallHelper.isRootAvailable()
         val isShizukuAvailable = ApkInstallHelper.isShizukuAvailable()
+        val palette = OpenManagerPalette.from(context)
+        palette.applyToDialogSurface(view, cornerRadiusDp = 16f)
 
         val dialog = MaterialAlertDialogBuilder(context)
             .setView(view)
             .create()
+        dialog.setOnShowListener {
+            if (!palette.isDark || palette.isAmoled) {
+                val density = context.resources.displayMetrics.density
+                dialog.window?.setBackgroundDrawable(GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = 16f * density
+                    setColor(palette.dialogBg)
+                })
+            }
+        }
 
         btnView.setOnClickListener {
-            dialog.dismiss()
+            dialog.dismissSafely()
             listener.viewApk(file)
         }
 
@@ -320,7 +336,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             val capturedListener = listener
             val targetPkg = parsedPackageName
             if (hasSignatureMismatch && !isRootAvailable && targetPkg != null) {
-                dialog.dismiss()
+                dialog.dismissSafely()
                 val dialogContext = hostActivity ?: context
                 MaterialAlertDialogBuilder(dialogContext)
                     .setTitle("⚠️ Firma diferente detectada")
@@ -349,7 +365,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                     .show()
                 return@setOnClickListener
             }
-            dialog.dismiss()
+            dialog.dismissSafely()
             when {
                 isRootAvailable -> capturedListener.installApkWithRoot(file)
                 isShizukuAvailable && hostActivity != null -> installApkWithShizuku(hostActivity, file)
@@ -398,6 +414,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                     iv.setImageResource(item.iconRes)
                     iv.setColorFilter(item.iconTint)
                     tv.text = item.title
+                    tv.setTextColor(palette.textPrimary)
                     return row
                 }
             }
@@ -408,54 +425,62 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                     val chosen = optionsList[which].title
                     when (chosen) {
                         getString(R.string.view) -> {
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             listener.viewApk(file)
                         }
                         getString(R.string.install_root) -> {
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             listener.installApkWithRoot(file)
                         }
                         getString(R.string.om_apk_install_shizuku) -> {
                             val hostActivity = activity as? FragmentActivity
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             if (hostActivity != null) {
                                 installApkWithShizuku(hostActivity, file)
                             }
                         }
                         getString(R.string.apk_quick_edit) -> {
                             val hostActivity = requireActivity()
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             ApkQuickEditDialogFragment.show(file, hostActivity)
                         }
                         getString(R.string.om_app_view_components) -> {
-                            dialog.dismiss()
-                            try {
-                                val apkJavaFile = file.path.toFile()
-                                AppDetailsViewerHelper.showComponentsViewer(
-                                    requireActivity(),
-                                    parsedPackageName ?: "",
-                                    file.name,
-                                    apkJavaFile
-                                )
-                            } catch (e: Exception) {
-                                Toast.makeText(context, getString(R.string.om_apk_components_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                            val hostActivity = activity as? FragmentActivity ?: requireActivity() as? FragmentActivity
+                            dialog.dismissSafely()
+                            if (hostActivity != null) {
+                                inspectApkWithStaging(
+                                    hostActivity = hostActivity,
+                                    file = file,
+                                    errorTitleRes = R.string.om_apk_components_error_format
+                                ) { apkJavaFile ->
+                                    AppDetailsViewerHelper.showComponentsViewer(
+                                        hostActivity,
+                                        parsedPackageName ?: "",
+                                        file.name,
+                                        apkJavaFile
+                                    )
+                                }
                             }
                         }
                         getString(R.string.om_app_view_manifest) -> {
-                            dialog.dismiss()
-                            try {
-                                val apkJavaFile = file.path.toFile()
-                                AppDetailsViewerHelper.showManifestViewer(
-                                    requireActivity(),
-                                    apkJavaFile,
-                                    file.name
-                                )
-                            } catch (e: Exception) {
-                                Toast.makeText(context, getString(R.string.om_apk_manifest_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                            val hostActivity = activity as? FragmentActivity ?: requireActivity() as? FragmentActivity
+                            dialog.dismissSafely()
+                            if (hostActivity != null) {
+                                inspectApkWithStaging(
+                                    hostActivity = hostActivity,
+                                    file = file,
+                                    errorTitleRes = R.string.om_apk_manifest_error_format
+                                ) { apkJavaFile ->
+                                    AppDetailsViewerHelper.showManifestViewer(
+                                        hostActivity,
+                                        apkJavaFile,
+                                        file.name
+                                    )
+                                }
                             }
                         }
                         getString(R.string.om_apk_antisplit) -> {
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             val fragment = (activity as? FileListActivity)?.activeFragment
                             if (fragment != null) {
                                 val allApks = (0 until fragment.itemCountSafe()).mapNotNull { fragment.getItemSafe(it) }
@@ -468,12 +493,12 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             }
                         }
                         getString(R.string.om_apk_decompile_jadx) -> {
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             decompileApkToJava(file)
                         }
                         getString(R.string.om_apk_decompile_apktool) -> {
                             val hostActivity = requireActivity()
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             ApktoolHelper.decompileApk(hostActivity, file.path) { targetDir ->
                                 if (targetDir != null) {
                                     (hostActivity as? FileListActivity)?.activeFragment?.reload()
@@ -482,17 +507,17 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         }
                         getString(R.string.toast_dialog_inject_title) -> {
                             val hostActivity = requireActivity()
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             ToastDialogInjectDialogFragment.show(file, hostActivity)
                         }
                         getString(R.string.toast_dialog_clean_title) -> {
                             val hostActivity = requireActivity()
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             ToastDialogCleanDialogFragment.show(file, hostActivity)
                         }
                         getString(R.string.apk_sign) -> {
                             val hostActivity = requireActivity()
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             ApkSignerHelper.showSignDialog(hostActivity, file.path) { targetPath ->
                                 if (targetPath != null) {
                                     (hostActivity as? FileListActivity)?.activeFragment?.reload()
@@ -501,7 +526,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                         }
                         getString(R.string.om_apk_generate_keystore) -> {
                             val hostActivity = requireActivity()
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             val parentDir = try {
                                 file.path.parent?.toFile()?.absolutePath ?: "/storage/emulated/0/Download"
                             } catch (_: Exception) {
@@ -521,7 +546,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             Toast.makeText(context, getString(R.string.om_apk_pkg_copied_format, pkg), Toast.LENGTH_SHORT).show()
                         }
                         getString(R.string.om_apk_extract) -> {
-                            dialog.dismiss()
+                            dialog.dismissSafely()
                             val activity = activity as? FileListActivity ?: return@setAdapter
                             val activeFrag = activity.activeFragment ?: return@setAdapter
                             val opposite = activity.getOppositeFragment(activeFrag)
@@ -537,6 +562,47 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         }
 
         return dialog
+    }
+
+    private fun inspectApkWithStaging(
+        hostActivity: FragmentActivity,
+        file: FileItem,
+        errorTitleRes: Int,
+        onReady: (File) -> Unit
+    ) {
+        if (file.path.isLinuxPath) {
+            try {
+                onReady(file.path.toFile())
+            } catch (e: Exception) {
+                Toast.makeText(hostActivity, hostActivity.getString(errorTitleRes, e.message ?: ""), Toast.LENGTH_SHORT).show()
+            }
+            return
+        }
+        hostActivity.runWithProgressDialog(
+            title = file.name,
+            initialMessage = hostActivity.getString(R.string.loading)
+        ) {
+            var stagedFile: File? = null
+            try {
+                val targetFile = withContext(Dispatchers.IO) {
+                    val tmp = File(hostActivity.cacheDir, "om_inspect_${System.currentTimeMillis()}.apk")
+                    file.path.newInputStream().use { input ->
+                        FileOutputStream(tmp).use { output -> input.copyTo(output, bufferSize = 65536) }
+                    }
+                    tmp
+                }
+                stagedFile = targetFile
+                if (hostActivity.isUiAlive) {
+                    onReady(targetFile)
+                }
+            } catch (e: Exception) {
+                if (hostActivity.isUiAlive) {
+                    Toast.makeText(hostActivity, hostActivity.getString(errorTitleRes, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                stagedFile?.delete()
+            }
+        }
     }
 
     private fun installApkWithShizuku(hostActivity: FragmentActivity, file: FileItem) {
@@ -634,11 +700,12 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             tvDimensions.text = "Vector / Default"
         }
 
+        OpenManagerPalette.from(context).applyToDialogSurface(dialogView, cornerRadiusDp = 14f)
         val viewerDialog = MaterialAlertDialogBuilder(context)
             .setView(dialogView)
             .create()
 
-        btnClose?.setOnClickListener { viewerDialog.dismiss() }
+        btnClose?.setOnClickListener { viewerDialog.dismissSafely() }
 
         btnSave?.setOnClickListener {
             if (bitmap == null) {

@@ -20,6 +20,7 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.PosixFileModeBit
 import me.zhanghai.android.files.provider.common.toModeString
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.enumSetOf
@@ -37,8 +38,9 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
     private var isUpdatingUi = false
     private var isTypingOctal = false
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog =
-        MaterialAlertDialogBuilder(requireContext(), theme)
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val palette = OpenManagerPalette.from(requireContext())
+        return MaterialAlertDialogBuilder(requireContext(), theme)
             .setTitle(R.string.file_properties_permission_set_mode_title)
             .apply {
                 binding = SetModeDialogBinding.inflate(context.layoutInflater)
@@ -55,6 +57,7 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
                 }
 
                 setupListeners()
+                palette.applyToDialogSurface(binding.root)
                 setView(binding.root)
 
                 viewModel.modeLiveData.observe(this@SetModeDialogFragment) { onModeChanged(it) }
@@ -64,15 +67,17 @@ class SetModeDialogFragment : AppCompatDialogFragment() {
             .create()
             .also { dialog ->
                 dialog.setOnShowListener {
-                    dialog.window?.setBackgroundDrawable(
-                        android.graphics.drawable.ColorDrawable(android.graphics.Color.parseColor("#303030"))
-                    )
-                    dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)
-                        ?.setTextColor(android.graphics.Color.parseColor("#64B5F6"))
-                    dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)
-                        ?.setTextColor(android.graphics.Color.parseColor("#BDBDBD"))
+                    val isDefaultDark = palette.isDark && !palette.isAmoled
+                    val bgColor = if (isDefaultDark) android.graphics.Color.parseColor("#303030") else palette.dialogBg
+                    val posColor = if (isDefaultDark) android.graphics.Color.parseColor("#64B5F6") else palette.accentColor
+                    val negColor = if (isDefaultDark) android.graphics.Color.parseColor("#BDBDBD") else palette.textSecondary
+
+                    dialog.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(bgColor))
+                    dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE)?.setTextColor(posColor)
+                    dialog.getButton(android.content.DialogInterface.BUTTON_NEGATIVE)?.setTextColor(negColor)
                 }
             }
+    }
 
     private fun setupListeners() {
         val checkListener = CompoundButton.OnCheckedChangeListener { _, _ ->

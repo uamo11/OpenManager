@@ -19,7 +19,8 @@ import androidx.preference.PreferenceViewHolder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.root.ShizukuManager
@@ -40,7 +41,7 @@ class SuperuserStatusPreference : Preference {
     }
 
     private var currentStatus: SuperuserDetector.SuperuserStatus? = null
-    private val scope = CoroutineScope(Dispatchers.Main + Job())
+    private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     private val rootPermissionObserver = Observer<Boolean> { _ ->
         refresh()
@@ -73,6 +74,7 @@ class SuperuserStatusPreference : Preference {
     }
 
     override fun onDetached() {
+        scope.coroutineContext.cancelChildren()
         try {
             Settings.REQUEST_ROOT_PERMISSION.removeObserver(rootPermissionObserver)
             Settings.REQUEST_SHELL_PERMISSION.removeObserver(shellPermissionObserver)
