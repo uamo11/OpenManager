@@ -1091,6 +1091,50 @@
     <string name="settings_file_list_dividers_title">Divider lines in file list</string>
     <string name="settings_file_list_dividers_summary">Show subtle separator lines between files and folders</string>
 
+    <!-- Settings Quick-Jump, Search, Performance Hub & Rich Choice Dialogs -->
+    <string name="settings_jump_performance">Performance</string>
+    <string name="settings_jump_appearance">Appearance</string>
+    <string name="settings_jump_root">Root &amp; Security</string>
+    <string name="settings_jump_files">Files</string>
+    <string name="settings_jump_apk">APK</string>
+    <string name="settings_jump_network">Network &amp; Media</string>
+    <string name="settings_jump_system">System</string>
+    <string name="settings_search_hint">Search settings (thumbnails, icons, AMOLED, root…)</string>
+    <string name="settings_search_clear">Clear search</string>
+    <string name="settings_search_no_results_title">No matching settings found</string>
+    <string name="settings_search_no_results_summary">Try keywords like thumbnails, icons, AMOLED, root, APK or updates</string>
+    <string name="settings_category_visual_performance_title">⚡ Visual Performance &amp; Thumbnails</string>
+    <string name="settings_category_visual_performance_summary">Thumbnail &amp; icon engine, scroll smoothness, RAM usage and list density</string>
+    <string name="settings_hub_theme_title">Visual Theme</string>
+    <string name="settings_hub_theme_light">Light</string>
+    <string name="settings_hub_theme_dark">Dark</string>
+    <string name="settings_hub_theme_amoled">AMOLED</string>
+    <string name="settings_hub_theme_system">System</string>
+    <string name="settings_hub_accent_chip">Accent</string>
+    <string name="settings_hub_perf_title">Thumbnails &amp; Scroll Engine</string>
+    <string name="settings_hub_thumb_full">Full</string>
+    <string name="settings_hub_thumb_full_sub">HD previews</string>
+    <string name="settings_hub_thumb_opt">Optimized</string>
+    <string name="settings_hub_thumb_opt_sub">Pause on fling</string>
+    <string name="settings_hub_thumb_vec">Vector</string>
+    <string name="settings_hub_thumb_vec_sub">Zero bitmaps</string>
+    <string name="settings_hub_turbo_title">Smooth low-power UI mode</string>
+    <string name="settings_hub_status_standard">Standard</string>
+    <string name="settings_hub_status_smooth">⚡ Smooth</string>
+    <string name="settings_hub_status_ultra">⚡ Ultra Fast</string>
+    <string name="settings_thumb_opt_0_desc">Always loads image, video, PDF and APK thumbnails in the file list</string>
+    <string name="settings_thumb_opt_0_tag">VISUAL</string>
+    <string name="settings_thumb_opt_1_desc">Skips heavy decoding during fast flings and restores previews when settling</string>
+    <string name="settings_thumb_opt_1_tag">BALANCED</string>
+    <string name="settings_thumb_opt_2_desc">Renders vector file-type icons only — zero bitmap decoding and lowest RAM</string>
+    <string name="settings_thumb_opt_2_tag">MAX FPS</string>
+    <string name="settings_contrast_opt_0_desc">Classic dual-pane separation with clear active/inactive surfaces</string>
+    <string name="settings_contrast_opt_1_desc">Stronger surface contrast and accent-tinted divider line between A / B panels</string>
+    <string name="settings_contrast_opt_2_desc">Matching surfaces on both panes for lower overdraw on lightweight GPUs</string>
+    <string name="settings_size_opt_0_desc">Compact 44dp rows and 32dp icons to fit more files on screen</string>
+    <string name="settings_size_opt_1_desc">Balanced 52dp rows and 38dp icons for comfortable thumb navigation</string>
+    <string name="settings_size_opt_2_desc">Large 62dp rows and 44dp icons for instant visual scanning</string>
+
     <!-- MT Manager General Preferences -->
     <string name="settings_generate_backup_file_title">Generate backup file</string>
     <string name="settings_generate_backup_file_summary">Automatically rename the original file to a .bak backup file when saving the file.</string>

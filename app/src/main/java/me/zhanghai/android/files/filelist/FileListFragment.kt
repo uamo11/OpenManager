@@ -54,6 +54,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.commit
 import androidx.lifecycle.LifecycleOwner
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.leinardi.android.speeddial.SpeedDialView
@@ -552,7 +553,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         })
         binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                adapter.isFlinging = newState == RecyclerView.SCROLL_STATE_SETTLING
+                val lm = recyclerView.layoutManager as? LinearLayoutManager
+                adapter.updateFlingState(
+                    flinging = newState == RecyclerView.SCROLL_STATE_SETTLING,
+                    firstVisible = lm?.findFirstVisibleItemPosition() ?: -1,
+                    lastVisible = lm?.findLastVisibleItemPosition() ?: -1
+                )
             }
         })
         binding.recyclerView.addOnItemTouchListener(object : RecyclerView.SimpleOnItemTouchListener() {

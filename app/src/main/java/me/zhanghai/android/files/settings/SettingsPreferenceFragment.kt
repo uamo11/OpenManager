@@ -8,12 +8,19 @@ package me.zhanghai.android.files.settings
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import androidx.preference.ListPreference
+import androidx.preference.Preference
+import androidx.preference.PreferenceGroup
+import androidx.preference.SwitchPreferenceCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.SimpleItemAnimator
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.archive.archiver.ArchiveSecurityPreferences
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
-import me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment
 import me.zhanghai.android.files.provider.root.DeadManProtectedRulesDialogFragment
+import me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment
 import me.zhanghai.android.files.theme.custom.CustomThemeHelper
+import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.theme.custom.ThemeColor
 import me.zhanghai.android.files.theme.night.NightMode
 import me.zhanghai.android.files.theme.night.NightModeHelper
@@ -24,9 +31,18 @@ import me.zhanghai.android.files.util.valueCompat
 
 class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     private lateinit var localePreference: LocalePreference
+    private val defaultVisibilityMap = LinkedHashMap<Preference, Boolean>()
+    private var isUpdatingThemePreset = false
 
     override fun onCreatePreferencesFix(savedInstanceState: Bundle?, rootKey: String?) {
         addPreferencesFromResource(R.xml.settings)
+
+        SettingsIconHelper.applyIconsToScreen(
+            requireContext(),
+            preferenceScreen,
+            OpenManagerPalette.from(requireContext())
+        )
+        captureDefaultVisibility(preferenceScreen)
 
         localePreference = preferenceScreen.findPreference(getString(R.string.pref_key_locale))!!
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -36,12 +52,35 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_install_shizuku))?.setOnPreferenceClickListener {
+        findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.apply {
+            onThemePresetSelected = ::applyThemePreset
+            onAccentClicked = {
+                findPreference<Preference>(getString(R.string.pref_key_theme_color))?.performClick()
+            }
+            onThumbnailModeSelected = { mode ->
+                val thumbPref = findPreference<ListPreference>(
+                    getString(R.string.pref_key_thumbnail_load_mode)
+                )
+                thumbPref?.value = mode
+                Settings.THUMBNAIL_LOAD_MODE.putValue(mode)
+                refreshState()
+            }
+            onVisualPerformanceToggled = { enabled ->
+                val perfPref = findPreference<SwitchPreferenceCompat>(
+                    getString(R.string.pref_key_visual_performance_mode)
+                )
+                perfPref?.isChecked = enabled
+                Settings.VISUAL_PERFORMANCE_MODE.putValue(enabled)
+                refreshState()
+            }
+        }
+
+        findPreference<Preference>(getString(R.string.pref_key_install_shizuku))?.setOnPreferenceClickListener {
             me.zhanghai.android.files.provider.root.ShizukuManager.openShizukuApp(requireContext())
             true
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_check_for_update))?.setOnPreferenceClickListener {
+        findPreference<Preference>(getString(R.string.pref_key_check_for_update))?.setOnPreferenceClickListener {
             me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true) {
                 if (isAdded) {
                     refreshUpdateCheckSummary()
@@ -51,17 +90,20 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
         refreshUpdateCheckSummary()
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_view_error_logs))?.setOnPreferenceClickListener {
-            val logsDir = me.zhanghai.android.files.app.CrashHandler.ensureLogsDirectory() ?: java.io.File("/storage/emulated/0/OpenManager/logs")
+        findPreference<Preference>(getString(R.string.pref_key_view_error_logs))?.setOnPreferenceClickListener {
+            val logsDir = me.zhanghai.android.files.app.CrashHandler.ensureLogsDirectory()
+                ?: java.io.File("/storage/emulated/0/OpenManager/logs")
             if (!logsDir.exists()) {
                 logsDir.mkdirs()
             }
-            val intent = me.zhanghai.android.files.filelist.FileListActivity.createViewIntent(java8.nio.file.Paths.get(logsDir.absolutePath))
+            val intent = me.zhanghai.android.files.filelist.FileListActivity.createViewIntent(
+                java8.nio.file.Paths.get(logsDir.absolutePath)
+            )
             requireContext().startActivitySafe(intent)
             true
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_about_settings))?.let { pref ->
+        findPreference<Preference>(getString(R.string.pref_key_about_settings))?.let { pref ->
             pref.summary = "OpenManager v${me.zhanghai.android.files.BuildConfig.VERSION_NAME}"
             pref.setOnPreferenceClickListener {
                 requireContext().startActivitySafe(me.zhanghai.android.files.about.AboutActivity::class.createIntent())
@@ -69,14 +111,14 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_acknowledgement))?.setOnPreferenceClickListener {
+        findPreference<Preference>(getString(R.string.pref_key_acknowledgement))?.setOnPreferenceClickListener {
             val intent = me.zhanghai.android.files.about.AboutActivity::class.createIntent()
                 .putExtra(me.zhanghai.android.files.about.AboutActivity.EXTRA_SCROLL_TO_ACKNOWLEDGEMENTS, true)
             requireContext().startActivitySafe(intent)
             true
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_user_agreement))?.setOnPreferenceClickListener {
+        findPreference<Preference>(getString(R.string.pref_key_user_agreement))?.setOnPreferenceClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.settings_user_agreement_title)
                 .setMessage("OpenManager\n\n100% Free & Open Source Software (GPLv3).\n\nOpenManager does not collect, transmit, or share any personal data, analytics, or telemetry. All file operations remain entirely local to your device.")
@@ -85,7 +127,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_cloud_backup))?.setOnPreferenceClickListener {
+        findPreference<Preference>(getString(R.string.pref_key_cloud_backup))?.setOnPreferenceClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.settings_cloud_backup_title)
                 .setMessage(R.string.settings_cloud_backup_summary)
@@ -94,7 +136,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<androidx.preference.Preference>(getString(R.string.pref_key_cloud_restore))?.setOnPreferenceClickListener {
+        findPreference<Preference>(getString(R.string.pref_key_cloud_restore))?.setOnPreferenceClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.settings_cloud_restore_title)
                 .setMessage(R.string.settings_cloud_restore_summary)
@@ -103,14 +145,14 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             true
         }
 
-        findPreference<androidx.preference.SwitchPreferenceCompat>(getString(R.string.pref_key_move_to_recycle_bin_on_delete))
+        findPreference<SwitchPreferenceCompat>(getString(R.string.pref_key_move_to_recycle_bin_on_delete))
             ?.setOnPreferenceChangeListener { _, newValue ->
                 val isEnabled = newValue as Boolean
                 Settings.ENABLE_RECYCLE_BIN.putValue(isEnabled)
                 true
             }
 
-        val dfrootPref = findPreference<androidx.preference.SwitchPreferenceCompat>(
+        val dfrootPref = findPreference<SwitchPreferenceCompat>(
             getString(R.string.pref_key_dead_man_dfroot_protection)
         )
         dfrootPref?.setOnPreferenceChangeListener { preference, newValue ->
@@ -121,7 +163,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                     DeadManProtectionManager.recordExplicitlyDisabled(requireContext(), true)
                     true
                 } else {
-                    showDisableDfrootWarningDialog(preference as androidx.preference.SwitchPreferenceCompat)
+                    showDisableDfrootWarningDialog(preference as SwitchPreferenceCompat)
                     false
                 }
             } else {
@@ -130,14 +172,14 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<androidx.preference.Preference>(
+        findPreference<Preference>(
             getString(R.string.pref_key_dead_man_dfroot_protected_files)
         )?.setOnPreferenceClickListener {
             DfrootProtectedFilesDialogFragment.show(this)
             true
         }
 
-        val rootProtectionPref = findPreference<androidx.preference.SwitchPreferenceCompat>(
+        val rootProtectionPref = findPreference<SwitchPreferenceCompat>(
             getString(R.string.pref_key_dead_man_root_protection)
         )
         rootProtectionPref?.setOnPreferenceChangeListener { preference, newValue ->
@@ -148,7 +190,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
                     DeadManProtectionManager.recordDeadManExplicitlyDisabled(requireContext(), true)
                     true
                 } else {
-                    showDisableDeadManWarningDialog(preference as androidx.preference.SwitchPreferenceCompat)
+                    showDisableDeadManWarningDialog(preference as SwitchPreferenceCompat)
                     false
                 }
             } else {
@@ -157,20 +199,20 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
         }
 
-        findPreference<androidx.preference.Preference>(
+        findPreference<Preference>(
             getString(R.string.pref_key_dead_man_root_rules)
         )?.setOnPreferenceClickListener {
             DeadManProtectedRulesDialogFragment.show(this)
             true
         }
 
-        val rar5Pref = findPreference<androidx.preference.SwitchPreferenceCompat>(
+        val rar5Pref = findPreference<SwitchPreferenceCompat>(
             getString(R.string.pref_key_archive_security_enable_rar5)
         )
         rar5Pref?.setOnPreferenceChangeListener { preference, newValue ->
             val willEnable = newValue as Boolean
             if (willEnable) {
-                showEnableRar5WarningDialog(preference as androidx.preference.SwitchPreferenceCompat)
+                showEnableRar5WarningDialog(preference as SwitchPreferenceCompat)
                 false
             } else {
                 ArchiveSecurityPreferences.setRar5Enabled(requireContext(), false)
@@ -179,14 +221,138 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
     }
 
+    private fun captureDefaultVisibility(group: PreferenceGroup) {
+        for (i in 0 until group.preferenceCount) {
+            val child = group.getPreference(i)
+            if (child.key == "key_search_empty_state") continue
+            defaultVisibilityMap[child] = child.isVisible
+            if (child is PreferenceGroup) {
+                captureDefaultVisibility(child)
+            }
+        }
+    }
+
+    private fun applyThemePreset(preset: SettingsUiLogic.ThemeQuickPreset) {
+        val targetNightMode = when (preset) {
+            SettingsUiLogic.ThemeQuickPreset.LIGHT -> NightMode.OFF
+            SettingsUiLogic.ThemeQuickPreset.DARK -> NightMode.ON
+            SettingsUiLogic.ThemeQuickPreset.AMOLED -> NightMode.ON
+            SettingsUiLogic.ThemeQuickPreset.SYSTEM -> NightMode.FOLLOW_SYSTEM
+        }
+        val targetBlack = (preset == SettingsUiLogic.ThemeQuickPreset.AMOLED)
+        val currentNight = Settings.NIGHT_MODE.valueCompat
+        val currentBlack = Settings.BLACK_NIGHT_MODE.valueCompat
+        if (currentNight == targetNightMode && currentBlack == targetBlack) return
+
+        val nightModePref = findPreference<ListPreference>(getString(R.string.pref_key_night_mode))
+        val blackPref = findPreference<SwitchPreferenceCompat>(getString(R.string.pref_key_black_night_mode))
+
+        isUpdatingThemePreset = true
+        try {
+            if (currentBlack != targetBlack) {
+                blackPref?.isChecked = targetBlack
+                Settings.BLACK_NIGHT_MODE.putValue(targetBlack)
+            }
+            if (currentNight != targetNightMode) {
+                nightModePref?.value = targetNightMode.ordinal.toString()
+                Settings.NIGHT_MODE.putValue(targetNightMode)
+            }
+        } finally {
+            isUpdatingThemePreset = false
+        }
+        NightModeHelper.sync()
+        CustomThemeHelper.sync()
+    }
+
+    fun filterPreferences(rawQuery: String) {
+        val normalized = SettingsUiLogic.normalizeQuery(rawQuery)
+        val screen = preferenceScreen ?: return
+        val emptyPref = findPreference<Preference>("key_search_empty_state")
+        if (normalized.isEmpty()) {
+            for ((pref, visible) in defaultVisibilityMap) {
+                pref.isVisible = visible
+            }
+            emptyPref?.isVisible = false
+            return
+        }
+        var totalMatches = 0
+        for (i in 0 until screen.preferenceCount) {
+            val top = screen.getPreference(i)
+            if (top.key == "key_search_empty_state") continue
+            if (top is PreferenceGroup) {
+                var groupHasVisibleChild = false
+                for (j in 0 until top.preferenceCount) {
+                    val child = top.getPreference(j)
+                    val baseVisible = defaultVisibilityMap[child] ?: true
+                    if (!baseVisible) {
+                        child.isVisible = false
+                        continue
+                    }
+                    val matched = SettingsUiLogic.matchesSearch(
+                        normalizedQuery = normalized,
+                        title = child.title,
+                        summary = child.summary,
+                        entries = (child as? ListPreference)?.entries,
+                        keywords = SettingsUiLogic.keywordsForKey(child.key)
+                    )
+                    child.isVisible = matched
+                    if (matched) {
+                        groupHasVisibleChild = true
+                        totalMatches++
+                    }
+                }
+                top.isVisible = (defaultVisibilityMap[top] ?: true) && groupHasVisibleChild
+            } else {
+                val baseVisible = defaultVisibilityMap[top] ?: true
+                val matched = baseVisible && SettingsUiLogic.matchesSearch(
+                    normalizedQuery = normalized,
+                    title = top.title,
+                    summary = top.summary,
+                    entries = (top as? ListPreference)?.entries,
+                    keywords = SettingsUiLogic.keywordsForKey(top.key)
+                )
+                top.isVisible = matched
+                if (matched) {
+                    totalMatches++
+                }
+            }
+        }
+        emptyPref?.isVisible = (totalMatches == 0)
+    }
+
+    fun scrollToCategory(categoryKey: String) {
+        val lv = listView ?: return
+        val target = findPreference<Preference>(categoryKey) ?: return
+        val callback = lv.adapter as? PreferenceGroup.PreferencePositionCallback
+        val pos = callback?.getPreferenceAdapterPosition(target) ?: -1
+        if (pos >= 0) {
+            val lm = lv.layoutManager as? LinearLayoutManager
+            if (lm != null) {
+                lm.scrollToPositionWithOffset(pos, 0)
+                return
+            }
+        }
+        scrollToPreference(target)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        listView?.apply {
+            setItemViewCacheSize(24)
+            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+        }
+        val palette = OpenManagerPalette.from(requireContext())
+        if (!palette.isDark || palette.isAmoled) {
+            view.setBackgroundColor(palette.screenBg)
+            listView?.setBackgroundColor(palette.screenBg)
+        }
 
         val highlightKey = activity?.intent?.getStringExtra(DeadManProtectionManager.EXTRA_HIGHLIGHT_PREF)
         if (!highlightKey.isNullOrEmpty()) {
             view.postDelayed({
                 if (isAdded && !isDetached) {
-                    val pref = findPreference<androidx.preference.Preference>(highlightKey)
+                    val pref = findPreference<Preference>(highlightKey)
                     if (pref != null) {
                         scrollToPreference(pref)
                     }
@@ -195,7 +361,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
     }
 
-    private fun showDisableDeadManWarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {
+    private fun showDisableDeadManWarningDialog(pref: SwitchPreferenceCompat) {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setIcon(R.drawable.ic_dead_man_skull)
             .setTitle(R.string.dead_man_root_warning_disable_title)
@@ -213,7 +379,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             .show()
     }
 
-    private fun showDisableDfrootWarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {
+    private fun showDisableDfrootWarningDialog(pref: SwitchPreferenceCompat) {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setIcon(R.drawable.ic_root_dfroot)
             .setTitle(R.string.dead_man_dfroot_warning_disable_title)
@@ -231,7 +397,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             .show()
     }
 
-    private fun showEnableRar5WarningDialog(pref: androidx.preference.SwitchPreferenceCompat) {
+    private fun showEnableRar5WarningDialog(pref: SwitchPreferenceCompat) {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setIcon(R.drawable.ic_crash_alert_24dp)
             .setTitle(R.string.settings_archive_security_rar5_dialog_title)
@@ -255,21 +421,22 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         super.onActivityCreated(savedInstanceState)
 
         val viewLifecycleOwner = viewLifecycleOwner
-        // The following may end up passing the same lambda instance to the observer because it has
-        // no capture, and result in an IllegalArgumentException "Cannot add the same observer with
-        // different lifecycles" if activity is finished and instantly started again. To work around
-        // this, always use an instance method reference.
-        // https://stackoverflow.com/a/27524543
-        //Settings.THEME_COLOR.observe(viewLifecycleOwner) { CustomThemeHelper.sync() }
-        //Settings.MATERIAL_DESIGN_3.observe(viewLifecycleOwner) { CustomThemeHelper.sync() }
-        //Settings.NIGHT_MODE.observe(viewLifecycleOwner) { NightModeHelper.sync() }
-        //Settings.BLACK_NIGHT_MODE.observe(viewLifecycleOwner) { CustomThemeHelper.sync() }
         Settings.THEME_COLOR.observe(viewLifecycleOwner, this::onThemeColorChanged)
         Settings.MATERIAL_DESIGN_3.observe(viewLifecycleOwner, this::onMaterialDesign3Changed)
         Settings.NIGHT_MODE.observe(viewLifecycleOwner, this::onNightModeChanged)
         Settings.BLACK_NIGHT_MODE.observe(viewLifecycleOwner, this::onBlackNightModeChanged)
+        Settings.THUMBNAIL_LOAD_MODE.observe(viewLifecycleOwner, this::onHubPerformanceChanged)
+        Settings.VISUAL_PERFORMANCE_MODE.observe(viewLifecycleOwner, this::onVisualPerfChanged)
         Settings.REQUEST_ROOT_PERMISSION.observe(viewLifecycleOwner, this::onRequestRootPermissionChanged)
         Settings.REQUEST_SHELL_PERMISSION.observe(viewLifecycleOwner, this::onRequestShellPermissionChanged)
+    }
+
+    private fun onHubPerformanceChanged(mode: String) {
+        findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
+    }
+
+    private fun onVisualPerfChanged(enabled: Boolean) {
+        findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
     }
 
     private fun onRequestRootPermissionChanged(enabled: Boolean) {
@@ -288,24 +455,28 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     }
 
     private fun onThemeColorChanged(themeColor: ThemeColor) {
+        if (isUpdatingThemePreset) return
         CustomThemeHelper.sync()
     }
 
     private fun onMaterialDesign3Changed(isMaterialDesign3: Boolean) {
+        if (isUpdatingThemePreset) return
         CustomThemeHelper.sync()
     }
 
     private fun onNightModeChanged(nightMode: NightMode) {
+        if (isUpdatingThemePreset) return
         NightModeHelper.sync()
         CustomThemeHelper.sync()
     }
 
     private fun onBlackNightModeChanged(blackNightMode: Boolean) {
+        if (isUpdatingThemePreset) return
         val isCurrentlyLight = (activity as? androidx.appcompat.app.AppCompatActivity)
             ?.let { !NightModeHelper.isInNightMode(it) }
             ?: (Settings.NIGHT_MODE.valueCompat == NightMode.OFF)
         if (blackNightMode && isCurrentlyLight) {
-            findPreference<rikka.preference.SimpleMenuPreference>(
+            findPreference<ListPreference>(
                 getString(R.string.pref_key_night_mode)
             )?.value = NightMode.ON.ordinal.toString()
             Settings.NIGHT_MODE.putValue(NightMode.ON)
@@ -316,11 +487,11 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     private fun refreshUpdateCheckSummary() {
         val ctx = context ?: return
         me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(ctx)
-        findPreference<androidx.preference.SwitchPreferenceCompat>(
+        findPreference<SwitchPreferenceCompat>(
             getString(R.string.pref_key_auto_check_updates)
         )?.isChecked = Settings.AUTO_CHECK_UPDATES.valueCompat
 
-        val checkPref = findPreference<androidx.preference.Preference>(
+        val checkPref = findPreference<Preference>(
             getString(R.string.pref_key_check_for_update)
         ) ?: return
         val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(ctx)
@@ -349,11 +520,10 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
         me.zhanghai.android.files.provider.root.SuperuserDetector.invalidateCache()
         findPreference<SuperuserStatusPreference>("key_superuser_status")?.refresh()
+        findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
         refreshUpdateCheckSummary()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Refresh locale preference summary because we aren't notified for an external change
-            // between system default and the locale that's the current system default.
             localePreference.notifyChanged()
         }
     }

@@ -987,6 +987,50 @@
     <string name="settings_file_list_dividers_title">Líneas divisoras en lista de archivos</string>
     <string name="settings_file_list_dividers_summary">Mostrar separadores sutiles entre elementos de la lista</string>
 
+    <!-- Settings Quick-Jump, Search, Performance Hub & Rich Choice Dialogs -->
+    <string name="settings_jump_performance">Rendimiento</string>
+    <string name="settings_jump_appearance">Apariencia</string>
+    <string name="settings_jump_root">Root y Seguridad</string>
+    <string name="settings_jump_files">Archivos</string>
+    <string name="settings_jump_apk">APK</string>
+    <string name="settings_jump_network">Red y Medios</string>
+    <string name="settings_jump_system">Sistema</string>
+    <string name="settings_search_hint">Buscar ajuste (miniaturas, iconos, AMOLED, root…)</string>
+    <string name="settings_search_clear">Limpiar búsqueda</string>
+    <string name="settings_search_no_results_title">Sin ajustes coincidentes</string>
+    <string name="settings_search_no_results_summary">Prueba con miniaturas, iconos, AMOLED, root, APK o actualizaciones</string>
+    <string name="settings_category_visual_performance_title">⚡ Rendimiento Visual y Miniaturas</string>
+    <string name="settings_category_visual_performance_summary">Motor de miniaturas e iconos, fluidez al deslizar, uso de RAM y densidad de lista</string>
+    <string name="settings_hub_theme_title">Tema Visual</string>
+    <string name="settings_hub_theme_light">Claro</string>
+    <string name="settings_hub_theme_dark">Oscuro</string>
+    <string name="settings_hub_theme_amoled">AMOLED</string>
+    <string name="settings_hub_theme_system">Sistema</string>
+    <string name="settings_hub_accent_chip">Acento</string>
+    <string name="settings_hub_perf_title">Motor de Miniaturas y Fluidez</string>
+    <string name="settings_hub_thumb_full">Completo</string>
+    <string name="settings_hub_thumb_full_sub">Vistas HD</string>
+    <string name="settings_hub_thumb_opt">Optimizado</string>
+    <string name="settings_hub_thumb_opt_sub">Pausa al deslizar</string>
+    <string name="settings_hub_thumb_vec">Vectorial</string>
+    <string name="settings_hub_thumb_vec_sub">Sin bitmaps</string>
+    <string name="settings_hub_turbo_title">Modo fluido de bajo consumo (UI)</string>
+    <string name="settings_hub_status_standard">Estándar</string>
+    <string name="settings_hub_status_smooth">⚡ Fluido</string>
+    <string name="settings_hub_status_ultra">⚡ Ultra Rápido</string>
+    <string name="settings_thumb_opt_0_desc">Carga siempre miniaturas de imágenes, vídeos, PDF y APKs en la lista</string>
+    <string name="settings_thumb_opt_0_tag">VISUAL</string>
+    <string name="settings_thumb_opt_1_desc">Pausa el decodificado durante deslizamientos rápidos y carga al detenerse</string>
+    <string name="settings_thumb_opt_1_tag">EQUILIBRADO</string>
+    <string name="settings_thumb_opt_2_desc">Solo iconos vectoriales sin decodificar bitmaps: máxima velocidad y menor RAM</string>
+    <string name="settings_thumb_opt_2_tag">MÁX. FPS</string>
+    <string name="settings_contrast_opt_0_desc">Separación clásica entre panel activo e inactivo estilo MT</string>
+    <string name="settings_contrast_opt_1_desc">Mayor diferencia visual entre paneles A / B con separador de color de acento</string>
+    <string name="settings_contrast_opt_2_desc">Superficie uniforme en ambos paneles para menor consumo de GPU</string>
+    <string name="settings_size_opt_0_desc">Filas compactas de 44dp con iconos de 32dp para ver más elementos</string>
+    <string name="settings_size_opt_1_desc">Filas equilibradas de 52dp e iconos de 38dp para uso cómodo</string>
+    <string name="settings_size_opt_2_desc">Filas amplias de 62dp con iconos de 44dp para lectura instantánea</string>
+
     <!-- MT Manager General Preferences -->
     <string name="settings_generate_backup_file_title">Generar archivo de copia de seguridad</string>
     <string name="settings_generate_backup_file_summary">Cambiar automáticamente el nombre del archivo original a un archivo de copia de seguridad .bak al guardarlo.</string>

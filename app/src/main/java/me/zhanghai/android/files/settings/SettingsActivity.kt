@@ -64,6 +64,7 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
     }
 
     private fun restart() {
+        if (isRestarting) return
         val savedInstanceState = Bundle().apply {
             onSaveInstanceState(this)
         }
