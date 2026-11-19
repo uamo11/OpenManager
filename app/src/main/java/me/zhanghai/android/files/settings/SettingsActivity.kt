@@ -38,33 +38,6 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
     override fun onCreate(savedInstanceState: Bundle?) {
         val args = intent.extras?.getArgsOrNull<Args>()
         val savedInstanceState = savedInstanceState ?: args?.savedInstanceState
-        if (BuildConfig.DEBUG && savedInstanceState == null) {
-            intent.getStringExtra("DEMO_THEME")?.let { theme ->
-                when (theme) {
-                    "dark" -> {
-                        Settings.BLACK_NIGHT_MODE.putValue(false)
-                        Settings.NIGHT_MODE.putValue(NightMode.ON)
-                        delegate.localNightMode = NightMode.ON.value
-                        NightModeHelper.sync()
-                        CustomThemeHelper.sync()
-                    }
-                    "amoled" -> {
-                        Settings.NIGHT_MODE.putValue(NightMode.ON)
-                        Settings.BLACK_NIGHT_MODE.putValue(true)
-                        delegate.localNightMode = NightMode.ON.value
-                        NightModeHelper.sync()
-                        CustomThemeHelper.sync()
-                    }
-                    "light" -> {
-                        Settings.BLACK_NIGHT_MODE.putValue(false)
-                        Settings.NIGHT_MODE.putValue(NightMode.OFF)
-                        delegate.localNightMode = NightMode.OFF.value
-                        NightModeHelper.sync()
-                        CustomThemeHelper.sync()
-                    }
-                }
-            }
-        }
         super.onCreate(savedInstanceState)
 
         // Calls ensureSubDecor().
@@ -72,23 +45,49 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
         if (savedInstanceState == null) {
             supportFragmentManager.commit { add<SettingsFragment>(android.R.id.content) }
         }
-        if (BuildConfig.DEBUG && savedInstanceState == null) {
+        if (BuildConfig.DEBUG) {
             val demoLocale = intent.getStringExtra("DEMO_LOCALE")
-            if (!demoLocale.isNullOrEmpty()) {
-                intent.removeExtra("DEMO_LOCALE")
+            val demoTheme = intent.getStringExtra("DEMO_THEME")
+            intent.removeExtra("DEMO_LOCALE")
+            intent.removeExtra("DEMO_THEME")
+            if (!demoLocale.isNullOrEmpty() || !demoTheme.isNullOrEmpty()) {
                 window.decorView.post {
                     if (isFinishing || isDestroyed) return@post
-                    val targetLocales = when (demoLocale) {
-                        "es" -> LocaleListCompat.forLanguageTags("es")
-                        "reset" -> LocaleListCompat.getEmptyLocaleList()
-                        else -> null
-                    } ?: return@post
-                    val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
-                    if (currentTags != targetLocales.toLanguageTags()) {
-                        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
-                            setApplicationLocalesPre33(targetLocales)
-                        } else {
-                            AppCompatDelegate.setApplicationLocales(targetLocales)
+                    if (!demoTheme.isNullOrEmpty()) {
+                        val target: Pair<NightMode, Boolean>? = when (demoTheme) {
+                            "dark" -> NightMode.ON to false
+                            "amoled" -> NightMode.ON to true
+                            "light" -> NightMode.OFF to false
+                            else -> null
+                        }
+                        if (target != null) {
+                            val (targetNight, targetBlack) = target
+                            if (Settings.NIGHT_MODE.valueCompat != targetNight ||
+                                Settings.BLACK_NIGHT_MODE.valueCompat != targetBlack
+                            ) {
+                                Settings.BLACK_NIGHT_MODE.putValue(targetBlack)
+                                Settings.NIGHT_MODE.putValue(targetNight)
+                                NightModeHelper.sync()
+                                CustomThemeHelper.sync()
+                                if (isRestarting) return@post
+                            }
+                        }
+                    }
+                    if (!demoLocale.isNullOrEmpty()) {
+                        val targetLocales = when (demoLocale) {
+                            "es" -> LocaleListCompat.forLanguageTags("es")
+                            "reset" -> LocaleListCompat.getEmptyLocaleList()
+                            else -> null
+                        }
+                        if (targetLocales != null) {
+                            val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()
+                            if (currentTags != targetLocales.toLanguageTags()) {
+                                if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    setApplicationLocalesPre33(targetLocales)
+                                } else {
+                                    AppCompatDelegate.setApplicationLocales(targetLocales)
+                                }
+                            }
                         }
                     }
                 }
@@ -119,12 +118,28 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
 
     private fun restart() {
         if (isRestarting) return
-        val savedInstanceState = Bundle().apply {
-            onSaveInstanceState(this)
+        val demoKeys = arrayOf(
+            "DEMO_ACTIVE_CHIP",
+            "DEMO_COLLAPSE_HEADER",
+            "DEMO_SEARCH",
+            "DEMO_CATEGORY",
+            "DEMO_OPEN_PREF"
+        )
+        val hasDemoExtras = BuildConfig.DEBUG && demoKeys.any { !intent.getStringExtra(it).isNullOrEmpty() }
+        val nextIntent = if (hasDemoExtras) {
+            SettingsActivity::class.createIntent().apply {
+                for (key in demoKeys) {
+                    intent.getStringExtra(key)?.takeIf { it.isNotEmpty() }?.let { putExtra(key, it) }
+                }
+            }
+        } else {
+            val savedInstanceState = Bundle().apply {
+                onSaveInstanceState(this)
+            }
+            SettingsActivity::class.createIntent().putArgs(Args(savedInstanceState))
         }
         finish()
-        val intent = SettingsActivity::class.createIntent().putArgs(Args(savedInstanceState))
-        startActivitySafe(intent)
+        startActivitySafe(nextIntent)
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         isRestarting = true
     }

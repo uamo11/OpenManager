@@ -191,34 +191,42 @@ echo ">>> Priming Spanish locale for Settings & Terminal showcase screenshots...
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE es --es DEMO_THEME dark || true
 sleep 3
 
-capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE es --es DEMO_THEME dark --es DEMO_ACTIVE_CHIP key_category_visual_performance" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_ACTIVE_CHIP key_category_visual_performance" \
     "28_settings_top_es.png" "Settings Top Search & Quick-Jump (ES)"
 
-capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME dark --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
     "29_settings_appearance_hub_es.png" "Settings Appearance & Performance Hub (ES)"
 
-capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME dark --es DEMO_CATEGORY key_category_visual_performance --es DEMO_COLLAPSE_HEADER true" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_visual_performance --es DEMO_COLLAPSE_HEADER true" \
     "30_settings_performance_category_es.png" "Settings Visual Performance Category (ES)"
 
-capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME dark --es DEMO_CATEGORY key_category_visual_performance --es DEMO_COLLAPSE_HEADER true --es DEMO_OPEN_PREF key_thumbnail_load_mode" \
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_visual_performance --es DEMO_COLLAPSE_HEADER true --es DEMO_OPEN_PREF key_thumbnail_load_mode" \
     "31_settings_thumbnail_dialog_es.png" "Settings Rich Thumbnail Icon Choice Dialog (ES)"
 
-capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME amoled --es DEMO_SEARCH miniaturas" \
+echo ">>> Priming AMOLED theme before search screenshot..."
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME amoled || true
+sleep 3
+
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_SEARCH miniaturas" \
     "32_settings_amoled_search_es.png" "Settings AMOLED Pure Black & Live Search (ES)"
 
-capture_screen "adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME light --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
+echo ">>> Priming Light theme before Light Mode showcase screenshot..."
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME light || true
+sleep 3
+
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
     "33_settings_light_mode_es.png" "Settings Light Mode Hub & Badges (ES)"
 
 echo ">>> Restoring Default Dark theme before capturing Spanish Terminal HUD..."
-adb shell am start -W --activity-clear-task -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME dark || true
-sleep 2
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME dark || true
+sleep 3
 
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal_script_es" \
     "34_terminal_running_script_es.png" "Terminal Workstation HUD Running a.sh (ES)"
 
 echo ">>> Resetting locale after showcase captures..."
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset --es DEMO_THEME dark || true
-sleep 2
+sleep 3
 
 # 28. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
 echo "=========================================================="
