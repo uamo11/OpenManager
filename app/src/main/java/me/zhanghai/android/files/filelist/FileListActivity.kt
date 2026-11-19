@@ -136,6 +136,10 @@ class FileListActivity : AppActivity() {
     private var hasRequestedNotificationThisSession = false
     private var allFilesDialog: androidx.appcompat.app.AlertDialog? = null
     private var statusBarHeight: Int = 0
+    private var lastAppliedPalette: OpenManagerPalette? = null
+    private var lastNavIconIsSelection: Boolean? = null
+    private var lastNavIconTint: Int = 0
+    private var isDiskStatsRefreshing = false
 
     private var activePanelIndex = 0 // 0 = Panel A, 1 = Panel B
     val sharedRecycledViewPool = androidx.recyclerview.widget.RecyclerView.RecycledViewPool().apply {
@@ -542,7 +546,7 @@ class FileListActivity : AppActivity() {
                                 "echo \"Hola, este es un archivo de prueba creado por script.\"\n" +
                                 "echo \"Fecha: \$(date)\"\n" +
                                 "printf \"¿Borrar este archivo? (s/n): \"\n" +
-                                "read -t 15 ans || true\n"
+                                "read -t 25 ans || true\n"
                         )
                         scriptFile.setExecutable(true, false)
                         startActivity(
@@ -1653,6 +1657,8 @@ class FileListActivity : AppActivity() {
 
     private fun applyVisualTheme() {
         val palette = OpenManagerPalette.from(this)
+        if (lastAppliedPalette == palette) return
+        lastAppliedPalette = palette
         window.statusBarColor = palette.toolbarBg
         window.navigationBarColor = palette.bottomBarBg
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -1761,20 +1767,34 @@ class FileListActivity : AppActivity() {
 
     private fun getDiskStats(): String {
         val now = android.os.SystemClock.uptimeMillis()
-        if (cachedDiskStats.isNotEmpty() && now - lastDiskStatsTime < 4000L) {
-            return cachedDiskStats
+        if ((cachedDiskStats.isEmpty() || now - lastDiskStatsTime >= 4000L) && !isDiskStatsRefreshing) {
+            isDiskStatsRefreshing = true
+            lifecycleScope.launch(Dispatchers.IO) {
+                val res = try {
+                    val stat = StatFs(android.os.Environment.getExternalStorageDirectory().path)
+                    val available = Formatter.formatShortFileSize(this@FileListActivity, stat.availableBytes).replace(" ", "")
+                    val total = Formatter.formatShortFileSize(this@FileListActivity, stat.totalBytes).replace(" ", "")
+                    "Disk: $available/$total"
+                } catch (_: Exception) {
+                    cachedDiskStats
+                }
+                withContext(Dispatchers.Main) {
+                    isDiskStatsRefreshing = false
+                    cachedDiskStats = res
+                    lastDiskStatsTime = android.os.SystemClock.uptimeMillis()
+                    if (!isDestroyed && !isFinishing && ::tvStatsSubtitle.isInitialized && ::fragmentA.isInitialized && ::fragmentB.isInitialized && activeFragment.isAdded) {
+                        val stats = activeFragment.currentStatsSubtitle
+                        tvStatsSubtitle.text = when {
+                            stats.isNotEmpty() && res.isNotEmpty() -> "$stats  $res"
+                            stats.isNotEmpty() -> stats
+                            res.isNotEmpty() -> res
+                            else -> "Listo"
+                        }
+                    }
+                }
+            }
         }
-        return try {
-            val stat = StatFs(android.os.Environment.getExternalStorageDirectory().path)
-            val available = Formatter.formatShortFileSize(this, stat.availableBytes).replace(" ", "")
-            val total = Formatter.formatShortFileSize(this, stat.totalBytes).replace(" ", "")
-            val res = "Disk: $available/$total"
-            cachedDiskStats = res
-            lastDiskStatsTime = now
-            res
-        } catch (e: Exception) {
-            cachedDiskStats
-        }
+        return cachedDiskStats
     }
 
     private fun updateTopBarInfo() {
@@ -1803,18 +1823,26 @@ class FileListActivity : AppActivity() {
         if (!activeFragment.isAdded) return
 
         val selectedCount = try { activeFragment.selectedFiles.size } catch (e: Exception) { 0 }
+        val isSelection = selectedCount > 0
         val canNavigateUp = try { activeFragment.canNavigateUp } catch (e: Exception) { false }
 
-        val navTint = OpenManagerPalette.from(this).iconTint
-        if (selectedCount > 0) {
+        if (::btnMainBack.isInitialized) {
+            btnMainBack.visibility = if (!isSelection && canNavigateUp) View.VISIBLE else View.GONE
+        }
+
+        val navTint = (lastAppliedPalette ?: OpenManagerPalette.from(this)).iconTint
+        if (isSelection == lastNavIconIsSelection && navTint == lastNavIconTint) {
+            return
+        }
+        lastNavIconIsSelection = isSelection
+        lastNavIconTint = navTint
+
+        if (isSelection) {
             mainToolbar.setNavigationIcon(R.drawable.close_icon_control_normal_24dp)
             mainToolbar.navigationIcon?.mutate()?.setTint(navTint)
             mainToolbar.navigationContentDescription = getString(android.R.string.cancel)
             mainToolbar.setNavigationOnClickListener {
                 activeFragment.clearSelectedFiles()
-            }
-            if (::btnMainBack.isInitialized) {
-                btnMainBack.visibility = View.GONE
             }
         } else {
             mainToolbar.setNavigationIcon(R.drawable.menu_icon_control_normal_24dp)
@@ -1822,9 +1850,6 @@ class FileListActivity : AppActivity() {
             mainToolbar.navigationContentDescription = getString(R.string.open_navigation_drawer)
             mainToolbar.setNavigationOnClickListener {
                 drawerLayout.openDrawer(GravityCompat.START)
-            }
-            if (::btnMainBack.isInitialized) {
-                btnMainBack.visibility = if (canNavigateUp) View.VISIBLE else View.GONE
             }
         }
 

@@ -37,6 +37,11 @@ object NativeAppIconLoader {
         return drawable
     }
 
+    fun trim(fraction: Float = 0.5f) {
+        val target = (memoryCache.size() * (1f - fraction)).toInt().coerceAtLeast(0)
+        memoryCache.trimToSize(target)
+    }
+
     fun clear() {
         memoryCache.evictAll()
     }

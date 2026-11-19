@@ -88,6 +88,10 @@ class InstalledAppsActivity : AppActivity() {
     companion object {
         @Volatile
         private var sAppCache: List<AppModel>? = null
+
+        fun clearCache() {
+            sAppCache = null
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -143,6 +147,7 @@ class InstalledAppsActivity : AppActivity() {
 
     private fun applyVisualTheme() {
         val palette = OpenManagerPalette.from(this)
+        if (currentPalette == palette) return
         currentPalette = palette
 
         window.statusBarColor = palette.appBarBg

@@ -21,7 +21,7 @@ val scriptExecutionNotificationTemplate =
             showBadge = true
         ),
         colorRes = R.color.color_primary,
-        smallIcon = R.drawable.file_sh_icon,
+        smallIcon = R.drawable.ic_terminal_notification_24dp,
         ongoing = true,
         onlyAlertOnce = true,
         category = NotificationCompat.CATEGORY_SERVICE,

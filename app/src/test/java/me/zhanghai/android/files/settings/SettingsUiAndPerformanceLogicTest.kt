@@ -147,4 +147,51 @@ class SettingsUiAndPerformanceLogicTest {
             xml.contains("<SwitchPreferenceCompat") && xml.contains("@string/pref_key_auto_check_updates")
         )
     }
+
+    @Test
+    fun testShizukuAndTerminalNotificationVectorsAreCleanMonochrome() {
+        val shizukuSvg = resolveMainFile("res/drawable/ic_shizuku.xml").readText()
+        assertTrue(shizukuSvg.contains("<vector"))
+        assertTrue(shizukuSvg.contains("#FFFFFFFF"))
+        assertFalse("Old teardrop color #00B0FF must not remain in ic_shizuku.xml", shizukuSvg.contains("#00B0FF"))
+
+        val termNotifSvg = resolveMainFile("res/drawable/ic_terminal_notification_24dp.xml").readText()
+        assertTrue(termNotifSvg.contains("<vector"))
+        assertTrue(termNotifSvg.contains("#FFFFFFFF"))
+        assertFalse("Terminal notification icon must stay transparent stroke, not solid fill", termNotifSvg.contains("#2855A6"))
+
+        val iconHelper = resolveMainFile("java/me/zhanghai/android/files/settings/SettingsIconHelper.kt").readText()
+        assertFalse(iconHelper.contains("\"key_request_shell_permission\" -> IconSpec(R.drawable.ic_shizuku, COLOR_BLUE, preserveOriginalColors = true)"))
+        assertFalse(iconHelper.contains("\"key_install_shizuku\" -> IconSpec(R.drawable.ic_shizuku, COLOR_INDIGO, preserveOriginalColors = true)"))
+        assertFalse(iconHelper.contains("\"key_use_shizuku_install\" -> IconSpec(R.drawable.ic_shizuku, COLOR_CYAN, preserveOriginalColors = true)"))
+
+        val notifTemplate = resolveMainFile("java/me/zhanghai/android/files/terminal/ScriptExecutionNotificationTemplate.kt").readText()
+        assertTrue(notifTemplate.contains("smallIcon = R.drawable.ic_terminal_notification_24dp"))
+
+        val execService = resolveMainFile("java/me/zhanghai/android/files/terminal/ScriptExecutionService.kt").readText()
+        assertTrue(execService.contains("addAction(R.drawable.ic_terminal_notification_24dp"))
+    }
+
+    @Test
+    fun testMemoryAndLeakHardeningWired() {
+        val coilInit = resolveMainFile("java/me/zhanghai/android/files/coil/CoilInitializer.kt").readText()
+        assertTrue(coilInit.contains("maxSizePercent(0.15)"))
+        assertTrue(coilInit.contains("allowRgb565(true)"))
+
+        val iconLoader = resolveMainFile("java/me/zhanghai/android/files/appmanager/NativeAppIconLoader.kt").readText()
+        assertTrue(iconLoader.contains("fun trim("))
+
+        val initializers = resolveMainFile("java/me/zhanghai/android/files/app/AppInitializers.kt").readText()
+        assertTrue(initializers.contains("memoryCache?.trimMemory"))
+        assertTrue(initializers.contains("NativeAppIconLoader.trim"))
+        assertTrue(initializers.contains("SettingsIconHelper.clearCaches()"))
+        assertTrue(initializers.contains("InstalledAppsActivity.clearCache()"))
+
+        val fragment = resolveMainFile("java/me/zhanghai/android/files/filelist/FileListFragment.kt").readText()
+        assertTrue(fragment.contains("ShizukuManager.removeBinderListener(shizukuBinderListener)"))
+
+        val activity = resolveMainFile("java/me/zhanghai/android/files/filelist/FileListActivity.kt").readText()
+        assertTrue(activity.contains("lastAppliedPalette == palette"))
+        assertTrue(activity.contains("lastNavIconIsSelection"))
+    }
 }

@@ -10,8 +10,10 @@ import android.content.res.Configuration
 import android.os.AsyncTask
 import android.os.Build
 import android.webkit.WebView
+import coil.Coil
 import jcifs.context.SingletonContext
 import me.zhanghai.android.files.BuildConfig
+import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
 import me.zhanghai.android.files.coil.initializeCoil
 import me.zhanghai.android.files.filejob.fileJobNotificationTemplate
@@ -23,6 +25,7 @@ import me.zhanghai.android.files.terminal.scriptExecutionNotificationTemplate
 import me.zhanghai.android.files.hiddenapi.HiddenApi
 import me.zhanghai.android.files.provider.FileSystemProviders
 import me.zhanghai.android.files.settings.Settings
+import me.zhanghai.android.files.settings.SettingsIconHelper
 import me.zhanghai.android.files.storage.FtpServerAuthenticator
 import me.zhanghai.android.files.storage.SftpServerAuthenticator
 import me.zhanghai.android.files.storage.SmbServerAuthenticator
@@ -138,21 +141,28 @@ private fun initializeTerminalBinTools() {
 private fun initializeMemoryTrimAndWarmUp() {
     application.registerComponentCallbacks(object : ComponentCallbacks2 {
         override fun onTrimMemory(level: Int) {
+            Coil.imageLoader(application).memoryCache?.trimMemory(level)
             if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-                NativeAppIconLoader.clear()
+                NativeAppIconLoader.trim(0.5f)
+                SettingsIconHelper.clearCaches()
             }
             if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+                NativeAppIconLoader.clear()
                 DirectorySnapshotCache.clear()
                 AppMetadataCache.clear()
+                InstalledAppsActivity.clearCache()
             }
         }
 
         override fun onConfigurationChanged(newConfig: Configuration) {}
 
         override fun onLowMemory() {
+            Coil.imageLoader(application).memoryCache?.clear()
             NativeAppIconLoader.clear()
             DirectorySnapshotCache.clear()
             AppMetadataCache.clear()
+            SettingsIconHelper.clearCaches()
+            InstalledAppsActivity.clearCache()
         }
     })
     AsyncTask.THREAD_POOL_EXECUTOR.execute {

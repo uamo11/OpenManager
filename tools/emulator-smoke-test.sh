@@ -34,6 +34,7 @@ adb install -r -d -t "$APK_FILE"
 echo ">>> Granting runtime permissions..."
 adb shell pm grant com.y.om android.permission.READ_EXTERNAL_STORAGE 2>/dev/null || true
 adb shell pm grant com.y.om android.permission.WRITE_EXTERNAL_STORAGE 2>/dev/null || true
+adb shell pm grant com.y.om android.permission.POST_NOTIFICATIONS 2>/dev/null || true
 adb shell appops set com.y.om MANAGE_EXTERNAL_STORAGE allow 2>/dev/null || true
 
 # Push compiled native C/C++ test_script binary to emulator
@@ -66,9 +67,23 @@ if [ -z "$PID" ]; then
 fi
 echo ">>> Process is running healthy with PID: $PID"
 
+# Helper function to measure memory, gfxinfo, and CPU metrics for a section
+measure_section_perf() {
+    local section="$1"
+    echo ">>> Measuring performance: $section..."
+    local sec_pid
+    sec_pid=$(adb shell pidof com.y.om | tr -d '\r' || true)
+    echo "=== SECTION: $section (PID: ${sec_pid:-unknown}) ===" >> emulator-performance.txt
+    adb shell dumpsys meminfo com.y.om | grep -E "TOTAL PSS:|TOTAL:|Java Heap:|Native Heap:|Views:|ViewRootImpl:|Activities:|AppContexts:" >> emulator-performance.txt || true
+    adb shell dumpsys gfxinfo com.y.om | grep -E "Total frames rendered:|Janky frames:|50th percentile:|90th percentile:|95th percentile:|99th percentile:" >> emulator-performance.txt || true
+    adb shell top -b -n 1 | grep "com.y.om" >> emulator-performance.txt || true
+    echo "" >> emulator-performance.txt
+}
+
 # Capture Screenshot 1: Main File Explorer
 adb shell screencap -p /data/local/tmp/01_file_explorer_main.png
 adb pull /data/local/tmp/01_file_explorer_main.png screenshots/01_file_explorer_main.png || true
+measure_section_perf "Files Explorer (Modo Oscuro)"
 
 # Helper function to launch a screen fresh via am start, wait for layout, capture, and pull
 capture_screen() {
@@ -97,10 +112,12 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 # 5. Installed Apps Manager (InstalledAppsActivity)
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG apps" \
     "05_installed_apps_manager.png" "Installed Apps Manager"
+measure_section_perf "Installed Apps Manager"
 
 # 6. Fast Code / Text Editor (TextEditorActivity)
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor" \
     "06_fast_code_editor.png" "Fast Code Editor"
+measure_section_perf "Fast Code Editor"
 
 # 7. Settings Panel (SettingsActivity)
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity" \
@@ -149,6 +166,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.f
 # 18. Running Apps / Process Manager (App Manager Style)
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG running_apps" \
     "18_running_apps_manager.png" "Running Apps / Process Manager"
+measure_section_perf "Running Apps Manager"
 
 # 19. Text Editor Search & Replace Panel (MT Manager Style)
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor_search" \
@@ -196,6 +214,7 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.s
 
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
     "29_settings_appearance_hub_es.png" "Settings Appearance & Performance Hub (ES)"
+measure_section_perf "Settings (Hub + Iconos)"
 
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_visual_performance --es DEMO_COLLAPSE_HEADER true" \
     "30_settings_performance_category_es.png" "Settings Visual Performance Category (ES)"
@@ -217,12 +236,29 @@ sleep 3
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
     "33_settings_light_mode_es.png" "Settings Light Mode Hub & Badges (ES)"
 
+# 35-36. Files Explorer & Drawer in Light Mode (Spanish)
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity" \
+    "35_files_light_mode_es.png" "Files Explorer Light Mode (ES)"
+measure_section_perf "Files Explorer (Modo Claro)"
+
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG drawer" \
+    "36_files_drawer_light_mode_es.png" "Files Explorer Navigation Drawer Light Mode (ES)"
+
 echo ">>> Restoring Default Dark theme before capturing Spanish Terminal HUD..."
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_THEME dark || true
 sleep 3
 
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal_script_es" \
     "34_terminal_running_script_es.png" "Terminal Workstation HUD Running a.sh (ES)"
+measure_section_perf "Terminal Workstation HUD (a.sh)"
+
+echo ">>> Capturing Terminal Notification Shade (ES)..."
+adb shell cmd statusbar expand-notifications || true
+sleep 2
+adb shell screencap -p "/data/local/tmp/37_terminal_notification_shade_es.png"
+adb pull "/data/local/tmp/37_terminal_notification_shade_es.png" "screenshots/37_terminal_notification_shade_es.png" || true
+adb shell cmd statusbar collapse || true
+sleep 1
 
 echo ">>> Resetting locale after showcase captures..."
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset --es DEMO_THEME dark || true
@@ -262,6 +298,6 @@ if [ -n "$CRASHES" ]; then
 fi
 
 echo "=========================================================="
-echo "   All 34 Section Screenshots Captured & Verified!       "
+echo "   All 37 Section Screenshots Captured & Verified!       "
 echo "=========================================================="
 ls -la screenshots/

@@ -181,7 +181,7 @@ class ScriptExecutionService : Service() {
             .setOngoing(false)
             .setAutoCancel(true)
             .setContentIntent(openIntent)
-            .addAction(R.drawable.file_sh_icon, getString(R.string.script_exec_notification_view_output), openIntent)
+            .addAction(R.drawable.ic_terminal_notification_24dp, getString(R.string.script_exec_notification_view_output), openIntent)
             .addAction(R.drawable.close_icon_white_24dp, getString(R.string.script_exec_notification_dismiss), dismissIntent)
             .build()
 

@@ -191,9 +191,9 @@ object SettingsIconHelper {
         return when (key) {
             // Startup & Root
             "key_request_root_permission" -> IconSpec(R.drawable.shield_icon_white_24dp, COLOR_EMERALD)
-            "key_request_shell_permission" -> IconSpec(R.drawable.ic_shizuku, COLOR_BLUE, preserveOriginalColors = true)
+            "key_request_shell_permission" -> IconSpec(R.drawable.ic_shizuku, COLOR_BLUE)
             "key_customize_su_command" -> IconSpec(R.drawable.terminal_icon_white_24dp, COLOR_SLATE)
-            "key_install_shizuku" -> IconSpec(R.drawable.ic_shizuku, COLOR_INDIGO, preserveOriginalColors = true)
+            "key_install_shizuku" -> IconSpec(R.drawable.ic_shizuku, COLOR_INDIGO)
             "key_file_list_default_directory",
             "key_file_list_default_directory_right" -> IconSpec(R.drawable.ic_dual_panels_24dp, COLOR_TEAL)
             "key_auto_start_services" -> IconSpec(R.drawable.ic_perf_bolt_24dp, COLOR_AMBER)
@@ -246,7 +246,7 @@ object SettingsIconHelper {
             "key_apk_installation_verification" -> IconSpec(R.drawable.ic_apktool_verify, COLOR_EMERALD, preserveOriginalColors = true)
             "key_apk_prevents_deletion" -> IconSpec(R.drawable.shield_icon_white_24dp, COLOR_BLUE)
             "key_double_confirmation_apk" -> IconSpec(R.drawable.lock_icon_white_24dp, COLOR_ORANGE)
-            "key_use_shizuku_install" -> IconSpec(R.drawable.ic_shizuku, COLOR_CYAN, preserveOriginalColors = true)
+            "key_use_shizuku_install" -> IconSpec(R.drawable.ic_shizuku, COLOR_CYAN)
             "key_use_root_install" -> IconSpec(R.drawable.ic_apktool, COLOR_VIOLET, preserveOriginalColors = true)
             "key_open_apk_default_action" -> IconSpec(R.drawable.ic_open_as_apk, COLOR_EMERALD, preserveOriginalColors = true)
             "key_installation_priority_description" -> IconSpec(R.drawable.information_icon_white_24dp, COLOR_SLATE)

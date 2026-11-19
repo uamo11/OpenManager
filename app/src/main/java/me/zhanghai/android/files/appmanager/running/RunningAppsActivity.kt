@@ -79,6 +79,7 @@ class RunningAppsActivity : AppActivity() {
     private var hasPendingUiUpdate = false
     private var activeDetailsPid: Int = -1
     private var activeDetailsBinding: DialogProcessDetailsBinding? = null
+    private var currentPalette: OpenManagerPalette? = null
 
     private val shizukuListener: () -> Unit = {
         runOnUiThread {
@@ -146,6 +147,8 @@ class RunningAppsActivity : AppActivity() {
 
     private fun applyVisualTheme() {
         val palette = OpenManagerPalette.from(this)
+        if (currentPalette == palette) return
+        currentPalette = palette
         window.statusBarColor = palette.appBarBg
         window.navigationBarColor = palette.screenBg
         WindowInsetsControllerCompat(window, window.decorView).apply {

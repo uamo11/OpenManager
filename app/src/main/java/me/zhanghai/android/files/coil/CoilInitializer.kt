@@ -11,11 +11,18 @@ import coil.ImageLoader
 import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.decode.SvgDecoder
+import coil.memory.MemoryCache
 import me.zhanghai.android.files.app.application
 
 fun initializeCoil() {
     Coil.setImageLoader(
         ImageLoader.Builder(application)
+            .memoryCache {
+                MemoryCache.Builder(application)
+                    .maxSizePercent(0.15)
+                    .build()
+            }
+            .allowRgb565(true)
             .components {
                 add(AppIconApplicationInfoKeyer())
                 add(AppIconApplicationInfoFetcherFactory(application))

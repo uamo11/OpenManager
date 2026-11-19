@@ -227,6 +227,16 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     private var pendingHighlightPath: String? = null
     private val highlightHandler = Handler(Looper.getMainLooper())
     private var clearHighlightRunnable: Runnable? = null
+    private val shizukuBinderListener: () -> Unit = {
+        val hostActivity = activity
+        if (hostActivity != null && isAdded && !isDetached && view != null) {
+            hostActivity.runOnUiThread {
+                if (isAdded && !isDetached && view != null && ::binding.isInitialized && binding.layoutError.isVisible) {
+                    viewModel.reload()
+                }
+            }
+        }
+    }
 
     private val requestSafPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
@@ -484,15 +494,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.btnErrorHome.setOnClickListener { navigateToHome() }
         binding.btnErrorBack.setOnClickListener { goBackSafely() }
         ShizukuManager.init(activity)
-        ShizukuManager.addBinderListener {
-            if (isAdded && !isDetached) {
-                activity.runOnUiThread {
-                    if (binding.layoutError.isVisible) {
-                        viewModel.reload()
-                    }
-                }
-            }
-        }
+        ShizukuManager.removeBinderListener(shizukuBinderListener)
+        ShizukuManager.addBinderListener(shizukuBinderListener)
         layoutManager = GridLayoutManager(activity, 1)
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.setHasFixedSize(true)
@@ -863,6 +866,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun onDestroyView() {
+        ShizukuManager.removeBinderListener(shizukuBinderListener)
         clearHighlightRunnable?.let { highlightHandler.removeCallbacks(it) }
         clearHighlightRunnable = null
         super.onDestroyView()
