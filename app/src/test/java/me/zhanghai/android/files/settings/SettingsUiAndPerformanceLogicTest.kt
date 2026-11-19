@@ -194,4 +194,28 @@ class SettingsUiAndPerformanceLogicTest {
         assertTrue(activity.contains("lastAppliedPalette == palette"))
         assertTrue(activity.contains("lastNavIconIsSelection"))
     }
+
+    @Test
+    fun testLightModeDrawerAndFolderIconsUseThemeResources() {
+        val dirIcon = resolveMainFile("res/drawable/file_directory_icon.xml").readText()
+        assertTrue(dirIcon.contains("@color/file_directory_badge_bg"))
+        assertTrue(dirIcon.contains("@color/file_directory_folder_fill"))
+        assertFalse(dirIcon.contains("#151515"))
+
+        val parentDirIcon = resolveMainFile("res/drawable/file_parent_directory_icon.xml").readText()
+        assertTrue(parentDirIcon.contains("@color/file_parent_directory_badge_bg"))
+        assertTrue(parentDirIcon.contains("@color/file_parent_directory_folder_fill"))
+        assertTrue(parentDirIcon.contains("@color/file_parent_directory_arrow_fill"))
+
+        val lightColors = resolveMainFile("res/values/colors.xml").readText()
+        val nightColors = resolveMainFile("res/values-night/colors.xml").readText()
+        assertTrue(lightColors.contains("<color name=\"file_directory_badge_bg\">#DFE6EE</color>"))
+        assertTrue(nightColors.contains("<color name=\"file_directory_badge_bg\">#151515</color>"))
+
+        val layout = resolveMainFile("res/layout/file_list_activity.xml").readText()
+        val appsBlock = layout.substringAfter("drawerItemInstalledApps").substringBefore("drawerItemRunningApps")
+        val runningBlock = layout.substringAfter("drawerItemRunningApps").substringBefore("drawerItemTextEditor")
+        assertTrue(appsBlock.contains("ic_apps_white_24dp") && appsBlock.contains("app:tint=\"#DCDCDC\""))
+        assertTrue(runningBlock.contains("ic_running_apps_white_24dp") && runningBlock.contains("app:tint=\"#DCDCDC\""))
+    }
 }

@@ -29,4 +29,10 @@
     <color name="file_icon_red">#F28B82</color>
     <color name="file_icon_deep_red">#E8877F</color>
     <color name="file_icon_yellow">#F8CF5C</color>
+
+    <color name="file_directory_badge_bg">#151515</color>
+    <color name="file_directory_folder_fill">#D8D8D8</color>
+    <color name="file_parent_directory_badge_bg">#151515</color>
+    <color name="file_parent_directory_folder_fill">#FFA000</color>
+    <color name="file_parent_directory_arrow_fill">#151515</color>
 </resources>

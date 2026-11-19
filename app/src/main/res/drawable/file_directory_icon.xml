@@ -5,13 +5,13 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- Dark rounded badge background matching MT Manager -->
+    <!-- Theme-aware rounded badge background matching MT Manager -->
     <path
-        android:fillColor="#151515"
+        android:fillColor="@color/file_directory_badge_bg"
         android:pathData="M3,1.5 h18 c1.1,0 2,0.9 2,2 v17 c0,1.1 -0.9,2 -2,2 H3 c-1.1,0 -2,-0.9 -2,-2 V3.5 c0,-1.1 0.9,-2 2,-2 z" />
 
     <!-- Solid folder silhouette matching MT Manager -->
     <path
-        android:fillColor="#D8D8D8"
+        android:fillColor="@color/file_directory_folder_fill"
         android:pathData="M5,6.5 h4.5 l1.8,1.8 H19 c0.6,0 1,0.4 1,1 v7.2 c0,0.6 -0.4,1 -1,1 H5 c-0.6,0 -1,-0.4 -1,-1 V7.5 c0,-0.6 0.4,-1 1,-1 z" />
 </vector>

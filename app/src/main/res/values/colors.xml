@@ -43,4 +43,10 @@
     <color name="file_icon_red">#EA4335</color>
     <color name="file_icon_deep_red">#DB4437</color>
     <color name="file_icon_yellow">#F4B400</color>
+
+    <color name="file_directory_badge_bg">#DFE6EE</color>
+    <color name="file_directory_folder_fill">#475569</color>
+    <color name="file_parent_directory_badge_bg">#FFF3D6</color>
+    <color name="file_parent_directory_folder_fill">#F59E0B</color>
+    <color name="file_parent_directory_arrow_fill">#FFFFFF</color>
 </resources>
