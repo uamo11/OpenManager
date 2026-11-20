@@ -293,5 +293,8 @@ class FileListPerformanceOptimizationTest {
         assertTrue(fragment.contains("Dispatchers.Default"))
         assertTrue(fragment.contains("listPrepareJob?.cancel()"))
         assertTrue(fragment.contains("FileListEngine.countDirectoriesAndFiles"))
+        assertTrue(fragment.contains("viewModel.fileListLiveData.value?.value"))
+        val onSortBlock = fragment.substringAfter("private fun onSortOptionsChanged").substringBefore("private fun onViewSortPathSpecificChanged")
+        assertFalse("onSortOptionsChanged must not use unsafe viewModel.fileListStateful", onSortBlock.contains("viewModel.fileListStateful"))
     }
 }

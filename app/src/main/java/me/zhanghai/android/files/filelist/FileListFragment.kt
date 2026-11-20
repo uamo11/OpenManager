@@ -876,7 +876,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 ensureNotificationPermission()
             }
         }
-        if (viewModel.fileListStateful is Failure) {
+        if (viewModel.fileListLiveData.value is Failure) {
             viewModel.reload()
         }
     }
@@ -1425,7 +1425,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun onSortOptionsChanged(sortOptions: FileSortOptions) {
         adapter.setSortOptionsWithoutResort(sortOptions)
-        if (viewModel.fileListStateful.value != null) {
+        if (viewModel.fileListLiveData.value?.value != null) {
             updateAdapterFileList()
         }
         updateViewSortMenuItems()
@@ -1651,9 +1651,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun updateAdapterFileList(restoreStateAndHighlight: Boolean = false) {
-        val files = viewModel.fileListStateful.value ?: return
+        val files = viewModel.fileListLiveData.value?.value ?: return
         val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
-        val sortOptions = viewModel.sortOptions
+        val sortOptions = viewModel.sortOptionsLiveData.value
+            ?: Settings.FILE_LIST_SORT_OPTIONS.valueCompat
         val isSearching = viewModel.searchState.isSearching
         val path = currentPath
         val hasParent = !isHomeOrRootPath(path) && path.parentOrArchiveParent != null
