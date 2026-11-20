@@ -48,11 +48,11 @@ val appInitializers = listOf(
     ::initializeCrashHandler,
     ::initializeLibSu,
     ::disableHiddenApiChecks,
-    ::initializePerformanceMode,
-    ::initializeCoil,
     ::initializeFileSystemProviders,
     ::upgradeApp,
     ::initializeLiveDataObjects,
+    ::initializePerformanceMode,
+    ::initializeCoil,
     ::initializeCustomTheme,
     ::initializeNightMode,
     ::createNotificationChannels,
@@ -100,24 +100,9 @@ private fun disableHiddenApiChecks() {
     HiddenApi.disableHiddenApiChecks()
 }
 
-private fun initializePerformanceMode() {
-    val enabled = try {
-        Settings.VISUAL_PERFORMANCE_MODE.valueCompat
-    } catch (_: Throwable) {
-        false
-    }
-    PerformanceModeManager.initialize(enabled)
-}
-
 private fun initializeFileSystemProviders() {
     FileSystemProviders.install()
     FileSystemProviders.overflowWatchEvents = true
-    if (!PerformanceModeManager.isEnabled) {
-        // SingletonContext.init() calls NameServiceClientImpl.initCache() which connects to network.
-        AsyncTask.THREAD_POOL_EXECUTOR.execute {
-            ensureSmbSingletonContextInitialized()
-        }
-    }
     FtpClient.authenticator = FtpServerAuthenticator
     SftpClient.authenticator = SftpServerAuthenticator
     SmbClient.authenticator = SmbServerAuthenticator
@@ -128,6 +113,17 @@ private fun initializeLiveDataObjects() {
     // Force initialization of LiveData objects so that it won't happen on a background thread.
     StorageVolumeListLiveData.value
     Settings.FILE_LIST_DEFAULT_DIRECTORY.value
+}
+
+private fun initializePerformanceMode() {
+    val enabled = Settings.VISUAL_PERFORMANCE_MODE.valueCompat
+    PerformanceModeManager.initialize(enabled)
+    if (!enabled) {
+        // SingletonContext.init() calls NameServiceClientImpl.initCache() which connects to network.
+        AsyncTask.THREAD_POOL_EXECUTOR.execute {
+            ensureSmbSingletonContextInitialized()
+        }
+    }
 }
 
 private fun initializeCustomTheme() {

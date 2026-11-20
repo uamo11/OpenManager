@@ -240,6 +240,12 @@ class PerformanceModeManagerTest {
             "AppInitializers must not eagerly call initializeWebViewDebugging at startup",
             appInitSrc.contains("::initializeWebViewDebugging")
         )
+        val initListBlock = appInitSrc.substringAfter("val appInitializers = listOf(").substringBefore(")")
+        val providersIdx = initListBlock.indexOf("::initializeFileSystemProviders")
+        val perfModeIdx = initListBlock.indexOf("::initializePerformanceMode")
+        val coilIdx = initListBlock.indexOf("::initializeCoil")
+        assertTrue("FileSystemProviders must initialize before PerformanceMode (Settings.<clinit> needs Paths)", providersIdx in 0 until perfModeIdx)
+        assertTrue("PerformanceMode must initialize before Coil", perfModeIdx in 0 until coilIdx)
         assertTrue(appInitSrc.contains("fun ensureWebViewDebuggingIfDebug()"))
         assertTrue(appInitSrc.contains("fun ensureSmbSingletonContextInitialized()"))
         assertFalse(
