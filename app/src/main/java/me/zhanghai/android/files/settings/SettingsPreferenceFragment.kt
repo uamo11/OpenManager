@@ -341,6 +341,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         super.onViewCreated(view, savedInstanceState)
 
         listView?.apply {
+            (layoutManager as? LinearLayoutManager)?.isItemPrefetchEnabled = !PerformanceModeManager.isEnabled
             setItemViewCacheSize(PerformanceModeManager.currentBudget.settingsViewCacheSize)
             if (PerformanceModeManager.isEnabled) {
                 itemAnimator = null
@@ -478,7 +479,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             val snap = PerformanceModeManager.readLiveHeapSnapshot()
             ctx.getString(
                 R.string.settings_visual_performance_mode_active_summary_format,
-                snap.formatCompact()
+                snap.formatJavaCompact()
             )
         } else {
             ctx.getString(R.string.settings_visual_performance_mode_summary)
@@ -489,6 +490,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         val ctx = context ?: return
         PerformanceModeManager.applyMode(ctx, enabled, triggerTrim = enabled)
         listView?.apply {
+            (layoutManager as? LinearLayoutManager)?.isItemPrefetchEnabled = !enabled
             setItemViewCacheSize(PerformanceModeManager.currentBudget.settingsViewCacheSize)
             if (enabled) {
                 itemAnimator = null

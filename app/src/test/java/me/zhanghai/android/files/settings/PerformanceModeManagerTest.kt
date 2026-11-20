@@ -278,4 +278,39 @@ class PerformanceModeManagerTest {
             prefsXml.contains("<bool name=\"pref_default_value_visual_performance_mode\">false</bool>")
         )
     }
+
+    @Test
+    fun testPass2NativeHeapPurgeLazySmbAndPrefetchControlsWired() {
+        val cmakeFile = File("CMakeLists.txt").let { if (it.exists()) it else File("app/CMakeLists.txt") }
+        val cmakeSrc = cmakeFile.readText()
+        assertTrue("syscall library must link dl for mallopt dlsym lookup", cmakeSrc.contains("dl)"))
+
+        val syscallCSrc = resolveMainFile("jni/syscall.c").readText()
+        assertTrue(syscallCSrc.contains("Java_me_zhanghai_android_files_provider_linux_syscall_Syscall_configureNativeHeapDecay"))
+        assertTrue(syscallCSrc.contains("Java_me_zhanghai_android_files_provider_linux_syscall_Syscall_purgeNativeHeap"))
+        assertTrue(syscallCSrc.contains("\"mallopt\""))
+        assertTrue(syscallCSrc.contains("-100"))
+        assertTrue(syscallCSrc.contains("-101"))
+
+        val syscallKtSrc = resolveMainFile("java/me/zhanghai/android/files/provider/linux/syscall/Syscall.kt").readText()
+        assertTrue(syscallKtSrc.contains("external fun configureNativeHeapDecay(immediate: Boolean): Boolean"))
+        assertTrue(syscallKtSrc.contains("external fun purgeNativeHeap(): Boolean"))
+
+        val smbClientSrc = resolveMainFile("java/me/zhanghai/android/files/provider/smb/client/Client.kt").readText()
+        assertFalse("SMBClient must not be eagerly constructed at boot", smbClientSrc.contains("private val client = SMBClient()"))
+        assertTrue("SMBClient must use lazy initialization", smbClientSrc.contains("private val client by lazy { SMBClient() }"))
+
+        val fileListActSrc = resolveMainFile("java/me/zhanghai/android/files/filelist/FileListActivity.kt").readText()
+        assertTrue(fileListActSrc.contains("!PerformanceModeManager.isEnabled"))
+
+        val fileListFragSrc = resolveMainFile("java/me/zhanghai/android/files/filelist/FileListFragment.kt").readText()
+        assertTrue(fileListFragSrc.contains("isItemPrefetchEnabled"))
+
+        val snap = PerformanceModeManager.LiveHeapSnapshot(
+            javaUsedBytes = 5L * 1024L * 1024L,
+            nativeAllocatedBytes = 20L * 1024L * 1024L
+        )
+        assertEquals("5.0 MB", snap.formatJavaCompact())
+        assertEquals("25.0 MB", snap.formatCompact())
+    }
 }

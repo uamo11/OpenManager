@@ -978,7 +978,7 @@
     </string-array>
     <string name="settings_visual_performance_mode_title">Modo de alto rendimiento (UI / Ultra RAM)</string>
     <string name="settings_visual_performance_mode_summary">Desactiva animaciones, miniaturas y cachés pesados en toda la app para volar con consumo mínimo de RAM</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM activo · Heap %1$s · Sin miniaturas, animaciones 0ms y cachés mínimos en toda la app</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM activo · App %1$s · Sin miniaturas, animaciones 0ms, purga nativa y cachés mínimos en toda la app</string>
     <string name="settings_thumbnail_load_mode_title">Renderizado de miniaturas e iconos</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Completo (Predeterminado)</item>

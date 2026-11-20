@@ -76,6 +76,9 @@ object SettingsIconHelper {
     }
 
     private fun resolveVectorDrawable(context: Context, @DrawableRes resId: Int): Drawable? {
+        if (PerformanceModeManager.isEnabled) {
+            return ContextCompat.getDrawable(context, resId)?.mutate()
+        }
         val cached = vectorStateCache[resId]
         if (cached != null) {
             return cached.newDrawable(context.resources).mutate()

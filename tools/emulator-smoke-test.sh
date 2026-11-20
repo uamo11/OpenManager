@@ -302,6 +302,9 @@ capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.s
 capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity" \
     "40_files_ultra_perf_es.png" "Files Explorer Ultra RAM Mode (ES)"
 measure_section_perf "PERF-ON: Files Explorer (Modo Oscuro)"
+echo "=== PERF-ON: Files Explorer Detailed Meminfo (-d) ===" >> emulator-performance.txt
+adb shell dumpsys meminfo -d com.y.om | tail -n 60 >> emulator-performance.txt || true
+echo "" >> emulator-performance.txt
 
 echo ">>> PERF-ON: Large Directory Stress Test (1,500 files + 4 flings)..."
 adb shell "rm -rf /storage/emulated/0/OM_PerfStress_1500 && mkdir -p /storage/emulated/0/OM_PerfStress_1500 && i=0; while [ \$i -lt 100 ]; do mkdir -p /storage/emulated/0/OM_PerfStress_1500/dir_\$i; i=\$((i+1)); done; i=0; while [ \$i -lt 1400 ]; do m=\$((i % 5)); case \$m in 0) ext=txt;; 1) ext=jpg;; 2) ext=json;; 3) ext=sh;; 4) ext=apk;; esac; prefix=''; if [ \$((i % 25)) -eq 0 ]; then prefix='.'; fi; touch /storage/emulated/0/OM_PerfStress_1500/\${prefix}file_\${i}.\${ext}; i=\$((i+1)); done" || true
@@ -334,6 +337,20 @@ measure_section_perf "PERF-ON: Fast Code Editor"
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal_script_es || true
 sleep 3
 measure_section_perf "PERF-ON: Terminal Workstation HUD (a.sh)"
+
+echo ">>> Measuring isolated single-Activity sections under Ultra RAM..."
+if adb shell su 0 am start -W -S -n com.y.om/me.zhanghai.android.files.appmanager.InstalledAppsActivity >/dev/null 2>&1; then
+    sleep 3
+    measure_section_perf "PERF-ON (Isolated): Installed Apps Manager"
+fi
+if adb shell su 0 am start -W -S -n com.y.om/me.zhanghai.android.files.appmanager.running.RunningAppsActivity >/dev/null 2>&1; then
+    sleep 3
+    measure_section_perf "PERF-ON (Isolated): Running Apps Manager"
+fi
+if adb shell su 0 am start -W -S -n com.y.om/me.zhanghai.android.files.terminal.TerminalActivity >/dev/null 2>&1; then
+    sleep 3
+    measure_section_perf "PERF-ON (Isolated): Terminal Workstation"
+fi
 
 echo ">>> Restoring default Performance Mode OFF & EN/Dark defaults..."
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_PERF_MODE off --es DEMO_LOCALE reset --es DEMO_THEME dark || true

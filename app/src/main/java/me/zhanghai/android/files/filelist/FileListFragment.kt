@@ -501,7 +501,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         ShizukuManager.init(activity)
         ShizukuManager.removeBinderListener(shizukuBinderListener)
         ShizukuManager.addBinderListener(shizukuBinderListener)
-        layoutManager = GridLayoutManager(activity, 1)
+        layoutManager = GridLayoutManager(activity, 1).apply {
+            isItemPrefetchEnabled = !PerformanceModeManager.isEnabled
+        }
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.setItemViewCacheSize(PerformanceModeManager.currentBudget.fileListViewCacheSize)
@@ -849,6 +851,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         Settings.VISUAL_PERFORMANCE_MODE.observe(viewLifecycleOwner) { enabled ->
             adapter.visualPerformanceMode = enabled
             val budget = PerformanceModeManager.budgetFor(enabled)
+            layoutManager.isItemPrefetchEnabled = !enabled
             binding.recyclerView.setItemViewCacheSize(budget.fileListViewCacheSize)
             if (enabled) {
                 binding.recyclerView.itemAnimator = null

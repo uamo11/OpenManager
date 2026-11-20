@@ -260,7 +260,9 @@ class RunningAppsActivity : AppActivity() {
         )
         binding.recyclerView.apply {
             val budget = PerformanceModeManager.currentBudget
-            layoutManager = LinearLayoutManager(this@RunningAppsActivity)
+            layoutManager = LinearLayoutManager(this@RunningAppsActivity).apply {
+                isItemPrefetchEnabled = !PerformanceModeManager.isEnabled
+            }
             setHasFixedSize(true)
             setItemViewCacheSize(budget.appListViewCacheSize)
             if (PerformanceModeManager.isEnabled) {

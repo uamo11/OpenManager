@@ -292,6 +292,12 @@ object Syscall {
     @Throws(SyscallException::class)
     external fun utimens(path: ByteString, @Size(2) times: Array<StructTimespec>)
 
+    @kotlin.jvm.JvmStatic
+    external fun configureNativeHeapDecay(immediate: Boolean): Boolean
+
+    @kotlin.jvm.JvmStatic
+    external fun purgeNativeHeap(): Boolean
+
     @Throws(InterruptedIOException::class, SyscallException::class)
     fun write(
         fd: FileDescriptor,

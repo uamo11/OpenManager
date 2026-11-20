@@ -18,7 +18,8 @@ target_compile_options(syscall
         -Werror)
 target_link_libraries(syscall
         PRIVATE
-        ${LOG_LIBRARY})
+        ${LOG_LIBRARY}
+        dl)
 
 add_library(termux SHARED
         src/main/jni/term.c)

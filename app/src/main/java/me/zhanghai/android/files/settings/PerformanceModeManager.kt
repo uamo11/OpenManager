@@ -13,6 +13,7 @@ import me.zhanghai.android.files.coil.clearCoilMemory
 import me.zhanghai.android.files.coil.reconfigureCoilForPerformanceMode
 import me.zhanghai.android.files.filelist.AppMetadataCache
 import me.zhanghai.android.files.filelist.DirectorySnapshotCache
+import me.zhanghai.android.files.provider.linux.syscall.Syscall
 import java.util.Locale
 
 /**
@@ -63,6 +64,9 @@ object PerformanceModeManager {
 
         fun formatCompact(): String =
             String.format(Locale.US, "%.1f MB", totalActiveMb)
+
+        fun formatJavaCompact(): String =
+            String.format(Locale.US, "%.1f MB", javaUsedMb)
 
         companion object {
             private const val BYTES_PER_MIB = 1024f * 1024f
@@ -134,6 +138,7 @@ object PerformanceModeManager {
         DirectorySnapshotCache.setUltraLowRamMode(enabled)
         AppMetadataCache.setUltraLowRamMode(enabled)
         NativeAppIconLoader.setUltraLowRamMode(enabled)
+        configureNativeAllocator(enabled)
     }
 
     fun applyMode(context: Context, enabled: Boolean, triggerTrim: Boolean = true) {
@@ -142,9 +147,29 @@ object PerformanceModeManager {
         AppMetadataCache.setUltraLowRamMode(enabled)
         NativeAppIconLoader.setUltraLowRamMode(enabled)
         reconfigureCoilForPerformanceMode(enabled)
+        configureNativeAllocator(enabled)
         if (enabled && triggerTrim) {
             trimTransientCaches(aggressive = true)
+            try {
+                Runtime.getRuntime().gc()
+            } catch (_: Throwable) {}
+            purgeNativeHeapSafe()
         }
+    }
+
+    fun configureNativeAllocator(enabled: Boolean) {
+        try {
+            Syscall.configureNativeHeapDecay(enabled)
+            if (enabled) {
+                Syscall.purgeNativeHeap()
+            }
+        } catch (_: Throwable) {}
+    }
+
+    fun purgeNativeHeapSafe() {
+        try {
+            Syscall.purgeNativeHeap()
+        } catch (_: Throwable) {}
     }
 
     fun trimTransientCaches(aggressive: Boolean = false) {
@@ -156,6 +181,7 @@ object PerformanceModeManager {
             AppMetadataCache.clear()
             InstalledAppsActivity.clearCache()
         }
+        purgeNativeHeapSafe()
     }
 
     fun setEnabledForTesting(enabled: Boolean) {

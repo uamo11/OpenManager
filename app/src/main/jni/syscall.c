@@ -20,6 +20,7 @@
 #include <sys/statvfs.h>
 #include <sys/types.h>
 #include <sys/xattr.h>
+#include <dlfcn.h>
 #include <unistd.h>
 
 #include <jni.h>
@@ -1586,4 +1587,48 @@ JNIEXPORT void JNICALL
 Java_me_zhanghai_android_files_provider_linux_syscall_Syscall_utimens(
         JNIEnv *env, jclass clazz, jobject javaPath, jobjectArray javaTimes) {
     doUtimens(env, javaPath, javaTimes, false);
+}
+
+typedef int (*mallopt_fn)(int, int);
+
+static mallopt_fn getMalloptFn(void) {
+    static bool resolved = false;
+    static mallopt_fn fn = NULL;
+    if (!resolved) {
+        void *sym = dlsym(RTLD_DEFAULT, "mallopt");
+        if (sym) {
+            memcpy(&fn, &sym, sizeof(fn));
+        }
+        resolved = true;
+    }
+    return fn;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_me_zhanghai_android_files_provider_linux_syscall_Syscall_configureNativeHeapDecay(
+        JNIEnv *env, jclass clazz, jboolean immediate) {
+    (void) env;
+    (void) clazz;
+    mallopt_fn fn = getMalloptFn();
+    if (!fn) {
+        return JNI_FALSE;
+    }
+    // Bionic M_DECAY_TIME = -100: 0 enables immediate madvise purge, 1 restores normal 1s decay.
+    int res = fn(-100, immediate ? 0 : 1);
+    return res != 0 ? JNI_TRUE : JNI_FALSE;
+}
+
+JNIEXPORT jboolean JNICALL
+Java_me_zhanghai_android_files_provider_linux_syscall_Syscall_purgeNativeHeap(
+        JNIEnv *env, jclass clazz) {
+    (void) env;
+    (void) clazz;
+    mallopt_fn fn = getMalloptFn();
+    if (!fn) {
+        return JNI_FALSE;
+    }
+    // Bionic M_PURGE = -101 (Android 10+ jemalloc/scudo); M_PURGE_ALL = -104 (Android 12+ scudo).
+    int resPurge = fn(-101, 0);
+    int resPurgeAll = fn(-104, 0);
+    return (resPurge != 0 || resPurgeAll != 0) ? JNI_TRUE : JNI_FALSE;
 }

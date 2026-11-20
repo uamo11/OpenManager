@@ -228,7 +228,7 @@ class AppearancePerformanceHubPreference : Preference {
             thumbMode == "1" -> true to blueColor
             else -> false to palette.textSecondary
         }
-        val activeHeapMb = if (visualPerf) PerformanceModeManager.readLiveHeapSnapshot().totalActiveMb else 0f
+        val activeHeapMb = if (visualPerf) PerformanceModeManager.readLiveHeapSnapshot().javaUsedMb else 0f
         tvPerfStatus?.apply {
             text = PerformanceModeManager.formatStatusBadge(
                 isUltraPerf = visualPerf,

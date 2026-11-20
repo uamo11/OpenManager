@@ -1082,7 +1082,7 @@
     </string-array>
     <string name="settings_visual_performance_mode_title">High performance mode (UI / Ultra RAM)</string>
     <string name="settings_visual_performance_mode_summary">Disables heavy animations, thumbnails &amp; background caches across the entire app so it flies with ultra-low RAM</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM active · Heap %1$s · Zero bitmaps, 0ms transitions &amp; minimal caches across all screens</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM active · App %1$s · Zero bitmaps, 0ms transitions, native purge &amp; minimal caches across all screens</string>
     <string name="settings_thumbnail_load_mode_title">Thumbnail &amp; icon rendering</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Full (Default)</item>

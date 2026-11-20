@@ -149,6 +149,7 @@ private fun createNotificationChannels() {
 }
 
 private fun initializeTerminalBinTools() {
+    if (PerformanceModeManager.isEnabled) return
     AsyncTask.THREAD_POOL_EXECUTOR.execute {
         try {
             me.zhanghai.android.files.terminal.TerminalExpansionManager.ensureBinTools(application)

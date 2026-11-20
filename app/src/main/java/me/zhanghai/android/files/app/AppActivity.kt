@@ -16,6 +16,12 @@ import me.zhanghai.android.files.theme.night.NightModeHelper
 abstract class AppActivity : AppCompatActivity() {
     private var isDelegateCreated = false
 
+    private val ultraPurgeRunnable = Runnable {
+        if (PerformanceModeManager.isEnabled) {
+            PerformanceModeManager.purgeNativeHeapSafe()
+        }
+    }
+
     override fun getDelegate(): AppCompatDelegate {
         val delegate = super.getDelegate()
 
@@ -36,6 +42,21 @@ abstract class AppActivity : AppCompatActivity() {
     override fun finish() {
         super.finish()
         disableActivityTransitionIfUltra(isOpen = false)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (PerformanceModeManager.isEnabled) {
+            window?.decorView?.apply {
+                removeCallbacks(ultraPurgeRunnable)
+                postDelayed(ultraPurgeRunnable, 400L)
+            }
+        }
+    }
+
+    override fun onPause() {
+        window?.decorView?.removeCallbacks(ultraPurgeRunnable)
+        super.onPause()
     }
 
     override fun onStop() {

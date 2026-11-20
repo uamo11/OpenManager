@@ -53,7 +53,7 @@ object Client {
     @Volatile
     lateinit var authenticator: Authenticator
 
-    private val client = SMBClient()
+    private val client by lazy { SMBClient() }
 
     private val sessions = mutableMapOf<Authority, Session>()
 

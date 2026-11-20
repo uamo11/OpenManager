@@ -180,7 +180,9 @@ class FileListActivity : AppActivity() {
         findViewById<View>(R.id.activityRoot)?.updatePadding(top = statusBarHeight)
         findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarHeight)
 
-        me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
+        if (!PerformanceModeManager.isEnabled || Settings.REQUEST_SHELL_PERMISSION.valueCompat) {
+            me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
+        }
 
         drawerLayout = findViewById(R.id.drawerLayout)
         // Permanently lock closed swipe gestures so swiping from screen edge never triggers the drawer (MT Manager style)
@@ -312,9 +314,11 @@ class FileListActivity : AppActivity() {
         setupBackPressedHandler()
         checkAutoCleanRecycleBin()
 
-        me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(this)
-        if (savedInstanceState == null && Settings.AUTO_CHECK_UPDATES.valueCompat) {
-            me.zhanghai.android.files.update.UpdateChecker.checkUpdate(this, isManual = false)
+        if (!PerformanceModeManager.isEnabled) {
+            me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(this)
+            if (savedInstanceState == null && Settings.AUTO_CHECK_UPDATES.valueCompat) {
+                me.zhanghai.android.files.update.UpdateChecker.checkUpdate(this, isManual = false)
+            }
         }
 
         Settings.VISUAL_PERFORMANCE_MODE.observe(this) { applyPerformanceModePoolSizing(it) }
@@ -332,6 +336,7 @@ class FileListActivity : AppActivity() {
         super.onStop()
         if (PerformanceModeManager.isEnabled) {
             sharedRecycledViewPool.clear()
+            PerformanceModeManager.trimTransientCaches(aggressive = false)
         }
     }
 
