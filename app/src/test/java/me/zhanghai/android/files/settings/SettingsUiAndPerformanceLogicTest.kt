@@ -177,12 +177,13 @@ class SettingsUiAndPerformanceLogicTest {
         val coilInit = resolveMainFile("java/me/zhanghai/android/files/coil/CoilInitializer.kt").readText()
         assertTrue(coilInit.contains("maxSizePercent(0.15)"))
         assertTrue(coilInit.contains("allowRgb565(true)"))
+        assertTrue(coilInit.contains("memoryCache?.trimMemory"))
 
         val iconLoader = resolveMainFile("java/me/zhanghai/android/files/appmanager/NativeAppIconLoader.kt").readText()
         assertTrue(iconLoader.contains("fun trim("))
 
         val initializers = resolveMainFile("java/me/zhanghai/android/files/app/AppInitializers.kt").readText()
-        assertTrue(initializers.contains("memoryCache?.trimMemory"))
+        assertTrue(initializers.contains("trimCoilMemory(level)"))
         assertTrue(initializers.contains("NativeAppIconLoader.trim"))
         assertTrue(initializers.contains("SettingsIconHelper.clearCaches()"))
         assertTrue(initializers.contains("InstalledAppsActivity.clearCache()"))
