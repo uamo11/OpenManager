@@ -44,6 +44,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             OpenManagerPalette.from(requireContext())
         )
         captureDefaultVisibility(preferenceScreen)
+        updateVisualPerfSummary(Settings.VISUAL_PERFORMANCE_MODE.valueCompat)
 
         localePreference = preferenceScreen.findPreference(getString(R.string.pref_key_locale))!!
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -340,8 +341,12 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         super.onViewCreated(view, savedInstanceState)
 
         listView?.apply {
-            setItemViewCacheSize(24)
-            (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+            setItemViewCacheSize(PerformanceModeManager.currentBudget.settingsViewCacheSize)
+            if (PerformanceModeManager.isEnabled) {
+                itemAnimator = null
+            } else {
+                (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
+            }
         }
         val palette = OpenManagerPalette.from(requireContext())
         if (!palette.isDark || palette.isAmoled) {
@@ -457,7 +462,39 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
     }
 
+    override fun onDestroyView() {
+        if (PerformanceModeManager.isEnabled) {
+            SettingsIconHelper.clearCaches()
+        }
+        super.onDestroyView()
+    }
+
+    private fun updateVisualPerfSummary(enabled: Boolean) {
+        val ctx = context ?: return
+        val perfPref = findPreference<SwitchPreferenceCompat>(
+            getString(R.string.pref_key_visual_performance_mode)
+        ) ?: return
+        perfPref.summary = if (enabled) {
+            val snap = PerformanceModeManager.readLiveHeapSnapshot()
+            ctx.getString(
+                R.string.settings_visual_performance_mode_active_summary_format,
+                snap.formatCompact()
+            )
+        } else {
+            ctx.getString(R.string.settings_visual_performance_mode_summary)
+        }
+    }
+
     private fun onVisualPerfChanged(enabled: Boolean) {
+        val ctx = context ?: return
+        PerformanceModeManager.applyMode(ctx, enabled, triggerTrim = enabled)
+        listView?.apply {
+            setItemViewCacheSize(PerformanceModeManager.currentBudget.settingsViewCacheSize)
+            if (enabled) {
+                itemAnimator = null
+            }
+        }
+        updateVisualPerfSummary(enabled)
         findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
     }
 

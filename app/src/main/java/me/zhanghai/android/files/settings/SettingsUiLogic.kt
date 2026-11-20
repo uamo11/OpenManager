@@ -35,7 +35,7 @@ object SettingsUiLogic {
     private val KEYWORD_MAP: Map<String, String> = mapOf(
         "key_appearance_performance_hub" to "tema apariencia claro oscuro amoled oled acento color miniaturas iconos vectoriales rendimiento turbo fps ram",
         "key_thumbnail_load_mode" to "miniaturas iconos imagenes fotos videos apk pdf ram velocidad rapido vectoriales fps rendimiento thumbnails icons speed",
-        "key_visual_performance_mode" to "rendimiento fluidez fps lag animaciones turbo bateria bajo consumo performance smooth power",
+        "key_visual_performance_mode" to "rendimiento fluidez fps lag animaciones turbo bateria bajo consumo performance smooth power ram memoria ultra rapido ligero",
         "key_black_night_mode" to "amoled oled negro puro oscuro bateria pure black power",
         "key_night_mode" to "tema claro oscuro dia noche automatico apariencia theme light dark system",
         "key_theme_color" to "color acento paleta tema personalizado accent palette swatch",

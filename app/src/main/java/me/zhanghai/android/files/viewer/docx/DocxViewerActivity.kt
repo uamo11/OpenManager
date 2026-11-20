@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
+import me.zhanghai.android.files.app.ensureWebViewDebuggingIfDebug
 import me.zhanghai.android.files.databinding.ActivityDocxViewerBinding
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.file.asMimeType
@@ -89,6 +90,7 @@ class DocxViewerActivity : AppActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = Color.TRANSPARENT
 
+        ensureWebViewDebuggingIfDebug()
         binding = ActivityDocxViewerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 

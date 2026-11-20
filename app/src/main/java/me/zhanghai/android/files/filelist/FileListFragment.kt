@@ -119,6 +119,7 @@ import me.zhanghai.android.files.provider.archive.createArchiveRootPath
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.terminal.Terminal
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
@@ -503,7 +504,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         layoutManager = GridLayoutManager(activity, 1)
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.setItemViewCacheSize(28)
+        binding.recyclerView.setItemViewCacheSize(PerformanceModeManager.currentBudget.fileListViewCacheSize)
         binding.recyclerView.itemAnimator = null
         (activity as? FileListActivity)?.sharedRecycledViewPool?.let {
             binding.recyclerView.setRecycledViewPool(it)
@@ -845,9 +846,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         Settings.THUMBNAIL_LOAD_MODE.observe(viewLifecycleOwner) {
             adapter.thumbnailLoadMode = it.toIntOrNull() ?: 0
         }
-        Settings.VISUAL_PERFORMANCE_MODE.observe(viewLifecycleOwner) {
-            adapter.visualPerformanceMode = it
-            binding.recyclerView.setItemViewCacheSize(if (it) 40 else 28)
+        Settings.VISUAL_PERFORMANCE_MODE.observe(viewLifecycleOwner) { enabled ->
+            adapter.visualPerformanceMode = enabled
+            val budget = PerformanceModeManager.budgetFor(enabled)
+            binding.recyclerView.setItemViewCacheSize(budget.fileListViewCacheSize)
+            if (enabled) {
+                binding.recyclerView.itemAnimator = null
+            }
         }
         Settings.FILE_LIST_DIVIDERS.observe(viewLifecycleOwner) {
             showFileListDividers = it
@@ -878,6 +883,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         if (viewModel.fileListLiveData.value is Failure) {
             viewModel.reload()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (PerformanceModeManager.isEnabled && ::adapter.isInitialized) {
+            adapter.trimCachesForUltraPerformance()
         }
     }
 

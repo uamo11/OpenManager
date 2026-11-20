@@ -8,6 +8,7 @@ package me.zhanghai.android.files.viewer.text
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.EditText
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import java.util.ArrayDeque
 import kotlin.math.max
 import kotlin.math.min
@@ -55,9 +56,7 @@ class TextEditorUndoManager(
             batchDepth--
             if (batchDepth == 0 && currentBatchSteps.isNotEmpty()) {
                 undoStack.addLast(UndoEntry.Batch(currentBatchSteps.toList()))
-                if (undoStack.size > MAX_HISTORY) {
-                    undoStack.removeFirst()
-                }
+                trimUndoStack()
                 currentBatchSteps.clear()
                 redoStack.clear()
                 notifyStatusChanged()
@@ -114,9 +113,7 @@ class TextEditorUndoManager(
 
         if (!merged) {
             undoStack.addLast(UndoEntry.Single(EditItem(start, tempBeforeText, afterText)))
-            if (undoStack.size > MAX_HISTORY) {
-                undoStack.removeFirst()
-            }
+            trimUndoStack()
         }
 
         redoStack.clear()
@@ -195,6 +192,13 @@ class TextEditorUndoManager(
         currentBatchSteps.clear()
         batchDepth = 0
         notifyStatusChanged()
+    }
+
+    private fun trimUndoStack() {
+        val limit = PerformanceModeManager.currentBudget.editorMaxUndoHistory.coerceAtLeast(1)
+        while (undoStack.size > limit) {
+            undoStack.removeFirst()
+        }
     }
 
     private fun notifyStatusChanged() {

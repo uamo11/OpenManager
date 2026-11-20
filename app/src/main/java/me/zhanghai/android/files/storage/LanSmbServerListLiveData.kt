@@ -82,6 +82,7 @@ class LanSmbServerListLiveData : CloseableLiveData<Stateful<List<LanSmbServer>>>
                     e.printStackTrace()
                     return@launch
                 }
+                me.zhanghai.android.files.app.ensureSmbSingletonContextInitialized()
                 val nameServiceClient = SingletonContext.getInstance().nameServiceClient
                 for (domain in domains) {
                     launch {
@@ -116,6 +117,7 @@ class LanSmbServerListLiveData : CloseableLiveData<Stateful<List<LanSmbServer>>>
                 if (localAddress !is Inet4Address || !localAddress.isSiteLocalAddress) {
                     return@launch
                 }
+                me.zhanghai.android.files.app.ensureSmbSingletonContextInitialized()
                 val nameServiceClient = SingletonContext.getInstance().nameServiceClient
                 for (address in localAddress.getSubnetAddresses()) {
                     launch {

@@ -40,6 +40,20 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
         val savedInstanceState = savedInstanceState ?: args?.savedInstanceState
         super.onCreate(savedInstanceState)
 
+        if (BuildConfig.DEBUG) {
+            val demoPerfMode = intent.getStringExtra("DEMO_PERF_MODE")
+            intent.removeExtra("DEMO_PERF_MODE")
+            if (demoPerfMode == "on" || demoPerfMode == "off") {
+                val enabled = demoPerfMode == "on"
+                Settings.VISUAL_PERFORMANCE_MODE.putValue(enabled)
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
+                    .edit()
+                    .putBoolean(getString(me.zhanghai.android.files.R.string.pref_key_visual_performance_mode), enabled)
+                    .commit()
+                PerformanceModeManager.applyMode(applicationContext, enabled, triggerTrim = true)
+            }
+        }
+
         // Calls ensureSubDecor().
         findViewById<View>(android.R.id.content)
         if (savedInstanceState == null) {

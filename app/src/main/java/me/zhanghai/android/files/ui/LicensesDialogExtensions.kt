@@ -17,6 +17,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.graphics.ColorUtils
 import androidx.core.view.ViewCompat
 import de.psdev.licensesdialog.model.Notices
+import me.zhanghai.android.files.app.ensureWebViewDebuggingIfDebug
 import me.zhanghai.android.files.compat.scrollIndicatorsCompat
 import me.zhanghai.android.files.util.createViewIntent
 import me.zhanghai.android.files.util.getColorByAttr
@@ -116,6 +117,7 @@ private fun Int.toCssColor(): String =
     }
 
 private fun createView(html: String, context: Context): View {
+    ensureWebViewDebuggingIfDebug()
     val webView = WebView(context).apply {
         scrollIndicatorsCompat = (ViewCompat.SCROLL_INDICATOR_TOP
             or ViewCompat.SCROLL_INDICATOR_BOTTOM)

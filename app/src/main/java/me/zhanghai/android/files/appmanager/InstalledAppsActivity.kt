@@ -55,6 +55,7 @@ import me.zhanghai.android.files.filelist.ApktoolHelper
 import me.zhanghai.android.files.util.escapeShellArg
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.file.MimeType
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings as AppSettings
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.ThemedFastScroller
@@ -138,6 +139,23 @@ class InstalledAppsActivity : AppActivity() {
         applyVisualTheme()
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (PerformanceModeManager.isEnabled) {
+            NativeAppIconLoader.clear()
+            binding.recyclerView.recycledViewPool.clear()
+        }
+    }
+
+    override fun onDestroy() {
+        if (PerformanceModeManager.isEnabled) {
+            clearCache()
+            allApps.clear()
+            displayedApps.clear()
+        }
+        super.onDestroy()
+    }
+
     private fun observeVisualTheme() {
         AppSettings.NIGHT_MODE.observe(this) { applyVisualTheme() }
         AppSettings.BLACK_NIGHT_MODE.observe(this) { applyVisualTheme() }
@@ -196,9 +214,14 @@ class InstalledAppsActivity : AppActivity() {
         }
         adapter.setHasStableIds(true)
         binding.recyclerView.apply {
+            val budget = PerformanceModeManager.currentBudget
             layoutManager = LinearLayoutManager(this@InstalledAppsActivity)
             setHasFixedSize(true)
-            setItemViewCacheSize(30)
+            setItemViewCacheSize(budget.appListViewCacheSize)
+            if (PerformanceModeManager.isEnabled) {
+                recycledViewPool.setMaxRecycledViews(0, budget.appListPoolSize)
+                itemAnimator = null
+            }
             adapter = this@InstalledAppsActivity.adapter
             ThemedFastScroller.create(this)
         }
@@ -1112,6 +1135,9 @@ class InstalledAppsActivity : AppActivity() {
             super.onViewRecycled(holder)
             holder.iconJob?.cancel()
             holder.iconJob = null
+            if (PerformanceModeManager.isEnabled) {
+                holder.binding.appIcon.setImageDrawable(null)
+            }
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

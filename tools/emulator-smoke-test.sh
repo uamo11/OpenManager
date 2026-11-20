@@ -74,7 +74,7 @@ measure_section_perf() {
     local sec_pid
     sec_pid=$(adb shell pidof com.y.om | tr -d '\r' || true)
     echo "=== SECTION: $section (PID: ${sec_pid:-unknown}) ===" >> emulator-performance.txt
-    adb shell dumpsys meminfo com.y.om | grep -E "TOTAL PSS:|TOTAL:|Java Heap:|Native Heap:|Views:|ViewRootImpl:|Activities:|AppContexts:" >> emulator-performance.txt || true
+    adb shell dumpsys meminfo com.y.om | grep -E "TOTAL PSS:|TOTAL RSS:|^[[:space:]]*TOTAL[[:space:]]|Dalvik Heap|Native Heap|Java Heap:|Code:|Stack:|Graphics:|Private Other:|System:|Views:|ViewRootImpl:|Activities:|AppContexts:|WebViews:" >> emulator-performance.txt || true
     adb shell dumpsys gfxinfo com.y.om | grep -E "Total frames rendered:|Janky frames:|50th percentile:|90th percentile:|95th percentile:|99th percentile:" >> emulator-performance.txt || true
     adb shell top -b -n 1 | grep "com.y.om" >> emulator-performance.txt || true
     echo "" >> emulator-performance.txt
@@ -283,6 +283,62 @@ sleep 1.5
 measure_section_perf "Large Directory Stress (1,500 files + 4 flings)"
 adb shell "rm -rf /storage/emulated/0/OM_PerfStress_1500" || true
 
+# ------------------------------------------------------------------
+# Ultra Performance Mode (UI / Ultra RAM) Full Multi-Section Audit
+# ------------------------------------------------------------------
+echo "=========================================================="
+echo ">>> Enabling Ultra Performance Mode (ON) for Full RAM & FPS Audit..."
+echo "=========================================================="
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_PERF_MODE on --es DEMO_LOCALE es --es DEMO_THEME dark || true
+sleep 3
+
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_appearance --es DEMO_COLLAPSE_HEADER true" \
+    "38_settings_ultra_perf_hub_es.png" "Settings Ultra RAM Hub (ES)"
+measure_section_perf "PERF-ON: Settings (Hub + Iconos)"
+
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_CATEGORY key_category_visual_performance --es DEMO_COLLAPSE_HEADER true" \
+    "39_settings_ultra_perf_category_es.png" "Settings Ultra RAM Performance Category (ES)"
+
+capture_screen "adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity" \
+    "40_files_ultra_perf_es.png" "Files Explorer Ultra RAM Mode (ES)"
+measure_section_perf "PERF-ON: Files Explorer (Modo Oscuro)"
+
+echo ">>> PERF-ON: Large Directory Stress Test (1,500 files + 4 flings)..."
+adb shell "rm -rf /storage/emulated/0/OM_PerfStress_1500 && mkdir -p /storage/emulated/0/OM_PerfStress_1500 && i=0; while [ \$i -lt 100 ]; do mkdir -p /storage/emulated/0/OM_PerfStress_1500/dir_\$i; i=\$((i+1)); done; i=0; while [ \$i -lt 1400 ]; do m=\$((i % 5)); case \$m in 0) ext=txt;; 1) ext=jpg;; 2) ext=json;; 3) ext=sh;; 4) ext=apk;; esac; prefix=''; if [ \$((i % 25)) -eq 0 ]; then prefix='.'; fi; touch /storage/emulated/0/OM_PerfStress_1500/\${prefix}file_\${i}.\${ext}; i=\$((i+1)); done" || true
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG large_list_stress || true
+sleep 3
+adb shell dumpsys gfxinfo com.y.om reset >/dev/null 2>&1 || true
+adb shell input swipe 270 1550 270 350 90 || true
+sleep 0.5
+adb shell input swipe 270 1550 270 350 90 || true
+sleep 0.5
+adb shell input swipe 270 350 270 1550 90 || true
+sleep 0.5
+adb shell input swipe 270 1550 270 350 90 || true
+sleep 1.5
+measure_section_perf "PERF-ON: Large Directory Stress (1,500 files + 4 flings)"
+adb shell "rm -rf /storage/emulated/0/OM_PerfStress_1500" || true
+
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG apps || true
+sleep 3
+measure_section_perf "PERF-ON: Installed Apps Manager"
+
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG running_apps || true
+sleep 3
+measure_section_perf "PERF-ON: Running Apps Manager"
+
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor || true
+sleep 3
+measure_section_perf "PERF-ON: Fast Code Editor"
+
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG terminal_script_es || true
+sleep 3
+measure_section_perf "PERF-ON: Terminal Workstation HUD (a.sh)"
+
+echo ">>> Restoring default Performance Mode OFF & EN/Dark defaults..."
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_PERF_MODE off --es DEMO_LOCALE reset --es DEMO_THEME dark || true
+sleep 3
+
 # 28. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
 echo "=========================================================="
 echo ">>> 28. Testing Native C / C++ ImGui & Low-Level Syscalls..."
@@ -317,6 +373,6 @@ if [ -n "$CRASHES" ]; then
 fi
 
 echo "=========================================================="
-echo "   All 37 Section Screenshots Captured & Verified!       "
+echo "   All 40 Section Screenshots Captured & Verified!       "
 echo "=========================================================="
 ls -la screenshots/

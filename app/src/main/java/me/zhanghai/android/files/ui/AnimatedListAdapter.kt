@@ -10,6 +10,7 @@ import android.os.Looper
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.util.getAnimation
 
 abstract class AnimatedListAdapter<T, VH : RecyclerView.ViewHolder>(
@@ -109,7 +110,7 @@ abstract class AnimatedListAdapter<T, VH : RecyclerView.ViewHolder>(
     }
 
     protected open val isAnimationEnabled: Boolean
-        get() = true
+        get() = !PerformanceModeManager.isEnabled
 
     companion object {
         private const val ANIMATION_STAGGER_MILLIS = 0

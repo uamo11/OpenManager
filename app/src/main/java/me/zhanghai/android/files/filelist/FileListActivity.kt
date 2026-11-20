@@ -73,6 +73,7 @@ import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.ftpserver.FtpServerService
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.settings.SettingsActivity
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
@@ -143,8 +144,18 @@ class FileListActivity : AppActivity() {
 
     private var activePanelIndex = 0 // 0 = Panel A, 1 = Panel B
     val sharedRecycledViewPool = androidx.recyclerview.widget.RecyclerView.RecycledViewPool().apply {
-        setMaxRecycledViews(0, 48)
-        setMaxRecycledViews(1, 24)
+        val budget = PerformanceModeManager.currentBudget
+        setMaxRecycledViews(0, budget.fileListPoolList)
+        setMaxRecycledViews(1, budget.fileListPoolGrid)
+    }
+
+    private fun applyPerformanceModePoolSizing(enabled: Boolean) {
+        val budget = PerformanceModeManager.budgetFor(enabled)
+        sharedRecycledViewPool.setMaxRecycledViews(0, budget.fileListPoolList)
+        sharedRecycledViewPool.setMaxRecycledViews(1, budget.fileListPoolGrid)
+        if (enabled) {
+            sharedRecycledViewPool.clear()
+        }
     }
 
     val activeFragment: FileListFragment
@@ -306,6 +317,8 @@ class FileListActivity : AppActivity() {
             me.zhanghai.android.files.update.UpdateChecker.checkUpdate(this, isManual = false)
         }
 
+        Settings.VISUAL_PERFORMANCE_MODE.observe(this) { applyPerformanceModePoolSizing(it) }
+
         val demoFilter = IntentFilter("me.zhanghai.android.files.action.DEMO")
         androidx.core.content.ContextCompat.registerReceiver(
             this,
@@ -313,6 +326,13 @@ class FileListActivity : AppActivity() {
             demoFilter,
             androidx.core.content.ContextCompat.RECEIVER_EXPORTED
         )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (PerformanceModeManager.isEnabled) {
+            sharedRecycledViewPool.clear()
+        }
     }
 
     override fun onDestroy() {

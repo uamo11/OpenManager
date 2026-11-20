@@ -7,8 +7,8 @@ package me.zhanghai.android.files.filelist
 
 import android.content.res.ColorStateList
 import android.text.TextUtils
-import android.util.LruCache
 import android.util.TypedValue
+import androidx.collection.LruCache
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
@@ -37,6 +37,7 @@ import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.isEncrypted
 import me.zhanghai.android.files.provider.common.toModeString
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.settings.SettingsUiLogic
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
@@ -104,8 +105,17 @@ class FileListAdapter(
 
     private var currentPathIsSharedStorage: Boolean = false
 
-    private val dateFormatCache = LruCache<Long, String>(512)
-    private val descriptionCache = LruCache<FileItem, String>(1024)
+    private val dateFormatCache = LruCache<Long, String>(
+        PerformanceModeManager.currentBudget.fileListDateCacheSize
+    )
+    private val descriptionCache = LruCache<FileItem, String>(
+        PerformanceModeManager.currentBudget.fileListDescriptionCacheSize
+    )
+
+    fun trimCachesForUltraPerformance() {
+        dateFormatCache.evictAll()
+        descriptionCache.evictAll()
+    }
 
     var timePreference: String = "1"
         set(value) {
@@ -243,13 +253,19 @@ class FileListAdapter(
         }
     }
 
-    var visualPerformanceMode: Boolean = false
+    var visualPerformanceMode: Boolean = PerformanceModeManager.isEnabled
         set(value) {
+            val budget = PerformanceModeManager.budgetFor(value)
+            dateFormatCache.resize(budget.fileListDateCacheSize)
+            descriptionCache.resize(budget.fileListDescriptionCacheSize)
+            if (value) {
+                trimCachesForUltraPerformance()
+            }
             if (field != value) {
                 field = value
                 styleVersion++
                 if (itemCount > 0) {
-                    notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
                 }
             }
         }
@@ -575,7 +591,7 @@ class FileListAdapter(
         }
 
         val appDirectoryPackageName = file.appDirectoryPackageName
-        val appLabel = if (isDirectory && appDirectoryPackageName != null) {
+        val appLabel = if (isDirectory && appDirectoryPackageName != null && !visualPerformanceMode) {
             val cached = AppMetadataCache.getCachedAppLabel(appDirectoryPackageName)
             if (cached == null && !AppMetadataCache.hasLabelEntry(appDirectoryPackageName)) {
                 AppMetadataCache.prefetchAppLabelAsync(holder.itemView.context, appDirectoryPackageName) {
@@ -644,7 +660,7 @@ class FileListAdapter(
         holder.thumbnailOutlineView?.isVisible = !isDirectory
         val deferForFling = isFlinging &&
             FileListEngine.shouldDeferThumbnailsDuringFling(thumbnailLoadMode, itemCount)
-        val canDecodeBitmaps = thumbnailLoadMode != 2 && !deferForFling
+        val canDecodeBitmaps = !visualPerformanceMode && thumbnailLoadMode != 2 && !deferForFling
         val supportsThumbnail = file.supportsThumbnail && canDecodeBitmaps
         val shouldLoadThumbnailIcon = supportsThumbnail && holder.thumbnailIconImage != null &&
             file.mimeType.isApk

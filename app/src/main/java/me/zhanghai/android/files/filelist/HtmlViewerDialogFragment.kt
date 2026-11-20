@@ -19,6 +19,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
 import kotlinx.parcelize.WriteWith
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.app.ensureWebViewDebuggingIfDebug
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.ParcelableArgs
@@ -38,6 +39,7 @@ class HtmlViewerDialogFragment : AppCompatDialogFragment() {
         val context = requireContext()
         val heightPx = (context.resources.displayMetrics.heightPixels * 0.55f).toInt()
             .coerceAtLeast(context.dpToDimensionPixelSize(260))
+        ensureWebViewDebuggingIfDebug()
         val wv = WebView(context).apply {
             settings.apply {
                 javaScriptEnabled = false

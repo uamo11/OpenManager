@@ -11,6 +11,7 @@ import android.text.SpannableStringBuilder
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.text.style.StyleSpan
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import kotlin.math.min
 
 /**
@@ -43,12 +44,18 @@ object FastSyntaxScanner {
 
     var currentTheme: EditorTheme = EditorTheme.ONE_DARK
 
+    fun isWithinHighlightLimit(length: Int, isLive: Boolean = false): Boolean {
+        val budget = PerformanceModeManager.currentBudget
+        val maxChars = if (isLive) budget.editorLiveHighlightChars else budget.editorMaxHighlightChars
+        return length <= maxChars
+    }
+
     /**
      * Builds a pre-highlighted SpannableStringBuilder completely off the main thread.
      */
     fun highlightToSpannable(text: CharSequence, language: SyntaxLanguage, theme: EditorTheme = currentTheme): SpannableStringBuilder {
         val builder = SpannableStringBuilder(text)
-        if (language == SyntaxLanguage.PLAIN_TEXT || text.length > 500_000) {
+        if (language == SyntaxLanguage.PLAIN_TEXT || !isWithinHighlightLimit(text.length, isLive = false)) {
             return builder
         }
 
@@ -77,7 +84,7 @@ object FastSyntaxScanner {
      * In-place span application for live editing on main thread.
      */
     fun applyHighlightTo(editable: Editable?, language: SyntaxLanguage, theme: EditorTheme = currentTheme) {
-        if (editable == null || language == SyntaxLanguage.PLAIN_TEXT || editable.length > 300_000) {
+        if (editable == null || language == SyntaxLanguage.PLAIN_TEXT || !isWithinHighlightLimit(editable.length, isLive = true)) {
             clearSpans(editable)
             return
         }
@@ -136,7 +143,7 @@ object FastSyntaxScanner {
      * Linear O(N) tokenizer across any supported language.
      */
     fun scan(text: CharSequence, language: SyntaxLanguage, theme: EditorTheme = currentTheme): List<SyntaxToken> {
-        if (language == SyntaxLanguage.PLAIN_TEXT || text.length > 500_000) {
+        if (language == SyntaxLanguage.PLAIN_TEXT || !isWithinHighlightLimit(text.length, isLive = false)) {
             return emptyList()
         }
         val estimatedTokens = kotlin.math.min(text.length / 10, 15_000)

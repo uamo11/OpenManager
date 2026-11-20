@@ -631,6 +631,7 @@ object Client {
 
     @Throws(ClientException::class)
     private fun resolveHostName(hostName: String): String {
+        me.zhanghai.android.files.app.ensureSmbSingletonContextInitialized()
         val nameServiceClient = SingletonContext.getInstance().nameServiceClient
         val addresses = try {
             nameServiceClient.getAllByName(hostName, false).mapNotNull { it.toInetAddress() }

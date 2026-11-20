@@ -976,8 +976,9 @@
         <item>Alto contraste con separador de acento</item>
         <item>Fondo uniforme (ahorro de GPU)</item>
     </string-array>
-    <string name="settings_visual_performance_mode_title">Modo fluido de bajo consumo (Rendimiento UI)</string>
-    <string name="settings_visual_performance_mode_summary">Desactiva animaciones de transición, marquesinas continuas y efectos pesados para máxima fluidez y estabilidad</string>
+    <string name="settings_visual_performance_mode_title">Modo de alto rendimiento (UI / Ultra RAM)</string>
+    <string name="settings_visual_performance_mode_summary">Desactiva animaciones, miniaturas y cachés pesados en toda la app para volar con consumo mínimo de RAM</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM activo · Heap %1$s · Sin miniaturas, animaciones 0ms y cachés mínimos en toda la app</string>
     <string name="settings_thumbnail_load_mode_title">Renderizado de miniaturas e iconos</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Completo (Predeterminado)</item>
@@ -1014,10 +1015,13 @@
     <string name="settings_hub_thumb_opt_sub">Pausa al deslizar</string>
     <string name="settings_hub_thumb_vec">Vectorial</string>
     <string name="settings_hub_thumb_vec_sub">Sin bitmaps</string>
-    <string name="settings_hub_turbo_title">Modo fluido de bajo consumo (UI)</string>
+    <string name="settings_hub_turbo_title">Modo de alto rendimiento (Ultra RAM)</string>
+    <string name="settings_hub_turbo_subtitle_off">Reduce RAM activa, quita animaciones y acelera toda la app</string>
+    <string name="settings_hub_turbo_subtitle_on">Cachés mínimos · Animaciones 0ms · Solo vectores</string>
     <string name="settings_hub_status_standard">Estándar</string>
     <string name="settings_hub_status_smooth">⚡ Fluido</string>
     <string name="settings_hub_status_ultra">⚡ Ultra Rápido</string>
+    <string name="settings_hub_status_ultra_ram_format">⚡ Ultra RAM · %1$s</string>
     <string name="settings_thumb_opt_0_desc">Carga siempre miniaturas de imágenes, vídeos, PDF y APKs en la lista</string>
     <string name="settings_thumb_opt_0_tag">VISUAL</string>
     <string name="settings_thumb_opt_1_desc">Pausa el decodificado durante deslizamientos rápidos y carga al detenerse</string>

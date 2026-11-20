@@ -45,6 +45,7 @@ import com.termux.view.TerminalViewClient
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.isUiAlive
@@ -932,7 +933,7 @@ class TerminalActivity : AppActivity() {
             config.cwd,
             config.args,
             config.env,
-            5000,
+            PerformanceModeManager.currentBudget.terminalTranscriptRows,
             sessionClient
         )
         terminalSession = session

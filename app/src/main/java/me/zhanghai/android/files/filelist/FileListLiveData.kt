@@ -37,9 +37,21 @@ object DirectorySnapshotCache {
     const val MAX_CACHED_ITEMS = 12_000
     const val MAX_SINGLE_DIR_SNAPSHOT_ITEMS = 4_000
 
+    @Volatile
+    private var ultraLowRamMode = false
+
     private val cache = object : LruCache<String, List<FileItem>>(MAX_CACHED_ITEMS) {
         override fun sizeOf(key: String, value: List<FileItem>): Int = value.size.coerceAtLeast(1)
     }
+
+    fun setUltraLowRamMode(enabled: Boolean) {
+        ultraLowRamMode = enabled
+        if (enabled) {
+            clear()
+        }
+    }
+
+    fun isUltraLowRamMode(): Boolean = ultraLowRamMode
 
     private fun getKey(path: Path): String =
         try {
@@ -49,6 +61,7 @@ object DirectorySnapshotCache {
         }
 
     fun get(path: Path): List<FileItem>? {
+        if (ultraLowRamMode) return null
         val key = getKey(path)
         synchronized(cache) {
             return cache.get(key)
@@ -56,6 +69,7 @@ object DirectorySnapshotCache {
     }
 
     fun put(path: Path, items: List<FileItem>) {
+        if (ultraLowRamMode) return
         val key = getKey(path)
         synchronized(cache) {
             if (items.size > MAX_SINGLE_DIR_SNAPSHOT_ITEMS) {

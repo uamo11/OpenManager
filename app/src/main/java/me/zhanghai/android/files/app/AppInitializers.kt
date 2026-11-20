@@ -10,12 +10,13 @@ import android.content.res.Configuration
 import android.os.AsyncTask
 import android.os.Build
 import android.webkit.WebView
-import coil.Coil
 import jcifs.context.SingletonContext
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
+import me.zhanghai.android.files.coil.clearCoilMemory
 import me.zhanghai.android.files.coil.initializeCoil
+import me.zhanghai.android.files.coil.trimCoilMemory
 import me.zhanghai.android.files.filejob.fileJobNotificationTemplate
 import me.zhanghai.android.files.filelist.AppMetadataCache
 import me.zhanghai.android.files.filelist.DirectorySnapshotCache
@@ -24,6 +25,7 @@ import me.zhanghai.android.files.filelist.apktoolNotificationTemplate
 import me.zhanghai.android.files.terminal.scriptExecutionNotificationTemplate
 import me.zhanghai.android.files.hiddenapi.HiddenApi
 import me.zhanghai.android.files.provider.FileSystemProviders
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.settings.SettingsIconHelper
 import me.zhanghai.android.files.storage.FtpServerAuthenticator
@@ -33,7 +35,9 @@ import me.zhanghai.android.files.storage.StorageVolumeListLiveData
 import me.zhanghai.android.files.storage.WebDavServerAuthenticator
 import me.zhanghai.android.files.theme.custom.CustomThemeHelper
 import me.zhanghai.android.files.theme.night.NightModeHelper
+import me.zhanghai.android.files.util.valueCompat
 import java.util.Properties
+import java.util.concurrent.atomic.AtomicBoolean
 import me.zhanghai.android.files.provider.ftp.client.Client as FtpClient
 import me.zhanghai.android.files.provider.sftp.client.Client as SftpClient
 import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
@@ -44,7 +48,7 @@ val appInitializers = listOf(
     ::initializeCrashHandler,
     ::initializeLibSu,
     ::disableHiddenApiChecks,
-    ::initializeWebViewDebugging,
+    ::initializePerformanceMode,
     ::initializeCoil,
     ::initializeFileSystemProviders,
     ::upgradeApp,
@@ -55,6 +59,30 @@ val appInitializers = listOf(
     ::initializeTerminalBinTools,
     ::initializeMemoryTrimAndWarmUp
 )
+
+private val webViewDebuggingInitialized = AtomicBoolean(false)
+private val smbContextInitialized = AtomicBoolean(false)
+
+fun ensureWebViewDebuggingIfDebug() {
+    if (BuildConfig.DEBUG && webViewDebuggingInitialized.compareAndSet(false, true)) {
+        try {
+            WebView.setWebContentsDebuggingEnabled(true)
+        } catch (_: Throwable) {}
+    }
+}
+
+fun ensureSmbSingletonContextInitialized() {
+    if (smbContextInitialized.compareAndSet(false, true)) {
+        try {
+            SingletonContext.init(
+                Properties().apply {
+                    setProperty("jcifs.netbios.cachePolicy", "0")
+                    setProperty("jcifs.smb.client.maxVersion", "SMB1")
+                }
+            )
+        } catch (_: Throwable) {}
+    }
+}
 
 private fun initializeCrashHandler() {
     CrashHandler.install(application)
@@ -72,23 +100,23 @@ private fun disableHiddenApiChecks() {
     HiddenApi.disableHiddenApiChecks()
 }
 
-private fun initializeWebViewDebugging() {
-    if (BuildConfig.DEBUG) {
-        WebView.setWebContentsDebuggingEnabled(true)
+private fun initializePerformanceMode() {
+    val enabled = try {
+        Settings.VISUAL_PERFORMANCE_MODE.valueCompat
+    } catch (_: Throwable) {
+        false
     }
+    PerformanceModeManager.initialize(enabled)
 }
 
 private fun initializeFileSystemProviders() {
     FileSystemProviders.install()
     FileSystemProviders.overflowWatchEvents = true
-    // SingletonContext.init() calls NameServiceClientImpl.initCache() which connects to network.
-    AsyncTask.THREAD_POOL_EXECUTOR.execute {
-        SingletonContext.init(
-            Properties().apply {
-                setProperty("jcifs.netbios.cachePolicy", "0")
-                setProperty("jcifs.smb.client.maxVersion", "SMB1")
-            }
-        )
+    if (!PerformanceModeManager.isEnabled) {
+        // SingletonContext.init() calls NameServiceClientImpl.initCache() which connects to network.
+        AsyncTask.THREAD_POOL_EXECUTOR.execute {
+            ensureSmbSingletonContextInitialized()
+        }
     }
     FtpClient.authenticator = FtpServerAuthenticator
     SftpClient.authenticator = SftpServerAuthenticator
@@ -141,7 +169,11 @@ private fun initializeTerminalBinTools() {
 private fun initializeMemoryTrimAndWarmUp() {
     application.registerComponentCallbacks(object : ComponentCallbacks2 {
         override fun onTrimMemory(level: Int) {
-            Coil.imageLoader(application).memoryCache?.trimMemory(level)
+            trimCoilMemory(level)
+            if (PerformanceModeManager.isEnabled && level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
+                PerformanceModeManager.trimTransientCaches(aggressive = true)
+                return
+            }
             if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
                 NativeAppIconLoader.trim(0.5f)
                 SettingsIconHelper.clearCaches()
@@ -157,7 +189,7 @@ private fun initializeMemoryTrimAndWarmUp() {
         override fun onConfigurationChanged(newConfig: Configuration) {}
 
         override fun onLowMemory() {
-            Coil.imageLoader(application).memoryCache?.clear()
+            clearCoilMemory()
             NativeAppIconLoader.clear()
             DirectorySnapshotCache.clear()
             AppMetadataCache.clear()
@@ -165,7 +197,9 @@ private fun initializeMemoryTrimAndWarmUp() {
             InstalledAppsActivity.clearCache()
         }
     })
-    AsyncTask.THREAD_POOL_EXECUTOR.execute {
-        AppMetadataCache.warmUp(application)
+    if (!PerformanceModeManager.isEnabled) {
+        AsyncTask.THREAD_POOL_EXECUTOR.execute {
+            AppMetadataCache.warmUp(application)
+        }
     }
 }

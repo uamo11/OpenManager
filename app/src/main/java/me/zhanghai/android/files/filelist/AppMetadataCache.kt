@@ -18,13 +18,23 @@ object AppMetadataCache {
     private val installedCache = ConcurrentHashMap<String, Boolean>(256)
     private val inFlight = ConcurrentHashMap.newKeySet<String>()
     private val lookupExecutor = Executors.newFixedThreadPool(2)
-    private val mainHandler = Handler(Looper.getMainLooper())
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     @Volatile
     private var isWarmedUp = false
 
+    @Volatile
+    private var ultraLowRamMode = false
+
+    fun setUltraLowRamMode(enabled: Boolean) {
+        ultraLowRamMode = enabled
+        if (enabled) {
+            clear()
+        }
+    }
+
     fun warmUp(context: Context) {
-        if (isWarmedUp) return
+        if (ultraLowRamMode || isWarmedUp) return
         try {
             val pm = context.applicationContext.packageManager
             val apps = pm.getInstalledApplications(0)
@@ -56,7 +66,7 @@ object AppMetadataCache {
         packageName: String,
         onResolved: (String) -> Unit
     ) {
-        if (packageName.isEmpty() || labelCache.containsKey(packageName)) return
+        if (ultraLowRamMode || packageName.isEmpty() || labelCache.containsKey(packageName)) return
         if (!inFlight.add(packageName)) return
         val appContext = context.applicationContext
         lookupExecutor.execute {

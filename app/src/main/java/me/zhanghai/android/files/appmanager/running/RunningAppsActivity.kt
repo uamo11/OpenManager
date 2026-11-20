@@ -50,6 +50,7 @@ import me.zhanghai.android.files.databinding.DialogProcessDetailsBinding
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
 import me.zhanghai.android.files.provider.root.ShizukuManager
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings as AppSettings
 import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
@@ -202,6 +203,14 @@ class RunningAppsActivity : AppActivity() {
         super.onPause()
     }
 
+    override fun onStop() {
+        super.onStop()
+        if (PerformanceModeManager.isEnabled) {
+            NativeAppIconLoader.clear()
+            binding.recyclerView.recycledViewPool.clear()
+        }
+    }
+
     override fun onDestroy() {
         autoRefreshJob?.cancel()
         loadJob?.cancel()
@@ -215,7 +224,7 @@ class RunningAppsActivity : AppActivity() {
         autoRefreshJob?.cancel()
         autoRefreshJob = lifecycleScope.launch {
             while (isActive) {
-                delay(AUTO_REFRESH_INTERVAL_MS)
+                delay(PerformanceModeManager.currentBudget.runningAppsRefreshIntervalMs)
                 if (!isUiAlive) break
                 if (!isUserScrolling && !adapter.isPopupMenuOpen) {
                     loadProcesses(isAutoRefresh = true)
@@ -250,10 +259,16 @@ class RunningAppsActivity : AppActivity() {
             onForceStopClick = { item -> forceStopProcess(item) }
         )
         binding.recyclerView.apply {
+            val budget = PerformanceModeManager.currentBudget
             layoutManager = LinearLayoutManager(this@RunningAppsActivity)
             setHasFixedSize(true)
-            setItemViewCacheSize(30)
-            (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations = false
+            setItemViewCacheSize(budget.appListViewCacheSize)
+            if (PerformanceModeManager.isEnabled) {
+                recycledViewPool.setMaxRecycledViews(0, budget.appListPoolSize)
+                itemAnimator = null
+            } else {
+                (itemAnimator as? DefaultItemAnimator)?.supportsChangeAnimations = false
+            }
             adapter = this@RunningAppsActivity.adapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {

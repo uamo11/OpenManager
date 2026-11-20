@@ -223,19 +223,28 @@ class AppearancePerformanceHubPreference : Preference {
         }
         tvPerfHeader?.setTextColor(palette.textPrimary)
 
-        val (statusTextRes, statusColor) = when {
-            thumbMode == "2" -> R.string.settings_hub_status_ultra to emeraldColor
-            thumbMode == "1" || visualPerf -> R.string.settings_hub_status_smooth to blueColor
-            else -> R.string.settings_hub_status_standard to palette.textSecondary
+        val (isHighlightedStatus, statusColor) = when {
+            visualPerf || thumbMode == "2" -> true to emeraldColor
+            thumbMode == "1" -> true to blueColor
+            else -> false to palette.textSecondary
         }
+        val activeHeapMb = if (visualPerf) PerformanceModeManager.readLiveHeapSnapshot().totalActiveMb else 0f
         tvPerfStatus?.apply {
-            text = ctx.getString(statusTextRes)
+            text = PerformanceModeManager.formatStatusBadge(
+                isUltraPerf = visualPerf,
+                thumbMode = thumbMode,
+                activeMb = activeHeapMb,
+                standardLabel = ctx.getString(R.string.settings_hub_status_standard),
+                smoothLabel = ctx.getString(R.string.settings_hub_status_smooth),
+                ultraLabel = ctx.getString(R.string.settings_hub_status_ultra),
+                turboFormat = ctx.getString(R.string.settings_hub_status_ultra_ram_format)
+            )
             val statusBadgeColors = SettingsUiLogic.computeIconBadgeColors(
                 semanticColor = statusColor,
                 isDark = palette.isDark,
                 isAmoled = palette.isAmoled
             )
-            setTextColor(if (thumbMode == "0" && !visualPerf) palette.textSecondary else statusBadgeColors.fgColor)
+            setTextColor(if (!isHighlightedStatus) palette.textSecondary else statusBadgeColors.fgColor)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 10f * density
@@ -280,6 +289,7 @@ class AppearancePerformanceHubPreference : Preference {
         val rowTurbo = holder.findViewById(R.id.rowHubTurbo)
         val ivTurbo = holder.findViewById(R.id.ivHubTurboIcon) as? ImageView
         val tvTurbo = holder.findViewById(R.id.tvHubTurboTitle) as? TextView
+        val tvTurboSub = holder.findViewById(R.id.tvHubTurboSubtitle) as? TextView
         val switchTurbo = holder.findViewById(R.id.switchHubTurbo) as? SwitchCompat
 
         rowTurbo?.background = GradientDrawable().apply {
@@ -303,6 +313,16 @@ class AppearancePerformanceHubPreference : Preference {
             )
         }
         tvTurbo?.setTextColor(palette.textPrimary)
+        tvTurboSub?.apply {
+            text = ctx.getString(
+                if (visualPerf) {
+                    R.string.settings_hub_turbo_subtitle_on
+                } else {
+                    R.string.settings_hub_turbo_subtitle_off
+                }
+            )
+            setTextColor(if (visualPerf) emeraldColor else palette.textSecondary)
+        }
 
         switchTurbo?.let { sw ->
             sw.setOnCheckedChangeListener(null)

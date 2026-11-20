@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 
 class RunningAppsAdapter(
@@ -227,6 +228,9 @@ class RunningAppsAdapter(
         super.onViewRecycled(holder)
         holder.iconJob?.cancel()
         holder.iconJob = null
+        if (PerformanceModeManager.isEnabled) {
+            holder.ivIcon.setImageDrawable(null)
+        }
     }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {

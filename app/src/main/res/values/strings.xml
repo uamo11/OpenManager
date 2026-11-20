@@ -1080,8 +1080,9 @@
         <item>High contrast with accent divider</item>
         <item>Uniform background (GPU friendly)</item>
     </string-array>
-    <string name="settings_visual_performance_mode_title">Smooth low-power UI mode</string>
-    <string name="settings_visual_performance_mode_summary">Disables list transition animations, continuous marquees and heavy visual effects for maximum smoothness</string>
+    <string name="settings_visual_performance_mode_title">High performance mode (UI / Ultra RAM)</string>
+    <string name="settings_visual_performance_mode_summary">Disables heavy animations, thumbnails &amp; background caches across the entire app so it flies with ultra-low RAM</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM active · Heap %1$s · Zero bitmaps, 0ms transitions &amp; minimal caches across all screens</string>
     <string name="settings_thumbnail_load_mode_title">Thumbnail &amp; icon rendering</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Full (Default)</item>
@@ -1118,10 +1119,13 @@
     <string name="settings_hub_thumb_opt_sub">Pause on fling</string>
     <string name="settings_hub_thumb_vec">Vector</string>
     <string name="settings_hub_thumb_vec_sub">Zero bitmaps</string>
-    <string name="settings_hub_turbo_title">Smooth low-power UI mode</string>
+    <string name="settings_hub_turbo_title">High performance mode (Ultra RAM)</string>
+    <string name="settings_hub_turbo_subtitle_off">Trim active RAM, remove animations &amp; boost all sections</string>
+    <string name="settings_hub_turbo_subtitle_on">Minimal caches · 0ms transitions · Vector icons only</string>
     <string name="settings_hub_status_standard">Standard</string>
     <string name="settings_hub_status_smooth">⚡ Smooth</string>
     <string name="settings_hub_status_ultra">⚡ Ultra Fast</string>
+    <string name="settings_hub_status_ultra_ram_format">⚡ Ultra RAM · %1$s</string>
     <string name="settings_thumb_opt_0_desc">Always loads image, video, PDF and APK thumbnails in the file list</string>
     <string name="settings_thumb_opt_0_tag">VISUAL</string>
     <string name="settings_thumb_opt_1_desc">Skips heavy decoding during fast flings and restores previews when settling</string>

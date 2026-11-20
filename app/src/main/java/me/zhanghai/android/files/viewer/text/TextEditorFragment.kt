@@ -53,6 +53,7 @@ import kotlinx.parcelize.Parcelize
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.TextEditorFragmentBinding
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.ui.ThemedFastScroller
 import me.zhanghai.android.files.util.ActionState
 import me.zhanghai.android.files.util.DataState
@@ -116,14 +117,20 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private lateinit var scaleGestureDetector: ScaleGestureDetector
     private val hideZoomIndicatorRunnable = Runnable {
         if (this::binding.isInitialized) {
-            binding.zoomIndicator.animate()
-                .alpha(0f)
-                .setDuration(250)
-                .withEndAction {
-                    binding.zoomIndicator.visibility = View.GONE
-                    binding.zoomIndicator.alpha = 1f
-                }
-                .start()
+            if (PerformanceModeManager.isEnabled) {
+                binding.zoomIndicator.animate().cancel()
+                binding.zoomIndicator.visibility = View.GONE
+                binding.zoomIndicator.alpha = 1f
+            } else {
+                binding.zoomIndicator.animate()
+                    .alpha(0f)
+                    .setDuration(250)
+                    .withEndAction {
+                        binding.zoomIndicator.visibility = View.GONE
+                        binding.zoomIndicator.alpha = 1f
+                    }
+                    .start()
+            }
         }
     }
 
@@ -220,11 +227,15 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
         ThemedFastScroller.create(binding.scrollView)
 
-        try {
-            val monoTypeface = Typeface.createFromAsset(requireContext().assets, "Mono.ttf")
-            binding.textEdit.typeface = monoTypeface
-        } catch (e: Exception) {
+        if (!PerformanceModeManager.currentBudget.editorUseCustomFont) {
             binding.textEdit.typeface = Typeface.MONOSPACE
+        } else {
+            try {
+                val monoTypeface = Typeface.createFromAsset(requireContext().assets, "Mono.ttf")
+                binding.textEdit.typeface = monoTypeface
+            } catch (e: Exception) {
+                binding.textEdit.typeface = Typeface.MONOSPACE
+            }
         }
 
         // Cursor Position Listener for Subtitle, Status Strip and LineNumber Highlighting
@@ -336,6 +347,17 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         highlightJob?.cancel()
         if (this::binding.isInitialized) {
             binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+        }
+        if (PerformanceModeManager.isEnabled) {
+            if (::undoManager.isInitialized) {
+                undoManager.clear()
+            }
+            searchMatches.clear()
+            cursorBackStack.clear()
+            cursorForwardStack.clear()
+            if (this::binding.isInitialized) {
+                FastSyntaxScanner.clearSpans(binding.textEdit.text)
+            }
         }
     }
 
@@ -491,13 +513,17 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         highlightJob = viewLifecycleOwner.lifecycleScope.launch {
             delay(250) // Debounce typing
             val text = binding.textEdit.text
-            if (text != null && text.isNotEmpty() && currentLanguage != SyntaxLanguage.PLAIN_TEXT) {
+            if (text != null && text.isNotEmpty() && currentLanguage != SyntaxLanguage.PLAIN_TEXT &&
+                FastSyntaxScanner.isWithinHighlightLimit(text.length, isLive = true)
+            ) {
                 val tokens = withContext(Dispatchers.Default) {
                     FastSyntaxScanner.scan(text, currentLanguage, currentTheme)
                 }
                 if (view != null) {
                     FastSyntaxScanner.applyTokens(text, tokens)
                 }
+            } else if (text != null) {
+                FastSyntaxScanner.clearSpans(text)
             }
         }
     }

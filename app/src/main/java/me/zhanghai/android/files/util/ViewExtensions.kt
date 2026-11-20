@@ -19,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import me.zhanghai.android.files.app.inputMethodManager
+import me.zhanghai.android.files.settings.PerformanceModeManager
 
 fun View.doOnGlobalLayout(block: () -> Unit): OneShotGlobalLayoutListener =
     OneShotGlobalLayoutListener.add(this, block)
@@ -103,6 +104,12 @@ var View.layoutInNavigation: Boolean
     }
 
 suspend fun View.fadeIn(force: Boolean = false) {
+    if (PerformanceModeManager.isEnabled) {
+        animate().cancel()
+        alpha = 1f
+        isVisible = true
+        return
+    }
     if (!isVisible) {
         alpha = 0f
         isVisible = true
@@ -125,6 +132,16 @@ fun View.fadeInUnsafe(force: Boolean = false) {
 }
 
 suspend fun View.fadeOut(force: Boolean = false, gone: Boolean = false) {
+    if (PerformanceModeManager.isEnabled) {
+        animate().cancel()
+        alpha = 0f
+        if (gone) {
+            isGone = true
+        } else {
+            isInvisible = true
+        }
+        return
+    }
     animate().run {
         alpha(0f)
         if (!(isLaidOut || force) || (!isVisible || alpha == 0f)) {
@@ -161,6 +178,15 @@ fun View.fadeToVisibilityUnsafe(visible: Boolean, force: Boolean = false, gone: 
 
 @SuppressLint("RtlHardcoded")
 suspend fun View.slideIn(gravity: Int, force: Boolean = false) {
+    if (PerformanceModeManager.isEnabled) {
+        animate().cancel()
+        when (Gravity.getAbsoluteGravity(gravity, layoutDirection)) {
+            Gravity.LEFT, Gravity.RIGHT -> translationX = 0f
+            Gravity.TOP, Gravity.BOTTOM -> translationY = 0f
+        }
+        isVisible = true
+        return
+    }
     isVisible = true
     animate().run {
         when (Gravity.getAbsoluteGravity(gravity, layoutDirection)) {
@@ -184,6 +210,21 @@ suspend fun View.slideInUnsafe(gravity: Int, force: Boolean = false) {
 
 @SuppressLint("RtlHardcoded")
 suspend fun View.slideOut(gravity: Int, force: Boolean = false, gone: Boolean = false) {
+    if (PerformanceModeManager.isEnabled) {
+        animate().cancel()
+        when (Gravity.getAbsoluteGravity(gravity, layoutDirection)) {
+            Gravity.LEFT -> translationX = (-right).toFloat()
+            Gravity.RIGHT -> translationX = ((parent as? View)?.width?.minus(left) ?: 0).toFloat()
+            Gravity.TOP -> translationY = (-bottom).toFloat()
+            Gravity.BOTTOM -> translationY = ((parent as? View)?.height?.minus(top) ?: 0).toFloat()
+        }
+        if (gone) {
+            isGone = true
+        } else {
+            isInvisible = true
+        }
+        return
+    }
     animate().run {
         when (Gravity.getAbsoluteGravity(gravity, layoutDirection)) {
             Gravity.LEFT -> translationX((-right).toFloat())

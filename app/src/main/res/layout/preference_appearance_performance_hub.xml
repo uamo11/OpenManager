@@ -388,18 +388,34 @@
                 android:layout_height="18dp"
                 android:src="@drawable/ic_perf_bolt_24dp" />
 
-            <TextView
-                android:id="@+id/tvHubTurboTitle"
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/settings_hub_turbo_title"
-                android:textSize="12.5sp"
-                android:textStyle="bold" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvHubTurboTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/settings_hub_turbo_title"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvHubTurboSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/settings_hub_turbo_subtitle_off"
+                    android:textSize="10.5sp" />
+            </LinearLayout>
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/switchHubTurbo"
