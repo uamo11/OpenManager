@@ -5,7 +5,7 @@
 
 package me.zhanghai.android.files.filelist
 
-import android.util.LruCache
+import androidx.collection.LruCache
 import java8.nio.file.DirectoryIteratorException
 import java8.nio.file.Path
 import java8.nio.file.Paths
@@ -26,6 +26,7 @@ import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * In-memory LRU snapshot cache of directory listings so navigating back/up or switching
@@ -33,7 +34,12 @@ import java.util.concurrent.Future
  * while the background directory stream refreshes.
  */
 object DirectorySnapshotCache {
-    private val cache = LruCache<String, List<FileItem>>(80)
+    const val MAX_CACHED_ITEMS = 12_000
+    const val MAX_SINGLE_DIR_SNAPSHOT_ITEMS = 4_000
+
+    private val cache = object : LruCache<String, List<FileItem>>(MAX_CACHED_ITEMS) {
+        override fun sizeOf(key: String, value: List<FileItem>): Int = value.size.coerceAtLeast(1)
+    }
 
     private fun getKey(path: Path): String =
         try {
@@ -52,6 +58,10 @@ object DirectorySnapshotCache {
     fun put(path: Path, items: List<FileItem>) {
         val key = getKey(path)
         synchronized(cache) {
+            if (items.size > MAX_SINGLE_DIR_SNAPSHOT_ITEMS) {
+                cache.remove(key)
+                return
+            }
             cache.put(key, items)
         }
     }
@@ -83,45 +93,93 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
         observer = PathObserver(path) { onChangeObserved() }
     }
 
+    private fun loadChildPathItem(childPath: Path): FileItem? =
+        try {
+            childPath.loadFileItem()
+        } catch (e: DirectoryIteratorException) {
+            childPath.createFallbackFileItem()
+        } catch (e: IOException) {
+            childPath.createFallbackFileItem()
+        } catch (e: Exception) {
+            childPath.createFallbackFileItem()
+        }
+
     fun loadValue() {
         future?.cancel(true)
         val currentOrCached = value?.value ?: DirectorySnapshotCache.get(path)
         value = Loading(currentOrCached)
         future = DIRECTORY_LOAD_EXECUTOR.submit {
             val resultState = try {
+                val childPaths = ArrayList<Path>(128)
                 path.newDirectoryStream().use { directoryStream ->
-                    val fileList = ArrayList<FileItem>(64)
                     for (childPath in directoryStream) {
                         if (Thread.currentThread().isInterrupted) return@submit
-                        try {
-                            fileList.add(childPath.loadFileItem())
-                        } catch (e: DirectoryIteratorException) {
-                            childPath.createFallbackFileItem()?.let { fileList.add(it) }
-                        } catch (e: IOException) {
-                            childPath.createFallbackFileItem()?.let { fileList.add(it) }
-                        } catch (e: Exception) {
-                            childPath.createFallbackFileItem()?.let { fileList.add(it) }
-                        }
+                        childPaths.add(childPath)
                     }
-                    if (fileList.isEmpty() && path.isLinuxPath && !path.isArchivePath) {
-                        val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
-                        if (virtualEntries.isNotEmpty()) {
-                            fileList.addAll(virtualEntries)
-                        }
-                    }
-                    DirectorySnapshotCache.put(path, fileList)
-                    Success(fileList as List<FileItem>)
                 }
+                val fileList = ArrayList<FileItem>(childPaths.size.coerceAtLeast(16))
+                if (childPaths.size < PARALLEL_LOAD_THRESHOLD) {
+                    for (i in 0 until childPaths.size) {
+                        if (Thread.currentThread().isInterrupted) return@submit
+                        loadChildPathItem(childPaths[i])?.let { fileList.add(it) }
+                    }
+                } else {
+                    val workerCount = PARALLEL_WORKER_COUNT
+                    val total = childPaths.size
+                    val chunkSize = (total + workerCount - 1) / workerCount
+                    val cancelled = AtomicBoolean(false)
+                    val chunkFutures = ArrayList<Future<ArrayList<FileItem>>>(workerCount)
+                    var start = 0
+                    while (start < total) {
+                        val from = start
+                        val to = minOf(start + chunkSize, total)
+                        chunkFutures.add(ITEM_LOADER_EXECUTOR.submit<ArrayList<FileItem>> {
+                            val chunkResult = ArrayList<FileItem>(to - from)
+                            for (i in from until to) {
+                                if (cancelled.get() || Thread.currentThread().isInterrupted) {
+                                    break
+                                }
+                                loadChildPathItem(childPaths[i])?.let { chunkResult.add(it) }
+                            }
+                            chunkResult
+                        })
+                        start = to
+                    }
+                    try {
+                        for (i in 0 until chunkFutures.size) {
+                            if (Thread.currentThread().isInterrupted) {
+                                throw InterruptedException()
+                            }
+                            fileList.addAll(chunkFutures[i].get())
+                        }
+                    } catch (ie: InterruptedException) {
+                        cancelled.set(true)
+                        for (f in chunkFutures) f.cancel(true)
+                        return@submit
+                    } catch (t: Throwable) {
+                        cancelled.set(true)
+                        for (f in chunkFutures) f.cancel(true)
+                        throw t
+                    }
+                }
+                if (fileList.isEmpty() && path.isLinuxPath && !path.isArchivePath) {
+                    val virtualEntries = UnprivilegedDirectoryResolver.resolveEntriesForPath(path)
+                    if (virtualEntries.isNotEmpty()) {
+                        fileList.addAll(virtualEntries)
+                    }
+                }
+                DirectorySnapshotCache.put(path, fileList)
+                Success(fileList as List<FileItem>)
             } catch (e: Exception) {
                 if (path.isArchivePath) {
                     val resultState = Failure(value?.value, e)
                     postValue(resultState)
                     return@submit
                 }
-                val fallbackList = ArrayList<FileItem>(64)
                 val localFile = (path as? LinuxPath)?.toFile()
                 val files = try { localFile?.listFiles() } catch (_: Throwable) { null }
                 if (files != null && files.isNotEmpty()) {
+                    val fallbackList = ArrayList<FileItem>(files.size)
                     for (file in files) {
                         if (Thread.currentThread().isInterrupted) return@submit
                         val childPath: Path = (path as? LinuxPath)?.resolve(file.name.toByteString())
@@ -158,7 +216,9 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     Failure(value?.value, e)
                 }
             }
-            postValue(resultState)
+            if (!Thread.currentThread().isInterrupted) {
+                postValue(resultState)
+            }
         }
     }
 
@@ -183,6 +243,11 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
     }
 
     companion object {
+        private const val PARALLEL_LOAD_THRESHOLD = 256
+        private val PARALLEL_WORKER_COUNT =
+            Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
         private val DIRECTORY_LOAD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(4)
+        private val ITEM_LOADER_EXECUTOR: ExecutorService =
+            Executors.newFixedThreadPool(PARALLEL_WORKER_COUNT)
     }
 }

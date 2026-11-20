@@ -104,7 +104,11 @@ val FileItem.appDirectoryPackageName: String?
         if (!attributes.isDirectory) {
             return null
         }
-        return APP_DIRECTORY_REGEX.matchEntire(name)?.groupValues?.get(1)
+        val fileName = name
+        if (fileName.indexOf('.') <= 0) {
+            return null
+        }
+        return APP_DIRECTORY_REGEX.matchEntire(fileName)?.groupValues?.get(1)
     }
 
 fun FileItem.createDummyArchiveRoot(): FileItem =

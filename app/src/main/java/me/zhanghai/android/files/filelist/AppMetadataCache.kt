@@ -6,11 +6,20 @@
 package me.zhanghai.android.files.filelist
 
 import android.content.Context
-import androidx.collection.LruCache
+import android.os.Handler
+import android.os.Looper
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
 
 object AppMetadataCache {
-    private val labelCache = LruCache<String, String>(500)
-    private val installedCache = LruCache<String, Boolean>(500)
+    private const val MAX_CACHE_ENTRIES = 2000
+
+    private val labelCache = ConcurrentHashMap<String, String>(256)
+    private val installedCache = ConcurrentHashMap<String, Boolean>(256)
+    private val inFlight = ConcurrentHashMap.newKeySet<String>()
+    private val lookupExecutor = Executors.newFixedThreadPool(2)
+    private val mainHandler = Handler(Looper.getMainLooper())
+
     @Volatile
     private var isWarmedUp = false
 
@@ -19,60 +28,100 @@ object AppMetadataCache {
         try {
             val pm = context.applicationContext.packageManager
             val apps = pm.getInstalledApplications(0)
-            synchronized(this) {
-                for (info in apps) {
-                    val pkg = info.packageName ?: continue
-                    val label = try {
-                        pm.getApplicationLabel(info).toString()
-                    } catch (_: Exception) {
-                        pkg
-                    }
-                    labelCache.put(pkg, label)
-                    installedCache.put(pkg, true)
+            for (info in apps) {
+                val pkg = info.packageName ?: continue
+                val label = try {
+                    pm.getApplicationLabel(info).toString()
+                } catch (_: Exception) {
+                    pkg
                 }
-                isWarmedUp = true
+                labelCache[pkg] = label
+                installedCache[pkg] = true
             }
+            isWarmedUp = true
         } catch (_: Throwable) {}
     }
 
-    @Synchronized
+    fun getCachedAppLabel(packageName: String): String? {
+        if (packageName.isEmpty()) return null
+        val cached = labelCache[packageName] ?: return null
+        return cached.ifEmpty { null }
+    }
+
+    fun hasLabelEntry(packageName: String): Boolean =
+        packageName.isNotEmpty() && labelCache.containsKey(packageName)
+
+    fun prefetchAppLabelAsync(
+        context: Context,
+        packageName: String,
+        onResolved: (String) -> Unit
+    ) {
+        if (packageName.isEmpty() || labelCache.containsKey(packageName)) return
+        if (!inFlight.add(packageName)) return
+        val appContext = context.applicationContext
+        lookupExecutor.execute {
+            try {
+                if (labelCache.size > MAX_CACHE_ENTRIES) {
+                    labelCache.clear()
+                    installedCache.clear()
+                }
+                val pm = appContext.packageManager
+                val info = pm.getApplicationInfo(packageName, 0)
+                val label = pm.getApplicationLabel(info).toString()
+                labelCache[packageName] = label
+                installedCache[packageName] = true
+                if (label.isNotEmpty()) {
+                    mainHandler.post { onResolved(label) }
+                }
+            } catch (_: Exception) {
+                labelCache[packageName] = ""
+                installedCache[packageName] = false
+            } finally {
+                inFlight.remove(packageName)
+            }
+        }
+    }
+
     fun getAppLabel(context: Context, packageName: String): String? {
         if (packageName.isEmpty()) return null
-        val cached = labelCache.get(packageName)
-        if (cached != null) return if (cached.isEmpty()) null else cached
+        val cached = labelCache[packageName]
+        if (cached != null) return cached.ifEmpty { null }
         return try {
+            if (labelCache.size > MAX_CACHE_ENTRIES) {
+                labelCache.clear()
+                installedCache.clear()
+            }
             val pm = context.applicationContext.packageManager
             val info = pm.getApplicationInfo(packageName, 0)
             val label = pm.getApplicationLabel(info).toString()
-            labelCache.put(packageName, label)
-            installedCache.put(packageName, true)
+            labelCache[packageName] = label
+            installedCache[packageName] = true
             label
-        } catch (e: Exception) {
-            labelCache.put(packageName, "")
-            installedCache.put(packageName, false)
+        } catch (_: Exception) {
+            labelCache[packageName] = ""
+            installedCache[packageName] = false
             null
         }
     }
 
-    @Synchronized
     fun isInstalled(context: Context, packageName: String): Boolean {
         if (packageName.isEmpty()) return false
-        val cached = installedCache.get(packageName)
+        val cached = installedCache[packageName]
         if (cached != null) return cached
         return try {
             context.applicationContext.packageManager.getPackageInfo(packageName, 0)
-            installedCache.put(packageName, true)
+            installedCache[packageName] = true
             true
-        } catch (e: Exception) {
-            installedCache.put(packageName, false)
+        } catch (_: Exception) {
+            installedCache[packageName] = false
             false
         }
     }
 
-    @Synchronized
     fun clear() {
-        labelCache.evictAll()
-        installedCache.evictAll()
+        labelCache.clear()
+        installedCache.clear()
+        inFlight.clear()
         isWarmedUp = false
     }
 }

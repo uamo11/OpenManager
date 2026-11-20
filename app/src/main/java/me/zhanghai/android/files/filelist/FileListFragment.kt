@@ -227,6 +227,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     private var pendingHighlightPath: String? = null
     private val highlightHandler = Handler(Looper.getMainLooper())
     private var clearHighlightRunnable: Runnable? = null
+    private var listPrepareJob: kotlinx.coroutines.Job? = null
+    private var listPrepareGeneration: Long = 0L
+    private var showFileListDividers: Boolean = true
+    private var lastShowHiddenFiles: Boolean? = null
     private val shizukuBinderListener: () -> Unit = {
         val hostActivity = activity
         if (hostActivity != null && isAdded && !isDetached && view != null) {
@@ -499,13 +503,18 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         layoutManager = GridLayoutManager(activity, 1)
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.setItemViewCacheSize(24)
+        binding.recyclerView.setItemViewCacheSize(28)
         binding.recyclerView.itemAnimator = null
         (activity as? FileListActivity)?.sharedRecycledViewPool?.let {
             binding.recyclerView.setRecycledViewPool(it)
         }
         adapter = FileListAdapter(this)
         adapter.palette = OpenManagerPalette.from(requireContext())
+        adapter.initDateTimeOptions(
+            Settings.FILE_LIST_TIME_PREFERENCE.valueCompat,
+            Settings.DATE_TIME_FORMAT.valueCompat
+        )
+        showFileListDividers = Settings.FILE_LIST_DIVIDERS.valueCompat
         binding.recyclerView.adapter = adapter
         val dividerPaint = Paint().apply {
             style = Paint.Style.FILL
@@ -518,14 +527,20 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         binding.recyclerView.addItemDecoration(object : RecyclerView.ItemDecoration() {
             override fun onDrawOver(c: Canvas, parent: RecyclerView, state: RecyclerView.State) {
-                val activePalette = adapter.palette ?: OpenManagerPalette.from(parent.context)
                 val highlightTarget = adapter.highlightedPath
+                val drawDividers = showFileListDividers
+                if (!drawDividers && highlightTarget == null) {
+                    return
+                }
+                val activePalette = adapter.palette ?: OpenManagerPalette.from(parent.context)
                 val highlightPos = if (highlightTarget != null) {
                     adapter.getPositionForPath(highlightTarget)
                 } else {
                     -1
                 }
-                val drawDividers = Settings.FILE_LIST_DIVIDERS.valueCompat
+                if (highlightPos < 0 && !drawDividers) {
+                    return
+                }
                 if (drawDividers) {
                     dividerPaint.color = activePalette.dividerLineColor
                 }
@@ -821,9 +836,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         Settings.MATERIAL_DESIGN_3.observe(viewLifecycleOwner) { refreshVisualTheme() }
         Settings.DUAL_PANEL_CONTRAST.observe(viewLifecycleOwner) { refreshVisualTheme() }
         Settings.FILE_LIST_TIME_PREFERENCE.observe(viewLifecycleOwner) {
-            adapter.refreshVisibleItems()
+            adapter.timePreference = it
         }
-        Settings.DATE_TIME_FORMAT.observe(viewLifecycleOwner) { adapter.refreshVisibleItems() }
+        Settings.DATE_TIME_FORMAT.observe(viewLifecycleOwner) { adapter.dateTimeFormat = it }
         Settings.DISABLE_PERMISSION_IN_FILE_LIST.observe(viewLifecycleOwner) {
             adapter.disablePermissionInFileList = it
         }
@@ -832,9 +847,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         Settings.VISUAL_PERFORMANCE_MODE.observe(viewLifecycleOwner) {
             adapter.visualPerformanceMode = it
-            binding.recyclerView.setItemViewCacheSize(if (it) 36 else 24)
+            binding.recyclerView.setItemViewCacheSize(if (it) 40 else 28)
         }
         Settings.FILE_LIST_DIVIDERS.observe(viewLifecycleOwner) {
+            showFileListDividers = it
             binding.recyclerView.invalidateItemDecorations()
         }
         viewModel.fileListLiveData.observe(viewLifecycleOwner) { onFileListChanged(it) }
@@ -866,6 +882,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun onDestroyView() {
+        listPrepareGeneration++
+        listPrepareJob?.cancel()
+        listPrepareJob = null
         ShizukuManager.removeBinderListener(shizukuBinderListener)
         clearHighlightRunnable?.let { highlightHandler.removeCallbacks(it) }
         clearHighlightRunnable = null
@@ -1284,8 +1303,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
         binding.emptyView.fadeToVisibilityUnsafe(stateful is Success && !hasFiles)
         if (files != null) {
-            updateAdapterFileList()
+            updateAdapterFileList(restoreStateAndHighlight = stateful is Success)
         } else {
+            listPrepareGeneration++
+            listPrepareJob?.cancel()
+            listPrepareJob = null
             val isSearching = viewModel.searchState.isSearching
             val hasParent = !isHomeOrRootPath(currentPath) && currentPath.parentOrArchiveParent != null
             if (!isSearching && hasParent) {
@@ -1293,10 +1315,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             } else {
                 adapter.clear()
             }
-        }
-        if (stateful is Success) {
-            viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
-            applyPendingHighlightIfReady()
+            if (stateful is Success) {
+                viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
+                applyPendingHighlightIfReady()
+            }
         }
     }
 
@@ -1376,9 +1398,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun getSubtitle(files: List<FileItem>): String {
-        val regularFiles = files.filterNot { it.isParentDirectoryItem }
-        val directoryCount = regularFiles.count { it.attributes.isDirectory }
-        val fileCount = regularFiles.size - directoryCount
+        val (directoryCount, fileCount) = FileListEngine.countDirectoriesAndFiles(files)
         return "Carpetas: $directoryCount  Archivos: $fileCount"
     }
 
@@ -1404,7 +1424,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun onSortOptionsChanged(sortOptions: FileSortOptions) {
-        adapter.sortOptions = sortOptions
+        adapter.setSortOptionsWithoutResort(sortOptions)
+        if (viewModel.fileListStateful.value != null) {
+            updateAdapterFileList()
+        }
         updateViewSortMenuItems()
     }
 
@@ -1619,23 +1642,69 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun onShowHiddenFilesChanged(showHiddenFiles: Boolean) {
-        updateAdapterFileList()
+        val changed = lastShowHiddenFiles != null && lastShowHiddenFiles != showHiddenFiles
+        lastShowHiddenFiles = showHiddenFiles
+        if (changed) {
+            updateAdapterFileList()
+        }
         updateShowHiddenFilesMenuItem()
     }
 
-    private fun updateAdapterFileList() {
-        var files = viewModel.fileListStateful.value ?: return
-        if (!Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat) {
-            files = files.filterNot { it.isHidden }
-        }
+    private fun updateAdapterFileList(restoreStateAndHighlight: Boolean = false) {
+        val files = viewModel.fileListStateful.value ?: return
+        val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
+        val sortOptions = viewModel.sortOptions
         val isSearching = viewModel.searchState.isSearching
-        val hasParent = !isHomeOrRootPath(currentPath) && currentPath.parentOrArchiveParent != null
-        val displayFiles = if (!isSearching && hasParent) {
-            listOf(createParentDirectoryItem(currentPath)) + files
-        } else {
-            files
+        val path = currentPath
+        val hasParent = !isHomeOrRootPath(path) && path.parentOrArchiveParent != null
+        val parentItem = if (!isSearching && hasParent) createParentDirectoryItem(path) else null
+        val pathStr = path.toString()
+        val isSharedStorage = !isSearching &&
+            (pathStr.startsWith("/storage/") || pathStr.startsWith("/sdcard"))
+        val previousList = adapter.list
+        val gen = ++listPrepareGeneration
+        listPrepareJob?.cancel()
+
+        if (files.size <= FileListEngine.ASYNC_PREPARE_THRESHOLD) {
+            listPrepareJob = null
+            val prepared = FileListEngine.prepareDisplayList(
+                rawFiles = files,
+                showHidden = showHidden,
+                sortOptions = sortOptions,
+                isSearching = isSearching,
+                parentItem = parentItem,
+                previousList = previousList,
+                computeDiff = true
+            )
+            adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
+            if (restoreStateAndHighlight) {
+                viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
+                applyPendingHighlightIfReady()
+            }
+            return
         }
-        adapter.replaceListAndIsSearching(displayFiles, isSearching)
+
+        listPrepareJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+            val prepared = FileListEngine.prepareDisplayList(
+                rawFiles = files,
+                showHidden = showHidden,
+                sortOptions = sortOptions,
+                isSearching = isSearching,
+                parentItem = parentItem,
+                previousList = previousList,
+                computeDiff = true
+            )
+            withContext(Dispatchers.Main) {
+                if (gen != listPrepareGeneration || !isAdded || view == null) {
+                    return@withContext
+                }
+                adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
+                if (restoreStateAndHighlight) {
+                    viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
+                    applyPendingHighlightIfReady()
+                }
+            }
+        }
     }
 
     private fun updateShowHiddenFilesMenuItem() {

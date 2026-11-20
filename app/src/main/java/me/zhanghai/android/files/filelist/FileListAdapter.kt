@@ -7,6 +7,7 @@ package me.zhanghai.android.files.filelist
 
 import android.content.res.ColorStateList
 import android.text.TextUtils
+import android.util.LruCache
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -27,14 +28,10 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.coil.AppIconPackageName
 import me.zhanghai.android.files.compat.foregroundCompat
 import me.zhanghai.android.files.compat.getDrawableCompat
-import me.zhanghai.android.files.compat.isSingleLineCompat
 import me.zhanghai.android.files.databinding.FileItemGridBinding
 import me.zhanghai.android.files.databinding.FileItemListBinding
 import me.zhanghai.android.files.file.FileItem
-import me.zhanghai.android.files.file.fileSize
-import me.zhanghai.android.files.file.formatMtDate
-import me.zhanghai.android.files.file.formatShort
-import me.zhanghai.android.files.file.iconRes
+import me.zhanghai.android.files.file.formatMtDateWithOptions
 import me.zhanghai.android.files.file.isApk
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
@@ -49,6 +46,7 @@ import me.zhanghai.android.files.ui.CheckableItemBackground
 import me.zhanghai.android.files.util.isMaterial3Theme
 import me.zhanghai.android.files.util.layoutInflater
 import me.zhanghai.android.files.util.valueCompat
+import java.time.Instant
 import java.util.Locale
 
 class FileListAdapter(
@@ -73,17 +71,26 @@ class FileListAdapter(
             _sortOptions = value
             if (!isSearching) {
                 val parentItem = list.firstOrNull { it.isParentDirectoryItem }
-                val otherFiles = if (parentItem != null) list.filterNot { it.isParentDirectoryItem } else list
-                val sortedOthers = otherFiles.sortedWith(value.createComparator())
-                val sortedList = if (parentItem != null) {
-                    listOf(parentItem) + sortedOthers
-                } else {
-                    sortedOthers
-                }
-                super.replace(sortedList, false)
-                rebuildFilePositionMap()
+                val prepared = FileListEngine.prepareDisplayList(
+                    rawFiles = list,
+                    showHidden = true,
+                    sortOptions = value,
+                    isSearching = false,
+                    parentItem = parentItem,
+                    previousList = list,
+                    computeDiff = true
+                )
+                applyPreparedList(
+                    prepared = prepared,
+                    isSearching = false,
+                    isSharedStoragePath = currentPathIsSharedStorage
+                )
             }
         }
+
+    fun setSortOptionsWithoutResort(value: FileSortOptions) {
+        _sortOptions = value
+    }
 
     var pickOptions: PickOptions? = null
         set(value) {
@@ -93,21 +100,78 @@ class FileListAdapter(
 
     private val selectedFiles = fileItemSetOf()
 
-    private val filePositionMap = mutableMapOf<Path, Int>()
+    private val filePositionMap = HashMap<Path, Int>(64)
+
+    private var currentPathIsSharedStorage: Boolean = false
+
+    private val dateFormatCache = LruCache<Long, String>(512)
+    private val descriptionCache = LruCache<FileItem, String>(1024)
+
+    var timePreference: String = "1"
+        set(value) {
+            if (field != value) {
+                field = value
+                dateFormatCache.evictAll()
+                descriptionCache.evictAll()
+                if (itemCount > 0) {
+                    refreshVisibleItems()
+                }
+            }
+        }
+
+    var dateTimeFormat: String = "0"
+        set(value) {
+            if (field != value) {
+                field = value
+                dateFormatCache.evictAll()
+                descriptionCache.evictAll()
+                if (itemCount > 0) {
+                    refreshVisibleItems()
+                }
+            }
+        }
+
+    fun initDateTimeOptions(timePref: String, dateFormat: String) {
+        timePreference = timePref
+        dateTimeFormat = dateFormat
+    }
+
+    private var styleVersion: Int = 0
+    private var cachedSecondaryTintList: ColorStateList? = null
+    private var cachedDensity: Float = -1f
+    private var cachedSizeForDims: Int = -1
+    private var cachedRowHeightPx: Int = 0
+    private var cachedIconContainerPx: Int = 0
+    private var cachedIconPx: Int = 0
+    private var cachedNamePx: Float = 0f
+    private var cachedDescPx: Float = 0f
+    private var cachedNameSp: Float = 13f
+    private var cachedDescSp: Float = 11f
+    private var cachedGridThumbPx: Int = 0
+    private var cachedLargeIconPx: Int = 0
+    private var cachedBadgePx: Int = 0
 
     private lateinit var _nameEllipsize: TextUtils.TruncateAt
     var nameEllipsize: TextUtils.TruncateAt
         get() = _nameEllipsize
         set(value) {
-            _nameEllipsize = value
-            notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+            if (!this::_nameEllipsize.isInitialized || _nameEllipsize != value) {
+                _nameEllipsize = value
+                styleVersion++
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                }
+            }
         }
 
     var maxLines: Int = 2
         set(value) {
             if (field != value) {
                 field = value
-                notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                styleVersion++
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                }
             }
         }
 
@@ -115,7 +179,11 @@ class FileListAdapter(
         set(value) {
             if (field != value) {
                 field = value
-                notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                styleVersion++
+                cachedSizeForDims = -1
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                }
             }
         }
 
@@ -123,7 +191,11 @@ class FileListAdapter(
         set(value) {
             if (field != value) {
                 field = value
-                notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                cachedSecondaryTintList = value?.let { ColorStateList.valueOf(it.textSecondary) }
+                styleVersion++
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                }
             }
         }
 
@@ -131,7 +203,10 @@ class FileListAdapter(
         set(value) {
             if (field != value) {
                 field = value
-                notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+                descriptionCache.evictAll()
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+                }
             }
         }
 
@@ -139,7 +214,9 @@ class FileListAdapter(
         set(value) {
             if (field != value) {
                 field = value
-                notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+                }
             }
         }
 
@@ -154,7 +231,7 @@ class FileListAdapter(
         if (_isFlinging == flinging) return
         val stoppedFlinging = _isFlinging && !flinging
         _isFlinging = flinging
-        if (stoppedFlinging && thumbnailLoadMode == 1) {
+        if (stoppedFlinging && FileListEngine.shouldDeferThumbnailsDuringFling(thumbnailLoadMode, itemCount)) {
             val range = SettingsUiLogic.computeVisibleRefreshRange(firstVisible, lastVisible, itemCount)
             if (range != null) {
                 notifyItemRangeChanged(
@@ -167,6 +244,15 @@ class FileListAdapter(
     }
 
     var visualPerformanceMode: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                styleVersion++
+                if (itemCount > 0) {
+                    notifyItemRangeChanged(0, itemCount, PAYLOAD_STATE_CHANGED)
+                }
+            }
+        }
 
     var highlightedPath: Path? = null
 
@@ -297,22 +383,33 @@ class FileListAdapter(
     }
 
     fun replaceListAndIsSearching(list: List<FileItem>, isSearching: Boolean) {
+        val parentItem = if (!isSearching) list.firstOrNull { it.isParentDirectoryItem } else null
+        val prepared = FileListEngine.prepareDisplayList(
+            rawFiles = list,
+            showHidden = true,
+            sortOptions = sortOptions,
+            isSearching = isSearching,
+            parentItem = parentItem,
+            previousList = this.list,
+            computeDiff = true
+        )
+        applyPreparedList(prepared, isSearching, isSharedStoragePath = false)
+    }
+
+    fun applyPreparedList(
+        prepared: FileListEngine.PreparedFileList,
+        isSearching: Boolean,
+        isSharedStoragePath: Boolean
+    ) {
         val clear = this.isSearching != isSearching
-        this.isSearching = isSearching
-        val sortedList = if (!isSearching) {
-            val parentItem = list.firstOrNull { it.isParentDirectoryItem }
-            val otherFiles = if (parentItem != null) list.filterNot { it.isParentDirectoryItem } else list
-            val sortedOthers = otherFiles.sortedWith(sortOptions.createComparator())
-            if (parentItem != null) {
-                listOf(parentItem) + sortedOthers
-            } else {
-                sortedOthers
-            }
-        } else {
-            list
+        if (this.isSearching != isSearching || this.currentPathIsSharedStorage != isSharedStoragePath) {
+            descriptionCache.evictAll()
         }
-        super.replace(sortedList, clear)
-        rebuildFilePositionMap()
+        this.isSearching = isSearching
+        this.currentPathIsSharedStorage = isSharedStoragePath
+        filePositionMap.clear()
+        filePositionMap.putAll(prepared.positionMap)
+        super.replacePrecomputed(prepared.displayList, prepared.diffResult, clear)
     }
 
     private fun rebuildFilePositionMap() {
@@ -354,6 +451,35 @@ class FileListAdapter(
                     )
                 }
             }
+            itemLayout.setOnClickListener {
+                if (isParentItem) {
+                    listener.navigateUp()
+                } else {
+                    val bound = boundFile ?: return@setOnClickListener
+                    if (selectedFiles.isEmpty()) {
+                        listener.openFile(bound)
+                    } else {
+                        selectFile(bound)
+                    }
+                }
+            }
+            itemLayout.setOnLongClickListener {
+                if (isParentItem) {
+                    false
+                } else {
+                    val bound = boundFile ?: return@setOnLongClickListener false
+                    listener.showMtMenu(bound)
+                    true
+                }
+            }
+            iconLayout.setOnClickListener {
+                if (isParentItem) {
+                    listener.navigateUp()
+                } else {
+                    val bound = boundFile ?: return@setOnClickListener
+                    selectFile(bound)
+                }
+            }
             menuButton.setOnClickListener {
                 val bound = boundFile ?: return@setOnClickListener
                 showItemPopupMenu(this, bound)
@@ -367,47 +493,72 @@ class FileListAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: List<Any>) {
         val file = getItem(position)
+        val isParent = file.isParentDirectoryItem
         val isDirectory = file.attributes.isDirectory
         val isEnabled = isFileSelectable(file) || isDirectory
-        holder.itemLayout.isEnabled = isEnabled
-        holder.menuButton.isVisible = false
-        val checked = file in selectedFiles
-        holder.itemLayout.isChecked = checked
-        applySizeAndTheme(holder, file.isParentDirectoryItem)
-        if (file.isParentDirectoryItem) {
-            holder.boundFile = null
-            holder.itemLayout.isEnabled = true
-            holder.itemLayout.isChecked = false
+        if (holder.itemLayout.isEnabled != isEnabled) {
+            holder.itemLayout.isEnabled = isEnabled
+        }
+        if (holder.menuButton.isVisible) {
             holder.menuButton.isVisible = false
+        }
+        val checked = file in selectedFiles
+        if (holder.itemLayout.isChecked != checked) {
+            holder.itemLayout.isChecked = checked
+        }
+        applySizeAndTheme(holder, isParent)
+        if (isParent) {
+            holder.isParentItem = true
+            holder.boundFile = null
+            if (!holder.itemLayout.isEnabled) {
+                holder.itemLayout.isEnabled = true
+            }
+            if (holder.itemLayout.isChecked) {
+                holder.itemLayout.isChecked = false
+            }
             holder.nameText.text = ".."
             holder.descriptionText?.isVisible = false
-            holder.itemLayout.setOnClickListener { listener.navigateUp() }
-            holder.iconLayout.setOnClickListener { listener.navigateUp() }
-            holder.itemLayout.setOnLongClickListener { false }
             holder.iconImage.apply {
                 isVisible = true
-                setImageResource(R.drawable.file_parent_directory_icon)
+                if (holder.boundIconRes != R.drawable.file_parent_directory_icon) {
+                    holder.boundIconRes = R.drawable.file_parent_directory_icon
+                    setImageResource(R.drawable.file_parent_directory_icon)
+                }
             }
             holder.directoryThumbnailImage?.isVisible = false
             holder.thumbnailOutlineView?.isVisible = false
             holder.thumbnailIconImage?.apply {
-                dispose()
+                if (holder.hasActiveThumbnailIcon) {
+                    dispose()
+                    holder.hasActiveThumbnailIcon = false
+                    setImageDrawable(null)
+                }
                 isVisible = false
-                setImageDrawable(null)
             }
             holder.thumbnailImage.apply {
-                dispose()
+                if (holder.hasActiveThumbnail) {
+                    dispose()
+                    holder.hasActiveThumbnail = false
+                    setImageDrawable(null)
+                }
                 isVisible = false
-                setImageDrawable(null)
             }
             holder.appIconBadgeImage.apply {
-                dispose()
+                if (holder.hasActiveAppBadge) {
+                    dispose()
+                    holder.hasActiveAppBadge = false
+                    setImageDrawable(null)
+                }
                 isVisible = false
-                setImageDrawable(null)
+            }
+            if (holder.boundBadgeRes != 0) {
+                holder.boundBadgeRes = 0
+                holder.badgeImage.setImageDrawable(null)
             }
             holder.badgeImage.isVisible = false
             return
         }
+        holder.isParentItem = false
         holder.boundFile = file
         if (payloads.isNotEmpty() && payloads.none { it === PAYLOAD_CONTENT_REFRESH }) {
             return
@@ -415,20 +566,6 @@ class FileListAdapter(
         if (payloads.isEmpty()) {
             bindViewHolderAnimation(holder)
         }
-        holder.itemLayout.apply {
-            setOnClickListener {
-                if (selectedFiles.isEmpty()) {
-                    listener.openFile(file)
-                } else {
-                    selectFile(file)
-                }
-            }
-            setOnLongClickListener {
-                listener.showMtMenu(file)
-                true
-            }
-        }
-        holder.iconLayout.setOnClickListener { selectFile(file) }
         val attributes = file.attributes
         val isSymlink = file.attributesNoFollowLinks.isSymbolicLink
         if (isSymlink) {
@@ -439,64 +576,118 @@ class FileListAdapter(
 
         val appDirectoryPackageName = file.appDirectoryPackageName
         val appLabel = if (isDirectory && appDirectoryPackageName != null) {
-            AppMetadataCache.getAppLabel(holder.itemView.context, appDirectoryPackageName)
+            val cached = AppMetadataCache.getCachedAppLabel(appDirectoryPackageName)
+            if (cached == null && !AppMetadataCache.hasLabelEntry(appDirectoryPackageName)) {
+                AppMetadataCache.prefetchAppLabelAsync(holder.itemView.context, appDirectoryPackageName) {
+                    descriptionCache.remove(file)
+                    filePositionMap[file.path]?.let { pos ->
+                        if (pos in 0 until itemCount) {
+                            notifyItemChanged(pos, PAYLOAD_CONTENT_REFRESH)
+                        }
+                    }
+                }
+            }
+            cached
         } else {
             null
         }
 
         val path = file.path
-        holder.descriptionText?.isVisible = true
-        val lastModificationTime = attributes.lastModifiedTime().toInstant().formatMtDate()
-        val pathStr = path.toString()
-        val isSharedStoragePath = pathStr.startsWith("/storage/") || pathStr.startsWith("/sdcard")
-        val permStr = if (!disablePermissionInFileList && !isSharedStoragePath) {
-            (attributes as? PosixFileAttributes)?.mode()?.toModeString()
-        } else {
-            null
+        holder.descriptionText?.let { descView ->
+            if (!descView.isVisible) {
+                descView.isVisible = true
+            }
+            val cachedDesc = descriptionCache[file]
+            if (cachedDesc != null && (appDirectoryPackageName == null || appLabel != null)) {
+                descView.text = cachedDesc
+            } else {
+                val timeMillis = attributes.lastModifiedTime().toMillis()
+                val timeBucket = if (timePreference == "0") timeMillis / 1000L else timeMillis / 60_000L
+                val lastModificationTime = dateFormatCache[timeBucket]
+                    ?: Instant.ofEpochMilli(timeMillis)
+                        .formatMtDateWithOptions(timePreference, dateTimeFormat)
+                        .also { dateFormatCache.put(timeBucket, it) }
+                val isSharedStorage = if (isSearching) {
+                    val pathStr = path.toString()
+                    pathStr.startsWith("/storage/") || pathStr.startsWith("/sdcard")
+                } else {
+                    currentPathIsSharedStorage
+                }
+                val permStr = if (!disablePermissionInFileList && !isSharedStorage) {
+                    (attributes as? PosixFileAttributes)?.mode()?.toModeString()
+                } else {
+                    null
+                }
+                val baseDesc = if (isDirectory) {
+                    if (appLabel != null) "$lastModificationTime  $appLabel" else lastModificationTime
+                } else {
+                    val sizeStr = FileListEngine.formatCompactFileSize(attributes.size())
+                    "$lastModificationTime  $sizeStr"
+                }
+                val formattedDesc = if (permStr != null) "$baseDesc  $permStr" else baseDesc
+                if (appDirectoryPackageName == null || AppMetadataCache.hasLabelEntry(appDirectoryPackageName)) {
+                    descriptionCache.put(file, formattedDesc)
+                }
+                descView.text = formattedDesc
+            }
         }
-        val baseDesc = if (isDirectory) {
-            if (appLabel != null) "$lastModificationTime  $appLabel" else lastModificationTime
-        } else {
-            val size = attributes.fileSize.formatHumanReadable(holder.itemView.context)
-            "$lastModificationTime  $size"
-        }
-        holder.descriptionText?.text = if (permStr != null) "$baseDesc  $permStr" else baseDesc
 
         val iconRes = FileIconHelper.getIconRes(file)
         holder.iconImage.apply {
             isVisible = true
-            setImageResource(iconRes)
+            if (holder.boundIconRes != iconRes) {
+                holder.boundIconRes = iconRes
+                setImageResource(iconRes)
+            }
         }
         holder.directoryThumbnailImage?.isVisible = isDirectory
         holder.thumbnailOutlineView?.isVisible = !isDirectory
-        val canDecodeBitmaps = thumbnailLoadMode != 2 &&
-            !(thumbnailLoadMode == 1 && isFlinging)
+        val deferForFling = isFlinging &&
+            FileListEngine.shouldDeferThumbnailsDuringFling(thumbnailLoadMode, itemCount)
+        val canDecodeBitmaps = thumbnailLoadMode != 2 && !deferForFling
         val supportsThumbnail = file.supportsThumbnail && canDecodeBitmaps
         val shouldLoadThumbnailIcon = supportsThumbnail && holder.thumbnailIconImage != null &&
             file.mimeType.isApk
         val allowCrossfade = !visualPerformanceMode
+        ensureDimensionsCached(holder.itemView.resources.displayMetrics)
+        val iconTargetPx = if (holder.descriptionText != null) cachedIconPx else cachedLargeIconPx
+        val thumbTargetPx = if (holder.descriptionText != null) cachedIconPx else cachedGridThumbPx
+
         holder.thumbnailIconImage?.apply {
-            dispose()
+            if (holder.hasActiveThumbnailIcon) {
+                dispose()
+                holder.hasActiveThumbnailIcon = false
+            }
             isVisible = !isDirectory
             setImageResource(iconRes)
             if (shouldLoadThumbnailIcon) {
+                holder.hasActiveThumbnailIcon = true
                 load(path to attributes) {
+                    size(iconTargetPx, iconTargetPx)
                     crossfade(allowCrossfade)
                 }
             }
         }
         holder.thumbnailImage.apply {
-            dispose()
-            setImageDrawable(null)
+            if (holder.hasActiveThumbnail) {
+                dispose()
+                holder.hasActiveThumbnail = false
+                setImageDrawable(null)
+            }
             if (isDirectory && appLabel != null && appDirectoryPackageName != null && canDecodeBitmaps) {
                 isVisible = true
+                holder.hasActiveThumbnail = true
                 load(AppIconPackageName(appDirectoryPackageName)) {
+                    size(iconTargetPx, iconTargetPx)
                     crossfade(allowCrossfade)
                     listener(
                         onSuccess = { _, _ -> holder.iconImage.isVisible = false },
                         onError = { _, _ ->
                             holder.iconImage.isVisible = true
-                            holder.iconImage.setImageResource(R.drawable.file_directory_icon)
+                            if (holder.boundIconRes != R.drawable.file_directory_icon) {
+                                holder.boundIconRes = R.drawable.file_directory_icon
+                                holder.iconImage.setImageResource(R.drawable.file_directory_icon)
+                            }
                         }
                     )
                 }
@@ -504,23 +695,30 @@ class FileListAdapter(
                 val shouldLoadThumbnail = supportsThumbnail && !shouldLoadThumbnailIcon
                 isVisible = shouldLoadThumbnail
                 if (shouldLoadThumbnail) {
+                    holder.hasActiveThumbnail = true
                     load(path to attributes) {
+                        size(thumbTargetPx, thumbTargetPx)
                         crossfade(allowCrossfade)
                         listener { _, _ ->
-                            val iconImage = holder.thumbnailIconImage ?: holder.iconImage
-                            iconImage.isVisible = false
+                            val targetIcon = holder.thumbnailIconImage ?: holder.iconImage
+                            targetIcon.isVisible = false
                         }
                     }
                 }
             }
         }
         holder.appIconBadgeImage.apply {
-            dispose()
-            setImageDrawable(null)
+            if (holder.hasActiveAppBadge) {
+                dispose()
+                holder.hasActiveAppBadge = false
+                setImageDrawable(null)
+            }
             val hasAppIconBadge = canDecodeBitmaps && !isDirectory && appDirectoryPackageName != null
             isVisible = hasAppIconBadge
             if (hasAppIconBadge) {
+                holder.hasActiveAppBadge = true
                 load(AppIconPackageName(appDirectoryPackageName!!)) {
+                    size(cachedBadgePx, cachedBadgePx)
                     crossfade(allowCrossfade)
                 }
             }
@@ -535,14 +733,17 @@ class FileListAdapter(
             } else if (file.attributesNoFollowLinks.isEncrypted()) {
                 R.drawable.encrypted_badge_icon_18dp
             } else {
-                null
+                0
             }
-            val hasBadge = badgeIconRes != null
+            val hasBadge = badgeIconRes != 0
             isVisible = hasBadge
-            if (hasBadge) {
-                setImageResource(badgeIconRes!!)
-            } else {
-                setImageDrawable(null)
+            if (holder.boundBadgeRes != badgeIconRes) {
+                holder.boundBadgeRes = badgeIconRes
+                if (hasBadge) {
+                    setImageResource(badgeIconRes)
+                } else {
+                    setImageDrawable(null)
+                }
             }
         }
     }
@@ -661,12 +862,22 @@ class FileListAdapter(
     override fun onViewRecycled(holder: ViewHolder) {
         super.onViewRecycled(holder)
         holder.boundFile = null
-        holder.thumbnailImage.dispose()
-        holder.thumbnailImage.setImageDrawable(null)
-        holder.thumbnailIconImage?.dispose()
-        holder.thumbnailIconImage?.setImageDrawable(null)
-        holder.appIconBadgeImage.dispose()
-        holder.appIconBadgeImage.setImageDrawable(null)
+        holder.isParentItem = false
+        if (holder.hasActiveThumbnail) {
+            holder.thumbnailImage.dispose()
+            holder.thumbnailImage.setImageDrawable(null)
+            holder.hasActiveThumbnail = false
+        }
+        if (holder.hasActiveThumbnailIcon) {
+            holder.thumbnailIconImage?.dispose()
+            holder.thumbnailIconImage?.setImageDrawable(null)
+            holder.hasActiveThumbnailIcon = false
+        }
+        if (holder.hasActiveAppBadge) {
+            holder.appIconBadgeImage.dispose()
+            holder.appIconBadgeImage.setImageDrawable(null)
+            holder.hasActiveAppBadge = false
+        }
     }
 
     override fun getPopupText(view: View, position: Int): CharSequence {
@@ -677,13 +888,54 @@ class FileListAdapter(
         return when (sortOptions.by) {
             FileSortOptions.By.NAME -> file.name.take(1).uppercase(Locale.getDefault())
             FileSortOptions.By.TYPE -> file.extension.uppercase(Locale.getDefault())
-            FileSortOptions.By.SIZE -> file.attributes.fileSize.formatHumanReadable(view.context)
+            FileSortOptions.By.SIZE -> FileListEngine.formatCompactFileSize(file.attributes.size())
             FileSortOptions.By.LAST_MODIFIED ->
-                file.attributes.lastModifiedTime().toInstant().formatMtDate()
+                file.attributes.lastModifiedTime().toInstant()
+                    .formatMtDateWithOptions(timePreference, dateTimeFormat)
         }
     }
 
+    private fun ensureDimensionsCached(dm: android.util.DisplayMetrics) {
+        val density = dm.density
+        if (cachedDensity == density && cachedSizeForDims == fileListSize) {
+            return
+        }
+        cachedDensity = density
+        cachedSizeForDims = fileListSize
+        when (fileListSize) {
+            1 -> {
+                cachedRowHeightPx = (52 * density).toInt()
+                cachedIconContainerPx = (42 * density).toInt()
+                cachedIconPx = (38 * density).toInt()
+                cachedNameSp = 14f
+                cachedDescSp = 11.5f
+            }
+            2 -> {
+                cachedRowHeightPx = (62 * density).toInt()
+                cachedIconContainerPx = (48 * density).toInt()
+                cachedIconPx = (44 * density).toInt()
+                cachedNameSp = 15.5f
+                cachedDescSp = 12.5f
+            }
+            else -> {
+                cachedRowHeightPx = (44 * density).toInt()
+                cachedIconContainerPx = (36 * density).toInt()
+                cachedIconPx = (32 * density).toInt()
+                cachedNameSp = 13f
+                cachedDescSp = 11f
+            }
+        }
+        cachedNamePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, cachedNameSp, dm)
+        cachedDescPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, cachedDescSp, dm)
+        cachedGridThumbPx = (180 * density).toInt().coerceAtLeast(96)
+        cachedLargeIconPx = (48 * density).toInt().coerceAtLeast(48)
+        cachedBadgePx = (20 * density).toInt().coerceAtLeast(24)
+    }
+
     private fun applySizeAndTheme(holder: ViewHolder, isParentDir: Boolean) {
+        if (holder.appliedStyleVersion == styleVersion && holder.appliedIsParentStyle == isParentDir) {
+            return
+        }
         val currentPalette = palette
         if (currentPalette != null) {
             holder.nameText.setTextColor(
@@ -692,7 +944,7 @@ class FileListAdapter(
             holder.descriptionText?.setTextColor(currentPalette.textSecondary)
             ImageViewCompat.setImageTintList(
                 holder.menuButton,
-                ColorStateList.valueOf(currentPalette.textSecondary)
+                cachedSecondaryTintList ?: ColorStateList.valueOf(currentPalette.textSecondary)
             )
         }
         holder.nameText.apply {
@@ -726,49 +978,28 @@ class FileListAdapter(
             }
         }
         if (holder.descriptionText != null) {
-            val dm = holder.itemView.resources.displayMetrics
-            val density = dm.density
-            val targetHeightPx: Int
-            val iconContainerPx: Int
-            val iconPx: Int
-            val nameSp: Float
-            val descSp: Float
-            when (fileListSize) {
-                1 -> {
-                    targetHeightPx = (52 * density).toInt()
-                    iconContainerPx = (42 * density).toInt()
-                    iconPx = (38 * density).toInt()
-                    nameSp = 14f
-                    descSp = 11.5f
-                }
-                2 -> {
-                    targetHeightPx = (62 * density).toInt()
-                    iconContainerPx = (48 * density).toInt()
-                    iconPx = (44 * density).toInt()
-                    nameSp = 15.5f
-                    descSp = 12.5f
-                }
-                else -> {
-                    targetHeightPx = (44 * density).toInt()
-                    iconContainerPx = (36 * density).toInt()
-                    iconPx = (32 * density).toInt()
-                    nameSp = 13f
-                    descSp = 11f
-                }
+            ensureDimensionsCached(holder.itemView.resources.displayMetrics)
+            updateViewSizeIfChanged(holder.itemLayout, height = cachedRowHeightPx)
+            updateViewSizeIfChanged(
+                holder.iconLayout,
+                width = cachedIconContainerPx,
+                height = cachedIconContainerPx
+            )
+            updateViewSizeIfChanged(holder.iconImage, width = cachedIconPx, height = cachedIconPx)
+            updateViewSizeIfChanged(
+                holder.thumbnailImage,
+                width = cachedIconPx,
+                height = cachedIconPx
+            )
+            if (abs(holder.nameText.textSize - cachedNamePx) > 0.5f) {
+                holder.nameText.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedNameSp)
             }
-            updateViewSizeIfChanged(holder.itemLayout, height = targetHeightPx)
-            updateViewSizeIfChanged(holder.iconLayout, width = iconContainerPx, height = iconContainerPx)
-            updateViewSizeIfChanged(holder.iconImage, width = iconPx, height = iconPx)
-            updateViewSizeIfChanged(holder.thumbnailImage, width = iconPx, height = iconPx)
-            val expectedNamePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, nameSp, dm)
-            if (abs(holder.nameText.textSize - expectedNamePx) > 0.5f) {
-                holder.nameText.setTextSize(TypedValue.COMPLEX_UNIT_SP, nameSp)
-            }
-            val expectedDescPx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, descSp, dm)
-            if (abs(holder.descriptionText.textSize - expectedDescPx) > 0.5f) {
-                holder.descriptionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, descSp)
+            if (abs(holder.descriptionText.textSize - cachedDescPx) > 0.5f) {
+                holder.descriptionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedDescSp)
             }
         }
+        holder.appliedStyleVersion = styleVersion
+        holder.appliedIsParentStyle = isParentDir
     }
 
     private fun updateViewSizeIfChanged(view: View, width: Int? = null, height: Int? = null) {
@@ -788,7 +1019,7 @@ class FileListAdapter(
     }
 
     override val isAnimationEnabled: Boolean
-        get() = Settings.FILE_LIST_ANIMATION.valueCompat && !visualPerformanceMode
+        get() = Settings.FILE_LIST_ANIMATION.valueCompat && !visualPerformanceMode && itemCount <= 150
 
     companion object {
         private val PAYLOAD_STATE_CHANGED = Any()
@@ -852,6 +1083,14 @@ class FileListAdapter(
 
         var popupMenu: PopupMenu? = null
         var boundFile: FileItem? = null
+        var isParentItem: Boolean = false
+        var appliedStyleVersion: Int = -1
+        var appliedIsParentStyle: Boolean = false
+        var boundIconRes: Int = 0
+        var boundBadgeRes: Int = 0
+        var hasActiveThumbnail: Boolean = false
+        var hasActiveThumbnailIcon: Boolean = false
+        var hasActiveAppBadge: Boolean = false
     }
 
     interface Listener {

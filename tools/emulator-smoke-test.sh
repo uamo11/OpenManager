@@ -264,6 +264,25 @@ echo ">>> Resetting locale after showcase captures..."
 adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset --es DEMO_THEME dark || true
 sleep 3
 
+# Large directory (1,500 files) + rapid vertical fling FPS & memory stress test
+echo "=========================================================="
+echo ">>> Large Directory Stress Test (1,500 files + 4 flings)..."
+echo "=========================================================="
+adb shell "rm -rf /storage/emulated/0/OM_PerfStress_1500 && mkdir -p /storage/emulated/0/OM_PerfStress_1500 && i=0; while [ \$i -lt 100 ]; do mkdir -p /storage/emulated/0/OM_PerfStress_1500/dir_\$i; i=\$((i+1)); done; i=0; while [ \$i -lt 1400 ]; do m=\$((i % 5)); case \$m in 0) ext=txt;; 1) ext=jpg;; 2) ext=json;; 3) ext=sh;; 4) ext=apk;; esac; prefix=''; if [ \$((i % 25)) -eq 0 ]; then prefix='.'; fi; touch /storage/emulated/0/OM_PerfStress_1500/\${prefix}file_\${i}.\${ext}; i=\$((i+1)); done" || true
+adb shell am start -W -S -n com.y.om/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG large_list_stress || true
+sleep 3
+adb shell dumpsys gfxinfo com.y.om reset >/dev/null 2>&1 || true
+adb shell input swipe 270 1550 270 350 90 || true
+sleep 0.5
+adb shell input swipe 270 1550 270 350 90 || true
+sleep 0.5
+adb shell input swipe 270 350 270 1550 90 || true
+sleep 0.5
+adb shell input swipe 270 1550 270 350 90 || true
+sleep 1.5
+measure_section_perf "Large Directory Stress (1,500 files + 4 flings)"
+adb shell "rm -rf /storage/emulated/0/OM_PerfStress_1500" || true
+
 # 28. Native C / C++ ImGui & Low-Level Syscall Diagnostic Execution
 echo "=========================================================="
 echo ">>> 28. Testing Native C / C++ ImGui & Low-Level Syscalls..."

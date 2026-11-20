@@ -143,7 +143,8 @@ class FileListActivity : AppActivity() {
 
     private var activePanelIndex = 0 // 0 = Panel A, 1 = Panel B
     val sharedRecycledViewPool = androidx.recyclerview.widget.RecyclerView.RecycledViewPool().apply {
-        setMaxRecycledViews(0, 36)
+        setMaxRecycledViews(0, 48)
+        setMaxRecycledViews(1, 24)
     }
 
     val activeFragment: FileListFragment
@@ -616,6 +617,11 @@ class FileListActivity : AppActivity() {
                             putExtra("DEMO_OPEN_SYNTAX", true)
                         }
                         startActivity(editIntent)
+                    }
+                    "large_list_stress" -> {
+                        if (this::fragmentA.isInitialized) {
+                            fragmentA.navigateTo(java8.nio.file.Paths.get("/storage/emulated/0/OM_PerfStress_1500"))
+                        }
                     }
                     "dfroot_protected" -> {
                         me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment.show(this)

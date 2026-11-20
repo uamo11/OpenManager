@@ -37,6 +37,17 @@ abstract class ListAdapter<T, VH : RecyclerView.ViewHolder>(
         listDiffer.list = list
     }
 
+    open fun replacePrecomputed(
+        list: List<T>,
+        diffResult: DiffUtil.DiffResult?,
+        clear: Boolean
+    ) {
+        if (clear) {
+            listDiffer.list = emptyList()
+        }
+        listDiffer.replacePrecomputed(list, diffResult)
+    }
+
     open fun clear() {
         listDiffer.list = emptyList()
     }

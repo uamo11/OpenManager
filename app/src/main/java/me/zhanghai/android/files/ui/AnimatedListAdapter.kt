@@ -56,6 +56,17 @@ abstract class AnimatedListAdapter<T, VH : RecyclerView.ViewHolder>(
         super.replace(list, clear)
     }
 
+    override fun replacePrecomputed(
+        list: List<T>,
+        diffResult: DiffUtil.DiffResult?,
+        clear: Boolean
+    ) {
+        if (clear) {
+            resetAnimation()
+        }
+        super.replacePrecomputed(list, diffResult, clear)
+    }
+
     override fun clear() {
         resetAnimation()
         super.clear()
