@@ -216,13 +216,17 @@ class VideoPlayerActivity : AppActivity() {
             // next one instead of failing: the main reason 4K files "don't play" on some devices.
             .setEnableDecoderFallback(true)
             .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
+        // Sources are local, so a few MB of queued samples are plenty. ExoPlayer's default video
+        // target (~128 MB) kept ~40 MB of 4K samples on the Java heap, which on low-RAM devices
+        // means GC pauses and dropped frames.
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                if (ultraRam) 4_000 else 10_000,
-                if (ultraRam) 12_000 else 30_000,
+                if (ultraRam) 2_500 else 5_000,
+                if (ultraRam) 8_000 else 15_000,
                 1_000,
                 2_000
             )
+            .setTargetBufferBytes(if (ultraRam) 6 * 1024 * 1024 else 16 * 1024 * 1024)
             .setPrioritizeTimeOverSizeThresholds(false)
             .build()
         val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
