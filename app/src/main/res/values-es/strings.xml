@@ -2813,22 +2813,9 @@
     <string name="om_remote_status_telnet_plaintext">Telnet: sesión sin cifrar</string>
     <string name="om_remote_status_hostkey_changed">AVISO: la clave del servidor HA CAMBIADO</string>
     <string name="om_remote_hostkey_unknown_title">Verifica el servidor</string>
-    <string name="om_remote_hostkey_unknown_message">Primera conexión a %1$s.
-
-Huella de la clave %2$s:
-%3$s
-
-Compárala con la del servidor (ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub) antes de confiar.</string>
+    <string name="om_remote_hostkey_unknown_message">Primera conexión a %1$s.\n\nHuella de la clave %2$s:\n%3$s\n\nCompárala con la del servidor (ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub) antes de confiar.</string>
     <string name="om_remote_hostkey_changed_title">¡La clave del servidor cambió!</string>
-    <string name="om_remote_hostkey_changed_message">La clave de %1$s no es la que confiaste antes.
-
-Antes:
-%2$s
-
-Ahora (%3$s):
-%4$s
-
-Ocurre si el servidor se reinstaló, pero también es lo que se ve cuando un atacante intercepta la conexión. Reemplázala solo si sabes por qué cambió.</string>
+    <string name="om_remote_hostkey_changed_message">La clave de %1$s no es la que confiaste antes.\n\nAntes:\n%2$s\n\nAhora (%3$s):\n%4$s\n\nOcurre si el servidor se reinstaló, pero también es lo que se ve cuando un atacante intercepta la conexión. Reemplázala solo si sabes por qué cambió.</string>
     <string name="om_remote_hostkey_trust">Confiar y guardar</string>
     <string name="om_remote_hostkey_once">Solo esta vez</string>
     <string name="om_remote_hostkey_reject">Cancelar</string>

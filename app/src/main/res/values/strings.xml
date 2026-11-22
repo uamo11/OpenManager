@@ -2917,22 +2917,9 @@
     <string name="om_remote_status_telnet_plaintext">Telnet: unencrypted session</string>
     <string name="om_remote_status_hostkey_changed">WARNING: the server key has CHANGED</string>
     <string name="om_remote_hostkey_unknown_title">Verify the server</string>
-    <string name="om_remote_hostkey_unknown_message">First connection to %1$s.
-
-%2$s key fingerprint:
-%3$s
-
-Compare it with the server (ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub) before trusting it.</string>
+    <string name="om_remote_hostkey_unknown_message">First connection to %1$s.\n\n%2$s key fingerprint:\n%3$s\n\nCompare it with the server (ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub) before trusting it.</string>
     <string name="om_remote_hostkey_changed_title">Server key changed!</string>
-    <string name="om_remote_hostkey_changed_message">The key of %1$s is not the one you trusted before.
-
-Before:
-%2$s
-
-Now (%3$s):
-%4$s
-
-This happens when the server is reinstalled, but it is also what an attacker intercepting the connection looks like. Only replace it if you know why it changed.</string>
+    <string name="om_remote_hostkey_changed_message">The key of %1$s is not the one you trusted before.\n\nBefore:\n%2$s\n\nNow (%3$s):\n%4$s\n\nThis happens when the server is reinstalled, but it is also what an attacker intercepting the connection looks like. Only replace it if you know why it changed.</string>
     <string name="om_remote_hostkey_trust">Trust and save</string>
     <string name="om_remote_hostkey_once">Only this time</string>
     <string name="om_remote_hostkey_reject">Cancel</string>

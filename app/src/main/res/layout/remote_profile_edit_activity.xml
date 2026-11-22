@@ -240,6 +240,7 @@
                             android:fontFamily="monospace"
                             android:gravity="top|start"
                             android:minLines="3"
+                            android:textSize="14sp"
                             android:scrollHorizontally="false" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -297,6 +298,7 @@
                             android:fontFamily="monospace"
                             android:gravity="top|start"
                             android:minLines="3"
+                            android:textSize="14sp"
                             android:scrollHorizontally="false" />
                     </com.google.android.material.textfield.TextInputLayout>
 
@@ -319,6 +321,7 @@
                             android:fontFamily="monospace"
                             android:gravity="top|start"
                             android:minLines="3"
+                            android:textSize="14sp"
                             android:scrollHorizontally="false" />
                     </com.google.android.material.textfield.TextInputLayout>
 

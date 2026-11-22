@@ -148,7 +148,8 @@ else
 fi
 
 # Typing goes through the IME path of TerminalView like a real keyboard.
-adb shell input text "echo%sOM_TYPED_OK%s>%s/tmp/om_typed_probe"
+# Quoted for the device shell: an unquoted ">" would be a redirection there.
+adb shell "input text 'echo%sOM_TYPED_OK%s>%s/tmp/om_typed_probe'"
 t0=$(date +%s%N)
 adb shell input keyevent KEYCODE_ENTER
 if wait_file 15 /tmp/om_typed_probe OM_TYPED_OK; then
