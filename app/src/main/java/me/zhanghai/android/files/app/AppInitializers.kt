@@ -5,6 +5,9 @@
 
 package me.zhanghai.android.files.app
 
+import android.os.Bundle
+import android.app.Application
+import android.app.Activity
 import android.content.ComponentCallbacks2
 import android.content.res.Configuration
 import android.os.AsyncTask
@@ -167,6 +170,21 @@ private fun initializeTerminalBinTools() {
 }
 
 private fun initializeMemoryTrimAndWarmUp() {
+    // Ultra RAM: when a screen is closed (or fully covered), collect its views once the next
+    // screen has settled so their native RenderNodes/Paints/text layouts are freed promptly.
+    application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
+        override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+        override fun onActivityStarted(activity: Activity) {}
+        override fun onActivityResumed(activity: Activity) {}
+        override fun onActivityPaused(activity: Activity) {}
+        override fun onActivityStopped(activity: Activity) {
+            PerformanceModeManager.scheduleHiddenUiRelease()
+        }
+        override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+        override fun onActivityDestroyed(activity: Activity) {
+            PerformanceModeManager.scheduleHiddenUiRelease()
+        }
+    })
     application.registerComponentCallbacks(object : ComponentCallbacks2 {
         override fun onTrimMemory(level: Int) {
             trimCoilMemory(level)

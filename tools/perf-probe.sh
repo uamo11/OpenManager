@@ -102,9 +102,14 @@ run_sections() {
     adb pull /data/local/tmp/back_from_editor.png "$OUT/files_back_from_editor_$mode.png" >/dev/null 2>&1 || true
     measure "$mode" "Files (back from Editor)"
     # Scroll-position round trip: scroll the explorer, cover it with About, come back.
-    adb shell am start -W -n $PKG/me.zhanghai.android.files.filelist.FileListActivity -d file:///storage/emulated/0/OM_Probe >/dev/null 2>&1 || true
+    # Open OM_Probe (440 entries) in the left pane, then scroll it.
+    local row_y
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    row_y=$(adb shell cat /data/local/tmp/ui.xml | tr '>' '\n' | grep 'text="OM_Probe"' | head -n 1 \
+        | sed -E 's/.*bounds="\[[0-9]+,([0-9]+)\]\[[0-9]+,([0-9]+)\]".*/\1 \2/' | awk '{print int(($1+$2)/2)}')
+    adb shell input tap 250 "${row_y:-1155}"
     sleep 2
-    adb shell input swipe 270 1500 270 500 300; sleep 1
+    adb shell input swipe 270 1700 270 500 400; sleep 1
     adb shell screencap -p /data/local/tmp/rt_before.png
     adb shell am start -n $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG about >/dev/null 2>&1
     sleep 4

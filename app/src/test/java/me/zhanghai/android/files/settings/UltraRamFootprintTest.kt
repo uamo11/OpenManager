@@ -167,5 +167,23 @@ class UltraRamFootprintTest {
         PerformanceModeManager.setEnabledForTesting(false)
         PerformanceModeManager.scheduleHiddenUiRelease()
     }
+
+    @Test
+    fun closedOrCoveredScreensTriggerUltraRamRelease() {
+        val appInit = resolveMainFile("java/me/zhanghai/android/files/app/AppInitializers.kt").readText()
+        val callbacks = appInit.substringAfter("registerActivityLifecycleCallbacks")
+            .substringBefore("registerComponentCallbacks")
+        assertTrue(callbacks.substringAfter("onActivityStopped").substringBefore("}")
+            .contains("PerformanceModeManager.scheduleHiddenUiRelease()"))
+        assertTrue(callbacks.substringAfter("onActivityDestroyed").substringBefore("}")
+            .contains("PerformanceModeManager.scheduleHiddenUiRelease()"))
+        val manager = resolveMainFile("java/me/zhanghai/android/files/settings/PerformanceModeManager.kt")
+            .readText()
+        assertTrue(
+            "The release must be a no-op when Ultra RAM mode is off",
+            manager.substringAfter("fun scheduleHiddenUiRelease()").substringBefore("mainHandler")
+                .contains("if (!isEnabled")
+        )
+    }
 }
 
