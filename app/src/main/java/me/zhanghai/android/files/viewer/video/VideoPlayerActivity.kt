@@ -93,7 +93,7 @@ class VideoPlayerActivity : AppActivity() {
     private var isZoomed = false
     private var isLocating = false
     private var orientationChosen = false
-    private var speedIndex = SPEEDS.indexOf(1f)
+    private var speedIndex = NORMAL_SPEED_INDEX
     private var videoAspect = 0f
 
     private var decoderName: String? = null
@@ -578,6 +578,7 @@ class VideoPlayerActivity : AppActivity() {
         private const val TAG = "OMVideoPlayer"
         private const val SEEK_STEP_MS = 10_000L
         private val SPEEDS = floatArrayOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
+        private const val NORMAL_SPEED_INDEX = 2
 
         fun start(context: Context, path: Path) {
             val intent = Intent(context, VideoPlayerActivity::class.java).apply {
