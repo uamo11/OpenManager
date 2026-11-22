@@ -41,6 +41,28 @@ final class LocalEchoPredictor {
     private static final long MIN_STALE_MS = 1000;
     private static final int MAX_PENDING = 96;
 
+    /** The few screen facts the predictor needs; {@link #of(TerminalEmulator)} adapts the emulator. */
+    interface Screen {
+        int rows();
+        int columns();
+        int cursorRow();
+        int cursorCol();
+        boolean cursorEnabled();
+        /** Code point drawn at a cell, or -1. */
+        int charAt(int row, int col);
+    }
+
+    static Screen of(TerminalEmulator emulator) {
+        return new Screen() {
+            @Override public int rows() { return emulator.mRows; }
+            @Override public int columns() { return emulator.mColumns; }
+            @Override public int cursorRow() { return emulator.getCursorRow(); }
+            @Override public int cursorCol() { return emulator.getCursorCol(); }
+            @Override public boolean cursorEnabled() { return emulator.isCursorEnabled(); }
+            @Override public int charAt(int row, int col) { return LocalEchoPredictor.charAt(emulator.getScreen(), emulator, row, col); }
+        };
+    }
+
     /** Time source; replaceable so the logic can be unit tested off-device. */
     interface Clock {
         long nowMs();
@@ -71,8 +93,13 @@ final class LocalEchoPredictor {
 
     /** A printable key was sent to the server. */
     void onPrintable(TerminalEmulator emulator, int codePoint) {
-        if (!mEnabled || emulator == null) return;
-        if (WcWidth.width(codePoint) != 1 || emulator.getScreen() == null || !emulator.isCursorEnabled()) {
+        if (emulator == null) return;
+        onPrintable(of(emulator), codePoint);
+    }
+
+    void onPrintable(Screen screen, int codePoint) {
+        if (!mEnabled || screen == null) return;
+        if (WcWidth.width(codePoint) != 1 || !screen.cursorEnabled()) {
             // Wide glyphs and apps that hide the cursor (drawing their own) are not predictable.
             resetEpoch();
             return;
@@ -80,15 +107,15 @@ final class LocalEchoPredictor {
         int row;
         int col;
         if (mPending.isEmpty()) {
-            row = emulator.getCursorRow();
-            col = emulator.getCursorCol();
+            row = screen.cursorRow();
+            col = screen.cursorCol();
         } else {
             Prediction last = mPending.get(mPending.size() - 1);
             row = last.row;
             col = last.col + 1;
         }
         // Never predict across the right margin: wrapping depends on modes we cannot see.
-        if (col >= emulator.mColumns - 1 || mPending.size() >= MAX_PENDING) {
+        if (col >= screen.columns() - 1 || mPending.size() >= MAX_PENDING) {
             resetEpoch();
             return;
         }
@@ -109,12 +136,16 @@ final class LocalEchoPredictor {
     /** Called after new output was applied to the emulator. Returns true if the overlay changed. */
     boolean onScreenUpdated(TerminalEmulator emulator) {
         if (mPending.isEmpty() || emulator == null) return false;
-        TerminalBuffer screen = emulator.getScreen();
+        return onScreenUpdated(of(emulator));
+    }
+
+    boolean onScreenUpdated(Screen screen) {
+        if (mPending.isEmpty() || screen == null) return false;
         long now = mClock.nowMs();
         boolean changed = false;
         while (!mPending.isEmpty()) {
             Prediction first = mPending.get(0);
-            if (charAt(screen, emulator, first.row, first.col) != first.codePoint) break;
+            if (screen.charAt(first.row, first.col) != first.codePoint) break;
             boolean wasShown = shouldDisplay();
             mPending.remove(0);
             changed = true;
@@ -126,8 +157,8 @@ final class LocalEchoPredictor {
         if (!mPending.isEmpty()) {
             Prediction first = mPending.get(0);
             long staleAfter = Math.max(MIN_STALE_MS, mSrttMs * 3);
-            boolean cursorLeftLine = emulator.getCursorRow() != first.row;
-            boolean cursorPassedIt = emulator.getCursorRow() == first.row && emulator.getCursorCol() > first.col;
+            boolean cursorLeftLine = screen.cursorRow() != first.row;
+            boolean cursorPassedIt = screen.cursorRow() == first.row && screen.cursorCol() > first.col;
             if (now - first.typedAtMs > staleAfter || cursorLeftLine || cursorPassedIt) {
                 // The application did something else with the key (or never echoes): give up.
                 resetEpoch();

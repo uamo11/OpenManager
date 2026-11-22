@@ -5,10 +5,6 @@
 
 package com.termux.view
 
-import com.termux.terminal.TerminalEmulator
-import com.termux.terminal.TerminalOutput
-import com.termux.terminal.TerminalSession
-import com.termux.terminal.TerminalSessionClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -17,51 +13,48 @@ import org.junit.Test
 
 class LocalEchoPredictorTest {
     private var now = 1_000L
-    private lateinit var emulator: TerminalEmulator
+    private lateinit var screen: FakeScreen
     private lateinit var predictor: LocalEchoPredictor
 
-    private object NoOutput : TerminalOutput() {
-        override fun write(data: ByteArray, offset: Int, count: Int) {}
-        override fun titleChanged(oldTitle: String?, newTitle: String?) {}
-        override fun onCopyTextToClipboard(text: String?) {}
-        override fun onPasteTextFromClipboard() {}
-        override fun onBell() {}
-        override fun onColorsChanged() {}
-    }
+    /** Minimal VT: printable chars, CR and LF on an 80x24 grid. */
+    private class FakeScreen : LocalEchoPredictor.Screen {
+        val cells = Array(24) { IntArray(80) { -1 } }
+        var row = 0
+        var col = 0
 
-    private object NoClient : TerminalSessionClient {
-        override fun onTextChanged(changedSession: TerminalSession) {}
-        override fun onTitleChanged(changedSession: TerminalSession) {}
-        override fun onSessionFinished(finishedSession: TerminalSession) {}
-        override fun onCopyTextToClipboard(session: TerminalSession, text: String?) {}
-        override fun onPasteTextFromClipboard(session: TerminalSession?) {}
-        override fun onBell(session: TerminalSession) {}
-        override fun onColorsChanged(session: TerminalSession) {}
-        override fun onTerminalCursorStateChange(state: Boolean) {}
-        override fun setTerminalShellPid(session: TerminalSession, pid: Int) {}
-        override fun getTerminalCursorStyle(): Int = TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK
-        override fun logError(tag: String?, message: String?) {}
-        override fun logWarn(tag: String?, message: String?) {}
-        override fun logInfo(tag: String?, message: String?) {}
-        override fun logDebug(tag: String?, message: String?) {}
-        override fun logVerbose(tag: String?, message: String?) {}
-        override fun logStackTraceWithMessage(tag: String?, message: String?, e: Exception?) {}
-        override fun logStackTrace(tag: String?, e: Exception?) {}
+        fun write(text: String) {
+            for (c in text) {
+                when (c) {
+                    '\r' -> col = 0
+                    '\n' -> row = (row + 1).coerceAtMost(23)
+                    else -> {
+                        cells[row][col] = c.code
+                        col = (col + 1).coerceAtMost(79)
+                    }
+                }
+            }
+        }
+
+        override fun rows() = 24
+        override fun columns() = 80
+        override fun cursorRow() = row
+        override fun cursorCol() = col
+        override fun cursorEnabled() = true
+        override fun charAt(row: Int, col: Int) = cells[row][col]
     }
 
     private fun server(text: String) {
-        val bytes = text.toByteArray()
-        emulator.append(bytes, bytes.size)
-        predictor.onScreenUpdated(emulator)
+        screen.write(text)
+        predictor.onScreenUpdated(screen)
     }
 
     private fun type(text: String) {
-        for (c in text) predictor.onPrintable(emulator, c.code)
+        for (c in text) predictor.onPrintable(screen, c.code)
     }
 
     @Before
     fun setUp() {
-        emulator = TerminalEmulator(NoOutput, 80, 24, 10, 20, 100, NoClient)
+        screen = FakeScreen()
         predictor = LocalEchoPredictor()
         predictor.mClock = LocalEchoPredictor.Clock { now }
         predictor.setEnabled(true)
@@ -100,7 +93,7 @@ class LocalEchoPredictorTest {
         server("\r\n[sudo] password for user: ")
         type("hunter2")
         now += 2_000
-        predictor.onScreenUpdated(emulator)
+        predictor.onScreenUpdated(screen)
         assertFalse(predictor.shouldDisplay())
         assertEquals("No echo: predictions dropped when stale", 0, predictor.pendingCount)
     }
