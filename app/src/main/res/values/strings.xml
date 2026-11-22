@@ -2998,7 +2998,6 @@
     <string name="om_audit2_view_code">View code with highlights</string>
     <string name="om_audit2_syscalls">System calls (sampled)</string>
     <string name="om_audit2_syscalls_none">No samples yet</string>
-    <string name="om_audit2_syscalls_summary">%1$d samples · %2$d reads · %3$d writes</string>
     <string name="om_audit2_copy">Copy report</string>
     <string name="om_audit2_clear">Clear</string>
     <string name="om_audit2_event_blocked">BLOCKED · %1$s</string>
@@ -3031,4 +3030,9 @@
     <string name="om_guard_zone_user">your files</string>
     <string name="om_guard_zone_app">app data</string>
     <string name="om_guard_zone_other">other</string>
+    <string name="om_audit2_policy_interactive">Interactive session: deletions you type yourself are allowed. Dead Man and DFRoot still protect everything. The Ask / Block / Allow choice applies to scripts.</string>
+    <plurals name="om_audit2_syscalls_summary">
+        <item quantity="one">%1$d sample · %2$d reads · %3$d writes</item>
+        <item quantity="other">%1$d samples · %2$d reads · %3$d writes</item>
+    </plurals>
 </resources>

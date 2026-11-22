@@ -2894,7 +2894,6 @@
     <string name="om_audit2_view_code">Ver código resaltado</string>
     <string name="om_audit2_syscalls">Llamadas al sistema (muestreo)</string>
     <string name="om_audit2_syscalls_none">Sin muestras todavía</string>
-    <string name="om_audit2_syscalls_summary">%1$d muestras · %2$d lecturas · %3$d escrituras</string>
     <string name="om_audit2_copy">Copiar informe</string>
     <string name="om_audit2_clear">Limpiar</string>
     <string name="om_audit2_event_blocked">BLOQUEADO · %1$s</string>
@@ -2927,4 +2926,9 @@
     <string name="om_guard_zone_user">tus archivos</string>
     <string name="om_guard_zone_app">datos de una app</string>
     <string name="om_guard_zone_other">otra</string>
+    <string name="om_audit2_policy_interactive">Sesión interactiva: los borrados que escribes tú se permiten. Dead Man y DFRoot siguen protegiendo todo. La opción Preguntar / Bloquear / Permitir se aplica a los scripts.</string>
+    <plurals name="om_audit2_syscalls_summary">
+        <item quantity="one">%1$d muestra · %2$d lecturas · %3$d escrituras</item>
+        <item quantity="other">%1$d muestras · %2$d lecturas · %3$d escrituras</item>
+    </plurals>
 </resources>

@@ -69,8 +69,9 @@ class ScriptAuditDialogFragment : BottomSheetDialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val context = requireContext()
+        // Only a real script file has a name; commands and interactive shells are "sessions".
         val scriptName = scriptPath.takeIf { it.isNotEmpty() && File(it).isFile }?.let { File(it).name }
-            ?: ScriptExecutionManager.activeScriptName.ifEmpty { getString(R.string.om_audit_interactive_session) }
+            ?: getString(R.string.om_audit_interactive_session)
         view.findViewById<TextView>(R.id.auditScriptName).text = scriptName
 
         val running = ScriptExecutionManager.isRunning()
@@ -141,7 +142,7 @@ class ScriptAuditDialogFragment : BottomSheetDialogFragment() {
     private fun bindPolicy(view: View, context: Context) {
         val switch = view.findViewById<SwitchMaterial>(R.id.auditGuardSwitch)
         val toggle = view.findViewById<MaterialButtonToggleGroup>(R.id.auditPolicyToggle)
-        val label = view.findViewById<View>(R.id.auditPolicyLabel)
+        val label = view.findViewById<TextView>(R.id.auditPolicyLabel)
         val perScript = scriptPath.isNotEmpty() && File(scriptPath).isFile
         switch.isChecked = ScriptTracerPreferences.isTracerEnabled(context, scriptPath)
         toggle.check(
@@ -157,8 +158,13 @@ class ScriptAuditDialogFragment : BottomSheetDialogFragment() {
             for (i in 0 until toggle.childCount) toggle.getChildAt(i).isEnabled = enabled
             label.alpha = if (enabled) 1f else 0.5f
         }
-        // Interactive sessions use the defaults (ask); the choice is stored per script file.
+        // The per-script choice needs a script file; explain instead of showing dead controls.
         switch.isEnabled = perScript
+        if (!perScript) {
+            label.setText(R.string.om_audit2_policy_interactive)
+            switch.visibility = View.GONE
+            toggle.visibility = View.GONE
+        }
         syncEnabled()
         switch.setOnCheckedChangeListener { _, checked ->
             ScriptTracerPreferences.setTracerEnabled(context, scriptPath, checked)
@@ -197,7 +203,10 @@ class ScriptAuditDialogFragment : BottomSheetDialogFragment() {
         root.findViewById<TextView>(R.id.syscallSummary).text = if (counters.isEmpty()) {
             getString(R.string.om_audit2_syscalls_none)
         } else {
-            getString(R.string.om_audit2_syscalls_summary, stats.totalSyscalls, stats.ioReadSyscalls, stats.ioWriteSyscalls)
+            resources.getQuantityString(
+                R.plurals.om_audit2_syscalls_summary, stats.totalSyscalls.toInt().coerceAtLeast(0),
+                stats.totalSyscalls, stats.ioReadSyscalls, stats.ioWriteSyscalls
+            )
         }
         root.findViewById<TextView>(R.id.syscallBody).text = counters.take(10).joinToString("\n") { (name, count) ->
             val info = SyscallResolver.resolveByName(name)

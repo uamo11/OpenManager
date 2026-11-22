@@ -368,7 +368,7 @@ fi
 if pos=$(find_text "DEAD MAN: LOCKED" "DEAD MAN: BLOQUEADO"); then
     adb shell input tap $pos; sleep 2
     shot 16_audit_sheet
-    if find_text "Audit & protection" "Auditoría y protección" >/dev/null; then
+    if find_text "Activity" "Actividad" >/dev/null && find_text "Dead Man" >/dev/null; then
         pass "audit sheet opens from the Dead Man badge and lists the decision"
     else
         fail "audit sheet did not open"
