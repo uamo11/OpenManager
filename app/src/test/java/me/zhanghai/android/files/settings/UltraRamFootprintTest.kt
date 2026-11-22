@@ -145,4 +145,27 @@ class UltraRamFootprintTest {
         assertFalse(pref.contains(".setImageResource("))
         assertTrue(pref.contains("ivShizukuMini?.setImageResourceAtViewSize(R.drawable.ic_shizuku_logo)"))
     }
+
+    @Test
+    fun hiddenExplorerRowsAreReleasedOnlyInUltraRamMode() {
+        val fragment = resolveMainFile("java/me/zhanghai/android/files/filelist/FileListFragment.kt")
+            .readText()
+        val onStop = fragment.substringAfter("override fun onStop() {").substringBefore("\n    }")
+        assertTrue(onStop.contains("PerformanceModeManager.isEnabled"))
+        assertTrue(onStop.contains("releaseHiddenRows()"))
+        val release = fragment.substringAfter("private fun releaseHiddenRows()")
+            .substringBefore("private fun restoreHiddenRows()")
+        assertTrue("Scroll position must be saved", release.contains("layoutManager.onSaveInstanceState()"))
+        assertTrue(release.contains("recyclerView.adapter = null"))
+        val restore = fragment.substringAfter("private fun restoreHiddenRows()")
+        assertTrue(restore.contains("binding.recyclerView.adapter = adapter"))
+        assertTrue(restore.contains("layoutManager.onRestoreInstanceState(it)"))
+        assertTrue(fragment.substringAfter("override fun onStart() {").substringBefore("\n    }")
+            .contains("restoreHiddenRows()"))
+
+        // Normal mode never schedules the extra GC/purge.
+        PerformanceModeManager.setEnabledForTesting(false)
+        PerformanceModeManager.scheduleHiddenUiRelease()
+    }
 }
+

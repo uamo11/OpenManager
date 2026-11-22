@@ -152,6 +152,26 @@ def main():
             layouts[c] = fl
         return layouts[c]
 
+    # "Class.field>" arguments: histogram of the classes that Class.field points to.
+    obj_class = {oid: cid for cid, _o, _n, oid in instances}
+    for spec in [t for t in targets_by_name if t.endswith(">")]:
+        owner, field = spec[:-1].rsplit(".", 1)
+        pointed = collections.Counter()
+        for cid, off, _n, _oid in instances:
+            if name_of(cid) != owner:
+                continue
+            q = off
+            for nid, t in layout_of(cid):
+                if t == 2 and strings.get(nid) == field:
+                    tgt = rid(q)
+                    pointed[name_of(obj_class[tgt]) if tgt in obj_class else
+                            prim_arrays.get(tgt, ("<outside app heap>", 0))[0]] += 1
+                q += sizes[t]
+        print(f"\n--- {owner}.{field} points to ---")
+        for k, v in pointed.most_common(top_n):
+            print(f"{v:8d}  {k}")
+    targets_by_name = [t for t in targets_by_name if not t.endswith(">")]
+
     for target_name in targets_by_name:
         tids = {oid for cid, _o, _n, oid in instances if name_of(cid) == target_name}
         tids |= {oid for oid, (tn, _b) in prim_arrays.items() if tn == target_name}

@@ -94,6 +94,25 @@ run_sections() {
     measure "$mode" "Terminal"
     start_cmp $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor
     measure "$mode" "Editor (+Files behind)"
+    # Back to the explorer: hidden rows must come back at the same scroll position.
+    adb shell input keyevent KEYCODE_BACK
+    LAST_START_MS="-"
+    sleep 2
+    adb shell screencap -p /data/local/tmp/back_from_editor.png
+    adb pull /data/local/tmp/back_from_editor.png "$OUT/files_back_from_editor_$mode.png" >/dev/null 2>&1 || true
+    measure "$mode" "Files (back from Editor)"
+    # Scroll-position round trip: scroll the explorer, cover it with About, come back.
+    adb shell am start -W -n $PKG/me.zhanghai.android.files.filelist.FileListActivity -d file:///storage/emulated/0/OM_Probe >/dev/null 2>&1 || true
+    sleep 2
+    adb shell input swipe 270 1500 270 500 300; sleep 1
+    adb shell screencap -p /data/local/tmp/rt_before.png
+    adb shell am start -n $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG about >/dev/null 2>&1
+    sleep 4
+    adb shell input keyevent KEYCODE_BACK
+    sleep 2
+    adb shell screencap -p /data/local/tmp/rt_after.png
+    adb pull /data/local/tmp/rt_before.png "$OUT/roundtrip_before_$mode.png" >/dev/null 2>&1 || true
+    adb pull /data/local/tmp/rt_after.png "$OUT/roundtrip_after_$mode.png" >/dev/null 2>&1 || true
     start_cmp $PKG/me.zhanghai.android.files.about.AboutActivity
     measure "$mode" "About"
 }

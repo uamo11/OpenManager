@@ -13,6 +13,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Parcelable
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
@@ -889,11 +890,48 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
     }
 
+    // Ultra RAM: rows of a hidden explorer (another screen on top, or app in background) are
+    // released and rebuilt from the adapter's in-memory list when it becomes visible again.
+    private var hiddenRowsLayoutState: Parcelable? = null
+    private var hiddenRowsReleased = false
+
+    override fun onStart() {
+        super.onStart()
+        restoreHiddenRows()
+    }
+
     override fun onStop() {
         super.onStop()
         if (PerformanceModeManager.isEnabled && ::adapter.isInitialized) {
             adapter.trimCachesForUltraPerformance()
+            releaseHiddenRows()
         }
+    }
+
+    private fun releaseHiddenRows() {
+        if (hiddenRowsReleased || !::layoutManager.isInitialized) {
+            return
+        }
+        val recyclerView = binding.recyclerView
+        if (recyclerView.adapter == null) {
+            return
+        }
+        hiddenRowsLayoutState = layoutManager.onSaveInstanceState()
+        // Detaching recycles every row into the shared pool, which FileListActivity.onStop()
+        // clears right after the fragments stop.
+        recyclerView.adapter = null
+        hiddenRowsReleased = true
+        PerformanceModeManager.scheduleHiddenUiRelease()
+    }
+
+    private fun restoreHiddenRows() {
+        if (!hiddenRowsReleased) {
+            return
+        }
+        hiddenRowsReleased = false
+        binding.recyclerView.adapter = adapter
+        hiddenRowsLayoutState?.let { layoutManager.onRestoreInstanceState(it) }
+        hiddenRowsLayoutState = null
     }
 
     override fun onDestroyView() {

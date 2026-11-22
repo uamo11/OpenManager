@@ -7,6 +7,8 @@ package me.zhanghai.android.files.settings
 
 import android.content.Context
 import android.os.Debug
+import android.os.Handler
+import android.os.Looper
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
 import me.zhanghai.android.files.coil.clearCoilMemory
@@ -15,6 +17,7 @@ import me.zhanghai.android.files.filelist.AppMetadataCache
 import me.zhanghai.android.files.filelist.DirectorySnapshotCache
 import me.zhanghai.android.files.provider.linux.syscall.Syscall
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Central orchestrator for Ultra Performance & Low-RAM Mode (`Settings.VISUAL_PERFORMANCE_MODE`).
@@ -165,6 +168,38 @@ object PerformanceModeManager {
             }
         } catch (_: Throwable) {}
     }
+
+    private val hiddenUiReleasePending = AtomicBoolean(false)
+
+    /**
+     * Called when a screen drops its hidden views. Their native memory (RenderNodes, Paints, text
+     * layouts) is only freed by Cleaners after a GC, so once the next screen has finished starting
+     * we collect and then return the freed pages to the kernel.
+     */
+    fun scheduleHiddenUiRelease() {
+        if (!isEnabled || !hiddenUiReleasePending.compareAndSet(false, true)) {
+            return
+        }
+        mainHandler.postDelayed({
+            Thread({
+                try {
+                    Runtime.getRuntime().gc()
+                    System.runFinalization()
+                    // Cleaners run on the ReferenceQueueDaemon shortly after the GC.
+                    Thread.sleep(HIDDEN_UI_CLEANER_WAIT_MS)
+                    purgeNativeHeapSafe()
+                } catch (_: Throwable) {
+                } finally {
+                    hiddenUiReleasePending.set(false)
+                }
+            }, "UltraRamRelease").start()
+        }, HIDDEN_UI_RELEASE_DELAY_MS)
+    }
+
+    private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
+
+    private const val HIDDEN_UI_RELEASE_DELAY_MS = 1500L
+    private const val HIDDEN_UI_CLEANER_WAIT_MS = 300L
 
     fun purgeNativeHeapSafe() {
         try {
