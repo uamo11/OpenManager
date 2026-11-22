@@ -36,6 +36,7 @@ def main():
     hist_bytes = collections.Counter()
     instances = []  # (class id, offset of field bytes, length, object id)
     obj_arrays = []  # (class id, offset of elements, count)
+    prim_arrays = {}  # object id -> (type name, bytes)
     heap = "app"
 
     pos = nul + 1 + 4 + 8
@@ -117,6 +118,7 @@ def main():
                     n = struct.unpack_from(">I", data, p + id_size + 4)[0]
                     t = data[p + id_size + 8]
                     if heap == "app":
+                        prim_arrays[rid(p)] = (PRIM_NAMES.get(t, "prim[]"), n * sizes[t])
                         key = PRIM_NAMES.get(t, "prim[]")
                         hist_count[key] += 1
                         hist_bytes[key] += n * sizes[t]
@@ -152,20 +154,26 @@ def main():
 
     for target_name in targets_by_name:
         tids = {oid for cid, _o, _n, oid in instances if name_of(cid) == target_name}
+        tids |= {oid for oid, (tn, _b) in prim_arrays.items() if tn == target_name}
         refs = collections.Counter()
+        ref_bytes = collections.Counter()
         for cid, off, _n, _oid in instances:
             q = off
             for nid, t in layout_of(cid):
                 if t == 2 and rid(q) in tids:
-                    refs[f"{name_of(cid)}.{strings.get(nid, '?')}"] += 1
+                    k = f"{name_of(cid)}.{strings.get(nid, '?')}"
+                    refs[k] += 1
+                    ref_bytes[k] += prim_arrays.get(rid(q), ("", 0))[1]
                 q += sizes[t]
         for cid, off, n in obj_arrays:
             for i in range(n):
                 if rid(off + i * id_size) in tids:
                     refs[f"{name_of(cid)}[]"] += 1
         print(f"\n--- Referrers of {target_name} ({len(tids)} objects) ---")
-        for k, v in refs.most_common(top_n):
-            print(f"{v:8d}  {k}")
+        order = ref_bytes.most_common(top_n) if any(ref_bytes.values()) else refs.most_common(top_n)
+        for k, _v in order:
+            extra = f" {ref_bytes[k] / 1024:9.1f} KiB" if ref_bytes[k] else ""
+            print(f"{refs[k]:8d}{extra}  {k}")
 
     # Bitmap inventory (pixels live in the native heap on API 26+).
     bitmap_cid = None

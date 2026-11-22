@@ -9,7 +9,7 @@ mkdir -p "$OUT"
 REPORT="$OUT/report.txt"
 CSV="$OUT/memory.csv"
 : > "$REPORT"
-echo "mode,section,pss_total_kb,java_heap_kb,native_heap_kb,code_kb,graphics_kb,private_other_kb,system_kb,dalvik_alloc_kb,native_alloc_kb,app_alloc_kb,activities,views" > "$CSV"
+echo "mode,section,start_ms,threads,pss_total_kb,java_heap_kb,native_heap_kb,code_kb,graphics_kb,private_other_kb,system_kb,dalvik_alloc_kb,native_alloc_kb,app_alloc_kb,activities,views" > "$CSV"
 
 log() { echo ">>> $*"; echo ">>> $*" >> "$REPORT"; }
 
@@ -34,12 +34,19 @@ measure() {
     sleep 6
     local mi
     mi=$(adb shell dumpsys meminfo "$pkg")
+    local spid threads
+    spid=$(adb shell pidof "$pkg" | tr -d '\r' | awk '{print $1}')
+    threads=$(adb shell ls /proc/$spid/task 2>/dev/null | wc -l | tr -d ' ')
+    if [ "$pkg" = "$PKG" ]; then
+        adb shell "for t in /proc/$spid/task/*; do cat \$t/comm; done" 2>/dev/null | sed 's/[0-9]*$//' | sort | uniq -c | sort -rn \
+            > "$OUT/threads_${mode}_$(echo "$section" | tr -c 'A-Za-z0-9' '_').txt" || true
+    fi
     {
         echo "=== [$mode] $section ==="
         echo "$mi" | grep -E "Native Heap|Dalvik Heap|^ *TOTAL|Java Heap:|Native Heap:|Code:|Graphics:|Private Other:|System:|Activities:|Views:"
         echo
     } >> "$REPORT"
-    echo "$mi" | awk -v mode="$mode" -v sec="$section" '
+    echo "$mi" | awk -v mode="$mode" -v sec="$section" -v start="${LAST_START_MS:--}" -v threads="${threads:-0}" '
         /^ *Native Heap / && !nh { nh=1; nalloc=$(NF-1) }
         /^ *Dalvik Heap / && !dh { dh=1; dalloc=$(NF-1) }
         /^ *TOTAL / && !tt { tt=1; total=$2 }
@@ -51,11 +58,16 @@ measure() {
         /System:/ { sys=$2 }
         /Activities:/ { acts=$NF }
         /Views:/ { views=$2 }
-        END { printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", mode, sec, total, java, native, code, gfx, other, sys, dalloc, nalloc, dalloc+nalloc, acts, views }
+        END { printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", mode, sec, start, threads, total, java, native, code, gfx, other, sys, dalloc, nalloc, dalloc+nalloc, acts, views }
     ' >> "$CSV"
 }
 
-start_cmp() { adb shell su 0 am start -W -S -n "$1" "${@:2}" >/dev/null 2>&1 || adb shell am start -W -S -n "$1" "${@:2}" >/dev/null 2>&1; }
+LAST_START_MS=""
+start_cmp() {
+    local out
+    out=$(adb shell su 0 am start -W -S -n "$1" "${@:2}" 2>/dev/null) || out=$(adb shell am start -W -S -n "$1" "${@:2}" 2>/dev/null)
+    LAST_START_MS=$(echo "$out" | awk -F': ' '/TotalTime/ {gsub("\r", "", $2); print $2}')
+}
 
 set_perf() {
     adb shell am start -W -S -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_PERF_MODE "$1" >/dev/null 2>&1
@@ -70,6 +82,7 @@ run_sections() {
     adb shell input swipe 270 1500 270 400 80; sleep 0.4
     adb shell input swipe 270 1500 270 400 80; sleep 0.4
     adb shell input swipe 270 400 270 1500 80
+    LAST_START_MS="-"
     measure "$mode" "Files (after scroll)"
     start_cmp $PKG/me.zhanghai.android.files.settings.SettingsActivity
     measure "$mode" "Settings"
@@ -98,10 +111,14 @@ run_sections "perf-on"
 
 log "Native heap attribution (malloc debug backtraces, Performance Mode ON)"
 adb shell setprop wrap.$PKG LIBC_DEBUG_MALLOC_OPTIONS=backtrace
-for target in filelist.FileListActivity settings.SettingsActivity terminal.TerminalActivity; do
+for target in filelist.FileListActivity settings.SettingsActivity terminal.TerminalActivity editor; do
     name=${target%%.*}
     adb shell am force-stop $PKG
-    start_cmp $PKG/me.zhanghai.android.files.$target
+    if [ "$target" = editor ]; then
+        start_cmp $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor
+    else
+        start_cmp $PKG/me.zhanghai.android.files.$target
+    fi
     sleep 10
     pid=$(adb shell pidof $PKG | tr -d '\r')
     if [ -n "$pid" ]; then
@@ -116,9 +133,13 @@ adb shell setprop wrap.$PKG "''"
 adb shell am force-stop $PKG
 
 log "Java heap dumps + hwui caches (Performance Mode ON)"
-for target in filelist.FileListActivity settings.SettingsActivity; do
+for target in filelist.FileListActivity settings.SettingsActivity editor; do
     name=${target%%.*}
-    start_cmp $PKG/me.zhanghai.android.files.$target
+    if [ "$target" = editor ]; then
+        start_cmp $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor
+    else
+        start_cmp $PKG/me.zhanghai.android.files.$target
+    fi
     sleep 6
     pid=$(adb shell pidof $PKG | tr -d '\r')
     adb shell dumpsys gfxinfo $PKG > "$OUT/gfxinfo_$name.txt" 2>&1 || true
@@ -150,7 +171,7 @@ EMU_GL_KB=$(python3 -I tools/native_heap_summary.py "$OUT/native_heap_filelist.t
 EMU_GL_KB=${EMU_GL_KB:-0}
 log "Emulator GL pipe (excluded from device-equivalent): ${EMU_GL_KB} KB"
 awk -F, -v emu="$EMU_GL_KB" 'NR==1 {print $0",device_equiv_kb,budget_20mb"; next}
-    {d=$12-emu; printf "%s,%d,%s\n", $0, d, (d <= 20480 ? "OK" : "OVER")}' "$CSV" > "$CSV.tmp" && mv "$CSV.tmp" "$CSV"
+    {d=$14-emu; printf "%s,%d,%s\n", $0, d, (d <= 20480 ? "OK" : "OVER")}' "$CSV" > "$CSV.tmp" && mv "$CSV.tmp" "$CSV"
 
 echo
 column -s, -t < "$CSV" | tee -a "$REPORT"

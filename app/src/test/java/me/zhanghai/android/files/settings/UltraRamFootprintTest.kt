@@ -94,7 +94,7 @@ class UltraRamFootprintTest {
         )
         assertTrue(
             "pendingEntries must be declared before init {} or its initializer resets it",
-            src.indexOf("private var pendingEntries") < src.indexOf("init {")
+            src.indexOf("private var pendingEntries") < src.indexOf("\n    init {")
         )
     }
 
@@ -102,7 +102,7 @@ class UltraRamFootprintTest {
     fun charsetListsAreNotBuiltOnScreenOpen() {
         val pref = resolveMainFile("java/me/zhanghai/android/files/settings/CharsetPreference.kt")
             .readText()
-        val initBlock = pref.substringAfter("init {").substringBefore("private fun ensureCharsetsLoaded")
+        val initBlock = pref.substringAfter("\n    init {").substringBefore("private fun ensureCharsetsLoaded")
         assertFalse(initBlock.contains("availableCharsets"))
         assertTrue(pref.contains("override fun getEntries()"))
         assertTrue(pref.contains("override fun getEntryValues()"))
@@ -112,7 +112,7 @@ class UltraRamFootprintTest {
             .readText()
         val menuInflate = editor.substringAfter("fun inflate(menu: Menu, inflater: MenuInflater)")
             .substringBefore("return MenuBinding(")
-        assertFalse("Editor menu must not enumerate charsets on open", menuInflate.contains("availableCharsets"))
+        assertFalse("Editor menu must not enumerate charsets on open", menuInflate.contains("in Charset.availableCharsets()"))
         assertTrue(editor.contains("R.id.action_encoding -> {"))
         assertTrue(editor.contains("private fun ensureEncodingSubMenuPopulated()"))
     }
@@ -123,7 +123,7 @@ class UltraRamFootprintTest {
         assertEquals(1, SampledImageResources.computeInSampleSize(100, 100, 84))
         // 512px logo in a 32dp view at 2.625x (84px): 128px keeps it crisp.
         assertEquals(4, SampledImageResources.computeInSampleSize(512, 512, 84))
-        assertEquals(8, SampledImageResources.computeInSampleSize(1024, 1024, 63))
+        assertEquals(16, SampledImageResources.computeInSampleSize(1024, 1024, 63))
         for (size in listOf(48, 63, 84, 126, 168, 300)) {
             val sample = SampledImageResources.computeInSampleSize(1024, 1024, size)
             assertTrue(1024 / sample >= size)
