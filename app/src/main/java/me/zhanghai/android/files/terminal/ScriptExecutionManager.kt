@@ -13,46 +13,77 @@ import com.termux.terminal.TerminalSession
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 
+/**
+ * Terminal sessions running in OpenManager. Several can run at once (scripts, shells, SSH);
+ * the terminal screen shows the *focused* one, and the `active*` properties describe it, which
+ * keeps every existing caller working unchanged.
+ */
 object ScriptExecutionManager {
 
-    var activeSession: TerminalSession? = null
-        private set
+    class Entry(
+        val session: TerminalSession,
+        name: String,
+        val scriptPath: String?,
+        val command: String?,
+        val isRoot: Boolean,
+        val isTermex: Boolean,
+        val startTimeMillis: Long
+    ) {
+        @Volatile var name: String = name
+        @Volatile var pid: Int = -1
+        @Volatile var exitCode: Int? = null
 
-    var activeScriptName: String = ""
-        private set
+        val isRunning: Boolean
+            get() = session.isRunning
+    }
 
-    var activeScriptPath: String? = null
-        private set
+    private val entries = CopyOnWriteArrayList<Entry>()
 
-    var activeCommand: String? = null
-        private set
+    @Volatile
+    private var focused: Entry? = null
 
-    var activePid: Int = -1
+    /** All sessions, oldest first. */
+    val sessions: List<Entry>
+        get() = entries.toList()
+
+    val focusedEntry: Entry?
+        get() = focused
+
+    val runningCount: Int
+        get() = entries.count { it.isRunning }
+
+    fun entryFor(session: TerminalSession): Entry? = entries.firstOrNull { it.session === session }
+
+    val activeSession: TerminalSession?
+        get() = focused?.session
+
+    val activeScriptName: String
+        get() = focused?.name.orEmpty()
+
+    val activeScriptPath: String?
+        get() = focused?.scriptPath
+
+    val activeCommand: String?
+        get() = focused?.command
+
+    /** Pid of the focused session; setting it also drives the /proc syscall sampler. */
+    var activePid: Int
+        get() = focused?.pid ?: -1
         set(value) {
-            field = value
-            if (value > 0) {
-                notifyPidAssigned(value)
-                runCatching {
-                    me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.startMonitoring(value)
-                }
-            } else {
-                runCatching {
-                    me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring()
-                }
-            }
+            focused?.pid = value
+            onFocusedPidChanged(value)
         }
 
-    var isRoot: Boolean = false
-        private set
+    val isRoot: Boolean
+        get() = focused?.isRoot == true
 
-    var isTermex: Boolean = false
-        private set
+    val isTermex: Boolean
+        get() = focused?.isTermex == true
 
-    var startTimeMillis: Long = 0L
-        private set
+    val startTimeMillis: Long
+        get() = focused?.startTimeMillis ?: 0L
 
     var isBackgroundKept: Boolean = false
         private set
@@ -85,14 +116,28 @@ object ScriptExecutionManager {
         listeners.remove(listener)
     }
 
-    fun isRunning(): Boolean {
-        return activeSession?.isRunning == true
+    /** The focused session is running. */
+    fun isRunning(): Boolean = focused?.isRunning == true
+
+    fun hasActiveSession(): Boolean = isRunning()
+
+    private fun onFocusedPidChanged(pid: Int) {
+        if (pid > 0) {
+            notifyPidAssigned(pid)
+            runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.startMonitoring(pid) }
+        } else {
+            runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring() }
+        }
     }
 
-    fun hasActiveSession(): Boolean {
-        return activeSession != null && activeSession?.isRunning == true
+    /** A session reported its pid (each session has its own client callback). */
+    fun onSessionPid(session: TerminalSession, pid: Int) {
+        val entry = entryFor(session) ?: return
+        entry.pid = pid
+        if (entry === focused) onFocusedPidChanged(pid)
     }
 
+    /** Registers a new session and focuses it. Other sessions keep running. */
     fun startExecution(
         context: Context,
         session: TerminalSession,
@@ -102,19 +147,27 @@ object ScriptExecutionManager {
         root: Boolean = false,
         termex: Boolean = false
     ) {
-        activeSession = session
-        activeScriptName = scriptName.ifEmpty { "Script" }
-        activeScriptPath = path
-        activeCommand = command
-        activePid = session.pid
-        isRoot = root
-        isTermex = termex
-        startTimeMillis = System.currentTimeMillis()
-        isBackgroundKept = false
+        val entry = Entry(
+            session = session,
+            name = scriptName.ifEmpty { "Script" },
+            scriptPath = path,
+            command = command,
+            isRoot = root,
+            isTermex = termex,
+            startTimeMillis = System.currentTimeMillis()
+        )
+        entry.pid = session.pid
+        entries.add(entry)
+        focus(entry)
         lastExitCode = null
         isTerminatedByUser = false
+        ScriptExecutionService.start(context.applicationContext, entry.name, entry.pid)
+    }
 
-        ScriptExecutionService.start(context.applicationContext, activeScriptName, activePid)
+    fun focus(entry: Entry) {
+        if (entry !in entries) return
+        focused = entry
+        onFocusedPidChanged(if (entry.isRunning) entry.pid else -1)
     }
 
     fun keepInBackground(context: Context) {
@@ -125,28 +178,31 @@ object ScriptExecutionManager {
 
     private val isTerminating = java.util.concurrent.atomic.AtomicBoolean(false)
 
+    /** Ends the focused session (and only it); focus moves to another live session if any. */
     fun terminateShell(context: Context): Boolean {
-        isTerminatedByUser = true
+        val entry = focused ?: return false
+        return terminate(context, entry)
+    }
+
+    /** Ends every session (notification "stop" action). */
+    fun terminateAll(context: Context) {
+        for (entry in entries.toList()) terminate(context, entry)
+    }
+
+    fun terminate(context: Context, entry: Entry): Boolean {
         if (!isTerminating.compareAndSet(false, true)) {
             return false
         }
         try {
-            val session = activeSession
-            val pid = activePid
-            activeSession = null
-            activePid = -1
-            activeCommand = null
-            activeScriptName = ""
-
-            if (session != null && session.isRunning) {
-                runCatching { session.finishIfRunning() }
+            val pid = entry.pid
+            entries.remove(entry)
+            if (entry.session.isRunning) {
+                runCatching { entry.session.finishIfRunning() }
             }
-            runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring() }
-
             if (pid > 0) {
                 runCatching { Os.kill(pid, OsConstants.SIGKILL) }
                 runCatching { Os.kill(-pid, OsConstants.SIGKILL) }
-                if (isRoot) {
+                if (entry.isRoot) {
                     CoroutineScope(Dispatchers.IO).launch {
                         runCatching {
                             com.topjohnwu.superuser.Shell.cmd("kill -9 $pid 2>/dev/null || true").exec()
@@ -154,27 +210,50 @@ object ScriptExecutionManager {
                     }
                 }
             }
-
-            releaseWakeLock()
             lastExitCode = -9
-            notifySessionFinished(-9)
+            if (focused === entry) {
+                focused = entries.lastOrNull { it.isRunning } ?: entries.lastOrNull()
+                onFocusedPidChanged(focused?.takeIf { it.isRunning }?.pid ?: -1)
+            }
+            if (runningCount == 0) {
+                isTerminatedByUser = true
+                releaseWakeLock()
+                notifySessionFinished(-9)
+            } else {
+                ScriptExecutionService.updateNotification(context.applicationContext)
+            }
             return true
         } finally {
             isTerminating.set(false)
         }
     }
 
-    fun onSessionFinished(exitCode: Int, context: Context?) {
-        runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring() }
-        if (isTerminating.get() || isTerminatedByUser) {
+    /** A session's process ended on its own. */
+    fun onSessionFinished(session: TerminalSession, exitCode: Int, context: Context?) {
+        val entry = entryFor(session)
+        entry?.exitCode = exitCode
+        if (entry === focused) {
+            runCatching { me.zhanghai.android.files.terminal.tracer.SyscallReaderMonitor.stopMonitoring() }
+        }
+        if (isTerminating.get() || entry == null) {
             return
         }
         lastExitCode = exitCode
+        if (runningCount > 0) {
+            // Other sessions keep the service and its notification alive.
+            if (context != null) ScriptExecutionService.updateNotification(context.applicationContext)
+            return
+        }
         releaseWakeLock()
         notifySessionFinished(exitCode)
         if (context != null) {
             ScriptExecutionService.onExecutionFinished(context.applicationContext, exitCode)
         }
+    }
+
+    /** Compatibility: the focused session finished. */
+    fun onSessionFinished(exitCode: Int, context: Context?) {
+        focused?.session?.let { onSessionFinished(it, exitCode, context) }
     }
 
     fun notifyOutputUpdated() {
@@ -221,15 +300,23 @@ object ScriptExecutionManager {
         }
     }
 
+    /** Forgets finished sessions; running ones are kept. */
     fun clearSession() {
-        releaseWakeLock()
-        activeSession = null
-        activeScriptName = ""
-        activeScriptPath = null
-        activeCommand = null
-        activePid = -1
-        isRoot = false
-        isTermex = false
-        isBackgroundKept = false
+        entries.removeAll { !it.isRunning }
+        if (focused != null && focused !in entries) {
+            focused = entries.lastOrNull()
+        }
+        if (entries.isEmpty()) {
+            focused = null
+            releaseWakeLock()
+            isBackgroundKept = false
+        }
+    }
+
+    /** Removes one finished session from the list. */
+    fun dismiss(entry: Entry) {
+        if (entry.isRunning) return
+        entries.remove(entry)
+        if (focused === entry) focused = entries.lastOrNull { it.isRunning } ?: entries.lastOrNull()
     }
 }

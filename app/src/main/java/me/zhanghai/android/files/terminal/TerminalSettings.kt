@@ -18,6 +18,7 @@ object TerminalSettings {
     private const val PREF_INSTANT_TYPING = "terminal_instant_typing"
     private const val PREF_PREDICTIVE_ECHO = "terminal_predictive_echo"
     private const val PREF_EXTRA_KEYS_MODE = "terminal_extra_keys_mode"
+    private const val PREF_COMPOSE_BAR = "terminal_compose_bar"
 
     const val MIN_FONT_SIZE_SP = 8
     const val MAX_FONT_SIZE_SP = 36
@@ -104,5 +105,12 @@ object TerminalSettings {
 
     fun setExtraKeysMode(context: Context, mode: TerminalExtraKeysView.DeckMode) {
         PreferenceManager.getDefaultSharedPreferences(context).edit { putString(PREF_EXTRA_KEYS_MODE, mode.name) }
+    }
+
+    fun isComposeBar(context: Context): Boolean =
+        PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_COMPOSE_BAR, false)
+
+    fun setComposeBar(context: Context, enabled: Boolean) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit { putBoolean(PREF_COMPOSE_BAR, enabled) }
     }
 }

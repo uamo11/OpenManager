@@ -92,6 +92,10 @@ class TerminalExtraKeysView @JvmOverloads constructor(
             buildKeys()
         }
 
+    /** Local text bar (type with the keyboard's suggestions, send the whole line at once). */
+    var composeBarEnabled: Boolean = false
+    var onComposeBarToggled: ((Boolean) -> Unit)? = null
+
     /** Called when the user picks another layout from the ⋮ menu. */
     var onDeckModeSelected: ((DeckMode) -> Unit)? = null
 
@@ -246,7 +250,17 @@ class TerminalExtraKeysView @JvmOverloads constructor(
             }
         }
         popup.menu.setGroupCheckable(0, true, true)
+        // Separate, independent toggle: the local writing bar above the keys.
+        popup.menu.add(1, MENU_COMPOSE, 10, me.zhanghai.android.files.R.string.om_term_compose_bar).apply {
+            isCheckable = true
+            isChecked = composeBarEnabled
+        }
         popup.setOnMenuItemClickListener { item ->
+            if (item.itemId == MENU_COMPOSE) {
+                composeBarEnabled = !composeBarEnabled
+                onComposeBarToggled?.invoke(composeBarEnabled)
+                return@setOnMenuItemClickListener true
+            }
             val mode = labels[item.itemId].first
             deckMode = mode
             onDeckModeSelected?.invoke(mode)
@@ -674,5 +688,9 @@ class TerminalExtraKeysView @JvmOverloads constructor(
             updateModifierStyles()
         }
         return wasActive
+    }
+
+    private companion object {
+        const val MENU_COMPOSE = 100
     }
 }

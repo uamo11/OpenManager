@@ -3075,4 +3075,10 @@
     </plurals>
     <string name="about_telegram_title">Telegram channel</string>
     <string name="about_telegram_summary" translatable="false">t.me/yOpenManager</string>
+    <string name="script_exec_conflict_run_parallel">Run alongside</string>
+    <string name="script_exec_notification_running_many">Running: %1$s (+%2$d more)</string>
+    <string name="om_term_close_this_session">Close this session</string>
+    <string name="om_term_compose_bar">Writing bar</string>
+    <string name="om_term_compose_hint">Type here, send at once</string>
+    <string name="om_term_compose_send">Send</string>
 </resources>

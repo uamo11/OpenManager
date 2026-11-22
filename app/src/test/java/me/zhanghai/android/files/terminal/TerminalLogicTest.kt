@@ -146,12 +146,13 @@ class TerminalLogicTest {
         }
         ScriptExecutionManager.addListener(listener)
 
+        // With no session the pid belongs to nobody, and nothing can "finish".
         ScriptExecutionManager.activePid = 1234
-        assertEquals(1234, ScriptExecutionManager.activePid)
-
+        assertEquals(-1, ScriptExecutionManager.activePid)
         ScriptExecutionManager.onSessionFinished(0, null)
-        assertEquals(0, finishedCode)
-        assertEquals(0, ScriptExecutionManager.lastExitCode)
+        assertEquals(null, finishedCode)
+        assertEquals(0, ScriptExecutionManager.runningCount)
+        assertTrue(ScriptExecutionManager.sessions.isEmpty())
 
         ScriptExecutionManager.clearSession()
         assertEquals(-1, ScriptExecutionManager.activePid)

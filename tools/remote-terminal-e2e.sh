@@ -185,6 +185,34 @@ else
 fi
 shot 07_ssh_after_typing
 
+log "=== Writing bar: compose locally, send at once ==="
+clear_probe /tmp/om_compose_probe
+if pos=$(find_text "⋮"); then
+    adb shell input tap $pos; sleep 1
+    if pos2=$(find_text "Writing bar" "Barra de escritura"); then
+        adb shell input tap $pos2; sleep 2
+        shot 07e_compose_bar
+        adb shell "input text 'echo%sOM_COMPOSE_OK%s>%s/tmp/om_compose_probe'"
+        sleep 1
+        if pos3=$(find_text "Send" "Enviar"); then
+            adb shell input tap $pos3
+            if wait_file 20 /tmp/om_compose_probe OM_COMPOSE_OK; then
+                pass "writing bar sends the composed line to the server"
+            else
+                fail "writing bar text never reached the server"
+            fi
+        else
+            fail "writing bar has no send button"
+        fi
+        pos=$(find_text "⋮") && adb shell input tap $pos && sleep 1
+        pos2=$(find_text "Writing bar" "Barra de escritura") && adb shell input tap $pos2 && sleep 1
+    else
+        fail "no writing bar option in the key menu"
+    fi
+else
+    fail "no ⋮ on the key deck"
+fi
+
 log "=== Predictive echo with +150 ms server latency ==="
 sudo tc qdisc add dev lo root handle 1: prio
 sudo tc qdisc add dev lo parent 1:3 handle 30: netem delay 150ms
@@ -374,6 +402,21 @@ if pos=$(wait_text 30 "Allow" "Permitir"); then
     fi
 else
     fail "no confirmation dialog on the second run"
+fi
+
+log "=== Two scripts at the same time ==="
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -f /sdcard/om_guard_test/multi_a.log /sdcard/om_guard_test/multi_b.log
+demo multi_sessions; sleep 12
+shot 14c_two_sessions
+a1=$(adb shell cat /sdcard/om_guard_test/multi_a.log 2>/dev/null | wc -l); b1=$(adb shell cat /sdcard/om_guard_test/multi_b.log 2>/dev/null | wc -l)
+sleep 4
+a2=$(adb shell cat /sdcard/om_guard_test/multi_a.log 2>/dev/null | wc -l); b2=$(adb shell cat /sdcard/om_guard_test/multi_b.log 2>/dev/null | wc -l)
+log "      multi_a: $a1 -> $a2 lines, multi_b: $b1 -> $b2 lines"
+if [ "$a2" -gt "$a1" ] && [ "$b2" -gt "$b1" ]; then
+    pass "the first script keeps running after starting a second one"
+else
+    fail "only one script kept running"
 fi
 
 log "=== Dead Man: relative path to /system from / is blocked without asking ==="

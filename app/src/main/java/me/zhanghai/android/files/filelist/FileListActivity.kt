@@ -527,6 +527,26 @@ class FileListActivity : AppActivity() {
                     )
                 )
             }
+            "multi_sessions" -> {
+                // Two scripts started one after the other must both keep running.
+                fun launch(name: String) {
+                    val script = java.io.File(dir, "$name.sh")
+                    script.writeText(
+                        "#!/system/bin/sh\n" +
+                            "i=0; while [ \$i -lt 25 ]; do echo \$i >> /sdcard/om_guard_test/$name.log; i=\$((i+1)); sleep 1; done\n"
+                    )
+                    startActivity(
+                        me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                            context = this,
+                            path = dir.absolutePath,
+                            command = "sh '${script.absolutePath}'",
+                            activeScriptPath = script.absolutePath
+                        )
+                    )
+                }
+                launch("multi_a")
+                window.decorView.postDelayed({ launch("multi_b") }, 2500)
+            }
             "guard_deadman" -> startActivity(
                 me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
                     context = this,
@@ -641,7 +661,7 @@ class FileListActivity : AppActivity() {
                             fragmentB.navigateTo(java8.nio.file.Paths.get("/data"))
                         }
                     }
-                    "guard_script", "guard_deadman" -> handleGuardDemo(action)
+                    "guard_script", "guard_deadman", "multi_sessions" -> handleGuardDemo(action)
                     "remote_profiles", "remote_add_sheet", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
                         handleRemoteTerminalDemo(action)
                     "terminal" -> {

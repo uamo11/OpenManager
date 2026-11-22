@@ -266,4 +266,37 @@ class RemoteTerminalTest {
             deck.indexOf("var deckMode") < deck.indexOf("    init {")
         )
     }
+
+    @Test
+    fun severalSessionsRunAtOnce() {
+        val manager = resolveMainFile("java/me/zhanghai/android/files/terminal/ScriptExecutionManager.kt").readText()
+        assertTrue(manager.contains("private val entries = CopyOnWriteArrayList<Entry>()"))
+        val start = manager.substringAfter("fun startExecution(").substringBefore("fun focus(")
+        assertFalse("Starting a session must not end the others", start.contains("finishIfRunning"))
+        val activity = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalActivity.kt").readText()
+        assertTrue(activity.contains("MENU_SESSION_BASE"))
+        val runner = resolveMainFile("java/me/zhanghai/android/files/filelist/ScriptRunnerHelper.kt").readText()
+        assertTrue(runner.contains("R.string.script_exec_conflict_run_parallel"))
+        val service = resolveMainFile("java/me/zhanghai/android/files/terminal/ScriptExecutionService.kt").readText()
+        assertTrue("One script ending must not drop the others' notification",
+            service.substringAfter("private fun handleFinished").contains("runningCount > 0"))
+    }
+
+    @Test
+    fun scrollingHistoryIsNotYankedByOutput() {
+        val view = resolveMainFile("java/com/termux/view/TerminalView.java").readText()
+        assertTrue(view.contains("boolean readingHistory = mTopRow < 0"))
+        assertTrue("fling must not diff against mTopRow", view.contains("int diff = newY - mLastY;"))
+        assertTrue(view.contains("public void scrollToBottomForInput()"))
+    }
+
+    @Test
+    fun composeBarSendsWholeLines() {
+        val activity = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalActivity.kt").readText()
+        val compose = activity.substringAfter("private fun setupComposeBar()")
+        assertTrue(compose.contains("session.emulator?.paste(text)"))
+        assertTrue(compose.contains("session.write(\"\\r\")"))
+        val layout = resolveMainFile("res/layout/activity_terminal.xml").readText()
+        assertTrue(layout.contains("@+id/composeBar"))
+    }
 }

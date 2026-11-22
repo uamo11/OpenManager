@@ -103,7 +103,7 @@ class ScriptExecutionService : Service() {
                 handleKeepBackground()
             }
             ACTION_UPDATE -> {
-                if (ScriptExecutionManager.isRunning()) {
+                if (ScriptExecutionManager.runningCount > 0) {
                     val notification = buildRunningNotification(
                         ScriptExecutionManager.activeScriptName,
                         ScriptExecutionManager.activePid
@@ -133,7 +133,8 @@ class ScriptExecutionService : Service() {
 
     private fun handleKillShell() {
         val pid = ScriptExecutionManager.activePid
-        ScriptExecutionManager.terminateShell(this)
+        // The notification is shared by every session: its stop action ends them all.
+        ScriptExecutionManager.terminateAll(this)
 
         mainHandler.post {
             Toast.makeText(this, getString(R.string.script_exec_killed_toast, if (pid > 0) pid else 0), Toast.LENGTH_SHORT).show()
@@ -159,6 +160,14 @@ class ScriptExecutionService : Service() {
     }
 
     private fun handleFinished(exitCode: Int) {
+        if (ScriptExecutionManager.runningCount > 0) {
+            // Another session is still running: keep the ongoing notification.
+            NotificationManagerCompat.from(this).notify(
+                NotificationIds.SCRIPT_EXECUTION,
+                buildRunningNotification(ScriptExecutionManager.activeScriptName, ScriptExecutionManager.activePid)
+            )
+            return
+        }
         if (ScriptExecutionManager.isTerminatedByUser || (!ScriptExecutionManager.isRunning() && ScriptExecutionManager.activePid <= 0 && exitCode == -9)) {
             NotificationManagerCompat.from(this).cancel(NotificationIds.SCRIPT_EXECUTION)
             stopForeground(true)
@@ -208,8 +217,14 @@ class ScriptExecutionService : Service() {
             else -> "Sistema (sh)"
         }
 
+        val running = ScriptExecutionManager.runningCount
+        val title = if (running > 1) {
+            getString(R.string.script_exec_notification_running_many, scriptName, running - 1)
+        } else {
+            getString(R.string.script_exec_notification_running, scriptName)
+        }
         return scriptExecutionNotificationTemplate.createBuilder(this)
-            .setContentTitle(getString(R.string.script_exec_notification_running, scriptName))
+            .setContentTitle(title)
             .setContentText(statusText)
             .setSubText(subText)
             .setOngoing(true)

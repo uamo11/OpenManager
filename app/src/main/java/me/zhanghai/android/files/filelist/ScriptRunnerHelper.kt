@@ -1282,7 +1282,11 @@ object ScriptRunnerHelper {
                     ScriptExecutionManager.activeScriptName,
                     ScriptExecutionManager.activePid
                 ))
-                .setPositiveButton(R.string.script_exec_conflict_view_existing) { _, _ ->
+                // Several scripts can run at once: running alongside is the default choice.
+                .setPositiveButton(R.string.script_exec_conflict_run_parallel) { _, _ ->
+                    performExecuteScriptOrBinary(activity, path)
+                }
+                .setNeutralButton(R.string.script_exec_conflict_view_existing) { _, _ ->
                     val intent = Intent(activity, TerminalActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
                     }
@@ -1292,7 +1296,6 @@ object ScriptRunnerHelper {
                     ScriptExecutionManager.terminateShell(activity)
                     performExecuteScriptOrBinary(activity, path)
                 }
-                .setNeutralButton(android.R.string.cancel, null)
                 .show()
             return
         }

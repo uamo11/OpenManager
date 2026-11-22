@@ -132,6 +132,7 @@ class TerminalActivity : AppActivity() {
         const val EXTRA_FORCE_TERMEX = "me.zhanghai.android.files.terminal.extra.FORCE_TERMEX"
         const val EXTRA_ACTIVE_SCRIPT_PATH = "me.zhanghai.android.files.terminal.extra.ACTIVE_SCRIPT_PATH"
         const val EXTRA_REMOTE_PROFILE_ID = "me.zhanghai.android.files.terminal.extra.REMOTE_PROFILE_ID"
+        private const val MENU_SESSION_BASE = 1000
 
         /** Opens the terminal connected to a saved SSH/Telnet profile. */
         fun createRemoteIntent(context: Context, profileId: String): Intent =
@@ -240,6 +241,8 @@ class TerminalActivity : AppActivity() {
             if (activity != null) {
                 activity.runOnUiThread {
                     if (!activity.isUiAlive) return@runOnUiThread
+                    // Only the session on screen updates the HUD; others just end in the list.
+                    if (activity.terminalSession !== finishedSession) return@runOnUiThread
                     activity.stopRuntimeTicker()
                     activity.toolbar.subtitle = activity.getString(
                         R.string.om_term_finished_code_format,
@@ -253,11 +256,7 @@ class TerminalActivity : AppActivity() {
                     )
                 }
             }
-            // A replaced session (e.g. the previous SSH connection) must not end the new one's service.
-            val current = ScriptExecutionManager.activeSession
-            if (current == null || current === finishedSession) {
-                ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, appContext)
-            }
+            ScriptExecutionManager.onSessionFinished(finishedSession, finishedSession.exitStatus, appContext)
         }
 
         override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
@@ -288,11 +287,12 @@ class TerminalActivity : AppActivity() {
         override fun onTerminalCursorStateChange(state: Boolean) {}
 
         override fun setTerminalShellPid(session: TerminalSession, pid: Int) {
-            ScriptExecutionManager.activePid = pid
+            ScriptExecutionManager.onSessionPid(session, pid)
             ScriptExecutionService.updateNotification(appContext)
             val activity = hostActivity ?: return
             activity.runOnUiThread {
                 if (!activity.isUiAlive) return@runOnUiThread
+                if (activity.terminalSession !== session) return@runOnUiThread
                 activity.currentPid = pid
                 activity.updateRunningSubtitle()
             }
@@ -570,6 +570,7 @@ class TerminalActivity : AppActivity() {
                     finish()
                 }
             } else {
+                terminalView.scrollToBottomForInput()
                 terminalSession?.write(keyStr)
             }
         }
@@ -590,6 +591,59 @@ class TerminalActivity : AppActivity() {
         }
         btnShowExtraKeys?.setOnClickListener { extraKeysView.showDeckMenu(it) }
         updateExtraKeysHandle()
+        setupComposeBar()
+    }
+
+    /**
+     * Local writing bar: the line is edited on the phone (instant, with the keyboard's suggestions)
+     * and sent in one go, so a slow link never delays what you see while typing.
+     */
+    private fun setupComposeBar() {
+        val bar = findViewById<View>(R.id.composeBar) ?: return
+        val input = findViewById<android.widget.EditText>(R.id.composeInput)
+        val send = findViewById<View>(R.id.composeSend)
+        fun apply(enabled: Boolean, focus: Boolean) {
+            bar.isVisible = enabled
+            extraKeysView.composeBarEnabled = enabled
+            if (enabled && focus) {
+                input.requestFocus()
+                (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)
+                    ?.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+            } else if (!enabled) {
+                terminalView.requestFocus()
+            }
+        }
+        apply(TerminalSettings.isComposeBar(this), focus = false)
+        extraKeysView.onComposeBarToggled = { enabled ->
+            TerminalSettings.setComposeBar(this, enabled)
+            apply(enabled, focus = true)
+        }
+        val sendLine = {
+            val session = terminalSession
+            if (session != null && session.isRunning) {
+                val text = input.text?.toString().orEmpty()
+                terminalView.scrollToBottomForInput()
+                if (text.isNotEmpty()) {
+                    // paste() honors bracketed paste, so multi-line text reaches Claude/vim as one block.
+                    session.emulator?.paste(text) ?: session.write(text)
+                }
+                session.write("\r")
+                input.text?.clear()
+            }
+        }
+        send.setOnClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            sendLine()
+        }
+        input.setOnEditorActionListener { _, actionId, event ->
+            val isEnter = event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEND || isEnter) {
+                sendLine()
+                true
+            } else {
+                false
+            }
+        }
     }
 
     /** With the key deck hidden, a small ⋮ over the terminal brings it back. */
@@ -936,40 +990,30 @@ class TerminalActivity : AppActivity() {
         } else {
             null
         }
-        val activeRemoteId = (ScriptExecutionManager.activeSession?.remoteTransport as? ProfileTransport)
-            ?.profile?.id
-
-        // 1. Reattach to active background session cleanly unless switching environment explicitly
-        if (forceRootOverride == null && forceTermexOverride == null &&
-            initialCommand == null && ScriptExecutionManager.hasActiveSession() &&
-            (remoteProfileId == null || remoteProfileId == activeRemoteId)
-        ) {
-            val existingSession = ScriptExecutionManager.activeSession!!
-            setRemoteProfile((existingSession.remoteTransport as? ProfileTransport)?.profile)
-            existingSession.updateTerminalSessionClient(sessionClient)
-            terminalSession = existingSession
-            currentPid = ScriptExecutionManager.activePid
-
-            terminalView.setTerminalViewClient(viewClient)
-            terminalView.attachSession(existingSession)
-            updatePredictiveEcho()
-
-            toolbar.title = ScriptExecutionManager.activeScriptName
-            val reattachCwd = ScriptExecutionManager.activeScriptPath ?: TerminalSettings.getStartPath(this)
-            updateHudState(
-                isRoot = ScriptExecutionManager.isRoot,
-                isTermex = ScriptExecutionManager.isTermex,
-                isRunning = existingSession.isRunning,
-                exitStatus = if (existingSession.isRunning) null else existingSession.exitStatus,
-                cwd = reattachCwd
-            )
-            if (!existingSession.isRunning) {
-                toolbar.subtitle = getString(R.string.om_term_finished_code_format, existingSession.exitStatus)
+        // 1. Reattach to a live session (several can run at once) unless a new one is requested.
+        if (forceRootOverride == null && forceTermexOverride == null && initialCommand == null) {
+            val existing = if (remoteProfileId != null) {
+                ScriptExecutionManager.sessions.lastOrNull {
+                    it.isRunning && (it.session.remoteTransport as? ProfileTransport)?.profile?.id == remoteProfileId
+                }
+            } else {
+                ScriptExecutionManager.focusedEntry?.takeIf { it.isRunning }
+                    ?: ScriptExecutionManager.sessions.lastOrNull { it.isRunning }
             }
-            return
+            if (existing != null) {
+                terminalView.setTerminalViewClient(viewClient)
+                showEntry(existing, sessionClient)
+                return
+            }
         }
 
-        terminalSession?.finishIfRunning()
+        // Switching environment (system / root / Termex) replaces an idle interactive shell;
+        // scripts, commands and SSH sessions are never killed by starting another session.
+        if (forceRootOverride != null || forceTermexOverride != null) {
+            ScriptExecutionManager.focusedEntry
+                ?.takeIf { it.command == null && !it.session.isRemote && it.session === terminalSession }
+                ?.let { ScriptExecutionManager.terminate(this, it) }
+        }
 
         if (remoteProfileId != null) {
             val profile = RemoteProfileStore.get(this, remoteProfileId)
@@ -1060,15 +1104,49 @@ class TerminalActivity : AppActivity() {
         )
     }
 
+    /** Ends the session on screen and shows another open one, or leaves the terminal. */
+    private fun closeCurrentSession() {
+        val entry = terminalSession?.let { ScriptExecutionManager.entryFor(it) }
+        if (entry != null) {
+            if (entry.isRunning) ScriptExecutionManager.terminate(this, entry) else ScriptExecutionManager.dismiss(entry)
+        }
+        val next = ScriptExecutionManager.sessions.lastOrNull { it.isRunning } ?: ScriptExecutionManager.sessions.lastOrNull()
+        if (next != null) showEntry(next) else finish()
+    }
+
+    /** Puts an existing session on screen (switching sessions or reopening the terminal). */
+    private fun showEntry(entry: ScriptExecutionManager.Entry, client: DetachableSessionClient? = null) {
+        val sessionClient = client ?: DetachableSessionClient(applicationContext, this).also {
+            detachableClient?.detach(this)
+            detachableClient = it
+        }
+        ScriptExecutionManager.focus(entry)
+        val session = entry.session
+        setRemoteProfile((session.remoteTransport as? ProfileTransport)?.profile)
+        session.updateTerminalSessionClient(sessionClient)
+        terminalSession = session
+        currentPid = entry.pid
+        terminalView.attachSession(session)
+        updatePredictiveEcho()
+        terminalView.onScreenUpdated()
+        toolbar.title = entry.name
+        updateHudState(
+            isRoot = entry.isRoot,
+            isTermex = entry.isTermex,
+            isRunning = session.isRunning,
+            exitStatus = if (session.isRunning) null else session.exitStatus,
+            cwd = entry.scriptPath ?: TerminalSettings.getStartPath(this)
+        )
+        if (!session.isRunning) {
+            toolbar.subtitle = getString(R.string.om_term_finished_code_format, session.exitStatus)
+        }
+    }
+
     private fun startRemoteSession(
         profile: RemoteProfile,
         sessionClient: DetachableSessionClient,
         viewClient: TerminalViewClient
     ) {
-        // Replacing an older remote connection: close it instead of leaving it open in background.
-        ScriptExecutionManager.activeSession
-            ?.takeIf { it.isRemote && it.isRunning }
-            ?.finishIfRunning()
         val transport = ProfileTransport.create(this, profile)
         val session = TerminalSession(
             transport,
@@ -1173,8 +1251,8 @@ class TerminalActivity : AppActivity() {
     }
 
     private fun closeRemoteSession() {
-        ScriptExecutionManager.terminateShell(this)
-        finish()
+        // Close this connection; other sessions stay open and the next one is shown.
+        closeCurrentSession()
     }
 
     /** Security and algorithms of the live SSH/Telnet link (replaces the script audit for VPS). */
@@ -1277,6 +1355,16 @@ class TerminalActivity : AppActivity() {
             add(Menu.NONE, 6, 6, R.string.om_term_new_clean_session)
             remoteProfile?.let { add(Menu.NONE, 8, 7, getString(R.string.om_remote_reconnect, it.displayName)) }
             add(Menu.NONE, 7, 8, R.string.om_remote_menu_ssh_telnet)
+            // Every open session (scripts, shells, SSH) with its state: tap to switch.
+            val sessions = ScriptExecutionManager.sessions
+            if (sessions.size > 1 || sessions.any { it.session !== terminalSession }) {
+                sessions.forEachIndexed { index, entry ->
+                    val state = if (entry.isRunning) "●" else "○ ${entry.session.exitStatus}"
+                    val current = if (entry.session === terminalSession) "  ✓" else ""
+                    add(Menu.NONE, MENU_SESSION_BASE + index, 20 + index, "$state  ${entry.name}$current")
+                }
+            }
+            if (terminalSession != null) add(Menu.NONE, 9, 40, R.string.om_term_close_this_session)
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -1323,6 +1411,14 @@ class TerminalActivity : AppActivity() {
                 }
                 7 -> {
                     startActivity(ConnectionsActivity.createIntent(this))
+                    true
+                }
+                9 -> {
+                    closeCurrentSession()
+                    true
+                }
+                in MENU_SESSION_BASE until MENU_SESSION_BASE + 100 -> {
+                    ScriptExecutionManager.sessions.getOrNull(item.itemId - MENU_SESSION_BASE)?.let { showEntry(it) }
                     true
                 }
                 8 -> {
@@ -1492,7 +1588,9 @@ class TerminalActivity : AppActivity() {
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
-        if (terminalSession?.isRunning == true) {
+        if (ScriptExecutionManager.runningCount > 0) {
+            // Finished sessions are forgotten; running ones (any of them) keep working.
+            ScriptExecutionManager.clearSession()
             Toast.makeText(applicationContext, R.string.script_exec_running_background_toast, Toast.LENGTH_SHORT).show()
         } else {
             ScriptExecutionManager.clearSession()

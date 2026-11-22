@@ -210,7 +210,9 @@ public final class TerminalView extends View {
                 }
 
                 post(new Runnable() {
-                    private int mLastY = 0;
+                    // Relative to where the fling started, never to mTopRow: output arriving
+                    // mid-fling moves mTopRow, and diffing against it made the view jump far up.
+                    private int mLastY = mouseTrackingAtStartOfFling ? 0 : mTopRow;
 
                     @Override
                     public void run() {
@@ -221,7 +223,7 @@ public final class TerminalView extends View {
                         if (mScroller.isFinished()) return;
                         boolean more = mScroller.computeScrollOffset();
                         int newY = mScroller.getCurrY();
-                        int diff = mouseTrackingAtStartOfFling ? (newY - mLastY) : (newY - mTopRow);
+                        int diff = newY - mLastY;
                         doScroll(e2, diff);
                         mLastY = newY;
                         if (more) post(this);
@@ -233,6 +235,8 @@ public final class TerminalView extends View {
 
             @Override
             public boolean onDown(float x, float y) {
+                // Touching the screen stops a running fling, like any scrolling list.
+                if (!mScroller.isFinished()) mScroller.forceFinished(true);
                 // Why is true not returned here?
                 // https://developer.android.com/training/gestures/detector.html#detect-a-subset-of-supported-gestures
                 // Although setting this to true still does not solve the following errors when long pressing in terminal view text area
@@ -467,7 +471,11 @@ public final class TerminalView extends View {
         int rowsInHistory = mEmulator.getScreen().getActiveTranscriptRows();
         if (mTopRow < -rowsInHistory) setTopRow(-rowsInHistory);
 
-        if (isSelectingText() || mEmulator.isAutoScrollDisabled()) {
+        // Reading the history must not be interrupted by new output (on a slow link output
+        // arrives in many small chunks and each one used to yank the view back to the bottom).
+        // The view stays on the same lines; typing brings it back down (see inputCodePoint).
+        boolean readingHistory = mTopRow < 0 && !isSelectingText() && !mEmulator.isAutoScrollDisabled();
+        if (isSelectingText() || mEmulator.isAutoScrollDisabled() || readingHistory) {
             // Do not scroll when selecting text.
             int rowShift = mEmulator.getScrollCounter();
             if (-mTopRow + rowShift > rowsInHistory) {
@@ -476,7 +484,7 @@ public final class TerminalView extends View {
                 if (isSelectingText())
                     stopTextSelectionMode();
 
-                if (mEmulator.isAutoScrollDisabled()) {
+                if (mEmulator.isAutoScrollDisabled() || readingHistory) {
                     setTopRow(-rowsInHistory);
                     skipScrolling = true;
                 }
@@ -860,6 +868,7 @@ public final class TerminalView extends View {
         // Ensure cursor is shown when a key is pressed down like long hold on (arrow) keys
         if (mEmulator != null)
             mEmulator.setCursorBlinkState(true);
+        scrollToBottomForInput();
 
         final boolean controlDown = controlDownFromEvent || mClient.readControlKey();
         final boolean altDown = leftAltDownFromEvent || mClient.readAltKey();
@@ -931,6 +940,7 @@ public final class TerminalView extends View {
 
         if (handleKeyCodeAction(keyCode, keyMod))
             return true;
+        scrollToBottomForInput();
 
         TerminalEmulator term = mTermSession.getEmulator();
         String code = KeyHandler.getCode(keyCode, keyMod, term.isCursorKeysApplicationMode(), term.isKeypadApplicationMode());
@@ -943,6 +953,15 @@ public final class TerminalView extends View {
         mTermSession.write(code);
         if (mEchoPredictor.isEnabled()) invalidate();
         return true;
+    }
+
+    /** Typing while reading the history jumps back to the prompt, where the input appears. */
+    public void scrollToBottomForInput() {
+        if (mTopRow != 0) {
+            if (!mScroller.isFinished()) mScroller.forceFinished(true);
+            setTopRow(0);
+            invalidate();
+        }
     }
 
     /**
