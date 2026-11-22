@@ -52,7 +52,6 @@ import me.zhanghai.android.files.terminal.remote.RemoteProfileStore
 import me.zhanghai.android.files.terminal.remote.ConnectionsActivity
 import me.zhanghai.android.files.terminal.remote.RemotePrompter
 import me.zhanghai.android.files.terminal.remote.RemoteProtocol
-import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.isUiAlive
 import java.io.File
@@ -215,23 +214,8 @@ class TerminalActivity : AppActivity() {
             }
         }
 
-        override fun onTerminalDataReceived(
-            session: TerminalSession,
-            data: ByteArray,
-            offset: Int,
-            length: Int
-        ) {
-            val activity = hostActivity ?: return
-            if (!activity.isUiAlive || length <= 0) return
-            // The syscall tracer only understands local scripts.
-            if (session.isRemote) return
-            val boundedLength = length.coerceAtMost(16384)
-            val chunk = String(data, offset, boundedLength, Charsets.UTF_8)
-            val activeScript = ScriptExecutionManager.activeScriptPath
-                ?: activity.intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
-                ?: activity.intent.getStringExtra(EXTRA_PATH)
-            BinaryTracerEngine.parseTerminalChunk(chunk, activity, session, activeScript)
-        }
+        // Output is no longer scanned for tracer tokens: the command guard talks to the app
+        // through its own channel (CommandGuardServer) instead of printing into the terminal.
 
         override fun onTitleChanged(changedSession: TerminalSession) {
             val title = changedSession.title
@@ -375,6 +359,7 @@ class TerminalActivity : AppActivity() {
     override fun onResume() {
         super.onResume()
         RemotePrompter.attach(this)
+        me.zhanghai.android.files.terminal.tracer.GuardPrompter.attach(this)
         applyPreferences()
         if (terminalSession?.isRunning == true) {
             startRuntimeTicker()
@@ -383,6 +368,7 @@ class TerminalActivity : AppActivity() {
 
     override fun onPause() {
         super.onPause()
+        me.zhanghai.android.files.terminal.tracer.GuardPrompter.detach(this)
         if (me.zhanghai.android.files.BuildConfig.DEBUG && terminalSession?.isRemote == true) {
             android.util.Log.i(
                 "OMEcho",
@@ -457,17 +443,9 @@ class TerminalActivity : AppActivity() {
             copyTerminalTranscript()
         }
 
-        btnDeadManSkull?.setOnClickListener {
-            if (lastDeadManTarget.isNotEmpty()) {
-                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
-            }
-        }
-
-        layoutDeadManAlertBadge?.setOnClickListener {
-            if (lastDeadManTarget.isNotEmpty()) {
-                DeadManProtectionManager.showDeadManProtectionDialog(this, lastDeadManTarget, lastDeadManCmd)
-            }
-        }
+        // The audit sheet shows what was blocked, why, and the protection switches.
+        btnDeadManSkull?.setOnClickListener { showScriptAuditDialog() }
+        layoutDeadManAlertBadge?.setOnClickListener { showScriptAuditDialog() }
 
         btnOverflowMenu?.setOnClickListener {
             showOverflowMenu(it)
@@ -500,6 +478,18 @@ class TerminalActivity : AppActivity() {
             ?: intent.getStringExtra(EXTRA_ACTIVE_SCRIPT_PATH)
             ?: intent.getStringExtra(EXTRA_PATH)
         me.zhanghai.android.files.terminal.tracer.ScriptAuditDialogFragment.show(this, activeScript)
+    }
+
+    /**
+     * A protection blocked something: show the skull badge (tap = details) without interrupting
+     * the session with a modal dialog, which used to pop up again for every blocked command.
+     */
+    fun markDeadManBlocked(target: String, cmd: String) {
+        lastDeadManTarget = target
+        lastDeadManCmd = cmd
+        if (!isUiAlive) return
+        btnDeadManSkull?.visibility = View.VISIBLE
+        layoutDeadManAlertBadge?.visibility = View.VISIBLE
     }
 
     fun showDeadManSkullAlert(target: String, cmd: String) {

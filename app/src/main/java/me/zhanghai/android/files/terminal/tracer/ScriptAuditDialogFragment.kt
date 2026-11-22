@@ -5,488 +5,390 @@
 
 package me.zhanghai.android.files.terminal.tracer
 
-import android.app.Dialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.RadioButton
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
-import com.google.android.material.card.MaterialCardView
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.switchmaterial.SwitchMaterial
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.R
-import me.zhanghai.android.files.databinding.DialogScriptAuditBinding
-import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.filelist.ElfInspector
 import me.zhanghai.android.files.filelist.ScriptRunnerHelper
+import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-class ScriptAuditDialogFragment : AppCompatDialogFragment() {
+/**
+ * Audit & protection sheet: which protections are on, what happens when the script deletes
+ * something, the real decisions taken (live), and the static analysis on demand.
+ */
+class ScriptAuditDialogFragment : BottomSheetDialogFragment() {
 
-    private var scriptPath: String? = null
+    private var scriptPath: String = ""
+    private lateinit var root: View
+    private val refreshListener: () -> Unit = { if (isAdded) refreshActivity() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        scriptPath = arguments?.getString(ARG_SCRIPT_PATH)
-            ?: ScriptExecutionManager.activeScriptPath
+        scriptPath = arguments?.getString(ARG_SCRIPT_PATH) ?: ScriptExecutionManager.activeScriptPath ?: ""
     }
 
-    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
-        val binding = DialogScriptAuditBinding.inflate(LayoutInflater.from(requireContext()))
+    override fun onCreateDialog(savedInstanceState: Bundle?) =
+        (super.onCreateDialog(savedInstanceState) as BottomSheetDialog).apply {
+            behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            behavior.skipCollapsed = true
+        }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        root = inflater.inflate(R.layout.script_audit_sheet, container, false)
+        return root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val context = requireContext()
-        val path = scriptPath ?: ScriptExecutionManager.activeScriptPath ?: ""
-        val scriptName = if (path.isNotEmpty()) File(path).name else ScriptExecutionManager.activeScriptName.ifEmpty { "Script" }
+        val scriptName = scriptPath.takeIf { it.isNotEmpty() && File(it).isFile }?.let { File(it).name }
+            ?: ScriptExecutionManager.activeScriptName.ifEmpty { getString(R.string.om_audit_interactive_session) }
+        view.findViewById<TextView>(R.id.auditScriptName).text = scriptName
 
-        // 1. Script Identity & Status
-        binding.tvAuditTitle.text = getString(R.string.script_audit_title) + " - " + scriptName
-        binding.tvAuditScriptPath.text = path.ifEmpty { getString(R.string.om_audit_interactive_session) }
-
-        val isRunning = ScriptExecutionManager.isRunning()
-        if (isRunning) {
-            binding.tvAuditStatusBadge.text = getString(R.string.script_audit_status_running).uppercase(Locale.ROOT)
-            binding.tvAuditStatusBadge.setTextColor(Color.parseColor("#4CAF50"))
-            binding.tvAuditStatusBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
-        } else {
-            binding.tvAuditStatusBadge.text = getString(R.string.script_audit_status_finished).uppercase(Locale.ROOT)
-            binding.tvAuditStatusBadge.setTextColor(Color.parseColor("#B0BEC5"))
-            binding.tvAuditStatusBadge.setBackgroundColor(Color.parseColor("#37474F"))
+        val running = ScriptExecutionManager.isRunning()
+        view.findViewById<TextView>(R.id.auditStatusChip).apply {
+            text = getString(if (running) R.string.om_audit2_running else R.string.om_audit2_finished)
+            setChip(this, if (running) COLOR_OK else COLOR_NEUTRAL)
         }
 
-        // Static Code Audit (when path points to a readable script file)
-        var staticAuditFindings = 0
-        var staticAuditSummary = ""
-        val staticAuditReport: ScriptRunnerHelper.ScriptAuditReport? = if (path.isNotEmpty()) {
-            val scriptFile = File(path)
-            if (scriptFile.isFile && scriptFile.canRead()) {
-                val isElf = ScriptRunnerHelper.isElfBinary(java8.nio.file.Paths.get(path))
-                val report: ScriptRunnerHelper.ScriptAuditReport
-                val scriptContent: String
-                if (isElf) {
-                    val elfReport = me.zhanghai.android.files.filelist.ElfInspector.inspect(java8.nio.file.Paths.get(path))
-                    report = elfReport.toScriptAuditReport()
-                    scriptContent = buildString {
-                        appendLine(getString(R.string.om_audit_elf_header))
-                        appendLine(getString(R.string.om_audit_elf_arch_format, elfReport.machineArch))
-                        appendLine(getString(R.string.om_audit_elf_bitness_format, if (elfReport.is64Bit) "64-bit" else "32-bit"))
-                        appendLine("PIE (Position Independent Executable): ${getString(if (elfReport.isPie) R.string.om_audit_elf_pie_yes else R.string.om_audit_elf_pie_no)}")
-                        appendLine(getString(R.string.om_audit_elf_linker_format, elfReport.interpreter ?: getString(if (elfReport.isDynamic) R.string.om_audit_elf_dynamic else R.string.om_audit_elf_static)))
-                        appendLine(getString(R.string.om_audit_elf_abi_format, getString(if (elfReport.isAbiCompatible) R.string.om_audit_elf_compatible else R.string.om_audit_elf_incompatible)))
-                        appendLine("Direct Kernel Syscalls (svc/syscall): ${elfReport.directSyscallsCount}")
-                        appendLine("Stripped: ${elfReport.isStripped}")
-                        if (elfReport.hasRwxSegment) {
-                            appendLine("RWX Memory Segment: Detected")
-                        }
-                        if (elfReport.isPacked) {
-                            appendLine("Packer: UPX!")
-                        }
-                        if (elfReport.neededLibraries.isNotEmpty()) {
-                            appendLine("Needed Libraries: ${elfReport.neededLibraries.joinToString()}")
-                        }
-                        appendLine()
-                        appendLine(getString(R.string.om_audit_elf_syscalls_header_format, elfReport.totalFindings))
-                        for (f in elfReport.findings) {
-                            appendLine("- [${f.category.displayName}] ${f.symbol}: ${f.description} ${getString(R.string.om_audit_elf_risk_suffix_format, f.risk.levelName)}")
-                        }
-                    }
-                } else {
-                    scriptContent = runCatching { scriptFile.readText() }.getOrDefault("")
-                    report = ScriptRunnerHelper.auditScriptText(scriptContent)
-                }
+        bindProtections(view, context)
+        bindPolicy(view, context)
+        setupCollapsible(view, R.id.staticHeader, R.id.staticBody, R.id.staticChevron)
+        setupCollapsible(view, R.id.syscallHeader, R.id.syscallBody, R.id.syscallChevron)
+        loadStaticAnalysis(view)
 
-                if (scriptContent.isNotEmpty() || isElf) {
-                    staticAuditFindings = report.totalFindings
-                    binding.cardStaticAudit.visibility = View.VISIBLE
-                    if (report.totalFindings > 0) {
-                        binding.tvStaticAuditBadge.text = getString(R.string.om_audit_risks_badge_format, report.totalFindings)
-                        binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#EF5350"))
-                        binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#371B1B"))
-                        staticAuditSummary = getString(
-                            R.string.om_audit_summary_format,
-                            report.totalFindings,
-                            report.deletions.size,
-                            report.rootCalls.size,
-                            report.networkCalls.size,
-                            report.systemPaths.size
-                        )
-                        binding.tvStaticAuditDesc.text = getString(
-                            R.string.script_audit_static_findings_desc,
-                            report.totalFindings,
-                            report.deletions.size,
-                            report.rootCalls.size,
-                            report.networkCalls.size,
-                            report.systemPaths.size
-                        )
-
-                        binding.layoutStaticAuditCategories.removeAllViews()
-                        val addCat = { labelRes: Int, items: List<String>, colorHex: String, icon: String ->
-                            if (items.isNotEmpty()) {
-                                val tvCat = TextView(context).apply {
-                                    text = "$icon ${getString(labelRes)} (${items.size}):"
-                                    textSize = 11f
-                                    setTypeface(null, Typeface.BOLD)
-                                    setTextColor(Color.parseColor(colorHex))
-                                    setPadding(0, 4, 0, 1)
-                                }
-                                binding.layoutStaticAuditCategories.addView(tvCat)
-                                for (item in items.take(4)) {
-                                    val tvItem = TextView(context).apply {
-                                        text = "   $item"
-                                        textSize = 10f
-                                        setTypeface(Typeface.MONOSPACE)
-                                        setTextColor(Color.parseColor("#CFD8DC"))
-                                    }
-                                    binding.layoutStaticAuditCategories.addView(tvItem)
-                                }
-                                if (items.size > 4) {
-                                    val tvMore = TextView(context).apply {
-                                        text = getString(R.string.om_audit_more_in_code_format, items.size - 4)
-                                        textSize = 10f
-                                        setTextColor(Color.parseColor("#90A4AE"))
-                                    }
-                                    binding.layoutStaticAuditCategories.addView(tvMore)
-                                }
-                            }
-                        }
-
-                        addCat(R.string.script_audit_static_category_deletions, report.deletions, "#EF5350", "🗑️")
-                        addCat(R.string.script_audit_static_category_root, report.rootCalls, "#FFD54F", "⚡")
-                        addCat(R.string.script_audit_static_category_network, report.networkCalls, "#80D8FF", "🌐")
-                        addCat(R.string.script_audit_static_category_system, report.systemPaths, "#B388FF", "📁")
-                    } else {
-                        binding.tvStaticAuditBadge.text = getString(R.string.om_audit_clean_badge)
-                        binding.tvStaticAuditBadge.setTextColor(Color.parseColor("#81C784"))
-                        binding.tvStaticAuditBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
-                        binding.tvStaticAuditDesc.text = if (isElf) getString(R.string.om_audit_elf_clean_desc) else getString(R.string.script_audit_static_clean_desc)
-                        binding.layoutStaticAuditCategories.removeAllViews()
-                        staticAuditSummary = getString(R.string.om_audit_clean_summary)
-                    }
-
-                    binding.btnViewAuditCode.setOnClickListener {
-                        ScriptRunnerHelper.showFullCodeDialog(requireActivity(), scriptFile.name, scriptContent, report)
-                    }
-                    report
-                } else {
-                    binding.cardStaticAudit.visibility = View.GONE
-                    null
-                }
-            } else {
-                binding.cardStaticAudit.visibility = View.GONE
-                null
-            }
-        } else {
-            binding.cardStaticAudit.visibility = View.GONE
-            null
-        }
-
-        // 2. Telemetry Switch (On/Off)
-        val tracerEnabled = ScriptTracerPreferences.isTracerEnabled(context, path)
-        binding.switchEnableTracer.isChecked = tracerEnabled
-        binding.switchEnableTracer.setOnCheckedChangeListener { _, isChecked ->
-            ScriptTracerPreferences.setTracerEnabled(context, path, isChecked)
-            val msg = if (isChecked) "Rastreador activado para este script" else "Rastreador desactivado para este script (optimizado)"
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-        }
-
-        // 3. Deletion Policy Radio Group
-        val currentPolicy = ScriptTracerPreferences.getDeletionPolicy(context, path)
-        when (currentPolicy) {
-            ScriptTracerPreferences.DeletionPolicy.ASK -> binding.rbPolicyAsk.isChecked = true
-            ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> binding.rbPolicyBlock.isChecked = true
-            ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> binding.rbPolicyAllow.isChecked = true
-        }
-
-        binding.rgDeletionPolicy.setOnCheckedChangeListener { _, checkedId ->
-            val newPolicy = when (checkedId) {
-                R.id.rbPolicyBlock -> ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL
-                R.id.rbPolicyAllow -> ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL
-                else -> ScriptTracerPreferences.DeletionPolicy.ASK
-            }
-            ScriptTracerPreferences.setDeletionPolicy(context, path, newPolicy)
-        }
-
-        // 4. Update Stats & Event Ledger
-        fun refreshAuditData() {
-            val stats = BinaryTracerEngine.getStats()
-            binding.tvStatDeletionsVal.text = stats.totalDeletions.toString()
-            binding.tvStatDeletionsSub.text = getString(R.string.om_audit_del_sub_format, stats.blockedDeletions, stats.allowedDeletions)
-
-            binding.tvStatSyscallsVal.text = stats.totalSyscalls.toString()
-            binding.tvStatSyscallsSub.text = getString(if (stats.totalSyscalls > 0) R.string.om_audit_syscalls_monitored else R.string.om_audit_syscalls_none)
-
-            binding.tvStatKernelVal.text = stats.totalKernelReads.toString()
-            binding.tvStatKernelSub.text = getString(R.string.om_audit_proc_queries)
-
-            val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
-            binding.tvStatDeadManVal.text = getString(if (deadManActive) R.string.om_audit_status_active else R.string.om_audit_status_disabled)
-            binding.tvStatDeadManVal.setTextColor(if (deadManActive) Color.parseColor("#81C784") else Color.parseColor("#E57373"))
-
-            // Update Live Syscall Transparency Card
-            val isProcRunning = ScriptExecutionManager.isRunning()
-            if (isProcRunning) {
-                binding.tvLiveSyscallStatusBadge.text = getString(R.string.om_audit_badge_monitoring)
-                binding.tvLiveSyscallStatusBadge.setTextColor(Color.parseColor("#4CAF50"))
-                binding.tvLiveSyscallStatusBadge.setBackgroundColor(Color.parseColor("#1B5E20"))
-            } else {
-                binding.tvLiveSyscallStatusBadge.text = getString(if (stats.totalSyscalls > 0) R.string.om_audit_badge_finished else R.string.om_audit_badge_waiting)
-                binding.tvLiveSyscallStatusBadge.setTextColor(Color.parseColor("#B0BEC5"))
-                binding.tvLiveSyscallStatusBadge.setBackgroundColor(Color.parseColor("#37474F"))
-            }
-
-            val active = stats.activeSyscall
-            if (active != null) {
-                binding.tvActiveSyscallText.text = getString(R.string.om_audit_active_syscall_format, active.name, active.number, active.pid, active.category.displayName)
-                binding.tvActiveSyscallText.setTextColor(Color.parseColor(active.risk.colorHex))
-            } else {
-                binding.tvActiveSyscallText.text = getString(if (isProcRunning) R.string.om_audit_active_syscall_idle else R.string.om_audit_active_syscall_none)
-                binding.tvActiveSyscallText.setTextColor(Color.parseColor("#CFD8DC"))
-            }
-
-            binding.tvIoReadCalls.text = getString(R.string.om_audit_io_read_format, stats.ioReadSyscalls)
-            binding.tvIoWriteCalls.text = getString(R.string.om_audit_io_write_format, stats.ioWriteSyscalls)
-
-            val counters = BinaryTracerEngine.getSyscallCounters()
-            binding.layoutSyscallBreakdown.removeAllViews()
-            if (counters.isNotEmpty()) {
-                val sortedSyscalls = counters.toList().sortedByDescending { it.second }.take(6)
-                for ((sysName, count) in sortedSyscalls) {
-                    val info = SyscallResolver.resolveByName(sysName)
-                    val tvRow = TextView(context).apply {
-                        text = getString(R.string.om_audit_syscall_row_format, info.category.icon, info.name, count, info.risk.levelName)
-                        textSize = 10f
-                        setTypeface(Typeface.MONOSPACE)
-                        setTextColor(Color.parseColor(info.risk.colorHex))
-                        setPadding(0, 2, 0, 2)
-                    }
-                    binding.layoutSyscallBreakdown.addView(tvRow)
-                }
-            } else {
-                val tvNone = TextView(context).apply {
-                    text = getString(R.string.om_audit_no_syscalls_yet)
-                    textSize = 10f
-                    setTextColor(Color.parseColor("#78909C"))
-                }
-                binding.layoutSyscallBreakdown.addView(tvNone)
-            }
-
-            // Populate Event Ledger
-            val events = BinaryTracerEngine.getEvents()
-            binding.layoutEventsContainer.removeAllViews()
-
-            if (events.isEmpty()) {
-                binding.tvEmptyEvents.visibility = View.VISIBLE
-                binding.layoutEventsContainer.visibility = View.GONE
-            } else {
-                binding.tvEmptyEvents.visibility = View.GONE
-                binding.layoutEventsContainer.visibility = View.VISIBLE
-
-                val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                for (event in events.reversed()) {
-                    val card = MaterialCardView(context).apply {
-                        radius = 8f
-                        setCardBackgroundColor(Color.parseColor("#262626"))
-                        strokeWidth = 1
-                        setStrokeColor(Color.parseColor("#383838"))
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        ).apply {
-                            setMargins(0, 0, 0, 8)
-                        }
-                    }
-
-                    val rowContent = LinearLayout(context).apply {
-                        orientation = LinearLayout.VERTICAL
-                        setPadding(12, 10, 12, 10)
-                    }
-
-                    // Top Row: Type & Timestamp & Badge
-                    val topRow = LinearLayout(context).apply {
-                        orientation = LinearLayout.HORIZONTAL
-                        gravity = Gravity.CENTER_VERTICAL
-                    }
-
-                    val (typeIcon, typeTitleRes, typeColor) = when (event.type) {
-                        TraceEventType.DELETION_ATTEMPT -> Triple("🗑️", R.string.om_audit_ev_deletion, "#EF5350")
-                        TraceEventType.SYSCALL_BURST -> Triple("⚡", R.string.om_audit_ev_syscall, "#64B5F6")
-                        TraceEventType.KERNEL_PROBE -> Triple("🔍", R.string.om_audit_ev_kernel, "#FFB74D")
-                        TraceEventType.SECURITY_AUDIT -> Triple("🛡️", R.string.om_audit_ev_security, "#81C784")
-                        TraceEventType.PROCESS_SPAWN -> Triple("⚙️", R.string.om_audit_ev_process, "#BA68C8")
-                    }
-
-                    val tvType = TextView(context).apply {
-                        text = "$typeIcon ${getString(typeTitleRes)}"
-                        textSize = 12f
-                        setTypeface(null, Typeface.BOLD)
-                        setTextColor(Color.parseColor(typeColor))
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    }
-
-                    val tvTime = TextView(context).apply {
-                        text = dateFormat.format(Date(event.timestamp))
-                        textSize = 10f
-                        setTextColor(Color.parseColor("#90A4AE"))
-                    }
-
-                    topRow.addView(tvType)
-                    topRow.addView(tvTime)
-                    rowContent.addView(topRow)
-
-                    // Target / Detail text
-                    val tvTarget = TextView(context).apply {
-                        text = event.target
-                        textSize = 13f
-                        setTypeface(Typeface.MONOSPACE, Typeface.BOLD)
-                        setTextColor(Color.WHITE)
-                        setPadding(0, 4, 0, 2)
-                    }
-                    rowContent.addView(tvTarget)
-
-                    if (event.details.isNotEmpty() && event.details != event.target) {
-                        val tvDetails = TextView(context).apply {
-                            text = event.details
-                            textSize = 11f
-                            setTextColor(Color.parseColor("#B0BEC5"))
-                            setTypeface(Typeface.MONOSPACE)
-                        }
-                        rowContent.addView(tvDetails)
-                    }
-
-                    // Decision Badge for deletions
-                    val dec = event.decision
-                    if (event.type == TraceEventType.DELETION_ATTEMPT && dec != null) {
-                        val (badgeRes, badgeBg, badgeFg) = when (dec) {
-                            DeletionDecision.BLOCKED -> Triple(R.string.om_audit_dec_blocked, "#B71C1C", "#FFCDD2")
-                            DeletionDecision.ALLOWED -> Triple(R.string.om_audit_dec_allowed, "#1B5E20", "#C8E6C9")
-                            DeletionDecision.PENDING -> Triple(R.string.om_audit_dec_pending, "#E65100", "#FFE0B2")
-                        }
-
-                        val tvBadge = TextView(context).apply {
-                            text = getString(badgeRes)
-                            textSize = 10f
-                            setTypeface(null, Typeface.BOLD)
-                            setTextColor(Color.parseColor(badgeFg))
-                            setBackgroundColor(Color.parseColor(badgeBg))
-                            setPadding(8, 2, 8, 2)
-                            layoutParams = LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.WRAP_CONTENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT
-                            ).apply {
-                                topMargin = 6
-                            }
-                        }
-                        rowContent.addView(tvBadge)
-                    }
-
-                    card.addView(rowContent)
-                    binding.layoutEventsContainer.addView(card)
-                }
-            }
-        }
-
-        refreshAuditData()
-
-        // 5. Action Buttons (Copy & Clear)
-        binding.btnCopyAuditLog.setOnClickListener {
-            val stats = BinaryTracerEngine.getStats()
-            val events = BinaryTracerEngine.getEvents()
-            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-
-            val sb = StringBuilder()
-            sb.appendLine("=== OpenManager Script Audit Report ===")
-            sb.appendLine("Script: $scriptName")
-            sb.appendLine("Path: $path")
-            sb.appendLine("Date: ${dateFormat.format(Date())}")
-            sb.appendLine("Status: ${if (isRunning) "Running" else "Finished"}")
-            if (staticAuditReport != null) {
-                sb.appendLine("--- Static Code Analysis ---")
-                sb.appendLine("Summary: $staticAuditSummary")
-                if (staticAuditReport.deletions.isNotEmpty()) {
-                    sb.appendLine("Deletions:")
-                    staticAuditReport.deletions.forEach { sb.appendLine("  $it") }
-                }
-                if (staticAuditReport.rootCalls.isNotEmpty()) {
-                    sb.appendLine("Root / Superuser:")
-                    staticAuditReport.rootCalls.forEach { sb.appendLine("  $it") }
-                }
-                if (staticAuditReport.networkCalls.isNotEmpty()) {
-                    sb.appendLine("Network:")
-                    staticAuditReport.networkCalls.forEach { sb.appendLine("  $it") }
-                }
-                if (staticAuditReport.systemPaths.isNotEmpty()) {
-                    sb.appendLine("System Paths:")
-                    staticAuditReport.systemPaths.forEach { sb.appendLine("  $it") }
-                }
-            }
-            sb.appendLine("--- Statistics ---")
-            sb.appendLine("Deletions: ${stats.totalDeletions} (Blocked: ${stats.blockedDeletions}, Allowed: ${stats.allowedDeletions})")
-            sb.appendLine("Syscalls: ${stats.totalSyscalls}")
-            sb.appendLine("Kernel Reads: ${stats.totalKernelReads}")
-            sb.appendLine("IO Read Syscalls (syscr): ${stats.ioReadSyscalls}")
-            sb.appendLine("IO Write Syscalls (syscw): ${stats.ioWriteSyscalls}")
-            sb.appendLine("Dead Man Protection: ${if (DeadManProtectionManager.isDeadManProtectionActive(context)) "ACTIVE" else "DISABLED"}")
-            val activeSys = stats.activeSyscall
-            if (activeSys != null) {
-                sb.appendLine("Active Syscall: ${activeSys.name} (#${activeSys.number}) - PID ${activeSys.pid} [${activeSys.category.displayName}]")
-            }
-            val liveCounters = BinaryTracerEngine.getSyscallCounters()
-            if (liveCounters.isNotEmpty()) {
-                sb.appendLine("--- Syscall Transparency Table ---")
-                for ((k, v) in liveCounters) {
-                    val res = SyscallResolver.resolveByName(k)
-                    sb.appendLine("  ${res.name}: $v calls [${res.category.displayName} - ${res.risk.levelName}]")
-                }
-            }
-            sb.appendLine("--- Event Ledger (${events.size} events) ---")
-            for (e in events) {
-                sb.appendLine("[${dateFormat.format(Date(e.timestamp))}] [${e.type.name}] ${e.target} - ${e.details} -> Decision: ${e.decision ?: "N/A"}")
-            }
-
-            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            cm?.setPrimaryClip(ClipData.newPlainText("Script Audit Log", sb.toString()))
-            Toast.makeText(context, R.string.script_audit_copied, Toast.LENGTH_SHORT).show()
-        }
-
-        binding.btnClearAuditLog.setOnClickListener {
+        view.findViewById<MaterialButton>(R.id.auditCopy).setOnClickListener { copyReport(context, scriptName) }
+        view.findViewById<MaterialButton>(R.id.auditClear).setOnClickListener {
             BinaryTracerEngine.clear()
-            refreshAuditData()
+            refreshActivity()
             Toast.makeText(context, R.string.script_audit_cleared, Toast.LENGTH_SHORT).show()
         }
+        refreshActivity()
+    }
 
-        return MaterialAlertDialogBuilder(context)
-            .setView(binding.root)
-            .setPositiveButton(R.string.close, null)
-            .create()
+    override fun onStart() {
+        super.onStart()
+        BinaryTracerEngine.addListener(refreshListener)
+        refreshActivity()
+    }
+
+    override fun onStop() {
+        BinaryTracerEngine.removeListener(refreshListener)
+        super.onStop()
+    }
+
+    private fun bindProtections(view: View, context: Context) {
+        val deadMan = DeadManProtectionManager.isDeadManProtectionActive(context)
+        val dfroot = DeadManProtectionManager.isDfrootProtectionActive(context)
+        fun state(textView: TextView, on: Boolean) {
+            textView.text = getString(if (on) R.string.om_audit2_on else R.string.om_audit2_off)
+            textView.setTextColor(if (on) COLOR_OK else COLOR_BLOCK)
+        }
+        state(view.findViewById(R.id.tileDeadManState), deadMan)
+        state(view.findViewById(R.id.tileDfrootState), dfroot)
+        view.findViewById<TextView>(R.id.auditProtectionHint).text = getString(
+            when {
+                deadMan && dfroot -> R.string.om_audit2_hint_both
+                deadMan -> R.string.om_audit2_hint_dead_man
+                dfroot -> R.string.om_audit2_hint_dfroot
+                else -> R.string.om_audit2_hint_none
+            }
+        )
+        view.findViewById<View>(R.id.tileDeadMan).setOnClickListener {
+            explain(R.string.om_audit2_dead_man, R.string.om_audit2_dead_man_explain)
+        }
+        view.findViewById<View>(R.id.tileDfroot).setOnClickListener {
+            explain(R.string.om_audit2_dfroot, R.string.om_audit2_dfroot_explain)
+        }
+    }
+
+    private fun explain(titleRes: Int, messageRes: Int) {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle(titleRes)
+            .setMessage(messageRes)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
+    private fun bindPolicy(view: View, context: Context) {
+        val switch = view.findViewById<SwitchMaterial>(R.id.auditGuardSwitch)
+        val toggle = view.findViewById<MaterialButtonToggleGroup>(R.id.auditPolicyToggle)
+        val label = view.findViewById<View>(R.id.auditPolicyLabel)
+        val perScript = scriptPath.isNotEmpty() && File(scriptPath).isFile
+        switch.isChecked = ScriptTracerPreferences.isTracerEnabled(context, scriptPath)
+        toggle.check(
+            when (ScriptTracerPreferences.getDeletionPolicy(context, scriptPath)) {
+                ScriptTracerPreferences.DeletionPolicy.ASK -> R.id.policyAsk
+                ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> R.id.policyBlock
+                ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> R.id.policyAllow
+            }
+        )
+        fun syncEnabled() {
+            val enabled = perScript && switch.isChecked
+            toggle.isEnabled = enabled
+            for (i in 0 until toggle.childCount) toggle.getChildAt(i).isEnabled = enabled
+            label.alpha = if (enabled) 1f else 0.5f
+        }
+        // Interactive sessions use the defaults (ask); the choice is stored per script file.
+        switch.isEnabled = perScript
+        syncEnabled()
+        switch.setOnCheckedChangeListener { _, checked ->
+            ScriptTracerPreferences.setTracerEnabled(context, scriptPath, checked)
+            syncEnabled()
+        }
+        toggle.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked) return@addOnButtonCheckedListener
+            ScriptTracerPreferences.setDeletionPolicy(
+                context, scriptPath,
+                when (id) {
+                    R.id.policyBlock -> ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL
+                    R.id.policyAllow -> ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL
+                    else -> ScriptTracerPreferences.DeletionPolicy.ASK
+                }
+            )
+        }
+    }
+
+    private fun refreshActivity() {
+        if (!::root.isInitialized) return
+        val context = context ?: return
+        val stats = BinaryTracerEngine.getStats()
+        root.findViewById<TextView>(R.id.auditCounters).text = getString(
+            R.string.om_audit2_counters, stats.blockedDeletions, stats.allowedDeletions, BinaryTracerEngine.totalAsked.get()
+        )
+        val events = BinaryTracerEngine.getLedger().asReversed()
+        val container = root.findViewById<LinearLayout>(R.id.auditEvents)
+        root.findViewById<View>(R.id.auditEmpty).visibility = if (events.isEmpty()) View.VISIBLE else View.GONE
+        container.removeAllViews()
+        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        for (event in events.take(MAX_ROWS)) {
+            container.addView(eventRow(context, event, time))
+        }
+
+        val counters = BinaryTracerEngine.getSyscallCounters().entries.sortedByDescending { it.value }
+        root.findViewById<TextView>(R.id.syscallSummary).text = if (counters.isEmpty()) {
+            getString(R.string.om_audit2_syscalls_none)
+        } else {
+            getString(R.string.om_audit2_syscalls_summary, stats.totalSyscalls, stats.ioReadSyscalls, stats.ioWriteSyscalls)
+        }
+        root.findViewById<TextView>(R.id.syscallBody).text = counters.take(10).joinToString("\n") { (name, count) ->
+            val info = SyscallResolver.resolveByName(name)
+            String.format(Locale.ROOT, "%-18s %7d  %s", info.name, count, info.risk.levelName)
+        }
+    }
+
+    private fun eventRow(context: Context, event: TraceEvent, time: SimpleDateFormat): View {
+        val density = resources.displayMetrics.density
+        val blocked = event.decision == DeletionDecision.BLOCKED
+        val color = if (blocked) COLOR_BLOCK else COLOR_OK
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundResource(R.drawable.remote_section_bar_background)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = (8 * density).toInt() }
+        }
+        row.addView(View(context).apply {
+            background = GradientDrawable().apply {
+                setColor(color)
+                cornerRadius = 2 * density
+            }
+            layoutParams = LinearLayout.LayoutParams((4 * density).toInt(), ViewGroup.LayoutParams.MATCH_PARENT).apply {
+                setMargins(0, (10 * density).toInt(), 0, (10 * density).toInt())
+            }
+        })
+        val body = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            val pad = (12 * density).toInt()
+            setPadding(pad, (10 * density).toInt(), pad, (10 * density).toInt())
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        body.addView(TextView(context).apply {
+            text = getString(
+                if (blocked) R.string.om_audit2_event_blocked else R.string.om_audit2_event_allowed,
+                time.format(Date(event.timestamp))
+            )
+            setTextColor(color)
+            setTypeface(typeface, Typeface.BOLD)
+            textSize = 12f
+        })
+        body.addView(TextView(context).apply {
+            text = event.details
+            typeface = Typeface.MONOSPACE
+            textSize = 13f
+            maxLines = 3
+        })
+        if (event.target.isNotEmpty()) {
+            body.addView(TextView(context).apply {
+                text = event.target.lines().take(4).joinToString("\n") { "→ $it" }
+                typeface = Typeface.MONOSPACE
+                textSize = 11.5f
+                alpha = 0.8f
+            })
+        }
+        if (event.reason.isNotEmpty()) {
+            body.addView(TextView(context).apply {
+                text = event.reason
+                textSize = 11.5f
+                alpha = 0.7f
+            })
+        }
+        row.addView(body)
+        return row
+    }
+
+    private fun loadStaticAnalysis(view: View) {
+        val summary = view.findViewById<TextView>(R.id.staticSummary)
+        val header = view.findViewById<View>(R.id.staticHeader)
+        val file = scriptPath.takeIf { it.isNotEmpty() }?.let { File(it) }
+        if (file == null || !file.isFile || !file.canRead()) {
+            summary.setText(R.string.om_audit2_static_none)
+            header.isEnabled = false
+            return
+        }
+        summary.setText(R.string.om_audit2_static_loading)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    val path = java8.nio.file.Paths.get(file.absolutePath)
+                    if (ScriptRunnerHelper.isElfBinary(path)) {
+                        ElfInspector.inspect(path).toScriptAuditReport() to ""
+                    } else {
+                        val text = file.readText()
+                        ScriptRunnerHelper.auditScriptText(text) to text
+                    }
+                }.getOrNull()
+            }
+            if (!isAdded) return@launch
+            if (result == null) {
+                summary.setText(R.string.om_audit2_static_none)
+                return@launch
+            }
+            val (report, content) = result
+            summary.text = if (report.totalFindings == 0) {
+                getString(R.string.om_audit_clean_summary)
+            } else {
+                getString(
+                    R.string.om_audit_summary_format, report.totalFindings, report.deletions.size,
+                    report.rootCalls.size, report.networkCalls.size, report.systemPaths.size
+                )
+            }
+            val findings = view.findViewById<LinearLayout>(R.id.staticFindings)
+            findings.removeAllViews()
+            fun category(labelRes: Int, items: List<String>) {
+                if (items.isEmpty()) return
+                findings.addView(TextView(requireContext()).apply {
+                    text = "${getString(labelRes)} (${items.size})"
+                    setTypeface(typeface, Typeface.BOLD)
+                    textSize = 12.5f
+                    setPadding(0, (6 * resources.displayMetrics.density).toInt(), 0, 0)
+                })
+                findings.addView(TextView(requireContext()).apply {
+                    text = items.take(5).joinToString("\n") { "  $it" } +
+                        if (items.size > 5) "\n  " + getString(R.string.om_audit_more_in_code_format, items.size - 5) else ""
+                    typeface = Typeface.MONOSPACE
+                    textSize = 11.5f
+                })
+            }
+            category(R.string.script_audit_static_category_deletions, report.deletions)
+            category(R.string.script_audit_static_category_root, report.rootCalls)
+            category(R.string.script_audit_static_category_network, report.networkCalls)
+            category(R.string.script_audit_static_category_system, report.systemPaths)
+            view.findViewById<MaterialButton>(R.id.staticViewCode).apply {
+                visibility = if (content.isNotEmpty()) View.VISIBLE else View.GONE
+                setOnClickListener {
+                    ScriptRunnerHelper.showFullCodeDialog(requireActivity(), file.name, content, report)
+                }
+            }
+        }
+    }
+
+    private fun setupCollapsible(view: View, headerId: Int, bodyId: Int, chevronId: Int) {
+        val body = view.findViewById<View>(bodyId)
+        val chevron = view.findViewById<ImageView>(chevronId)
+        view.findViewById<View>(headerId).setOnClickListener {
+            val expand = body.visibility != View.VISIBLE
+            body.visibility = if (expand) View.VISIBLE else View.GONE
+            chevron.animate().rotation(if (expand) 180f else 0f).setDuration(150).start()
+        }
+    }
+
+    private fun setChip(view: TextView, color: Int) {
+        view.setTextColor(color)
+        view.background = GradientDrawable().apply {
+            cornerRadius = 12 * resources.displayMetrics.density
+            setColor(color and 0x00FFFFFF or 0x26000000)
+        }
+    }
+
+    private fun copyReport(context: Context, scriptName: String) {
+        val format = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        val stats = BinaryTracerEngine.getStats()
+        val text = buildString {
+            appendLine("=== OpenManager audit: $scriptName ===")
+            if (scriptPath.isNotEmpty()) appendLine("Path: $scriptPath")
+            appendLine("Date: ${format.format(Date())}")
+            appendLine("Dead Man: ${DeadManProtectionManager.isDeadManProtectionActive(context)}")
+            appendLine("DFRoot: ${DeadManProtectionManager.isDfrootProtectionActive(context)}")
+            appendLine("Policy: ${ScriptTracerPreferences.getDeletionPolicy(context, scriptPath)}")
+            appendLine("Blocked: ${stats.blockedDeletions}  Allowed: ${stats.allowedDeletions}")
+            appendLine("--- Decisions ---")
+            for (event in BinaryTracerEngine.getLedger()) {
+                appendLine("[${format.format(Date(event.timestamp))}] ${event.decision} ${event.details}")
+                event.target.lines().forEach { appendLine("    -> $it") }
+                if (event.reason.isNotEmpty()) appendLine("    ${event.reason}")
+            }
+        }
+        (context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)
+            ?.setPrimaryClip(ClipData.newPlainText("OpenManager audit", text))
+        Toast.makeText(context, R.string.script_audit_copied, Toast.LENGTH_SHORT).show()
     }
 
     companion object {
         private const val ARG_SCRIPT_PATH = "script_path"
         private const val TAG = "ScriptAuditDialogFragment"
+        private const val MAX_ROWS = 60
+        private const val COLOR_OK = 0xFF30A46C.toInt()
+        private const val COLOR_BLOCK = 0xFFE5484D.toInt()
+        private const val COLOR_NEUTRAL = 0xFF8B949E.toInt()
 
-        fun newInstance(scriptPath: String?): ScriptAuditDialogFragment {
-            return ScriptAuditDialogFragment().apply {
-                arguments = bundleOf(ARG_SCRIPT_PATH to scriptPath)
-            }
-        }
+        fun newInstance(scriptPath: String?): ScriptAuditDialogFragment =
+            ScriptAuditDialogFragment().apply { arguments = bundleOf(ARG_SCRIPT_PATH to scriptPath) }
 
         fun show(fragment: Fragment, scriptPath: String?) {
             newInstance(scriptPath).show(fragment.parentFragmentManager, TAG)
         }
 
         fun show(activity: FragmentActivity, scriptPath: String?) {
+            if (activity.supportFragmentManager.findFragmentByTag(TAG) != null) return
             newInstance(scriptPath).show(activity.supportFragmentManager, TAG)
         }
     }

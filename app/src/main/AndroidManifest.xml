@@ -276,6 +276,10 @@
             </intent-filter>
         </activity>
 
+        <receiver
+            android:name="me.zhanghai.android.files.terminal.tracer.GuardPrompter$AnswerReceiver"
+            android:exported="false" />
+
         <activity
             android:name="me.zhanghai.android.files.terminal.remote.ConnectionsActivity"
             android:exported="false"

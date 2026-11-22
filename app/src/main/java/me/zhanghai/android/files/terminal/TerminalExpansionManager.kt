@@ -61,6 +61,7 @@ object TerminalExpansionManager {
     const val TERMEX_PACKAGE = "bin.mt.termex"
     private val SUPPORTED_PACKAGES = listOf(OM_TERMEX_PACKAGE, TERMEX_PACKAGE)
     private const val ATTR_HAS_CODE = 0x0101000c
+    const val GUARD_RC_NAME = "om_guard.sh"
 
     // Official self-hosted release asset (optional) and Termux upstream bootstrap archive
     private const val PREBUILT_TERMEX_URL_TEMPLATE =
@@ -275,78 +276,8 @@ object TerminalExpansionManager {
                 export LANG=en_US.UTF-8
                 export COLORTERM=truecolor
 
-                # Shell function interceptors for dead man & deletion policy without SELinux execve violations
-                rm() {
-                    if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
-                        case "${'$'}*" in
-                            *" /"*|*" /*"*|*"-rf / "*|*"-rf /"*|*"-fr / "*|*"-fr /"*|*"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
-                                echo "[OM_TRACER:DEADMAN_DELETE:rm:${'$'}*]"
-                                echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
-                                return 1
-                                ;;
-                        esac
-                    fi
-                    if [ "${'$'}OM_TRACER_DISABLED" != "1" ]; then
-                        echo "[OM_TRACER:DELETE:rm:${'$'}*]"
-                        if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
-                            echo "[OM_TRACER:BLOCKED] rm ${'$'}*" >&2
-                            return 1
-                        fi
-                    fi
-                    if [ -x /system/bin/rm ]; then
-                        /system/bin/rm "${'$'}@"
-                    else
-                        command rm "${'$'}@"
-                    fi
-                }
-
-                rmdir() {
-                    if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
-                        case "${'$'}*" in
-                            *"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
-                                echo "[OM_TRACER:DEADMAN_DELETE:rmdir:${'$'}*]"
-                                echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
-                                return 1
-                                ;;
-                        esac
-                    fi
-                    if [ "${'$'}OM_TRACER_DISABLED" != "1" ]; then
-                        echo "[OM_TRACER:DELETE:rmdir:${'$'}*]"
-                        if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
-                            echo "[OM_TRACER:BLOCKED] rmdir ${'$'}*" >&2
-                            return 1
-                        fi
-                    fi
-                    if [ -x /system/bin/rmdir ]; then
-                        /system/bin/rmdir "${'$'}@"
-                    else
-                        command rmdir "${'$'}@"
-                    fi
-                }
-
-                unlink() {
-                    if [ "${'$'}OM_DEAD_MAN_ACTIVE" = "1" ]; then
-                        case "${'$'}*" in
-                            *" /"*|*" /*"*|*"/system"*|*"/vendor"*|*"/product"*|*"/apex"*|*"/system_ext"*|*"/dev/block"*)
-                                echo "[OM_TRACER:DEADMAN_DELETE:unlink:${'$'}*]"
-                                echo "[DEAD MAN PROTECTION] Deletion of protected system paths blocked: ${'$'}*" >&2
-                                return 1
-                                ;;
-                        esac
-                    fi
-                    if [ "${'$'}OM_TRACER_DISABLED" != "1" ]; then
-                        echo "[OM_TRACER:DELETE:unlink:${'$'}*]"
-                        if [ "${'$'}OM_DELETION_POLICY" = "BLOCK_ALL" ]; then
-                            echo "[OM_TRACER:BLOCKED] unlink ${'$'}*" >&2
-                            return 1
-                        fi
-                    fi
-                    if [ -x /system/bin/unlink ]; then
-                        /system/bin/unlink "${'$'}@"
-                    else
-                        command unlink "${'$'}@"
-                    fi
-                }
+                # Destructive-command guard (POSIX, shared with child sh): see om_guard.sh.
+                [ -n "${'$'}OM_GUARD_RC" ] && [ -f "${'$'}OM_GUARD_RC" ] && . "${'$'}OM_GUARD_RC"
 
                 if [ -n "${'$'}OM_TERMEX_NATIVE_DIR" ] && [ -d "${'$'}OM_TERMEX_NATIVE_DIR" ]; then
                     for _om_cmd in grep gawk sed find tar gzip bzip2 xz unzip curl diff patch nano; do
@@ -383,11 +314,102 @@ object TerminalExpansionManager {
                     fi
                 fi
 
-                export -f rm rmdir unlink 2>/dev/null || true
+                # Termex replaces find with its native build above: keep it guarded.
+                if [ -n "${'$'}OM_TERMEX_NATIVE_DIR" ] && [ -x "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_find.so" ]; then
+                    find() {
+                        case " ${'$'}* " in
+                            *" -delete "*|*" -exec "*|*" -execdir "*|*" -ok "*) _om_guard find "${'$'}@" || return 1 ;;
+                        esac
+                        "${'$'}OM_TERMEX_NATIVE_DIR/libom_cmd_find.so" "${'$'}@"
+                    }
+                fi
+
+                export -f _om_guard rm rmdir unlink find dd busybox toybox mkfs mke2fs make_ext4fs wipefs blkdiscard flash_image 2>/dev/null || true
             """.trimIndent() + "\n"
             if (!initFile.exists() || initFile.readText() != rcContent) {
                 initFile.writeText(rcContent)
                 initFile.setReadable(true, false)
+            }
+            val guardFile = File(context.filesDir, GUARD_RC_NAME)
+            val guardContent = """
+                # OpenManager command guard: destructive commands ask the app *before* running.
+                # The app answers through ${'$'}OM_GUARD_DIR (see CommandGuardServer); nothing is printed unless
+                # something is blocked.
+                _om_guard() {
+                    [ "${'$'}{OM_GUARD_ON:-0}" = "1" ] && [ -n "${'$'}OM_GUARD_DIR" ] && [ -d "${'$'}OM_GUARD_DIR" ] || return 0
+                    _om_id="${'$'}${'$'}_${'$'}{RANDOM:-0}_${'$'}(date +%s 2>/dev/null)"
+                    printf '%s\0' "${'$'}PWD" "${'$'}@" > "${'$'}OM_GUARD_DIR/.q_${'$'}_om_id" 2>/dev/null || return 0
+                    command mv -f "${'$'}OM_GUARD_DIR/.q_${'$'}_om_id" "${'$'}OM_GUARD_DIR/req.${'$'}_om_id" 2>/dev/null || return 0
+                    _om_t=0
+                    while [ ! -f "${'$'}OM_GUARD_DIR/ans.${'$'}_om_id" ]; do
+                        if [ "${'$'}_om_t" -ge 40 ] && [ -f "${'$'}OM_GUARD_DIR/req.${'$'}_om_id" ]; then
+                            command rm -f "${'$'}OM_GUARD_DIR/req.${'$'}_om_id" 2>/dev/null
+                            echo "[OpenManager] Protection unavailable, blocked: ${'$'}*" >&2
+                            return 1
+                        fi
+                        [ "${'$'}_om_t" -ge 2400 ] && break
+                        sleep 0.05 2>/dev/null || sleep 1
+                        _om_t=${'$'}((_om_t + 1))
+                    done
+                    _om_ans=${'$'}(cat "${'$'}OM_GUARD_DIR/ans.${'$'}_om_id" 2>/dev/null)
+                    command rm -f "${'$'}OM_GUARD_DIR/ans.${'$'}_om_id" 2>/dev/null
+                    case "${'$'}_om_ans" in
+                        allow*) return 0 ;;
+                    esac
+                    echo "[OpenManager] Blocked: ${'$'}* -- ${'$'}{_om_ans#block }" >&2
+                    return 1
+                }
+
+                rm() { _om_guard rm "${'$'}@" || return 1; command rm "${'$'}@"; }
+                rmdir() { _om_guard rmdir "${'$'}@" || return 1; command rmdir "${'$'}@"; }
+                unlink() { _om_guard unlink "${'$'}@" || return 1; command unlink "${'$'}@"; }
+                find() {
+                    case " ${'$'}* " in
+                        *" -delete "*|*" -exec "*|*" -execdir "*|*" -ok "*) _om_guard find "${'$'}@" || return 1 ;;
+                    esac
+                    command find "${'$'}@"
+                }
+                dd() {
+                    case " ${'$'}* " in
+                        *" of=/dev/"*) _om_guard dd "${'$'}@" || return 1 ;;
+                    esac
+                    command dd "${'$'}@"
+                }
+                busybox() {
+                    case "${'$'}1" in
+                        rm|rmdir|unlink|find|dd|mkfs*|mke2fs|wipefs|blkdiscard) _om_guard busybox "${'$'}@" || return 1 ;;
+                    esac
+                    command busybox "${'$'}@"
+                }
+                toybox() {
+                    case "${'$'}1" in
+                        rm|rmdir|unlink|find|dd|mkfs*|mke2fs|wipefs|blkdiscard) _om_guard toybox "${'$'}@" || return 1 ;;
+                    esac
+                    command toybox "${'$'}@"
+                }
+                mkfs() { _om_guard mkfs "${'$'}@" || return 1; command mkfs "${'$'}@"; }
+                mke2fs() { _om_guard mke2fs "${'$'}@" || return 1; command mke2fs "${'$'}@"; }
+                make_ext4fs() { _om_guard make_ext4fs "${'$'}@" || return 1; command make_ext4fs "${'$'}@"; }
+                wipefs() { _om_guard wipefs "${'$'}@" || return 1; command wipefs "${'$'}@"; }
+                blkdiscard() { _om_guard blkdiscard "${'$'}@" || return 1; command blkdiscard "${'$'}@"; }
+                flash_image() { _om_guard flash_image "${'$'}@" || return 1; command flash_image "${'$'}@"; }
+
+                # Android's sh (mksh) ignores ${'$'}ENV when running a script, so "sh script.sh" would start
+                # unguarded: load the guard first, then run the script in that shell.
+                sh() {
+                    if [ "${'$'}{OM_GUARD_ON:-0}" != "1" ] || [ -z "${'$'}OM_GUARD_RC" ]; then command sh "${'$'}@"; return; fi
+                    case "${'$'}1" in
+                        -c) shift; export _OM_C="${'$'}1"; shift
+                            command sh -c '. "${'$'}OM_GUARD_RC" 2>/dev/null; eval "${'$'}_OM_C"' "${'$'}@" ;;
+                        ""|-*) command sh "${'$'}@" ;;
+                        */*) command sh -c '. "${'$'}OM_GUARD_RC" 2>/dev/null; . "${'$'}0"' "${'$'}@" ;;
+                        *) command sh -c '. "${'$'}OM_GUARD_RC" 2>/dev/null; . "./${'$'}0"' "${'$'}@" ;;
+                    esac
+                }
+            """.trimIndent() + "\n"
+            if (!guardFile.exists() || guardFile.readText() != guardContent) {
+                guardFile.writeText(guardContent)
+                guardFile.setReadable(true, false)
             }
         } catch (_: Throwable) {}
         return initFile
@@ -405,7 +427,19 @@ object TerminalExpansionManager {
         val tracerEnabled = ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)
         val deletionPolicy = ScriptTracerPreferences.getDeletionPolicy(context, activeScriptPath)
         val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
+        val dfrootActive = DeadManProtectionManager.isDfrootProtectionActive(context)
+        // The guard runs whenever something can decide: tracer policy, Dead Man or DFRoot.
+        val guardOn = tracerEnabled || deadManActive || dfrootActive
+        val guardDir = me.zhanghai.android.files.terminal.tracer.CommandGuardServer.ensureStarted(context)
+        me.zhanghai.android.files.terminal.tracer.CommandGuardServer.onNewSession()
+        val guardRc = File(context.filesDir, GUARD_RC_NAME).absolutePath
+        // Also exported inside the command line: su implementations may drop the environment.
+        val guardExports = "export OM_GUARD_ON=${if (guardOn) 1 else 0} " +
+            "OM_GUARD_DIR='${guardDir.absolutePath}' OM_GUARD_RC='$guardRc'; "
         val tracerEnv = arrayOf(
+            "OM_GUARD_ON=" + (if (guardOn) "1" else "0"),
+            "OM_GUARD_DIR=" + guardDir.absolutePath,
+            "OM_GUARD_RC=" + guardRc,
             "OM_TRACER_DISABLED=" + (if (tracerEnabled) "0" else "1"),
             "OM_DELETION_POLICY=" + deletionPolicy.name,
             "OM_ACTIVE_SCRIPT_PATH=" + (activeScriptPath ?: ""),
@@ -422,7 +456,7 @@ object TerminalExpansionManager {
         val binDir = ensureBinTools(context)
 
         val shellCmd = if (initialCommand != null) {
-            ". '${initScript.absolutePath}' 2>/dev/null; cd '$escapedCwd' && ($initialCommand); _mt_status=\$?; exit \$_mt_status"
+            "$guardExports. '${initScript.absolutePath}' 2>/dev/null; cd '$escapedCwd' && ($initialCommand); _mt_status=\$?; exit \$_mt_status"
         } else null
 
         if (asRoot && isRootAvailable()) {
@@ -439,7 +473,8 @@ object TerminalExpansionManager {
             val args = if (shellCmd != null) {
                 arrayOf("su", "-c", shellCmd)
             } else {
-                arrayOf("su")
+                // Interactive root shell that still loads the rc (and the guard) through ENV.
+                arrayOf("su", "-c", "${guardExports}export ENV='${initScript.absolutePath}'; exec /system/bin/sh -i")
             }
             return LaunchConfig(
                 executable = "su",

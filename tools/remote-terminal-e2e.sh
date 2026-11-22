@@ -313,6 +313,70 @@ if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
     grep -A 20 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -60 >> "$REPORT"
 fi
 
+log "=== Command guard: a script must ask BEFORE deleting ==="
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_guard_test
+demo guard_script
+if pos=$(wait_text 30 "Block" "Bloquear"); then
+    shot 14_guard_ask_dialog
+    if adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1; then
+        pass "file still exists while the user is being asked"
+    else
+        fail "file was deleted before the user answered"
+    fi
+    adb shell input tap $pos; sleep 4
+    ran=$(adb shell cat /sdcard/om_guard_test/script_ran.txt 2>/dev/null | tr -d '\r')
+    if adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1 && [ "$ran" = "rm exit=1" ]; then
+        pass "Block kept the file and the script continued (rm returned 1)"
+    else
+        fail "Block did not work (script_ran='$ran')"
+    fi
+else
+    shot 14_guard_ask_missing
+    fail "no confirmation dialog for a script deletion"
+fi
+adb shell am force-stop $PKG; sleep 1
+demo guard_script
+if pos=$(wait_text 30 "Allow" "Permitir"); then
+    adb shell input tap $pos; sleep 4
+    ran=$(adb shell cat /sdcard/om_guard_test/script_ran.txt 2>/dev/null | tr -d '\r')
+    if ! adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1 && [ "$ran" = "rm exit=0" ]; then
+        pass "Allow deleted the file"
+    else
+        fail "Allow did not delete the file (script_ran='$ran')"
+    fi
+else
+    fail "no confirmation dialog on the second run"
+fi
+
+log "=== Dead Man: relative path to /system from / is blocked without asking ==="
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+demo guard_deadman; sleep 7
+shot 15_dead_man_blocked
+ran=$(adb shell cat /sdcard/om_guard_test/deadman_ran.txt 2>/dev/null | tr -d '\r')
+guard_log=$(adb logcat -d -s OMCommandGuard | grep -m1 "DEAD_MAN")
+log "      $guard_log"
+if [ "$ran" = "rm exit=1" ] && [ -n "$guard_log" ]; then
+    pass "Dead Man blocked 'cd / && rm -rf system/...'"
+else
+    fail "Dead Man did not block (deadman_ran='$ran')"
+fi
+if find_text "Allow this deletion?" "¿Permitir este borrado?" >/dev/null; then
+    fail "Dead Man asked instead of blocking"
+fi
+if pos=$(find_text "DEAD MAN: LOCKED" "DEAD MAN: BLOQUEADO"); then
+    adb shell input tap $pos; sleep 2
+    shot 16_audit_sheet
+    if find_text "Audit & protection" "Auditoría y protección" >/dev/null; then
+        pass "audit sheet opens from the Dead Man badge and lists the decision"
+    else
+        fail "audit sheet did not open"
+    fi
+else
+    log "      (badge text not found, opening audit from the toolbar is covered by screenshots)"
+fi
+
 log "=== Video: 4K H.264 / 1080p HEVC playback ==="
 for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
     [ -f "/tmp/$clip" ] || { fail "missing test clip $clip"; continue; }

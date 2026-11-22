@@ -148,7 +148,8 @@ private fun createNotificationChannels() {
                 fileJobNotificationTemplate.channelTemplate,
                 ftpServerServiceNotificationTemplate.channelTemplate,
                 apktoolNotificationTemplate.channelTemplate,
-                scriptExecutionNotificationTemplate.channelTemplate
+                scriptExecutionNotificationTemplate.channelTemplate,
+                me.zhanghai.android.files.terminal.tracer.commandGuardNotificationTemplate.channelTemplate
             ).map { it.create(application) }
         )
     }

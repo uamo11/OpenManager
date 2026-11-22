@@ -5,16 +5,8 @@
 
 package me.zhanghai.android.files.terminal.tracer
 
-import android.app.Activity
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.widget.Toast
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.termux.terminal.TerminalSession
-import me.zhanghai.android.files.R
-import me.zhanghai.android.files.provider.root.DeadManProtectionManager
-import me.zhanghai.android.files.terminal.TerminalActivity
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.concurrent.atomic.AtomicLong
@@ -96,6 +88,8 @@ object BinaryTracerEngine {
     }
 
     fun clear() {
+        ledger.clear()
+        totalAsked.set(0L)
         ringBuffer.clear()
         syscallCounters.clear()
         totalDeletionsIntercepted.set(0L)
@@ -124,18 +118,8 @@ object BinaryTracerEngine {
         currentActiveSyscall = active
         recordSyscallBurst(info.name, 1L, "[PID $pid] ${info.category.displayName} (${info.risk.levelName}) $rawArgs")
 
-        if (info.risk == SyscallRisk.CRITICAL || info.risk == SyscallRisk.HIGH || info.category == SyscallCategory.DELETION_FS) {
-            val event = TraceEvent(
-                id = idGen.getAndIncrement(),
-                timestamp = System.currentTimeMillis(),
-                type = if (info.category == SyscallCategory.DELETION_FS) TraceEventType.DELETION_ATTEMPT else TraceEventType.SECURITY_AUDIT,
-                target = "${info.name} [Syscall #$syscallNr]",
-                details = "[PID $pid] Risk ${info.risk.levelName}: ${info.description} | Args: $rawArgs",
-                count = 1L,
-                decision = if (info.category == SyscallCategory.DELETION_FS) DeletionDecision.ALLOWED else null
-            )
-            addEventToRingBuffer(event)
-        }
+        // Sampled syscalls only feed the counters: a sample of unlinkat says nothing about what was
+        // deleted or whether it was allowed, so it is no longer reported as a "deletion".
     }
 
     fun updateProcIo(readCalls: Long, writeCalls: Long, readBytes: Long, writeBytes: Long) {
@@ -227,160 +211,66 @@ object BinaryTracerEngine {
         }
     }
 
-    /**
-     * Analyzes incoming terminal output in real time for tracer tokens and telemetry diagnostics.
-     */
-    fun parseTerminalChunk(
-        chunk: String,
-        activity: Activity?,
-        session: TerminalSession?,
-        activeScriptPath: String?
-    ) {
-        val context = activity?.applicationContext
+    // ---- Decision ledger -------------------------------------------------------------------
+    // Guard decisions live in their own list so high-frequency syscall sampling can never push
+    // them out (the old single ring lost every deletion event within seconds).
 
-        // 1. Detect deletion tokens: [OM_TRACER:DELETE:<cmd>:<target>] or [OM_TRACER:DEADMAN_DELETE:<cmd>:<target>]
-        if (chunk.contains("[OM_TRACER:DELETE:") || chunk.contains("[OM_TRACER:DEADMAN_DELETE:")) {
-            val regex = Regex("""\[OM_TRACER:(DELETE|DEADMAN_DELETE):([^:]+):([^\]]+)\]""")
-            val matches = regex.findAll(chunk)
-            for (match in matches) {
-                val tokenType = match.groupValues[1]
-                val cmd = match.groupValues[2]
-                val target = match.groupValues[3].trim()
+    private const val MAX_LEDGER_SIZE = 300
+    private val ledger = ConcurrentLinkedDeque<TraceEvent>()
+    private val listeners = java.util.concurrent.CopyOnWriteArrayList<() -> Unit>()
+    private val notifyScheduled = java.util.concurrent.atomic.AtomicBoolean(false)
+    val totalAsked = AtomicLong(0L)
 
-                val isCatastrophic = tokenType == "DEADMAN_DELETE" ||
-                    DeadManProtectionManager.isCatastrophicSystemDeletion(cmd, target)
+    fun getLedger(): List<TraceEvent> = ledger.toList()
 
-                if (context != null && DeadManProtectionManager.isDeadManProtectionActive(context) && isCatastrophic) {
-                    handleDeadManCatastrophicInterception(cmd, target, activity, session, activeScriptPath)
-                } else {
-                    handleDeletionInterception(cmd, target, activity, session, activeScriptPath)
-                }
-            }
-        }
+    fun addListener(listener: () -> Unit) {
+        listeners.addIfAbsent(listener)
+    }
 
-        if (context != null && !ScriptTracerPreferences.isTracerEnabled(context, activeScriptPath)) {
-            return
-        }
+    fun removeListener(listener: () -> Unit) {
+        listeners.remove(listener)
+    }
 
-        // 2. Parse High-Frequency Syscall Benchmarks
-        if (chunk.contains("50000") || chunk.contains("iterations") || chunk.contains("Syscall Latency")) {
-            val latencyMatch = Regex("([0-9]+\\.?[0-9]*)\\s*ns/call").find(chunk)
-            val latency = latencyMatch?.groupValues?.get(1) ?: "68.0"
-            recordSyscallBurst("SYS_getpid", 50000L, "Microbenchmark: $latency ns/call")
-        }
-
-        // 3. Parse Kernel & Proc Diagnostics
-        if (chunk.contains("Linux Kernel") || chunk.contains("/proc/")) {
-            val kernelLine = chunk.lines().firstOrNull { it.contains("Kernel") || it.contains("/proc/") } ?: "Kernel Read"
-            recordKernelProbe("/proc / sysinfo", kernelLine.trim())
-        }
-
-        // 4. Parse SELinux / Security telemetry
-        if (chunk.contains("SELinux Mode") || chunk.contains("Privilege: ROOT") || chunk.contains("SU Binary")) {
-            val auditLine = chunk.lines().firstOrNull { it.contains("SELinux") || it.contains("ROOT") } ?: "Security Audit"
-            val event = TraceEvent(
-                id = idGen.getAndIncrement(),
-                timestamp = System.currentTimeMillis(),
-                type = TraceEventType.SECURITY_AUDIT,
-                target = "Security Check",
-                details = auditLine.trim(),
-                count = 1L
-            )
-            addEventToRingBuffer(event)
+    /** Coalesced to one main-thread callback per frame, whatever the event rate. */
+    private fun notifyChanged() {
+        if (listeners.isEmpty() || !notifyScheduled.compareAndSet(false, true)) return
+        runOnMainThread {
+            notifyScheduled.set(false)
+            listeners.forEach { runCatching { it() } }
         }
     }
 
-    private fun handleDeadManCatastrophicInterception(
-        cmd: String,
-        target: String,
-        activity: Activity?,
-        session: TerminalSession?,
-        scriptPath: String?
+    fun recordGuardDecision(
+        commandLine: String,
+        cwd: String,
+        analysis: me.zhanghai.android.files.provider.root.CommandGuard.Analysis,
+        allowed: Boolean,
+        reason: me.zhanghai.android.files.provider.root.CommandGuard.Reason,
+        reasonText: String
     ) {
-        val context = activity ?: return
-
-        // Record as BLOCKED immediately - "no te permitirá ni aceptar ni declinar"
+        totalDeletionsIntercepted.incrementAndGet()
+        if (allowed) totalDeletionsAllowed.incrementAndGet() else totalDeletionsBlocked.incrementAndGet()
+        if (reason == me.zhanghai.android.files.provider.root.CommandGuard.Reason.POLICY_ASK) {
+            totalAsked.incrementAndGet()
+        }
+        val targets = analysis.targets.joinToString("\n") { it.path }.ifEmpty { cwd }
         val event = TraceEvent(
             id = idGen.getAndIncrement(),
             timestamp = System.currentTimeMillis(),
-            type = TraceEventType.DELETION_ATTEMPT,
-            target = target,
-            details = "[DEAD MAN BLOCKED] $cmd",
-            count = 1L,
-            decision = DeletionDecision.BLOCKED
-        )
-        totalDeletionsIntercepted.incrementAndGet()
-        totalDeletionsBlocked.incrementAndGet()
-        addEventToRingBuffer(event)
-
-        runOnMainThread {
-            if (activity is TerminalActivity && !activity.isFinishing && !activity.isDestroyed) {
-                activity.showDeadManSkullAlert(target, cmd)
+            type = if (analysis.kind == me.zhanghai.android.files.provider.root.CommandGuard.Kind.DELETE) {
+                TraceEventType.DELETION_ATTEMPT
             } else {
-                Toast.makeText(
-                    context,
-                    context.getString(R.string.dead_man_blocked_toast),
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-
-    private fun handleDeletionInterception(
-        cmd: String,
-        target: String,
-        activity: Activity?,
-        session: TerminalSession?,
-        scriptPath: String?
-    ) {
-        val context = activity ?: return
-        val policy = ScriptTracerPreferences.getDeletionPolicy(context, scriptPath)
-
-        when (policy) {
-            ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> {
-                recordDeletionAttempt(cmd, target, DeletionDecision.BLOCKED)
-                runOnMainThread {
-                    Toast.makeText(context, context.getString(R.string.tracer_toast_blocked, target), Toast.LENGTH_SHORT).show()
-                }
-            }
-            ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> {
-                recordDeletionAttempt(cmd, target, DeletionDecision.ALLOWED)
-                runOnMainThread {
-                    Toast.makeText(context, context.getString(R.string.tracer_toast_allowed, target), Toast.LENGTH_SHORT).show()
-                }
-            }
-            ScriptTracerPreferences.DeletionPolicy.ASK -> {
-                val event = recordDeletionAttempt(cmd, target, DeletionDecision.PENDING)
-
-                runOnMainThread {
-                    if (activity.isFinishing || activity.isDestroyed) {
-                        recordDecision(event.id, DeletionDecision.BLOCKED)
-                        return@runOnMainThread
-                    }
-
-                    MaterialAlertDialogBuilder(activity)
-                        .setTitle(R.string.tracer_dialog_delete_title)
-                        .setMessage(activity.getString(R.string.tracer_dialog_delete_message, target, cmd))
-                        .setCancelable(false)
-                        .setNegativeButton(R.string.tracer_dialog_block) { _, _ ->
-                            recordDecision(event.id, DeletionDecision.BLOCKED)
-                            Toast.makeText(
-                                activity,
-                                activity.getString(R.string.tracer_toast_blocked, target),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                        .setPositiveButton(R.string.tracer_dialog_allow) { _, _ ->
-                            recordDecision(event.id, DeletionDecision.ALLOWED)
-                            Toast.makeText(
-                                activity,
-                                activity.getString(R.string.tracer_toast_allowed, target),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                        .show()
-                }
-            }
-        }
+                TraceEventType.SECURITY_AUDIT
+            },
+            target = targets,
+            details = commandLine,
+            count = 1L,
+            decision = if (allowed) DeletionDecision.ALLOWED else DeletionDecision.BLOCKED,
+            reason = reasonText,
+            cwd = cwd
+        )
+        ledger.add(event)
+        while (ledger.size > MAX_LEDGER_SIZE) ledger.pollFirst()
+        notifyChanged()
     }
 }

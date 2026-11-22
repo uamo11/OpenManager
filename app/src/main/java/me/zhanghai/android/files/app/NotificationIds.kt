@@ -9,4 +9,5 @@ object NotificationIds {
     const val FTP_SERVER = 1
     const val APKTOOL = 2
     const val SCRIPT_EXECUTION = 3
+    const val COMMAND_GUARD = 4
 }

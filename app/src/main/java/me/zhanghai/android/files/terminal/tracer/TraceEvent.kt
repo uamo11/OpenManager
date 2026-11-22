@@ -26,5 +26,9 @@ data class TraceEvent(
     val target: String,
     val details: String,
     var count: Long = 1L,
-    var decision: DeletionDecision? = null
+    var decision: DeletionDecision? = null,
+    /** Why the guard allowed or blocked it (guard decisions only). */
+    val reason: String = "",
+    /** Working directory of the shell that ran the command (guard decisions only). */
+    val cwd: String = ""
 )

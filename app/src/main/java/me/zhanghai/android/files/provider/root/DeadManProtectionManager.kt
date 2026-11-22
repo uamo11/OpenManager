@@ -183,11 +183,15 @@ object DeadManProtectionManager {
             if (p.isEmpty()) return false
             val clean = if (p.length >= 2 && p[1] == ':') p.substring(2) else p
             if (clean == "/" || clean == "/*" || clean == "*" || clean == "/system" || clean == "/vendor") return true
+            // Segment-based: "/sdcard/backup/system/x" is user data, not the system partition.
+            val normalized = CommandGuard.normalize("/", clean)
             for (sysPath in CATASTROPHIC_SYSTEM_PATHS) {
-                if (clean == sysPath || clean.startsWith("$sysPath/") || clean.contains("$sysPath/")) return true
+                if (normalized == sysPath || normalized.startsWith("$sysPath/")) return true
             }
-            if (clean.contains("/dev/block/")) return true
-            return false
+            return CommandGuard.classify(normalized).let {
+                it == CommandGuard.Zone.ROOT || it == CommandGuard.Zone.BOOT_CRITICAL ||
+                    it == CommandGuard.Zone.SYSTEM
+            }
         }
 
         // 1. Allow safe user/temp zones ONLY if neither original nor resolved path points to system/block devices
@@ -328,16 +332,13 @@ object DeadManProtectionManager {
 
         fun checkSinglePath(p: String): Boolean {
             if (p.isEmpty()) return false
-            for (startupFile in CRITICAL_SYSTEM_STARTUP_FILES) {
-                if (p == startupFile || p.endsWith(startupFile)) {
-                    return true
-                }
-            }
-            if (p.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
-                p.matches(Regex(".*/fstab\\..*"))
-            ) {
-                return true
-            }
+            val normalized = CommandGuard.normalize("/", p)
+            // Exact files: "/sdcard/Download/init" is a user file, "/init" is not.
+            if (normalized in CRITICAL_SYSTEM_STARTUP_FILES) return true
+            val zone = CommandGuard.classify(normalized)
+            val userZone = zone == CommandGuard.Zone.USER || zone == CommandGuard.Zone.USER_STORAGE_ROOT ||
+                zone == CommandGuard.Zone.APP_PRIVATE
+            if (!userZone && normalized.substringAfterLast('/').startsWith("fstab.")) return true
             if (isCriticalBootDevice(p)) {
                 return true
             }
@@ -408,29 +409,15 @@ object DeadManProtectionManager {
         fun isSysOrDevPath(p: String): Boolean {
             if (p.isEmpty()) return false
             val clean = if (p.length >= 2 && p[1] == ':') p.substring(2) else p
-            val isSystemPartition = clean.startsWith("/system") ||
-                clean.startsWith("/vendor") ||
-                clean.startsWith("/product") ||
-                clean.startsWith("/system_ext") ||
-                clean.startsWith("/odm") ||
-                clean.startsWith("/apex") ||
-                clean.contains("/system/") ||
-                clean.contains("/vendor/") ||
-                clean.contains("/product/") ||
-                clean.startsWith("/data/system") ||
-                clean.startsWith("/data/adb") ||
-                clean.startsWith("/etc") ||
-                clean.startsWith("/sbin") ||
-                clean.startsWith("/bin")
-            if (isSystemPartition) return true
-            for (startup in CRITICAL_SYSTEM_STARTUP_FILES) {
-                if (clean == startup || clean.endsWith(startup)) return true
+            // Segment-based zones: "/sdcard/Download/system/x" or "/systemfoo" are not the OS.
+            val zone = CommandGuard.classify(CommandGuard.normalize("/", clean))
+            if (zone == CommandGuard.Zone.SYSTEM || zone == CommandGuard.Zone.BOOT_CRITICAL ||
+                zone == CommandGuard.Zone.ROOT
+            ) {
+                return true
             }
-            if (clean.matches(Regex(".*/(system|vendor|odm)/etc/fstab\\..*")) ||
-                clean.matches(Regex(".*/fstab\\..*"))
-            ) return true
-            if (clean.contains("/dev/block/")) return true
-            return false
+            // Exact files only: a user file named "init" or "fstab.txt" in Downloads is not protected.
+            return CommandGuard.normalize("/", clean) in CRITICAL_SYSTEM_STARTUP_FILES
         }
 
         // If the resolved target points to a system partition or block device, it is protected!

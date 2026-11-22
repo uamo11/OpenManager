@@ -88,41 +88,11 @@ object SyscallReaderMonitor {
                     }
                 }
 
-                // 3. Read status info
-                runCatching {
-                    val statusFile = File("/proc/$currentPid/status")
-                    if (statusFile.exists() && statusFile.canRead()) {
-                        statusFile.forEachLine { line ->
-                            if (line.startsWith("State:") || line.startsWith("Threads:")) {
-                                BinaryTracerEngine.recordKernelProbe("/proc/$currentPid/status", line.trim())
-                            }
-                        }
-                    }
-                }
+                // The process tree changes constantly: forget pids that have exited.
+                pidList.removeAll { !File("/proc/$it").exists() }
+                pidList.add(currentPid)
 
-                // 4. Inspect working directory (/proc/<pid>/cwd) for protected partition operations and symlink evasion
-                for (targetPid in pidList.toList()) {
-                    runCatching {
-                        val cwdFile = File("/proc/$targetPid/cwd")
-                        val canonicalCwd = if (cwdFile.exists()) {
-                            try { cwdFile.canonicalPath.replace('\\', '/') } catch (_: Throwable) { "" }
-                        } else ""
-                        if (canonicalCwd.isNotEmpty() && (
-                            canonicalCwd.startsWith("/system") ||
-                            canonicalCwd.startsWith("/vendor") ||
-                            canonicalCwd.startsWith("/product") ||
-                            canonicalCwd.startsWith("/apex") ||
-                            canonicalCwd.contains("/dev/block")
-                        )) {
-                            BinaryTracerEngine.recordKernelProbe(
-                                "/proc/$targetPid/cwd",
-                                "[PID $targetPid] Proceso operando en particion de sistema protegida: $canonicalCwd"
-                            )
-                        }
-                    }
-                }
-
-                delay(250) // Sample every 250ms for low overhead
+                delay(500) // Counters only: 2 samples/s is plenty and halves the overhead
             }
         }
     }

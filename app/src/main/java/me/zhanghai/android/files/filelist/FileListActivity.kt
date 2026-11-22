@@ -505,6 +505,39 @@ class FileListActivity : AppActivity() {
         }
     }
 
+    /** Debug-only fixtures for the command guard E2E test (tools/remote-terminal-e2e.sh). */
+    private fun handleGuardDemo(action: String) {
+        if (!BuildConfig.DEBUG) return
+        val dir = java.io.File("/sdcard/om_guard_test").apply { mkdirs() }
+        when (action) {
+            "guard_script" -> {
+                java.io.File(dir, "victim.txt").writeText("keep me unless allowed\n")
+                val script = java.io.File(dir, "delete_victim.sh")
+                script.writeText(
+                    "#!/system/bin/sh\n" +
+                        "rm /sdcard/om_guard_test/victim.txt\n" +
+                        "echo \"rm exit=\$?\" > /sdcard/om_guard_test/script_ran.txt\n"
+                )
+                startActivity(
+                    me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                        context = this,
+                        path = dir.absolutePath,
+                        command = "sh '${script.absolutePath}'",
+                        activeScriptPath = script.absolutePath
+                    )
+                )
+            }
+            "guard_deadman" -> startActivity(
+                me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                    context = this,
+                    path = dir.absolutePath,
+                    // Relative path from "/": only path resolution can tell this is /system.
+                    command = "cd / && rm -rf system/om_fake_dir; echo \"rm exit=\$?\" > /sdcard/om_guard_test/deadman_ran.txt"
+                )
+            )
+        }
+    }
+
     private fun handleDemoIntent(intent: Intent?) {
         if (!BuildConfig.DEBUG) return
         val action = intent?.getStringExtra("SHOW_DEMO_DIALOG") ?: return
@@ -608,6 +641,7 @@ class FileListActivity : AppActivity() {
                             fragmentB.navigateTo(java8.nio.file.Paths.get("/data"))
                         }
                     }
+                    "guard_script", "guard_deadman" -> handleGuardDemo(action)
                     "remote_profiles", "remote_add_sheet", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
                         handleRemoteTerminalDemo(action)
                     "terminal" -> {
