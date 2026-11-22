@@ -106,6 +106,26 @@ class CommandGuardTest {
     }
 
     @Test
+    fun absoluteTraversalAndSymlinksAreJudgedConservatively() {
+        // /sdcard is a symlink on Android: "/sdcard/../../dev/block/x" must not slip through.
+        assertEquals(Zone.BOOT_CRITICAL, CommandGuard.classifyArg("/", "/sdcard/../../dev/block/by-name/boot").zone)
+        assertEquals(Zone.SYSTEM, CommandGuard.classifyArg("/", "/storage/emulated/0/../../system/build.prop").zone)
+        // Relative ".." stays lexical: cleaning a sibling build folder is ordinary.
+        assertEquals(Zone.USER, CommandGuard.classifyArg("/sdcard/project/app", "../build").zone)
+        // A user-storage symlink that really points into the OS.
+        val viaLink = CommandGuard.classifyArg("/sdcard", "link/app") { "/system/app" }
+        assertEquals("/sdcard/link/app", viaLink.path)
+        assertEquals(Zone.SYSTEM, viaLink.zone)
+        assertEquals(
+            Verdict.BLOCK,
+            CommandGuard.decide(
+                CommandGuard.analyze("/sdcard", listOf("rm", "-rf", "link/app")) { "/system/app" },
+                Policy.ALLOW, deadMan = true, dfroot = false
+            ).verdict
+        )
+    }
+
+    @Test
     fun recursiveFlagDetection() {
         assertTrue(CommandGuard.analyze("/", listOf("rm", "-Rf", "x")).recursive)
         assertTrue(CommandGuard.analyze("/", listOf("rm", "--recursive", "x")).recursive)
@@ -142,6 +162,6 @@ class CommandGuardTest {
         val engine = resolveMainFile("java/me/zhanghai/android/files/terminal/tracer/BinaryTracerEngine.kt").readText()
         assertFalse("No invented telemetry", engine.contains("\"68.0\""))
         val monitor = resolveMainFile("java/me/zhanghai/android/files/terminal/tracer/SyscallReaderMonitor.kt").readText()
-        assertFalse("Sampling must not flood the decision ledger", monitor.contains("recordKernelProbe"))
+        assertTrue("A system cwd is noted once per process, not every sample", monitor.contains("reportedSystemCwd.add(targetPid)"))
     }
 }

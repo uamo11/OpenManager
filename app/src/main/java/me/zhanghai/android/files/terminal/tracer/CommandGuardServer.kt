@@ -111,7 +111,10 @@ object CommandGuardServer {
                 ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> CommandGuard.Policy.ALLOW
             }
         }
-        val analysis = CommandGuard.analyze(cwd, argv)
+        // Real filesystem path as well: a symlink in user storage may point into /system.
+        val analysis = CommandGuard.analyze(cwd, argv) { path ->
+            runCatching { File(path).canonicalPath }.getOrNull()?.takeIf { it != path }
+        }
         val decision = CommandGuard.decide(
             analysis,
             policy,

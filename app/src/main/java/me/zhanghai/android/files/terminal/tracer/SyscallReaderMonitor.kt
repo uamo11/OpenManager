@@ -19,9 +19,12 @@ object SyscallReaderMonitor {
     private var monitorJob: Job? = null
     private val scope = CoroutineScope(Dispatchers.IO)
 
+    private val reportedSystemCwd = java.util.Collections.synchronizedSet(mutableSetOf<Int>())
+
     @Synchronized
     fun startMonitoring(pid: Int) {
         stopMonitoring()
+        reportedSystemCwd.clear()
         if (pid <= 0) return
 
         monitorJob = scope.launch {
@@ -85,6 +88,21 @@ object SyscallReaderMonitor {
                         if (syscr > 0L || syscw > 0L) {
                             BinaryTracerEngine.updateProcIo(syscr, syscw, rbytes, wbytes)
                         }
+                    }
+                }
+
+                // A process working inside an OS partition is worth one note, not one per sample.
+                for (targetPid in pidList.toList()) {
+                    if (!reportedSystemCwd.add(targetPid)) continue
+                    val canonicalCwd = runCatching { File("/proc/$targetPid/cwd").canonicalPath }.getOrNull()
+                    val zone = canonicalCwd?.let { me.zhanghai.android.files.provider.root.CommandGuard.classify(it) }
+                    if (zone == me.zhanghai.android.files.provider.root.CommandGuard.Zone.SYSTEM ||
+                        zone == me.zhanghai.android.files.provider.root.CommandGuard.Zone.BOOT_CRITICAL
+                    ) {
+                        BinaryTracerEngine.recordKernelProbe("/proc/$targetPid/cwd", "[PID $targetPid] $canonicalCwd")
+                    } else {
+                        // Not in the OS now: allow a later note if it moves there.
+                        reportedSystemCwd.remove(targetPid)
                     }
                 }
 

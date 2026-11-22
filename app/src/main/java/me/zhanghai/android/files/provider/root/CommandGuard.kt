@@ -124,6 +124,30 @@ object CommandGuard {
         return Zone.OTHER
     }
 
+    private val SEVERITY = listOf(
+        Zone.ROOT, Zone.BOOT_CRITICAL, Zone.SYSTEM, Zone.ROOT_CHILD, Zone.USER_STORAGE_ROOT,
+        Zone.APP_PRIVATE, Zone.USER, Zone.OTHER
+    )
+
+    private fun worst(zones: List<Zone>): Zone = zones.minByOrNull { SEVERITY.indexOf(it) } ?: Zone.OTHER
+
+    /**
+     * Zone of an argument, conservatively: Android's /sdcard is a symlink, so the kernel does not
+     * resolve ".." the way the text suggests. Absolute paths with ".." are also judged by what follows
+     * the last "..", and [resolver] (the real filesystem path, on device) catches symlinks into
+     * the OS. Relative ".." is left to the lexical result so "rm -rf ../build" stays ordinary.
+     */
+    fun classifyArg(cwd: String, arg: String, resolver: ((String) -> String?)? = null): Target {
+        val lexical = normalize(cwd, arg)
+        val zones = mutableListOf(classify(lexical))
+        if (arg.startsWith("/") && arg.split('/').contains("..")) {
+            val tail = arg.split('/').let { parts -> parts.drop(parts.lastIndexOf("..") + 1) }
+            zones += classify(normalize("/", tail.joinToString("/")))
+        }
+        resolver?.invoke(lexical)?.let { real -> zones += classify(normalize("/", real)) }
+        return Target(lexical, worst(zones))
+    }
+
     /** Wiping these makes the device unbootable or erases everything the user has. */
     fun isCatastrophic(zone: Zone, recursive: Boolean): Boolean = when (zone) {
         Zone.ROOT, Zone.ROOT_CHILD, Zone.SYSTEM, Zone.BOOT_CRITICAL -> true
@@ -135,7 +159,7 @@ object CommandGuard {
      * @param argv the command as the shell would run it, already glob-expanded, e.g.
      * `["rm", "-rf", "/sdcard/tmp"]` or `["busybox", "rm", "x"]`.
      */
-    fun analyze(cwd: String, argv: List<String>): Analysis {
+    fun analyze(cwd: String, argv: List<String>, resolver: ((String) -> String?)? = null): Analysis {
         if (argv.isEmpty()) return Analysis("", Kind.DELETE, emptyList(), false, false)
         var args = argv
         var name = args.first().substringAfterLast('/')
@@ -145,7 +169,7 @@ object CommandGuard {
             name = args.first().substringAfterLast('/')
         }
         val rest = args.drop(1)
-        fun targets(paths: List<String>) = paths.map { normalize(cwd, it).let { p -> Target(p, classify(p)) } }
+        fun targets(paths: List<String>) = paths.map { classifyArg(cwd, it, resolver) }
         return when (name) {
             "rm" -> {
                 val (flags, operands) = splitOptions(rest)

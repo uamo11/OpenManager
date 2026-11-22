@@ -410,7 +410,7 @@ object DeadManProtectionManager {
             if (p.isEmpty()) return false
             val clean = if (p.length >= 2 && p[1] == ':') p.substring(2) else p
             // Segment-based zones: "/sdcard/Download/system/x" or "/systemfoo" are not the OS.
-            val zone = CommandGuard.classify(CommandGuard.normalize("/", clean))
+            val zone = CommandGuard.classifyArg("/", clean).zone
             if (zone == CommandGuard.Zone.SYSTEM || zone == CommandGuard.Zone.BOOT_CRITICAL ||
                 zone == CommandGuard.Zone.ROOT
             ) {
