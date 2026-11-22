@@ -110,6 +110,7 @@ class CommandGuardTest {
         // /sdcard is a symlink on Android: "/sdcard/../../dev/block/x" must not slip through.
         assertEquals(Zone.BOOT_CRITICAL, CommandGuard.classifyArg("/", "/sdcard/../../dev/block/by-name/boot").zone)
         assertEquals(Zone.SYSTEM, CommandGuard.classifyArg("/", "/storage/emulated/0/../../system/build.prop").zone)
+        assertEquals(Zone.USER, CommandGuard.classifyArg("/", "/sdcard/project/tmp/..").zone)
         // Relative ".." stays lexical: cleaning a sibling build folder is ordinary.
         assertEquals(Zone.USER, CommandGuard.classifyArg("/sdcard/project/app", "../build").zone)
         // A user-storage symlink that really points into the OS.

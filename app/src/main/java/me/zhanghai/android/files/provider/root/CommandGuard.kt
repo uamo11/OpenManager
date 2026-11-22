@@ -142,7 +142,8 @@ object CommandGuard {
         val zones = mutableListOf(classify(lexical))
         if (arg.startsWith("/") && arg.split('/').contains("..")) {
             val tail = arg.split('/').let { parts -> parts.drop(parts.lastIndexOf("..") + 1) }
-            zones += classify(normalize("/", tail.joinToString("/")))
+            // "/sdcard/x/.." has no tail: the lexical result already covers it.
+            if (tail.any { it.isNotEmpty() && it != "." }) zones += classify(normalize("/", tail.joinToString("/")))
         }
         resolver?.invoke(lexical)?.let { real -> zones += classify(normalize("/", real)) }
         return Target(lexical, worst(zones))
