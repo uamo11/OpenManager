@@ -210,6 +210,18 @@
                     android:backgroundTint="#0277BD"
                     android:textColor="#FFFFFF" />
             </LinearLayout>
+
+            <!-- Without root: usage access lists the apps active in the last 30 minutes -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnBannerUsageAccess"
+                style="?borderlessButtonStyle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/om_proc_usage_access_button"
+                android:textAllCaps="false"
+                android:textColor="#FFB300"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <!-- Tabs: Usuario | Sistema | SH / ELF | Todos -->

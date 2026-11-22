@@ -76,6 +76,61 @@ object RunningAppsLoader {
         )
     }
 
+    const val RECENT_STATE = "U"
+    private const val RECENT_WINDOW_MS = 30 * 60_000L
+
+    fun hasUsageAccess(context: Context): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as? android.app.AppOpsManager ?: return false
+        @Suppress("DEPRECATION")
+        val mode = appOps.checkOpNoThrow(
+            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName
+        )
+        return mode == android.app.AppOpsManager.MODE_ALLOWED
+    }
+
+    /** Apps in the foreground (or running a foreground service) during the last 30 minutes. */
+    private fun recentAppsFromUsageStats(
+        context: Context,
+        installedMap: Map<String, PackageInfo>,
+        pm: PackageManager
+    ): List<RunningAppModel> {
+        if (!hasUsageAccess(context)) return emptyList()
+        val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? android.app.usage.UsageStatsManager
+            ?: return emptyList()
+        val now = System.currentTimeMillis()
+        val lastSeen = HashMap<String, Long>()
+        runCatching {
+            val events = usm.queryEvents(now - RECENT_WINDOW_MS, now)
+            val event = android.app.usage.UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val type = event.eventType
+                @Suppress("DEPRECATION")
+                val interesting = type == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND ||
+                    type == android.app.usage.UsageEvents.Event.MOVE_TO_BACKGROUND ||
+                    (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                        type == android.app.usage.UsageEvents.Event.FOREGROUND_SERVICE_START)
+                if (interesting) lastSeen[event.packageName] = event.timeStamp
+            }
+        }
+        val ownPackage = context.packageName
+        return lastSeen.entries.sortedByDescending { it.value }.mapNotNull { (pkg, _) ->
+            if (pkg == ownPackage) return@mapNotNull null
+            val appInfo = installedMap[pkg]?.applicationInfo ?: return@mapNotNull null
+            RunningAppModel(
+                pid = -1,
+                uid = appInfo.uid,
+                processName = pkg,
+                packageName = pkg,
+                label = cachedLabel(pm, appInfo, pkg),
+                isApp = true,
+                isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                state = RECENT_STATE,
+                user = "u0_a${appInfo.uid % 100000}"
+            )
+        }
+    }
+
     fun isRootGranted(): Boolean =
         (Shell.isAppGrantedRoot() == true) || ApkInstallHelper.isRootAvailable()
 
@@ -97,6 +152,48 @@ object RunningAppsLoader {
         val fdScript: String = ""
     )
 
+    private class PackageIndex(
+        val installed: Map<String, PackageInfo>,
+        val byUid: Map<Int, String>,
+        val builtAtMs: Long
+    )
+
+    private const val PACKAGE_INDEX_TTL_MS = 60_000L
+
+    @Volatile
+    private var cachedIndex: PackageIndex? = null
+
+    private val labelCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    /** Forces the next load to re-read installed packages (manual refresh, app installed...). */
+    fun invalidatePackageCache() {
+        cachedIndex = null
+        labelCache.clear()
+    }
+
+    private fun packageIndex(pm: PackageManager): PackageIndex {
+        cachedIndex?.takeIf { System.currentTimeMillis() - it.builtAtMs < PACKAGE_INDEX_TTL_MS }?.let { return it }
+        val installed = mutableMapOf<String, PackageInfo>()
+        val byUid = mutableMapOf<Int, String>()
+        try {
+            for (pkg in pm.getInstalledPackages(0)) {
+                installed[pkg.packageName] = pkg
+                val uid = pkg.applicationInfo?.uid ?: 0
+                if (uid > 0 && !byUid.containsKey(uid)) byUid[uid] = pkg.packageName
+            }
+        } catch (_: Throwable) {}
+        return PackageIndex(installed, byUid, System.currentTimeMillis()).also { cachedIndex = it }
+    }
+
+    /** Application labels are loaded from each APK's resources: load each one once. */
+    private fun cachedLabel(pm: PackageManager?, appInfo: ApplicationInfo, fallback: String): String {
+        val key = appInfo.packageName ?: return fallback
+        labelCache[key]?.let { return it }
+        val label = try { pm?.getApplicationLabel(appInfo)?.toString() } catch (_: Throwable) { null } ?: return fallback
+        labelCache[key] = label
+        return label
+    }
+
     private val cpuSnapshotLock = Any()
     @Volatile
     private var lastCpuSnapshot: CpuSnapshot? = null
@@ -113,19 +210,11 @@ object RunningAppsLoader {
      */
     fun loadRunningProcesses(context: Context): List<RunningAppModel> {
         val pm = context.packageManager
-        val installedMap = mutableMapOf<String, PackageInfo>()
-        val uidPackageMap = mutableMapOf<Int, String>()
-
-        try {
-            val packages = pm.getInstalledPackages(0)
-            for (pkg in packages) {
-                installedMap[pkg.packageName] = pkg
-                val uid = pkg.applicationInfo?.uid ?: 0
-                if (uid > 0 && !uidPackageMap.containsKey(uid)) {
-                    uidPackageMap[uid] = pkg.packageName
-                }
-            }
-        } catch (_: Throwable) {}
+        // Querying every installed package costs 100-300 ms of binder work; doing it on every
+        // 2.5 s refresh is what made this screen report OpenManager itself at 50%+ CPU.
+        val index = packageIndex(pm)
+        val installedMap = index.installed
+        val uidPackageMap = index.byUid
 
         val processMap = mutableMapOf<Int, RunningAppModel>()
 
@@ -176,7 +265,7 @@ object RunningAppsLoader {
                         info.uid < 10000
                     }
                     val label = if (appInfo != null) {
-                        try { pm.getApplicationLabel(appInfo).toString() } catch (_: Throwable) { mainPkg }
+                        cachedLabel(pm, appInfo, mainPkg)
                     } else {
                         info.processName
                     }
@@ -319,6 +408,18 @@ object RunningAppsLoader {
             )
         }
 
+        // Without root/Shizuku Android only shows our own processes; with usage access we can at
+        // least list the apps that were active recently (marked "recent", no pid).
+        if (!hasElevatedAccess()) {
+            val listed = processMap.values.mapNotNullTo(HashSet()) { it.packageName }
+            var syntheticPid = -1
+            for (recent in recentAppsFromUsageStats(context, installedMap, pm)) {
+                if (recent.packageName in listed) continue
+                processMap[syntheticPid] = recent.copy(pid = syntheticPid)
+                syntheticPid--
+            }
+        }
+
         return processMap.values.toList().sortedWith(compareByDescending<RunningAppModel> { it.isApp }
             .thenByDescending { it.memoryBytes }
             .thenBy { it.label.lowercase() })
@@ -378,7 +479,7 @@ object RunningAppsLoader {
                     uid < 10000
                 }
                 val label = if (appInfo != null) {
-                    try { pm?.getApplicationLabel(appInfo)?.toString() ?: mainPkg } catch (_: Throwable) { mainPkg }
+                    cachedLabel(pm, appInfo, mainPkg)
                 } else {
                     processName
                 }
@@ -523,7 +624,7 @@ object RunningAppsLoader {
                 user == "root" || user == "system"
             }
             val label = if (appInfo != null) {
-                try { pm?.getApplicationLabel(appInfo)?.toString() ?: (pkgInfo?.packageName ?: basePkg) } catch (_: Throwable) { basePkg }
+                cachedLabel(pm, appInfo, pkgInfo?.packageName ?: basePkg)
             } else {
                 cleanName
             }
@@ -612,7 +713,7 @@ object RunningAppsLoader {
         }
 
         val label = if (appInfo != null) {
-            try { pm.getApplicationLabel(appInfo).toString() } catch (_: Throwable) { basePkg }
+            cachedLabel(pm, appInfo, basePkg)
         } else {
             effectiveName
         }
@@ -1034,8 +1135,8 @@ object RunningAppsLoader {
             return res.isSuccess || !File("/proc/$pid").exists()
         }
         if (isShizukuReady()) {
-            val res = ShizukuShell.exec(cmd)
-            return res.isSuccess || !File("/proc/$pid").exists()
+            // Without root we cannot see other apps' /proc entries, so their absence proves nothing.
+            return ShizukuShell.exec(cmd).isSuccess
         }
         return try {
             Process.killProcess(pid)
@@ -1059,5 +1160,37 @@ object RunningAppsLoader {
             return res.isSuccess
         }
         return false
+    }
+
+    /**
+     * Merges the processes of each app into one row: the main process (named like the
+     * package) represents it, memory and CPU are summed and every pid is kept for actions.
+     */
+    fun groupProcessesByApp(processes: List<RunningAppModel>): List<RunningAppModel> {
+        val result = mutableListOf<RunningAppModel>()
+        val groups = LinkedHashMap<String, MutableList<RunningAppModel>>()
+        for (p in processes) {
+            val pkg = p.packageName
+            if (pkg == null || !p.isApp) {
+                result += p
+            } else {
+                groups.getOrPut(pkg) { mutableListOf() } += p
+            }
+        }
+        for ((pkg, members) in groups) {
+            if (members.size == 1) {
+                result += members[0]
+                continue
+            }
+            val main = members.firstOrNull { it.processName == pkg } ?: members.maxByOrNull { it.memoryBytes }!!
+            result += main.copy(
+                memoryBytes = members.sumOf { it.memoryBytes },
+                cpuPercent = members.sumOf { it.cpuPercent.toDouble() }.toFloat().coerceAtMost(100f),
+                state = if (members.any { it.state == "R" }) "R" else main.state,
+                processCount = members.size,
+                groupPids = members.map { it.pid }
+            )
+        }
+        return result
     }
 }

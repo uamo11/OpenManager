@@ -123,7 +123,13 @@ class RunningAppsAdapter(
             ExecutableType.ELF_GENERIC -> "[ELF] ${item.processName}"
             else -> item.processName
         }
-        holder.tvPid.text = "PID: ${item.pid}"
+        holder.tvPid.text = if (item.pid < 0) {
+            context.getString(R.string.om_proc_recent_no_pid)
+        } else if (item.processCount > 1) {
+            context.resources.getQuantityString(R.plurals.om_proc_pid_group_format, item.processCount, item.pid, item.processCount)
+        } else {
+            "PID: ${item.pid}"
+        }
         holder.tvUser.text = item.user
 
         val memStr = if (item.memoryBytes > 0) {
@@ -156,6 +162,10 @@ class RunningAppsAdapter(
             "Z" -> {
                 holder.tvState.text = "ZOMBIE"
                 holder.tvState.setTextColor(COLOR_STATE_ZOMBIE)
+            }
+            RunningAppsLoader.RECENT_STATE -> {
+                holder.tvState.text = context.getString(R.string.om_proc_state_recent)
+                holder.tvState.setTextColor(if (p.isDark) COLOR_STATE_SLEEP else COLOR_STATE_SLEEP_LIGHT)
             }
             else -> {
                 holder.tvState.text = if (item.isApp) "ACTIVE" else "SLEEP"

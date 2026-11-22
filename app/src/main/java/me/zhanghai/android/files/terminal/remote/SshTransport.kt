@@ -56,6 +56,54 @@ class SshTransport(
     @Volatile
     private var closed = false
 
+    // What the connection actually negotiated, shown in the connection sheet.
+    @Volatile private var negotiated: net.schmizz.sshj.transport.NegotiatedAlgorithms? = null
+    @Volatile private var hostKeyType: String? = null
+    @Volatile private var hostKeyFingerprint: String? = null
+    @Volatile private var hostKeyTrustedBefore = false
+    @Volatile private var serverVersion: String? = null
+    @Volatile private var connectedAtMs = 0L
+    @Volatile private var authMethodUsed: String? = null
+
+    override val isSecure: Boolean
+        get() = shell != null && hostKeyFingerprint != null
+
+    override fun connectionDetails(context: Context): List<Pair<String, String>> {
+        val rows = mutableListOf<Pair<String, String>>()
+        rows += context.getString(R.string.om_conn_protocol) to "SSH-2"
+        rows += context.getString(R.string.om_conn_server) to profile.endpoint
+        serverVersion?.let { rows += context.getString(R.string.om_conn_server_software) to it }
+        authMethodUsed?.let { rows += context.getString(R.string.om_conn_auth) to it }
+        hostKeyType?.let { rows += context.getString(R.string.om_conn_host_key) to it }
+        hostKeyFingerprint?.let {
+            rows += context.getString(R.string.om_conn_fingerprint) to it
+            rows += context.getString(R.string.om_conn_identity) to context.getString(
+                if (hostKeyTrustedBefore) R.string.om_conn_identity_known else R.string.om_conn_identity_new
+            )
+        }
+        negotiated?.let { algs ->
+            rows += context.getString(R.string.om_conn_kex) to algs.keyExchangeAlgorithm
+            rows += context.getString(R.string.om_conn_cipher) to
+                distinct(algs.client2ServerCipherAlgorithm, algs.server2ClientCipherAlgorithm)
+            rows += context.getString(R.string.om_conn_mac) to
+                distinct(algs.client2ServerMACAlgorithm, algs.server2ClientMACAlgorithm)
+            rows += context.getString(R.string.om_conn_compression) to
+                distinct(algs.client2ServerCompressionAlgorithm, algs.server2ClientCompressionAlgorithm)
+        }
+        if (profile.keepAliveSeconds > 0) {
+            rows += context.getString(R.string.om_conn_keepalive) to "${profile.keepAliveSeconds} s"
+        }
+        if (connectedAtMs > 0) {
+            val seconds = (System.currentTimeMillis() - connectedAtMs) / 1000
+            rows += context.getString(R.string.om_conn_uptime) to
+                String.format(java.util.Locale.ROOT, "%d:%02d:%02d", seconds / 3600, seconds % 3600 / 60, seconds % 60)
+        }
+        return rows
+    }
+
+    private fun distinct(a: String?, b: String?): String =
+        if (a == b || b == null) a.orEmpty() else "$a / $b"
+
     override fun getDisplayName(): String = profile.endpoint
 
     override fun connect(
@@ -77,11 +125,16 @@ class SshTransport(
         if (closed) throw IOException(appContext.getString(R.string.om_remote_error_cancelled))
         sshClient.connectTimeout = CONNECT_TIMEOUT_MS
         sshClient.addHostKeyVerifier(StrictHostKeyVerifier(sink))
+        sshClient.transport.addAlgorithmsVerifier { algorithms ->
+            negotiated = algorithms
+            true
+        }
         try {
             sshClient.connect(host, profile.port)
         } catch (e: IOException) {
             throw IOException(describeConnectError(e), e)
         }
+        serverVersion = runCatching { sshClient.transport.serverVersion }.getOrNull()
         // Each keystroke must leave immediately instead of waiting for Nagle's algorithm.
         runCatching { sshClient.socket?.tcpNoDelay = true }
         if (profile.keepAliveSeconds > 0) {
@@ -96,6 +149,7 @@ class SshTransport(
             TERMINAL_TYPE, columns, rows, columns * cellWidthPixels, rows * cellHeightPixels, emptyMap()
         )
         shell = sshSession.startShell()
+        connectedAtMs = System.currentTimeMillis()
         sink.print(status(appContext.getString(R.string.om_remote_status_connected, profile.endpoint)))
     }
 
@@ -114,6 +168,9 @@ class SshTransport(
             methods += AuthPassword(passwordFinder)
             methods += AuthKeyboardInteractive(PasswordResponseProvider(passwordFinder))
         }
+        authMethodUsed = appContext.getString(
+            if (profile.authType == RemoteAuthType.PRIVATE_KEY) R.string.om_remote_auth_key else R.string.om_remote_auth_password
+        )
         try {
             sshClient.auth(profile.username.trim(), methods)
         } catch (e: UserAuthException) {
@@ -188,8 +245,13 @@ class SshTransport(
             val keyType = KeyType.fromKey(key).toString()
             val blob = Buffer.PlainBuffer().putPublicKey(key).compactData
             val fingerprint = KnownHostsStore.sha256Fingerprint(blob)
+            hostKeyType = keyType
+            hostKeyFingerprint = fingerprint
             return when (val verdict = KnownHostsStore.check(appContext, host, port, keyType, fingerprint)) {
-                KnownHostsStore.Verdict.Trusted -> true
+                KnownHostsStore.Verdict.Trusted -> {
+                    hostKeyTrustedBefore = true
+                    true
+                }
                 KnownHostsStore.Verdict.Unknown, is KnownHostsStore.Verdict.Changed -> {
                     val previous = (verdict as? KnownHostsStore.Verdict.Changed)?.previousFingerprint
                     if (previous != null) {

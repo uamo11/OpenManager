@@ -3035,4 +3035,42 @@
         <item quantity="one">%1$d sample · %2$d reads · %3$d writes</item>
         <item quantity="other">%1$d samples · %2$d reads · %3$d writes</item>
     </plurals>
+    <string name="om_conn_title">Connection</string>
+    <string name="om_conn_disconnect">Disconnect</string>
+    <string name="om_conn_protocol">Protocol</string>
+    <string name="om_conn_server">Server</string>
+    <string name="om_conn_server_software">Server software</string>
+    <string name="om_conn_auth">Signed in with</string>
+    <string name="om_conn_host_key">Server key</string>
+    <string name="om_conn_fingerprint">Fingerprint</string>
+    <string name="om_conn_identity">Server identity</string>
+    <string name="om_conn_identity_known">Verified: matches the key you trusted</string>
+    <string name="om_conn_identity_new">Trusted on this connection</string>
+    <string name="om_conn_identity_unverified">Not verifiable (Telnet)</string>
+    <string name="om_conn_kex">Key exchange</string>
+    <string name="om_conn_cipher">Encryption</string>
+    <string name="om_conn_mac">Integrity (MAC)</string>
+    <string name="om_conn_compression">Compression</string>
+    <string name="om_conn_keepalive">Keepalive</string>
+    <string name="om_conn_uptime">Connected for</string>
+    <string name="om_conn_latency">Estimated key latency</string>
+    <string name="om_conn_terminal">Terminal type</string>
+    <string name="om_conn_none_plaintext">None: everything travels in clear text</string>
+    <string name="om_conn_status_secure">🔒 Encrypted connection to a verified server.</string>
+    <string name="om_conn_status_plaintext">⚠️ Telnet: the session is not encrypted.</string>
+    <string name="om_conn_status_connecting">Connecting…</string>
+    <string name="om_conn_status_closed">The connection is closed.</string>
+    <string name="om_conn_copy_fingerprint">Copy fingerprint</string>
+    <string name="om_conn_fingerprint_copied">Fingerprint copied</string>
+    <string name="om_proc_kill_confirm_title">End this process?</string>
+    <string name="om_proc_kill_self_warning">%1$s is OpenManager itself: the app will close.</string>
+    <string name="om_proc_kill_system_warning">%1$s is a system process. Ending it can restart the system UI or reboot the device.</string>
+    <string name="om_proc_group_by_app">Group processes by app</string>
+    <string name="om_proc_recent_no_pid">Recently active · no PID without root</string>
+    <string name="om_proc_state_recent">RECENT</string>
+    <string name="om_proc_usage_access_button">Without root: allow usage access to see recently active apps</string>
+    <plurals name="om_proc_pid_group_format">
+        <item quantity="one">PID: %1$d · %2$d process</item>
+        <item quantity="other">PID: %1$d · %2$d processes</item>
+    </plurals>
 </resources>

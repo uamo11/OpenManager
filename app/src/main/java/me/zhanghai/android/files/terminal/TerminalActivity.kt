@@ -431,11 +431,16 @@ class TerminalActivity : AppActivity() {
 
         btnStopSession?.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            showStopSignalMenu(it)
+            if (remoteProfile != null) {
+                // VPS: the button closes the connection and the screen, no signal menu.
+                closeRemoteSession()
+            } else {
+                showStopSignalMenu(it)
+            }
         }
 
         btnScriptAudit?.setOnClickListener {
-            showScriptAuditDialog()
+            if (remoteProfile != null) showConnectionDetails() else showScriptAuditDialog()
         }
 
         btnCopyScreen?.setOnClickListener {
@@ -1101,6 +1106,7 @@ class TerminalActivity : AppActivity() {
     /** Shows the profile's shortcut chips and switches the HUD to remote mode. */
     private fun setRemoteProfile(profile: RemoteProfile?) {
         remoteProfile = profile
+        applyToolbarMode()
         val container = remoteShortcutsContainer ?: return
         container.removeAllViews()
         val shortcuts = profile?.shortcuts.orEmpty()
@@ -1150,6 +1156,65 @@ class TerminalActivity : AppActivity() {
             )
         }
         renderSessionBadge()
+    }
+
+    /**
+     * Local shells: stop-signal menu and script audit. VPS: close button, connection details.
+     * Copy lives in the ⋮ menu for both, it is not needed one tap away.
+     */
+    private fun applyToolbarMode() {
+        val remote = remoteProfile != null
+        btnCopyScreen?.isVisible = false
+        btnStopSession?.setImageResource(if (remote) R.drawable.close_icon_white_24dp else R.drawable.ic_terminal_stop_24dp)
+        btnStopSession?.imageTintList = ColorStateList.valueOf(0xFFF85149.toInt())
+        btnStopSession?.contentDescription = getString(if (remote) R.string.om_conn_disconnect else R.string.om_term_stop_signal)
+        btnScriptAudit?.setImageResource(if (remote) R.drawable.lock_icon_white_24dp else R.drawable.shield_icon_white_24dp)
+        btnScriptAudit?.contentDescription = getString(if (remote) R.string.om_conn_title else R.string.script_audit_title)
+    }
+
+    private fun closeRemoteSession() {
+        ScriptExecutionManager.terminateShell(this)
+        finish()
+    }
+
+    /** Security and algorithms of the live SSH/Telnet link (replaces the script audit for VPS). */
+    private fun showConnectionDetails() {
+        val transport = terminalSession?.remoteTransport as? ProfileTransport ?: return
+        val rows = transport.connectionDetails(this).toMutableList()
+        val rtt = terminalView.predictiveEchoRttMs
+        if (rtt > 0) rows += getString(R.string.om_conn_latency) to "$rtt ms"
+        val status = getString(
+            when {
+                terminalSession?.isRunning != true -> R.string.om_conn_status_closed
+                transport.isSecure -> R.string.om_conn_status_secure
+                transport.profile.protocol == RemoteProtocol.TELNET -> R.string.om_conn_status_plaintext
+                else -> R.string.om_conn_status_connecting
+            }
+        )
+        val text = android.text.SpannableStringBuilder().apply {
+            append(status).append("\n\n")
+            for ((label, value) in rows) {
+                val start = length
+                append(label)
+                setSpan(android.text.style.StyleSpan(Typeface.BOLD), start, length, 0)
+                append("\n").append(value).append("\n\n")
+            }
+        }
+        val fingerprint = rows.firstOrNull { it.first == getString(R.string.om_conn_fingerprint) }?.second
+        val builder = com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setIcon(if (transport.isSecure) R.drawable.lock_icon_white_24dp else R.drawable.ic_conn_telnet)
+            .setTitle(R.string.om_conn_title)
+            .setMessage(text.trim())
+            .setPositiveButton(android.R.string.ok, null)
+            .setNegativeButton(R.string.om_conn_disconnect) { _, _ -> closeRemoteSession() }
+        if (fingerprint != null) {
+            builder.setNeutralButton(R.string.om_conn_copy_fingerprint) { _, _ ->
+                (getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager)
+                    ?.setPrimaryClip(ClipData.newPlainText("SSH fingerprint", fingerprint))
+                Toast.makeText(this, R.string.om_conn_fingerprint_copied, Toast.LENGTH_SHORT).show()
+            }
+        }
+        builder.show()
     }
 
     /**

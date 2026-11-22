@@ -2931,4 +2931,42 @@
         <item quantity="one">%1$d muestra · %2$d lecturas · %3$d escrituras</item>
         <item quantity="other">%1$d muestras · %2$d lecturas · %3$d escrituras</item>
     </plurals>
+    <string name="om_conn_title">Conexión</string>
+    <string name="om_conn_disconnect">Desconectar</string>
+    <string name="om_conn_protocol">Protocolo</string>
+    <string name="om_conn_server">Servidor</string>
+    <string name="om_conn_server_software">Software del servidor</string>
+    <string name="om_conn_auth">Inicio de sesión con</string>
+    <string name="om_conn_host_key">Clave del servidor</string>
+    <string name="om_conn_fingerprint">Huella</string>
+    <string name="om_conn_identity">Identidad del servidor</string>
+    <string name="om_conn_identity_known">Verificada: coincide con la clave que confiaste</string>
+    <string name="om_conn_identity_new">Confiada en esta conexión</string>
+    <string name="om_conn_identity_unverified">No verificable (Telnet)</string>
+    <string name="om_conn_kex">Intercambio de claves</string>
+    <string name="om_conn_cipher">Cifrado</string>
+    <string name="om_conn_mac">Integridad (MAC)</string>
+    <string name="om_conn_compression">Compresión</string>
+    <string name="om_conn_keepalive">Keepalive</string>
+    <string name="om_conn_uptime">Conectado desde hace</string>
+    <string name="om_conn_latency">Latencia estimada de tecla</string>
+    <string name="om_conn_terminal">Tipo de terminal</string>
+    <string name="om_conn_none_plaintext">Ninguno: todo viaja en texto plano</string>
+    <string name="om_conn_status_secure">🔒 Conexión cifrada con un servidor verificado.</string>
+    <string name="om_conn_status_plaintext">⚠️ Telnet: la sesión no está cifrada.</string>
+    <string name="om_conn_status_connecting">Conectando…</string>
+    <string name="om_conn_status_closed">La conexión está cerrada.</string>
+    <string name="om_conn_copy_fingerprint">Copiar huella</string>
+    <string name="om_conn_fingerprint_copied">Huella copiada</string>
+    <string name="om_proc_kill_confirm_title">¿Finalizar este proceso?</string>
+    <string name="om_proc_kill_self_warning">%1$s es el propio OpenManager: la app se cerrará.</string>
+    <string name="om_proc_kill_system_warning">%1$s es un proceso del sistema. Finalizarlo puede reiniciar la interfaz o el dispositivo.</string>
+    <string name="om_proc_group_by_app">Agrupar procesos por app</string>
+    <string name="om_proc_recent_no_pid">Activa recientemente · sin PID sin root</string>
+    <string name="om_proc_state_recent">RECIENTE</string>
+    <string name="om_proc_usage_access_button">Sin root: permite el acceso de uso para ver apps activas recientemente</string>
+    <plurals name="om_proc_pid_group_format">
+        <item quantity="one">PID: %1$d · %2$d proceso</item>
+        <item quantity="other">PID: %1$d · %2$d procesos</item>
+    </plurals>
 </resources>

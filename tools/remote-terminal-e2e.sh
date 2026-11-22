@@ -265,6 +265,33 @@ else
 fi
 shot 08_ssh_reconnect
 
+log "=== VPS toolbar: connection details and one-tap close ==="
+if pos=$(find_text "Connection" "Conexión"); then
+    adb shell input tap $pos; sleep 2
+    shot 08b_ssh_connection_details
+    if find_text "Encryption" "Cifrado" >/dev/null || [ -n "$(grep -o 'aes\|chacha' "$OUT/ui.xml" | head -1)" ]; then
+        pass "connection sheet shows the negotiated encryption"
+    else
+        fail "connection sheet missing details"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+else
+    fail "no connection button on the VPS toolbar"
+fi
+if find_text "Copy output" "Copiar salida" >/dev/null; then
+    fail "copy button still on the toolbar"
+fi
+if pos=$(find_text "Disconnect" "Desconectar"); then
+    adb shell input tap $pos; sleep 3
+    if find_text "CI OpenSSH" >/dev/null && find_text "probe" >/dev/null; then
+        fail "close button did not close the VPS terminal"
+    else
+        pass "close button disconnects and closes the VPS terminal at once"
+    fi
+else
+    fail "no close button on the VPS toolbar"
+fi
+
 log "=== SSH: a changed host key must be blocked ==="
 sudo pkill -f "sshd -f /tmp/sshd_om/sshd_config" || true
 sudo rm -f /tmp/sshd_om/ssh_host_ed25519_key /tmp/sshd_om/ssh_host_ed25519_key.pub

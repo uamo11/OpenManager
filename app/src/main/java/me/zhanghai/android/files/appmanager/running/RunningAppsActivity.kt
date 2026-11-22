@@ -254,7 +254,7 @@ class RunningAppsActivity : AppActivity() {
     private fun setupRecyclerView() {
         adapter = RunningAppsAdapter(
             scope = lifecycleScope,
-            onItemClick = { item -> showProcessDetails(item) },
+            onItemClick = { item -> if (item.pid < 0) openAppInfo(item) else showProcessDetails(item) },
             onKillClick = { item -> killProcess(item) },
             onForceStopClick = { item -> forceStopProcess(item) }
         )
@@ -292,6 +292,9 @@ class RunningAppsActivity : AppActivity() {
         binding.btnBannerRequestShizuku.setOnClickListener {
             requestShizukuPrivileges()
         }
+        binding.btnBannerUsageAccess.setOnClickListener {
+            runCatching { startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)) }
+        }
         binding.btnDismissBanner.setOnClickListener {
             isBannerDismissed = true
             getSharedPreferences("running_apps_prefs", MODE_PRIVATE)
@@ -326,6 +329,8 @@ class RunningAppsActivity : AppActivity() {
                 binding.tvElevationBadge.text = "⚠️ " + getString(R.string.running_apps_elevation_unprivileged)
                 binding.tvElevationBadge.setTextColor(Color.parseColor("#FFB300"))
                 binding.tvElevationBadge.backgroundTintList = android.content.res.ColorStateList.valueOf(Color.parseColor("#33291A"))
+                binding.btnBannerUsageAccess.visibility =
+                    if (RunningAppsLoader.hasUsageAccess(this)) View.GONE else View.VISIBLE
                 if (!isBannerDismissed) {
                     binding.cardPermissionBanner.visibility = View.VISIBLE
                 } else {
@@ -439,6 +444,8 @@ class RunningAppsActivity : AppActivity() {
     private fun loadProcesses(isAutoRefresh: Boolean = false) {
         if (isAutoRefresh && isLoading.get()) return
         if (!isAutoRefresh) {
+            // A manual refresh also picks up apps installed or removed since the last one.
+            RunningAppsLoader.invalidatePackageCache()
             loadJob?.cancel()
             binding.progressBar.visibility = View.VISIBLE
             binding.tvEmptyState.visibility = View.GONE
@@ -541,6 +548,14 @@ class RunningAppsActivity : AppActivity() {
             displayedProcesses.add(p)
         }
 
+        // One row per app (with its process count) instead of "OpenManager" twice for
+        // com.y.om and com.y.om:root:0. Scripts and the "all" tab keep raw processes.
+        if (groupByApp && (currentTab == 0 || currentTab == 1)) {
+            val grouped = RunningAppsLoader.groupProcessesByApp(displayedProcesses)
+            displayedProcesses.clear()
+            displayedProcesses.addAll(grouped)
+        }
+
         when (currentSortOrder) {
             0 -> displayedProcesses.sortByDescending { it.memoryBytes }
             1 -> displayedProcesses.sortWith(
@@ -554,6 +569,9 @@ class RunningAppsActivity : AppActivity() {
         adapter.submitList(displayedProcesses.toList())
         binding.tvEmptyState.visibility = if (displayedProcesses.isEmpty()) View.VISIBLE else View.GONE
     }
+
+    private val groupByApp: Boolean
+        get() = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_GROUP_BY_APP, true)
 
     private fun bindProcessDetailsMetrics(
         dialogBinding: DialogProcessDetailsBinding,
@@ -751,7 +769,43 @@ class RunningAppsActivity : AppActivity() {
         dialog.show()
     }
 
+    /** Rows without a pid (recently active apps, no root): Android's own app page can stop them. */
+    private fun openAppInfo(item: RunningAppModel) {
+        val pkg = item.packageName ?: return
+        runCatching {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$pkg")))
+        }
+    }
+
     private fun killProcess(item: RunningAppModel) {
+        if (item.pid < 0) {
+            openAppInfo(item)
+            return
+        }
+        // Killing ourselves or a core system process deserves a clear warning first.
+        val isSelf = android.os.Process.myPid() in item.allPids
+        val isCoreSystem = !item.isApp && item.uid in 0 until 10000
+        if (isSelf || isCoreSystem) {
+            if (!isUiAlive) return
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.om_proc_kill_confirm_title)
+                .setMessage(
+                    getString(
+                        if (isSelf) R.string.om_proc_kill_self_warning else R.string.om_proc_kill_system_warning,
+                        item.label
+                    )
+                )
+                .setPositiveButton(R.string.om_proc_menu_kill) { _, _ -> killProcessChecked(item) }
+                .setNegativeButton(android.R.string.cancel, null)
+                .create()
+                .bindToLifecycle(this)
+                .show()
+            return
+        }
+        killProcessChecked(item)
+    }
+
+    private fun killProcessChecked(item: RunningAppModel) {
         if (!RunningAppsLoader.hasElevatedAccess() && (item.isSystem || item.uid != android.os.Process.myUid())) {
             if (!isUiAlive) return
             MaterialAlertDialogBuilder(this)
@@ -825,7 +879,8 @@ class RunningAppsActivity : AppActivity() {
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val success = RunningAppsLoader.killProcess(item.pid)
+            // Grouped rows end every process of the app (children first, main last).
+            val success = item.allPids.sortedDescending().map { RunningAppsLoader.killProcess(it) }.any { it }
             withContext(Dispatchers.Main) {
                 if (!isUiAlive) return@withContext
                 if (success) {
@@ -869,6 +924,11 @@ class RunningAppsActivity : AppActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_running_apps, menu)
+        menu.add(Menu.NONE, MENU_GROUP_BY_APP, 50, R.string.om_proc_group_by_app).apply {
+            isCheckable = true
+            isChecked = groupByApp
+            setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER)
+        }
 
         val searchItem = menu.findItem(R.id.action_search)
         val searchView = searchItem?.actionView as? SearchView
@@ -900,6 +960,13 @@ class RunningAppsActivity : AppActivity() {
                 loadProcesses()
                 true
             }
+            MENU_GROUP_BY_APP -> {
+                val enabled = !item.isChecked
+                item.isChecked = enabled
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_GROUP_BY_APP, enabled).apply()
+                filterAndSortProcesses()
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -926,5 +993,9 @@ class RunningAppsActivity : AppActivity() {
 
     companion object {
         private const val AUTO_REFRESH_INTERVAL_MS = 2500L
+        private const val MENU_GROUP_BY_APP = 0x6701
+        private const val PREFS = "running_apps_prefs"
+        private const val KEY_GROUP_BY_APP = "group_by_app"
+
     }
 }

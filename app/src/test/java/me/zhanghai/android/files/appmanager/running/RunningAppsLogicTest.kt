@@ -265,4 +265,42 @@ class RunningAppsLogicTest {
         assertEquals(180_000L * 1024L, enriched?.memoryBytes)
         assertEquals("WhatsApp", enriched?.label)
     }
+
+    @Test
+    fun processesOfTheSameAppAreGroupedIntoOneRow() {
+        val list = listOf(
+            RunningAppModel(pid = 100, processName = "com.y.om", packageName = "com.y.om", label = "OpenManager", memoryBytes = 200, cpuPercent = 3f, state = "S"),
+            RunningAppModel(pid = 140, processName = "com.y.om:root:0", packageName = "com.y.om", label = "OpenManager", memoryBytes = 150, cpuPercent = 1f, state = "R"),
+            RunningAppModel(pid = 300, processName = "com.whatsapp", packageName = "com.whatsapp", label = "WhatsApp", memoryBytes = 90),
+            RunningAppModel(pid = 1, processName = "init", label = "init", isApp = false, isSystem = true)
+        )
+        val grouped = RunningAppsLoader.groupProcessesByApp(list)
+        assertEquals(3, grouped.size)
+        val om = grouped.single { it.packageName == "com.y.om" }
+        assertEquals("The main process represents the app", 100, om.pid)
+        assertEquals(350L, om.memoryBytes)
+        assertEquals(4f, om.cpuPercent, 0.001f)
+        assertEquals("R", om.state)
+        assertEquals(2, om.processCount)
+        assertEquals(listOf(100, 140), om.allPids)
+        assertEquals(listOf(300), grouped.single { it.packageName == "com.whatsapp" }.allPids)
+        assertTrue(grouped.any { it.processName == "init" })
+    }
+
+    @Test
+    fun killingIsGuardedAndShizukuSuccessIsNotGuessed() {
+        val activity = java.io.File(
+            if (java.io.File("src/main").exists()) "src/main" else "app/src/main",
+            "java/me/zhanghai/android/files/appmanager/running/RunningAppsActivity.kt"
+        ).readText()
+        assertTrue(activity.contains("android.os.Process.myPid() in item.allPids"))
+        assertTrue(activity.contains("R.string.om_proc_kill_system_warning"))
+        val loader = java.io.File(
+            if (java.io.File("src/main").exists()) "src/main" else "app/src/main",
+            "java/me/zhanghai/android/files/appmanager/running/RunningAppsLoader.kt"
+        ).readText()
+        assertTrue("Installed packages are cached between refreshes", loader.contains("PACKAGE_INDEX_TTL_MS"))
+        val shizukuKill = loader.substringAfter("if (isShizukuReady()) {\n            // Without root").substringBefore("}")
+        assertTrue(shizukuKill.contains("ShizukuShell.exec(cmd).isSuccess"))
+    }
 }

@@ -37,8 +37,15 @@ data class RunningAppModel(
     val scriptPath: String = "",
     val selinuxContext: String = "",
     val executableType: ExecutableType = if (isApp) ExecutableType.APP else ExecutableType.SYSTEM_DAEMON,
-    val elfArch: String = ""
+    val elfArch: String = "",
+    /** Rows grouped by app: how many processes and which pids they are. */
+    val processCount: Int = 1,
+    val groupPids: List<Int> = emptyList()
 ) : Parcelable {
+    /** Every pid this row stands for (the row's own pid when not grouped). */
+    val allPids: List<Int>
+        get() = groupPids.ifEmpty { listOf(pid) }
+
     val isShellScript: Boolean
         get() = executableType == ExecutableType.SHELL_SCRIPT
 

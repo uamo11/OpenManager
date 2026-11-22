@@ -45,6 +45,26 @@ class TelnetTransport(
 
     override fun getDisplayName(): String = profile.endpoint
 
+    @Volatile private var connectedAtMs = 0L
+
+    override val isSecure: Boolean = false
+
+    override fun connectionDetails(context: Context): List<Pair<String, String>> {
+        val rows = mutableListOf(
+            context.getString(R.string.om_conn_protocol) to "Telnet",
+            context.getString(R.string.om_conn_server) to profile.endpoint,
+            context.getString(R.string.om_conn_cipher) to context.getString(R.string.om_conn_none_plaintext),
+            context.getString(R.string.om_conn_identity) to context.getString(R.string.om_conn_identity_unverified),
+            context.getString(R.string.om_conn_terminal) to SshTransport.TERMINAL_TYPE
+        )
+        if (connectedAtMs > 0) {
+            val seconds = (System.currentTimeMillis() - connectedAtMs) / 1000
+            rows += context.getString(R.string.om_conn_uptime) to
+                String.format(java.util.Locale.ROOT, "%d:%02d:%02d", seconds / 3600, seconds % 3600 / 60, seconds % 60)
+        }
+        return rows
+    }
+
     override fun connect(
         columns: Int,
         rows: Int,
@@ -76,6 +96,7 @@ class TelnetTransport(
             )
         }
         runCatching { telnet.tcpNoDelay = true }
+        connectedAtMs = System.currentTimeMillis()
         runCatching { telnet.keepAlive = true }
         val out = SynchronizedOutputStream(telnet.outputStream)
         output = out
