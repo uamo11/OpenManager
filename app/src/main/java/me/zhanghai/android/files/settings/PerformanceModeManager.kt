@@ -19,6 +19,7 @@ import me.zhanghai.android.files.coil.reconfigureCoilForPerformanceMode
 import me.zhanghai.android.files.filelist.AppMetadataCache
 import me.zhanghai.android.files.filelist.DirectorySnapshotCache
 import me.zhanghai.android.files.provider.linux.syscall.Syscall
+import me.zhanghai.android.files.provider.sftp.client.SecurityProviderHelper
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -154,6 +155,11 @@ object PerformanceModeManager {
         NativeAppIconLoader.setUltraLowRamMode(enabled)
         reconfigureCoilForPerformanceMode(enabled)
         configureNativeAllocator(enabled)
+        if (!enabled) {
+            // Back to normal mode: restore its eager BouncyCastle registration (Ultra RAM mode
+            // registers it on demand), off the main thread so the toggle stays instant.
+            Thread({ SecurityProviderHelper.ensureInitialized() }, "SecurityProviderInit").start()
+        }
         if (enabled && triggerTrim) {
             trimTransientCaches(aggressive = true)
             try {

@@ -47,6 +47,13 @@ class UltraRamFootprintTest {
             sftpProvider.substringBefore("override fun getScheme").contains("SecurityProviderHelper.init()")
         )
         assertTrue(sftpProvider.contains("SecurityProviderHelper.ensureInitialized()"))
+        val manager = resolveMainFile("java/me/zhanghai/android/files/settings/PerformanceModeManager.kt")
+            .readText()
+        assertTrue(
+            "Turning Ultra RAM off at runtime must restore the eager registration",
+            manager.substringAfter("fun applyMode(").substringAfter("if (!enabled) {")
+                .substringBefore("}").contains("SecurityProviderHelper.ensureInitialized()")
+        )
 
         val appInit = resolveMainFile("java/me/zhanghai/android/files/app/AppInitializers.kt").readText()
         val perfInit = appInit.substringAfter("private fun initializePerformanceMode()")
