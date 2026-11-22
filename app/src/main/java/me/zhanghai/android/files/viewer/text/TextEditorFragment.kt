@@ -1477,6 +1477,11 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 onReload()
                 true
             }
+            R.id.action_encoding -> {
+                ensureEncodingSubMenuPopulated()
+                // Not consumed, so the (now populated) sub-menu still opens.
+                false
+            }
             Menu.FIRST -> {
                 viewModel.encoding.value = Charset.forName(item.titleCondensed!!.toString())
                 true
@@ -1503,6 +1508,22 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private fun onEncodingChanged(encoding: Charset) {
         updateEncodingMenuItems()
         updateSubtitle()
+    }
+
+    private fun ensureEncodingSubMenuPopulated() {
+        if (!this::menuBinding.isInitialized) {
+            return
+        }
+        val encodingSubMenu = menuBinding.encodingSubMenu
+        if (encodingSubMenu.size() > 0) {
+            return
+        }
+        for ((charsetName, charset) in Charset.availableCharsets()) {
+            encodingSubMenu.add(Menu.NONE, Menu.FIRST, Menu.NONE, charset.displayName())
+                .titleCondensed = charsetName
+        }
+        encodingSubMenu.setGroupCheckable(Menu.NONE, true, true)
+        updateEncodingMenuItems()
     }
 
     private fun updateEncodingMenuItems() {
@@ -1673,12 +1694,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         companion object {
             fun inflate(menu: Menu, inflater: MenuInflater): MenuBinding {
                 inflater.inflate(R.menu.text_editor, menu)
+                // Filled on first open by ensureEncodingSubMenuPopulated():
+                // Charset.availableCharsets() instantiates every ICU converter (~2.5 MiB native).
                 val encodingSubMenu = menu.findItem(R.id.action_encoding).subMenu!!
-                for ((charsetName, charset) in Charset.availableCharsets()) {
-                    encodingSubMenu.add(Menu.NONE, Menu.FIRST, Menu.NONE, charset.displayName())
-                        .titleCondensed = charsetName
-                }
-                encodingSubMenu.setGroupCheckable(Menu.NONE, true, true)
                 return MenuBinding(
                     menu = menu,
                     saveItem = menu.findItem(R.id.action_save),

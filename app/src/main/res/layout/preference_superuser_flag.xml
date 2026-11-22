@@ -54,7 +54,6 @@
                     android:layout_height="32dp"
                     android:layout_gravity="center"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_shield_locked"
                     tools:src="@drawable/ic_root_kernelsu" />
             </FrameLayout>
 
@@ -101,7 +100,7 @@
                     android:layout_height="18dp"
                     android:layout_marginStart="5dp"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_root_dfroot"
+                    tools:src="@drawable/ic_root_dfroot"
                     android:visibility="gone"
                     tools:visibility="visible" />
 
@@ -112,7 +111,7 @@
                     android:layout_height="18dp"
                     android:layout_marginStart="5dp"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_shizuku_logo"
+                    tools:src="@drawable/ic_shizuku_logo"
                     android:visibility="gone"
                     tools:visibility="visible" />
             </LinearLayout>
@@ -125,7 +124,6 @@
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
                 android:scaleType="fitCenter"
-                android:src="@drawable/ic_circle_error_red"
                 tools:src="@drawable/ic_check_circle_green" />
 
         </RelativeLayout>

@@ -23,6 +23,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.launch
 import me.zhanghai.android.files.R
+import me.zhanghai.android.files.util.setImageResourceAtViewSize
 import me.zhanghai.android.files.provider.root.ShizukuManager
 import me.zhanghai.android.files.provider.root.SuperuserDetector
 
@@ -106,6 +107,9 @@ class SuperuserStatusPreference : Preference {
         val ivShizukuMini = holder.itemView.findViewById<ImageView>(R.id.ivShizukuMini)
         val ivCornerStatus = holder.itemView.findViewById<ImageView>(R.id.ivCornerStatus)
         val tvManagerHeader = holder.itemView.findViewById<TextView>(R.id.tvManagerHeader)
+        // Raster logos (192-1024px) are decoded at view size; see SampledImageResources.
+        ivDfRootMini?.setImageResourceAtViewSize(R.drawable.ic_root_dfroot)
+        ivShizukuMini?.setImageResourceAtViewSize(R.drawable.ic_shizuku_logo)
 
         val status = currentStatus
         if (cardInner != null && flIconContainer != null && ivIcon != null &&
@@ -165,7 +169,7 @@ class SuperuserStatusPreference : Preference {
     ) {
         cardInner.setBackgroundResource(R.drawable.bg_superuser_card_gray)
         flIconContainer.setBackgroundResource(R.drawable.bg_circle_root_icon_gray)
-        ivIcon.setImageResource(R.drawable.ic_shield_locked)
+        ivIcon.setImageResourceAtViewSize(R.drawable.ic_shield_locked)
         ivIcon.imageTintList = android.content.res.ColorStateList.valueOf(0xFFB0BEC5.toInt())
         ivIcon.clearColorFilter()
         tvManagerHeader.visibility = View.GONE
@@ -174,7 +178,7 @@ class SuperuserStatusPreference : Preference {
         tvJailbreakTag.visibility = View.GONE
         ivDfRootMini.visibility = View.GONE
         ivShizukuMini.visibility = View.GONE
-        ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+        ivCornerStatus.setImageResourceAtViewSize(R.drawable.ic_circle_error_red)
         ivCornerStatus.visibility = View.VISIBLE
     }
 
@@ -206,7 +210,7 @@ class SuperuserStatusPreference : Preference {
             ivShizukuMini.clearColorFilter()
 
             if (hasRoot) {
-                ivIcon.setImageResource(status.type.iconRes)
+                ivIcon.setImageResourceAtViewSize(status.type.iconRes)
 
                 // Top Header: Manager name centered over top border line
                 tvManagerHeader.visibility = View.VISIBLE
@@ -255,7 +259,7 @@ class SuperuserStatusPreference : Preference {
                 }
             } else {
                 // Shizuku Active Only (No Root) - Full official Shizuku logo
-                ivIcon.setImageResource(R.drawable.ic_shizuku_logo)
+                ivIcon.setImageResourceAtViewSize(R.drawable.ic_shizuku_logo)
                 ivIcon.imageTintList = null
                 ivIcon.clearColorFilter()
 
@@ -275,7 +279,7 @@ class SuperuserStatusPreference : Preference {
             }
 
             // Bottom-right corner: Green check circle
-            ivCornerStatus.setImageResource(R.drawable.ic_check_circle_green)
+            ivCornerStatus.setImageResourceAtViewSize(R.drawable.ic_check_circle_green)
             ivCornerStatus.visibility = View.VISIBLE
         } else {
             // NO ROOT: GRAY GRADIENT CARD
@@ -288,7 +292,7 @@ class SuperuserStatusPreference : Preference {
 
             if (status.type != SuperuserDetector.SuperuserType.NONE && status.type != SuperuserDetector.SuperuserType.SHIZUKU) {
                 // Root manager is installed on device, but not authorized
-                ivIcon.setImageResource(status.type.iconRes)
+                ivIcon.setImageResourceAtViewSize(status.type.iconRes)
                 ivIcon.imageTintList = null
                 ivIcon.clearColorFilter()
 
@@ -305,11 +309,11 @@ class SuperuserStatusPreference : Preference {
                 ivDfRootMini.visibility = View.GONE
                 ivShizukuMini.visibility = View.GONE
 
-                ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+                ivCornerStatus.setImageResourceAtViewSize(R.drawable.ic_circle_error_red)
                 ivCornerStatus.visibility = View.VISIBLE
             } else if (status.isShizukuAvailable && !status.isShizukuReady) {
                 // Shizuku service is running on device, but OpenManager lacks execution permission
-                ivIcon.setImageResource(R.drawable.ic_shizuku_logo)
+                ivIcon.setImageResourceAtViewSize(R.drawable.ic_shizuku_logo)
                 ivIcon.imageTintList = null
                 ivIcon.clearColorFilter()
 
@@ -326,11 +330,11 @@ class SuperuserStatusPreference : Preference {
                 ivDfRootMini.visibility = View.GONE
                 ivShizukuMini.visibility = View.GONE
 
-                ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+                ivCornerStatus.setImageResourceAtViewSize(R.drawable.ic_circle_error_red)
                 ivCornerStatus.visibility = View.VISIBLE
             } else {
                 // Primary icon: Shield locked
-                ivIcon.setImageResource(R.drawable.ic_shield_locked)
+                ivIcon.setImageResourceAtViewSize(R.drawable.ic_shield_locked)
                 ivIcon.imageTintList = android.content.res.ColorStateList.valueOf(0xFFB0BEC5.toInt())
                 ivIcon.clearColorFilter()
 
@@ -342,7 +346,7 @@ class SuperuserStatusPreference : Preference {
                 ivDfRootMini.visibility = View.GONE
                 ivShizukuMini.visibility = View.GONE
 
-                ivCornerStatus.setImageResource(R.drawable.ic_circle_error_red)
+                ivCornerStatus.setImageResourceAtViewSize(R.drawable.ic_circle_error_red)
                 ivCornerStatus.visibility = View.VISIBLE
             }
         }
