@@ -111,6 +111,8 @@ dependencies {
         exclude group: 'org.ogce', module: 'xpp3'
     }
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
+    // Video player: hardware decoding with fallback, SurfaceView output (no UI module, own controls).
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
     implementation 'com.github.topjohnwu.libsu:service:5.2.2'
 }
 

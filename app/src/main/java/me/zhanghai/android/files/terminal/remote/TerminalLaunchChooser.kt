@@ -26,12 +26,12 @@ object TerminalLaunchChooser {
         for (profile in profiles) {
             val tag = if (profile.protocol == RemoteProtocol.SSH) "SSH" else "Telnet"
             labels += "$tag · ${profile.displayName}"
-            actions += { RemoteProfilesActivity.connect(activity, profile) }
+            actions += { ConnectionsActivity.connect(activity, profile) }
         }
         labels += activity.getString(R.string.om_remote_chooser_manage)
-        actions += { activity.startActivity(RemoteProfilesActivity.createIntent(activity)) }
+        actions += { activity.startActivity(ConnectionsActivity.createIntent(activity)) }
         labels += activity.getString(R.string.om_remote_chooser_new)
-        actions += { activity.startActivity(RemoteProfileEditActivity.createIntent(activity, null)) }
+        actions += { ConnectionsActivity.showAddSheet(activity) }
 
         MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.om_remote_chooser_title)

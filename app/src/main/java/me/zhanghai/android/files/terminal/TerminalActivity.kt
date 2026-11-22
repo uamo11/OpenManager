@@ -49,7 +49,7 @@ import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.terminal.remote.ProfileTransport
 import me.zhanghai.android.files.terminal.remote.RemoteProfile
 import me.zhanghai.android.files.terminal.remote.RemoteProfileStore
-import me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity
+import me.zhanghai.android.files.terminal.remote.ConnectionsActivity
 import me.zhanghai.android.files.terminal.remote.RemotePrompter
 import me.zhanghai.android.files.terminal.remote.RemoteProtocol
 import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
@@ -381,6 +381,12 @@ class TerminalActivity : AppActivity() {
 
     override fun onPause() {
         super.onPause()
+        if (me.zhanghai.android.files.BuildConfig.DEBUG && terminalSession?.isRemote == true) {
+            android.util.Log.i(
+                "OMEcho",
+                "rtt=${terminalView.predictiveEchoRttMs}ms shownConfirmed=${terminalView.predictiveEchoShownCount}"
+            )
+        }
         stopRuntimeTicker()
     }
 
@@ -714,6 +720,7 @@ class TerminalActivity : AppActivity() {
         }
 
         extraKeysView.applyTheme(isLightChrome, isAmoledChrome, appPalette.accentColor)
+        updatePredictiveEcho()
         renderSessionBadge()
     }
 
@@ -869,7 +876,8 @@ class TerminalActivity : AppActivity() {
             override fun shouldBackButtonBeMappedToEscape(): Boolean = false
             // Remote shells echo every byte themselves: commit each key immediately instead of
             // letting the keyboard hold a composing word (the "typing lag" of IMEs like Samsung's).
-            override fun shouldEnforceCharBasedInput(): Boolean = terminalSession?.isRemote == true
+            override fun shouldEnforceCharBasedInput(): Boolean =
+                terminalSession?.isRemote == true || TerminalSettings.isInstantTyping(this@TerminalActivity)
             override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
             override fun isTerminalViewSelected(): Boolean = true
             override fun copyModeChanged(copyMode: Boolean) {}
@@ -935,6 +943,7 @@ class TerminalActivity : AppActivity() {
 
             terminalView.setTerminalViewClient(viewClient)
             terminalView.attachSession(existingSession)
+            updatePredictiveEcho()
 
             toolbar.title = ScriptExecutionManager.activeScriptName
             val reattachCwd = ScriptExecutionManager.activeScriptPath ?: TerminalSettings.getStartPath(this)
@@ -1031,6 +1040,7 @@ class TerminalActivity : AppActivity() {
 
         terminalView.setTerminalViewClient(viewClient)
         terminalView.attachSession(session)
+        updatePredictiveEcho()
 
         toolbar.title = scriptName
         updateHudState(
@@ -1070,10 +1080,18 @@ class TerminalActivity : AppActivity() {
         currentPid = -1
         terminalView.setTerminalViewClient(viewClient)
         terminalView.attachSession(session)
+        updatePredictiveEcho()
         terminalView.requestFocus()
         toolbar.title = profile.displayName
         tvTerminalBreadcrumb?.text = profile.endpoint
         updateHudState(isRoot = false, isTermex = false, isRunning = true)
+    }
+
+    private fun updatePredictiveEcho() {
+        val enabled = terminalSession?.isRemote == true && TerminalSettings.isPredictiveEcho(this)
+        terminalView.setPredictiveEchoEnabled(enabled)
+        // The IME input type depends on the setting: rebuild the input connection.
+        (getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager)?.restartInput(terminalView)
     }
 
     /** Shows the profile's shortcut chips and switches the HUD to remote mode. */
@@ -1228,12 +1246,12 @@ class TerminalActivity : AppActivity() {
                     true
                 }
                 7 -> {
-                    startActivity(RemoteProfilesActivity.createIntent(this))
+                    startActivity(ConnectionsActivity.createIntent(this))
                     true
                 }
                 8 -> {
                     remoteProfile?.let { profile ->
-                        RemoteProfileStore.get(this, profile.id)?.let { RemoteProfilesActivity.connect(this, it) }
+                        RemoteProfileStore.get(this, profile.id)?.let { ConnectionsActivity.connect(this, it) }
                     }
                     true
                 }

@@ -425,7 +425,7 @@ private class TerminalMenuItem : MenuItem(
 
     override fun onLongClick(listener: Listener): Boolean {
         listener.launchIntent(
-            me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity::class.createIntent()
+            me.zhanghai.android.files.terminal.remote.ConnectionsActivity::class.createIntent()
         )
         listener.closeNavigationDrawer()
         return true

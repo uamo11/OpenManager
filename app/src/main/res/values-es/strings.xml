@@ -2745,8 +2745,8 @@
 
     <!-- SSH / Telnet remote terminal profiles -->
     <string name="om_remote_profiles_title">SSH / Telnet</string>
-    <string name="om_remote_profiles_empty_title">Sin conexiones guardadas</string>
-    <string name="om_remote_profiles_empty_message">Toca + para añadir un servidor SSH o Telnet. Cada perfil guarda host, usuario, puerto, credenciales y tus accesos directos.</string>
+    <string name="om_remote_profiles_empty_title">Aún no hay conexiones</string>
+    <string name="om_remote_profiles_empty_message">Toca + para añadir SSH, Telnet, FTP, SFTP, SMB o WebDAV. Los perfiles de terminal guardan host, usuario, puerto, credenciales, comandos de inicio y accesos directos.</string>
     <string name="om_remote_profile_add">Nueva conexión</string>
     <string name="om_remote_profile_edit">Editar conexión</string>
     <string name="om_remote_profile_actions">Opciones de la conexión</string>
@@ -2836,4 +2836,31 @@
         <item quantity="one">%1$d acceso directo</item>
         <item quantity="other">%1$d accesos directos</item>
     </plurals>
+    <string name="terminal_pref_instant_typing">Escritura instantánea (sin búfer de palabras del teclado)</string>
+    <string name="terminal_pref_predictive_echo">Eco predictivo en SSH/Telnet (oculta el retardo de red)</string>
+    <string name="om_connections_title">Conexiones</string>
+    <string name="om_connections_section_terminal">Terminal remoto</string>
+    <string name="om_connections_section_files">Archivos remotos</string>
+    <string name="om_connections_section_device">Este dispositivo</string>
+    <string name="om_connections_open_files">Abrir archivos</string>
+    <string name="om_connections_add_title">Nueva conexión</string>
+    <string name="om_connections_type_ssh">SSH</string>
+    <string name="om_connections_type_ssh_caption">Shell cifrado</string>
+    <string name="om_connections_type_telnet">Telnet</string>
+    <string name="om_connections_type_telnet_caption">Routers, equipos antiguos</string>
+    <string name="om_connections_type_ftp">FTP</string>
+    <string name="om_connections_type_ftp_caption">Archivos FTP / FTPS</string>
+    <string name="om_connections_type_sftp">SFTP</string>
+    <string name="om_connections_type_sftp_caption">Archivos por SSH</string>
+    <string name="om_connections_type_smb">SMB</string>
+    <string name="om_connections_type_smb_caption">Carpeta Windows / NAS</string>
+    <string name="om_connections_type_webdav">WebDAV</string>
+    <string name="om_connections_type_webdav_caption">Nextcloud, nube</string>
+    <string name="om_connections_type_ftp_server">Servidor FTP</string>
+    <string name="om_connections_type_ftp_server_caption">Compartir este móvil</string>
+    <string name="om_remote_section_none">Ninguno · toca para añadir</string>
+    <string name="om_remote_section_commands_summary">%1$s (+%2$d más)</string>
+    <string name="om_video_speed">Velocidad de reproducción</string>
+    <string name="om_video_stats">Estadísticas de reproducción</string>
+    <string name="om_video_exceeds_capabilities">Este vídeo %1$s supera lo que declara el decodificador del dispositivo. Se reproduce con el decodificador por hardware descartando fotogramas tardíos para que el audio siga fluido.</string>
 </resources>

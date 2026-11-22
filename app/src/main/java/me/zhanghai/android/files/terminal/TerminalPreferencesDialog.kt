@@ -108,6 +108,19 @@ class TerminalPreferencesDialog : DialogFragment() {
                 .show()
         }
 
+        val switchInstantTyping = container.findViewById<SwitchCompat>(R.id.switchInstantTyping)
+        val switchPredictiveEcho = container.findViewById<SwitchCompat>(R.id.switchPredictiveEcho)
+        switchInstantTyping.isChecked = TerminalSettings.isInstantTyping(ctx)
+        switchPredictiveEcho.isChecked = TerminalSettings.isPredictiveEcho(ctx)
+        switchInstantTyping.setOnCheckedChangeListener { _, isChecked ->
+            TerminalSettings.setInstantTyping(ctx, isChecked)
+            onSettingsChanged?.invoke()
+        }
+        switchPredictiveEcho.setOnCheckedChangeListener { _, isChecked ->
+            TerminalSettings.setPredictiveEcho(ctx, isChecked)
+            onSettingsChanged?.invoke()
+        }
+
         // Black theme toggle
         switchBlackTheme.setOnCheckedChangeListener { _, isChecked ->
             TerminalSettings.setKeepBlackTheme(ctx, isChecked)

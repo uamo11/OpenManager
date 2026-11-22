@@ -736,38 +736,6 @@
                         android:textSize="13.5sp" />
                 </LinearLayout>
 
-                <!-- Remote Manager (FTP Server) -->
-                <LinearLayout
-                    android:id="@+id/drawerItemFtp"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
-
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/computer_icon_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_nav_remote_ftp"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
-
                 <!-- Terminal -->
                 <LinearLayout
                     android:id="@+id/drawerItemTerminal"
@@ -799,6 +767,38 @@
                         android:textColor="#FFFFFF"
                         android:textSize="13.5sp" />
                 </LinearLayout>
+                <!-- Connections hub (SSH, Telnet, FTP, SFTP, SMB, WebDAV, FTP server) -->
+                <LinearLayout
+                    android:id="@+id/drawerItemConnections"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:background="?selectableItemBackground"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp">
+
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/drawer_icon_circle">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_conn_hub"
+                            app:tint="#DCDCDC" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:text="@string/om_connections_title"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13.5sp" />
+                </LinearLayout>
+
 
                 <!-- Recycle Bin (Papelera de reciclaje) -->
                 <LinearLayout

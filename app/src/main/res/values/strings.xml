@@ -2849,8 +2849,8 @@
 
     <!-- SSH / Telnet remote terminal profiles -->
     <string name="om_remote_profiles_title">SSH / Telnet</string>
-    <string name="om_remote_profiles_empty_title">No saved connections</string>
-    <string name="om_remote_profiles_empty_message">Tap + to add an SSH or Telnet server. Profiles keep the host, user, port, credentials and your shortcuts.</string>
+    <string name="om_remote_profiles_empty_title">No connections yet</string>
+    <string name="om_remote_profiles_empty_message">Tap + to add SSH, Telnet, FTP, SFTP, SMB or WebDAV. Terminal profiles keep host, user, port, credentials, startup commands and shortcuts.</string>
     <string name="om_remote_profile_add">New connection</string>
     <string name="om_remote_profile_edit">Edit connection</string>
     <string name="om_remote_profile_actions">Connection options</string>
@@ -2940,4 +2940,31 @@
         <item quantity="one">%1$d shortcut</item>
         <item quantity="other">%1$d shortcuts</item>
     </plurals>
+    <string name="terminal_pref_instant_typing">Instant typing (no keyboard word buffering)</string>
+    <string name="terminal_pref_predictive_echo">Predictive echo over SSH/Telnet (hides network lag)</string>
+    <string name="om_connections_title">Connections</string>
+    <string name="om_connections_section_terminal">Remote terminal</string>
+    <string name="om_connections_section_files">Remote files</string>
+    <string name="om_connections_section_device">This device</string>
+    <string name="om_connections_open_files">Open files</string>
+    <string name="om_connections_add_title">New connection</string>
+    <string name="om_connections_type_ssh">SSH</string>
+    <string name="om_connections_type_ssh_caption">Encrypted shell</string>
+    <string name="om_connections_type_telnet">Telnet</string>
+    <string name="om_connections_type_telnet_caption">Routers, legacy</string>
+    <string name="om_connections_type_ftp">FTP</string>
+    <string name="om_connections_type_ftp_caption">FTP / FTPS files</string>
+    <string name="om_connections_type_sftp">SFTP</string>
+    <string name="om_connections_type_sftp_caption">Files over SSH</string>
+    <string name="om_connections_type_smb">SMB</string>
+    <string name="om_connections_type_smb_caption">Windows / NAS share</string>
+    <string name="om_connections_type_webdav">WebDAV</string>
+    <string name="om_connections_type_webdav_caption">Nextcloud, cloud</string>
+    <string name="om_connections_type_ftp_server">FTP server</string>
+    <string name="om_connections_type_ftp_server_caption">Share this phone</string>
+    <string name="om_remote_section_none">None · tap to add</string>
+    <string name="om_remote_section_commands_summary">%1$s (+%2$d more)</string>
+    <string name="om_video_speed">Playback speed</string>
+    <string name="om_video_stats">Playback statistics</string>
+    <string name="om_video_exceeds_capabilities">This %1$s video is above what the device decoder declares. Playing it with the hardware decoder and dropping late frames to keep audio smooth.</string>
 </resources>

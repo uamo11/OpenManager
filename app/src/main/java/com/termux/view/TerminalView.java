@@ -55,6 +55,8 @@ public final class TerminalView extends View {
 
     public TerminalRenderer mRenderer;
 
+    private final LocalEchoPredictor mEchoPredictor = new LocalEchoPredictor();
+
     public TerminalViewClient mClient;
 
     private TextSelectionCursorController mTextSelectionCursorController;
@@ -291,6 +293,7 @@ public final class TerminalView extends View {
         if (session == mTermSession) return false;
 
         mTermSession = session;
+        mEchoPredictor.resetEpoch();
         mEmulator = null;
         mCombiningAccent = 0;
 
@@ -458,6 +461,8 @@ public final class TerminalView extends View {
 
     public void onScreenUpdated(boolean skipScrolling) {
         if (mEmulator == null) return;
+
+        mEchoPredictor.onScreenUpdated(mEmulator);
 
         int rowsInHistory = mEmulator.getScreen().getActiveTranscriptRows();
         if (mTopRow < -rowsInHistory) setTopRow(-rowsInHistory);
@@ -904,8 +909,17 @@ public final class TerminalView extends View {
                 }
             }
 
+            if (!altDown && codePoint >= 32 && codePoint != 127) {
+                mEchoPredictor.onPrintable(mEmulator, codePoint);
+            } else if (!altDown && codePoint == 127) {
+                mEchoPredictor.onBackspace();
+            } else {
+                mEchoPredictor.resetEpoch();
+            }
+
             // If left alt, send escape before the code point to make e.g. Alt+B and Alt+F work in readline:
             mTermSession.writeCodePoint(altDown, codePoint);
+            if (mEchoPredictor.isEnabled()) invalidate();
         }
     }
 
@@ -921,8 +935,33 @@ public final class TerminalView extends View {
         TerminalEmulator term = mTermSession.getEmulator();
         String code = KeyHandler.getCode(keyCode, keyMod, term.isCursorKeysApplicationMode(), term.isKeypadApplicationMode());
         if (code == null) return false;
+        if (keyCode == KeyEvent.KEYCODE_DEL && keyMod == 0) {
+            mEchoPredictor.onBackspace();
+        } else {
+            mEchoPredictor.resetEpoch();
+        }
         mTermSession.write(code);
+        if (mEchoPredictor.isEnabled()) invalidate();
         return true;
+    }
+
+    /**
+     * Enables mosh-style predictive echo (only meaningful for remote sessions). Keys are shown
+     * underlined until the server echo confirms them; prompts that never echo stay hidden.
+     */
+    public void setPredictiveEchoEnabled(boolean enabled) {
+        mEchoPredictor.setEnabled(enabled);
+        invalidate();
+    }
+
+    /** Keys shown before the server echo and later confirmed by it (diagnostics). */
+    public int getPredictiveEchoShownCount() {
+        return mEchoPredictor.getShownConfirmedCount();
+    }
+
+    /** Smoothed keystroke round trip measured by the predictor, or -1 if unknown. */
+    public long getPredictiveEchoRttMs() {
+        return mEchoPredictor.getSmoothedRttMs();
     }
 
     public boolean handleKeyCodeAction(int keyCode, int keyMod) {
@@ -1030,6 +1069,9 @@ public final class TerminalView extends View {
             }
 
             mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
+            if (mTopRow == 0 && mEchoPredictor.shouldDisplay()) {
+                mRenderer.renderPredictions(mEmulator, canvas, mTopRow, mEchoPredictor);
+            }
 
             // render the text selection handles
             renderTextSelection();

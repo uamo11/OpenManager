@@ -266,6 +266,44 @@ public final class TerminalRenderer {
         if (savedMatrix) canvas.restore();
     }
 
+    /**
+     * Draws not-yet-echoed keys of a remote session (see {@link LocalEchoPredictor}) underlined at
+     * their predicted cells, followed by the cursor.
+     */
+    final void renderPredictions(TerminalEmulator emulator, Canvas canvas, int topRow, LocalEchoPredictor predictor) {
+        final int[] palette = emulator.mColors.mCurrentColors;
+        final int foreColor = palette[TextStyle.COLOR_INDEX_FOREGROUND];
+        final int backColor = palette[TextStyle.COLOR_INDEX_BACKGROUND];
+        final int cursorColor = palette[TextStyle.COLOR_INDEX_CURSOR];
+        final char[] glyph = new char[2];
+        float lastRight = -1;
+        float lastY = -1;
+        mTextPaint.setFakeBoldText(false);
+        mTextPaint.setTextSkewX(0.f);
+        mTextPaint.setStrikeThruText(false);
+        for (int i = 0; i < predictor.getPendingCount(); i++) {
+            int screenIndex = predictor.getRow(i) - topRow;
+            if (screenIndex < 0 || screenIndex >= emulator.mRows) continue;
+            float y = mFontLineSpacingAndAscent + (screenIndex + 1) * mFontLineSpacing;
+            float left = predictor.getCol(i) * mFontWidth;
+            float right = left + mFontWidth;
+            mTextPaint.setUnderlineText(false);
+            mTextPaint.setColor(backColor);
+            canvas.drawRect(left, y - mFontLineSpacingAndAscent + mFontAscent, right, y, mTextPaint);
+            int length = Character.toChars(predictor.getCodePoint(i), glyph, 0);
+            mTextPaint.setUnderlineText(true);
+            mTextPaint.setColor(foreColor);
+            canvas.drawText(glyph, 0, length, left, y - mFontLineSpacingAndAscent, mTextPaint);
+            lastRight = right;
+            lastY = y;
+        }
+        mTextPaint.setUnderlineText(false);
+        if (lastRight >= 0 && lastRight + mFontWidth <= emulator.mColumns * mFontWidth) {
+            mTextPaint.setColor(cursorColor != 0 ? cursorColor : foreColor);
+            canvas.drawRect(lastRight, lastY - mFontLineSpacingAndAscent + mFontAscent, lastRight + mFontWidth, lastY, mTextPaint);
+        }
+    }
+
     public float getFontWidth() {
         return mFontWidth;
     }

@@ -457,7 +457,7 @@ class FileListActivity : AppActivity() {
     private fun handleRemoteTerminalDemo(action: String) {
         if (!BuildConfig.DEBUG) return
         val store = me.zhanghai.android.files.terminal.remote.RemoteProfileStore
-        val profiles = me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity
+        val profiles = me.zhanghai.android.files.terminal.remote.ConnectionsActivity
         val ssh = me.zhanghai.android.files.terminal.remote.RemoteProfile(
             id = "ci-ssh",
             name = "CI OpenSSH",
@@ -491,6 +491,7 @@ class FileListActivity : AppActivity() {
         if (store.get(this, telnet.id) == null) store.save(this, telnet)
         when (action) {
             "remote_profiles" -> startActivity(profiles.createIntent(this))
+            "remote_add_sheet" -> profiles.showAddSheet(this)
             "remote_ssh" -> profiles.connect(this, store.get(this, ssh.id)!!)
             "remote_telnet" -> profiles.connect(this, store.get(this, telnet.id)!!)
             "remote_chooser" -> me.zhanghai.android.files.terminal.remote.TerminalLaunchChooser.show(this) {
@@ -605,7 +606,7 @@ class FileListActivity : AppActivity() {
                             fragmentB.navigateTo(java8.nio.file.Paths.get("/data"))
                         }
                     }
-                    "remote_profiles", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
+                    "remote_profiles", "remote_add_sheet", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
                         handleRemoteTerminalDemo(action)
                     "terminal" -> {
                         startActivity(
@@ -910,9 +911,10 @@ class FileListActivity : AppActivity() {
             startActivity(Intent(this, TextEditorActivity::class.java))
         }
 
-        findViewById<View>(R.id.drawerItemFtp).setOnClickListener {
+        // Connections hub replaces the old FTP server entry (the FTP server lives inside it).
+        findViewById<View>(R.id.drawerItemConnections).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            startActivity(Intent(this, FtpServerActivity::class.java))
+            startActivity(me.zhanghai.android.files.terminal.remote.ConnectionsActivity.createIntent(this))
         }
 
         findViewById<View>(R.id.drawerItemTerminal)?.setOnClickListener {

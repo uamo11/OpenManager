@@ -311,6 +311,80 @@
                 android:layout_marginStart="46dp"
                 android:background="#262D37" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/ic_perf_bolt_24dp"
+                    app:tint="#7EE787" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/terminal_pref_instant_typing"
+                    android:textSize="14.5sp"
+                    android:textColor="#F0F6FC" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchInstantTyping"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="46dp"
+                android:background="#262D37" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp">
+
+                <ImageView
+                    android:layout_width="22dp"
+                    android:layout_height="22dp"
+                    android:src="@drawable/terminal_icon_white_24dp"
+                    app:tint="#A78BFA" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:text="@string/terminal_pref_predictive_echo"
+                    android:textSize="14.5sp"
+                    android:textColor="#F0F6FC" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switchPredictiveEcho"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginStart="46dp"
+                android:background="#262D37" />
+
             <!-- 6. Paquete de expansión de terminal -->
             <LinearLayout
                 android:id="@+id/layoutExpansion"

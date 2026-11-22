@@ -5,23 +5,43 @@
 
 package me.zhanghai.android.files.viewer.video
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
+import android.content.pm.ActivityInfo
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import android.view.GestureDetector
+import android.view.MotionEvent
+import android.view.SurfaceView
 import android.view.View
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.VideoView
+import androidx.annotation.OptIn
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.Format
+import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.Tracks
+import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.DecoderReuseEvaluation
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import java8.nio.file.Path
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -32,70 +52,97 @@ import me.zhanghai.android.files.filelist.SmartUriPathResolver
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.extraPath
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 
+/**
+ * Lightweight Media3/ExoPlayer video player tuned for high-resolution files on modest devices:
+ * - hardware decoders first, automatic fallback to the next decoder if one fails to initialize;
+ * - SurfaceView output (decoder → display overlay, no extra GPU copy);
+ * - local files and content:// URIs are streamed in place (no full copy before playing);
+ * - late frames are dropped by the renderer to keep audio and video in sync instead of stuttering;
+ * - small buffers (smaller still in Ultra RAM mode) since sources are local.
+ */
+@OptIn(UnstableApi::class)
 class VideoPlayerActivity : AppActivity() {
     private lateinit var videoRoot: FrameLayout
-    private lateinit var videoView: VideoView
+    private lateinit var surfaceView: SurfaceView
     private lateinit var overlayControls: FrameLayout
     private lateinit var tvVideoTitle: TextView
     private lateinit var tvVideoElapsed: TextView
     private lateinit var tvVideoDuration: TextView
+    private lateinit var tvSeekFeedback: TextView
+    private lateinit var tvStats: TextView
+    private lateinit var btnSpeed: TextView
+    private lateinit var buffering: ProgressBar
     private lateinit var seekBarVideo: SeekBar
     private lateinit var ivVideoPlayPause: ImageView
     private lateinit var btnVideoPlayPause: FrameLayout
-    private lateinit var btnVideoLocate: ImageButton
     private lateinit var btnVideoAspect: ImageButton
 
+    private var player: ExoPlayer? = null
     private var currentPath: Path? = null
     private var externalUri: Uri? = null
     private var tempFile: File? = null
     private var isUserTracking = false
     private var isControlsVisible = true
-    private var isAspectFill = false
+    private var isZoomed = false
     private var isLocating = false
+    private var orientationChosen = false
+    private var speedIndex = SPEEDS.indexOf(1f)
+    private var videoAspect = 0f
+
+    private var decoderName: String? = null
+    private var exceedsCapabilities = false
+    private var lastRenderedFrames = 0
+    private var lastStatsAtMs = 0L
+    private var measuredFps = 0f
 
     private val handler = Handler(Looper.getMainLooper())
 
-    private val hideControlsRunnable = Runnable {
-        hideControls()
-    }
+    private val hideControlsRunnable = Runnable { hideControls() }
+    private val hideSeekFeedbackRunnable = Runnable { tvSeekFeedback.visibility = View.GONE }
 
     private val progressRunnable = object : Runnable {
         override fun run() {
-            if (videoView.isPlaying && !isUserTracking) {
-                val current = videoView.currentPosition
-                seekBarVideo.progress = current
-                tvVideoElapsed.text = formatTime(current)
+            val p = player ?: return
+            if (!isUserTracking) {
+                val position = p.currentPosition
+                seekBarVideo.progress = position.toInt()
+                seekBarVideo.secondaryProgress = p.bufferedPosition.toInt()
+                tvVideoElapsed.text = formatTime(position)
             }
-            handler.postDelayed(this, 250)
+            if (tvStats.visibility == View.VISIBLE) updateStats()
+            // Tick slower while controls and stats are hidden: nothing visible changes.
+            val visible = isControlsVisible || tvStats.visibility == View.VISIBLE
+            handler.postDelayed(this, if (visible) 250L else 1000L)
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemUI()
-
         setContentView(R.layout.activity_video_player)
 
         videoRoot = findViewById(R.id.videoRoot)
-        videoView = findViewById(R.id.videoView)
+        surfaceView = findViewById(R.id.videoSurface)
         overlayControls = findViewById(R.id.overlayControls)
         tvVideoTitle = findViewById(R.id.tvVideoTitle)
         tvVideoElapsed = findViewById(R.id.tvVideoElapsed)
         tvVideoDuration = findViewById(R.id.tvVideoDuration)
+        tvSeekFeedback = findViewById(R.id.tvVideoSeekFeedback)
+        tvStats = findViewById(R.id.tvVideoStats)
+        btnSpeed = findViewById(R.id.btnVideoSpeed)
+        buffering = findViewById(R.id.videoBuffering)
         seekBarVideo = findViewById(R.id.seekBarVideo)
         ivVideoPlayPause = findViewById(R.id.ivVideoPlayPause)
         btnVideoPlayPause = findViewById(R.id.btnVideoPlayPause)
-        btnVideoLocate = findViewById(R.id.btnVideoLocate)
         btnVideoAspect = findViewById(R.id.btnVideoAspect)
-        val btnVideoBack = findViewById<ImageButton>(R.id.btnVideoBack)
 
         currentPath = intent.extraPath
         externalUri = intent.data
@@ -105,47 +152,45 @@ class VideoPlayerActivity : AppActivity() {
             return
         }
 
-        val customDisplayName = intent.getStringExtra(EXTRA_DISPLAY_NAME)
-        tvVideoTitle.text = customDisplayName
+        tvVideoTitle.text = intent.getStringExtra(EXTRA_DISPLAY_NAME)
             ?: currentPath?.fileName?.toString()
             ?: externalUri?.lastPathSegment?.substringAfterLast('/')
             ?: getString(R.string.om_video_title)
         tvVideoTitle.isSelected = true
 
-        btnVideoBack.setOnClickListener { finish() }
-
-        btnVideoLocate.setOnClickListener { locateVideoInExplorer() }
-
+        findViewById<ImageButton>(R.id.btnVideoBack).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.btnVideoLocate).setOnClickListener { locateVideoInExplorer() }
         btnVideoPlayPause.setOnClickListener {
             togglePlayPause()
             scheduleControlsAutoHide()
         }
-
+        btnVideoAspect.alpha = 0.7f
         btnVideoAspect.setOnClickListener {
-            isAspectFill = !isAspectFill
-            val lp = videoView.layoutParams
-            if (isAspectFill) {
-                lp.width = FrameLayout.LayoutParams.MATCH_PARENT
-                lp.height = FrameLayout.LayoutParams.MATCH_PARENT
-                btnVideoAspect.alpha = 1.0f
-            } else {
-                lp.width = FrameLayout.LayoutParams.WRAP_CONTENT
-                lp.height = FrameLayout.LayoutParams.WRAP_CONTENT
-                btnVideoAspect.alpha = 0.7f
-            }
-            videoView.layoutParams = lp
+            isZoomed = !isZoomed
+            btnVideoAspect.alpha = if (isZoomed) 1f else 0.7f
+            layoutSurface()
             scheduleControlsAutoHide()
         }
-
-        videoRoot.setOnClickListener {
-            toggleControls()
+        btnSpeed.setOnClickListener {
+            speedIndex = (speedIndex + 1) % SPEEDS.size
+            val speed = SPEEDS[speedIndex]
+            player?.setPlaybackSpeed(speed)
+            btnSpeed.text = formatSpeed(speed)
+            scheduleControlsAutoHide()
+        }
+        findViewById<TextView>(R.id.btnVideoStats).setOnClickListener {
+            tvStats.visibility = if (tvStats.visibility == View.VISIBLE) View.GONE else View.VISIBLE
+            updateStats()
+            scheduleControlsAutoHide()
+        }
+        setupGestures()
+        videoRoot.addOnLayoutChangeListener { _, l, t, r, b, ol, ot, or, ob ->
+            if (r - l != or - ol || b - t != ob - ot) layoutSurface()
         }
 
         seekBarVideo.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    tvVideoElapsed.text = formatTime(progress)
-                }
+                if (fromUser) tvVideoElapsed.text = formatTime(progress.toLong())
             }
 
             override fun onStartTrackingTouch(sb: SeekBar?) {
@@ -155,109 +200,290 @@ class VideoPlayerActivity : AppActivity() {
 
             override fun onStopTrackingTouch(sb: SeekBar?) {
                 isUserTracking = false
-                sb?.let {
-                    try {
-                        videoView.seekTo(it.progress)
-                    } catch (e: Exception) {
-                        // Ignore seek before player is prepared
-                    }
-                }
+                sb?.let { player?.seekTo(it.progress.toLong()) }
                 scheduleControlsAutoHide()
             }
         })
 
-        initVideo(currentPath, externalUri)
+        initPlayer()
+        resolveSource()
     }
 
-    private fun initVideo(path: Path?, uri: Uri?) {
+    private fun initPlayer() {
+        val ultraRam = PerformanceModeManager.isEnabled
+        val renderersFactory = DefaultRenderersFactory(this)
+            // If the preferred (hardware) decoder cannot be configured for this stream, try the
+            // next one instead of failing: the main reason 4K files "don't play" on some devices.
+            .setEnableDecoderFallback(true)
+            .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF)
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                if (ultraRam) 4_000 else 10_000,
+                if (ultraRam) 12_000 else 30_000,
+                1_000,
+                2_000
+            )
+            .setPrioritizeTimeOverSizeThresholds(false)
+            .build()
+        val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
+            .setLoadControl(loadControl)
+            .setSeekBackIncrementMs(SEEK_STEP_MS)
+            .setSeekForwardIncrementMs(SEEK_STEP_MS)
+            .setAudioAttributes(
+                AudioAttributes.Builder()
+                    .setUsage(C.USAGE_MEDIA)
+                    .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                    .build(),
+                true
+            )
+            .setHandleAudioBecomingNoisy(true)
+            .build()
+        exoPlayer.setVideoSurfaceView(surfaceView)
+        exoPlayer.videoScalingMode = C.VIDEO_SCALING_MODE_SCALE_TO_FIT
+        exoPlayer.addListener(playerListener)
+        exoPlayer.addAnalyticsListener(analyticsListener)
+        player = exoPlayer
+    }
+
+    private val playerListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            val p = player ?: return
+            buffering.visibility = if (playbackState == Player.STATE_BUFFERING) View.VISIBLE else View.GONE
+            if (playbackState == Player.STATE_READY) {
+                val duration = p.duration
+                if (duration != C.TIME_UNSET) {
+                    seekBarVideo.max = duration.toInt()
+                    tvVideoDuration.text = formatTime(duration)
+                }
+            }
+            if (playbackState == Player.STATE_ENDED) {
+                ivVideoPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
+                showControls()
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            ivVideoPlayPause.setImageResource(if (isPlaying) R.drawable.ic_pause_24dp else R.drawable.ic_play_arrow_24dp)
+            if (isPlaying) scheduleControlsAutoHide() else showControls()
+        }
+
+        override fun onVideoSizeChanged(videoSize: VideoSize) {
+            if (videoSize.width == 0 || videoSize.height == 0) return
+            videoAspect = videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
+            if (!orientationChosen) {
+                orientationChosen = true
+                requestedOrientation = if (videoAspect > 1.05f) {
+                    ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                } else {
+                    ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+                }
+            }
+            layoutSurface()
+        }
+
+        override fun onTracksChanged(tracks: Tracks) {
+            val video = tracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO } ?: return
+            val support = if (video.length > 0) video.getTrackSupport(0) else C.FORMAT_HANDLED
+            if (support == C.FORMAT_EXCEEDS_CAPABILITIES && !exceedsCapabilities) {
+                exceedsCapabilities = true
+                val format = video.getTrackFormat(0)
+                Toast.makeText(
+                    this@VideoPlayerActivity,
+                    getString(R.string.om_video_exceeds_capabilities, "${format.width}×${format.height}"),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            if (!isUiAlive) return
+            Log.w(TAG, "Playback error ${error.errorCodeName}", error)
+            Toast.makeText(
+                this@VideoPlayerActivity,
+                getString(R.string.om_video_load_error_format, error.errorCodeName),
+                Toast.LENGTH_LONG
+            ).show()
+            showControls()
+        }
+    }
+
+    private val analyticsListener = object : AnalyticsListener {
+        override fun onVideoDecoderInitialized(
+            eventTime: AnalyticsListener.EventTime,
+            decoderName: String,
+            initializedTimestampMs: Long,
+            initializationDurationMs: Long
+        ) {
+            this@VideoPlayerActivity.decoderName = decoderName
+            Log.i(TAG, "Video decoder: $decoderName (${initializationDurationMs} ms)")
+        }
+
+        override fun onVideoInputFormatChanged(
+            eventTime: AnalyticsListener.EventTime,
+            format: Format,
+            decoderReuseEvaluation: DecoderReuseEvaluation?
+        ) {
+            Log.i(TAG, "Video format: ${format.sampleMimeType} ${format.width}x${format.height} @${format.frameRate}")
+        }
+
+        override fun onDroppedVideoFrames(eventTime: AnalyticsListener.EventTime, droppedFrames: Int, elapsedMs: Long) {
+            Log.i(TAG, "Dropped $droppedFrames frames in $elapsedMs ms")
+        }
+    }
+
+    /** Opens local files and content:// URIs in place; other providers (archives, SMB...) via a cache copy. */
+    private fun resolveSource() {
+        val path = currentPath
+        val uri = externalUri
+        if (path != null && !path.isArchivePath && path.isLinuxPath && path.toFile().canRead()) {
+            play(Uri.fromFile(path.toFile()))
+            return
+        }
+        if (path == null && uri != null) {
+            play(uri)
+            return
+        }
+        buffering.visibility = View.VISIBLE
         lifecycleScope.launch {
             try {
-                var needsCleanup = false
-                val videoFile: File = if (path != null && !path.isArchivePath && path.isLinuxPath && path.toFile().canRead()) {
-                    path.toFile()
-                } else {
-                    needsCleanup = true
-                    withContext(Dispatchers.IO) {
-                        val rawName = tvVideoTitle.text?.toString() ?: path?.fileName?.toString() ?: "video.mp4"
-                        val ext = rawName.substringAfterLast('.', "mp4").takeIf { it.isNotBlank() && it.length <= 6 } ?: "mp4"
-                        val temp = File(cacheDir, "video_preview_${System.currentTimeMillis()}.$ext")
-                        if (path != null) {
-                            path.newInputStream().use { input ->
-                                FileOutputStream(temp).use { output ->
-                                    input.copyTo(output, bufferSize = 64 * 1024)
-                                }
-                            }
-                        } else if (uri != null) {
-                            contentResolver.openInputStream(uri)?.use { input ->
-                                FileOutputStream(temp).use { output ->
-                                    input.copyTo(output, bufferSize = 64 * 1024)
-                                }
-                            } ?: throw IllegalStateException("Cannot open video URI")
-                        } else {
-                            throw IllegalStateException("No video source")
-                        }
-                        temp
+                val copy = withContext(Dispatchers.IO) {
+                    val rawName = tvVideoTitle.text?.toString() ?: "video.mp4"
+                    val ext = rawName.substringAfterLast('.', "mp4").takeIf { it.isNotBlank() && it.length <= 6 } ?: "mp4"
+                    val temp = File(cacheDir, "video_preview_${System.currentTimeMillis()}.$ext")
+                    path!!.newInputStream().use { input ->
+                        FileOutputStream(temp).use { output -> input.copyTo(output, bufferSize = 256 * 1024) }
                     }
+                    temp
                 }
                 if (!isUiAlive) {
-                    if (needsCleanup) {
-                        videoFile.delete()
-                    }
+                    copy.delete()
                     return@launch
                 }
-                if (needsCleanup) {
-                    tempFile = videoFile
-                }
-
-                videoView.setVideoPath(videoFile.absolutePath)
-                videoView.setOnPreparedListener { mp ->
-                    if (!isUiAlive) return@setOnPreparedListener
-                    val duration = mp.duration
-                    seekBarVideo.max = duration
-                    tvVideoDuration.text = formatTime(duration)
-                    videoView.start()
-                    ivVideoPlayPause.setImageResource(R.drawable.ic_pause_24dp)
-                    handler.post(progressRunnable)
-                    scheduleControlsAutoHide()
-                }
-                videoView.setOnCompletionListener {
-                    ivVideoPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
-                    showControls()
-                }
-                videoView.setOnErrorListener { _, what, extra ->
-                    if (isUiAlive) {
-                        Toast.makeText(this@VideoPlayerActivity, getString(R.string.om_video_play_error_format, what, extra), Toast.LENGTH_SHORT).show()
-                        finish()
-                    }
-                    true
-                }
+                tempFile = copy
+                play(Uri.fromFile(copy))
             } catch (e: Exception) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
-                e.printStackTrace()
                 if (isUiAlive) {
-                    Toast.makeText(this@VideoPlayerActivity, getString(R.string.om_video_load_error_format, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@VideoPlayerActivity,
+                        getString(R.string.om_video_load_error_format, e.message ?: ""),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     finish()
                 }
             }
         }
     }
 
-    private fun togglePlayPause() {
-        if (videoView.isPlaying) {
-            videoView.pause()
-            ivVideoPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
-            showControls()
+    private fun play(uri: Uri) {
+        val p = player ?: return
+        p.setMediaItem(MediaItem.fromUri(uri))
+        p.prepare()
+        p.playWhenReady = true
+        handler.removeCallbacks(progressRunnable)
+        handler.post(progressRunnable)
+    }
+
+    /** Sizes the SurfaceView to the video aspect: letterboxed (fit) or cropped to fill (zoom). */
+    private fun layoutSurface() {
+        val width = videoRoot.width
+        val height = videoRoot.height
+        if (width == 0 || height == 0 || videoAspect <= 0f) return
+        val viewAspect = width.toFloat() / height
+        val fitWidth: Int
+        val fitHeight: Int
+        if ((videoAspect > viewAspect) != isZoomed) {
+            fitWidth = width
+            fitHeight = (width / videoAspect).toInt()
         } else {
-            videoView.start()
-            ivVideoPlayPause.setImageResource(R.drawable.ic_pause_24dp)
-            scheduleControlsAutoHide()
+            fitHeight = height
+            fitWidth = (height * videoAspect).toInt()
+        }
+        val lp = surfaceView.layoutParams as FrameLayout.LayoutParams
+        if (lp.width != fitWidth || lp.height != fitHeight) {
+            lp.width = fitWidth
+            lp.height = fitHeight
+            lp.gravity = android.view.Gravity.CENTER
+            surfaceView.layoutParams = lp
+        }
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private fun setupGestures() {
+        val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDown(e: MotionEvent): Boolean = true
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                toggleControls()
+                return true
+            }
+
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                val third = videoRoot.width / 3f
+                when {
+                    e.x < third -> seekBy(-SEEK_STEP_MS)
+                    e.x > third * 2 -> seekBy(SEEK_STEP_MS)
+                    else -> togglePlayPause()
+                }
+                return true
+            }
+        })
+        videoRoot.setOnTouchListener { _, event -> detector.onTouchEvent(event) }
+    }
+
+    private fun seekBy(deltaMs: Long) {
+        val p = player ?: return
+        val duration = p.duration.takeIf { it != C.TIME_UNSET } ?: Long.MAX_VALUE
+        p.seekTo((p.currentPosition + deltaMs).coerceIn(0, duration))
+        tvSeekFeedback.text = if (deltaMs > 0) "+${deltaMs / 1000} s" else "−${-deltaMs / 1000} s"
+        tvSeekFeedback.visibility = View.VISIBLE
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        handler.postDelayed(hideSeekFeedbackRunnable, 700)
+    }
+
+    private fun updateStats() {
+        val p = player ?: return
+        val format = p.videoFormat
+        val counters = p.videoDecoderCounters
+        val now = System.currentTimeMillis()
+        val rendered = counters?.renderedOutputBufferCount ?: 0
+        if (lastStatsAtMs > 0 && now - lastStatsAtMs >= 900) {
+            measuredFps = (rendered - lastRenderedFrames) * 1000f / (now - lastStatsAtMs)
+            lastRenderedFrames = rendered
+            lastStatsAtMs = now
+        } else if (lastStatsAtMs == 0L) {
+            lastRenderedFrames = rendered
+            lastStatsAtMs = now
+        }
+        tvStats.text = buildString {
+            append(decoderName ?: "—").append('\n')
+            if (format != null) {
+                append(format.sampleMimeType?.substringAfter('/') ?: "?")
+                append("  ").append(format.width).append('×').append(format.height)
+                if (format.frameRate > 0) append(String.format(Locale.ROOT, " @ %.2f", format.frameRate))
+                append('\n')
+            }
+            append(String.format(Locale.ROOT, "fps %.1f  ×%s\n", measuredFps, formatSpeed(SPEEDS[speedIndex])))
+            append("dropped ").append(counters?.droppedBufferCount ?: 0)
+            append(" / rendered ").append(rendered)
+            if (exceedsCapabilities) append("\nexceeds declared decoder caps")
+        }
+    }
+
+    private fun togglePlayPause() {
+        val p = player ?: return
+        if (p.playbackState == Player.STATE_ENDED) {
+            p.seekTo(0)
+            p.play()
+        } else if (p.isPlaying) {
+            p.pause()
+        } else {
+            p.play()
         }
     }
 
     private fun toggleControls() {
-        if (isControlsVisible) {
-            hideControls()
-        } else {
+        if (isControlsVisible) hideControls() else {
             showControls()
             scheduleControlsAutoHide()
         }
@@ -270,7 +496,7 @@ class VideoPlayerActivity : AppActivity() {
     }
 
     private fun hideControls() {
-        if (!videoView.isPlaying) return
+        if (player?.isPlaying != true) return
         isControlsVisible = false
         overlayControls.animate().alpha(0.0f).setDuration(300).withEndAction {
             overlayControls.visibility = View.GONE
@@ -283,6 +509,7 @@ class VideoPlayerActivity : AppActivity() {
         handler.postDelayed(hideControlsRunnable, 3500)
     }
 
+    @Suppress("DEPRECATION")
     private fun hideSystemUI() {
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -294,24 +521,28 @@ class VideoPlayerActivity : AppActivity() {
             )
     }
 
-    private fun formatTime(millis: Int): String {
-        val totalSec = millis / 1000
-        val min = totalSec / 60
-        val sec = totalSec % 60
-        return String.format(Locale.ROOT, "%02d:%02d", min, sec)
+    override fun onStart() {
+        super.onStart()
+        handler.removeCallbacks(progressRunnable)
+        if (player != null) handler.post(progressRunnable)
     }
 
-    override fun onPause() {
-        super.onPause()
-        if (videoView.isPlaying) {
-            videoView.pause()
-        }
+    override fun onStop() {
+        super.onStop()
+        // Free the decoder while hidden; position and media item are kept.
+        player?.pause()
+        handler.removeCallbacks(progressRunnable)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
-        videoView.stopPlayback()
+        player?.run {
+            removeListener(playerListener)
+            removeAnalyticsListener(analyticsListener)
+            release()
+        }
+        player = null
         tempFile?.delete()
         tempFile = null
     }
@@ -344,6 +575,9 @@ class VideoPlayerActivity : AppActivity() {
 
     companion object {
         const val EXTRA_DISPLAY_NAME = "me.zhanghai.android.files.viewer.video.extra.DISPLAY_NAME"
+        private const val TAG = "OMVideoPlayer"
+        private const val SEEK_STEP_MS = 10_000L
+        private val SPEEDS = floatArrayOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
 
         fun start(context: Context, path: Path) {
             val intent = Intent(context, VideoPlayerActivity::class.java).apply {

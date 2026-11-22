@@ -90,7 +90,15 @@ adb logcat -c
 adb shell am start -W -n "$MAIN" >/dev/null
 sleep 5
 
-log "=== Profiles UI ==="
+log "=== Connections UI ==="
+demo drawer; sleep 2
+shot 00_drawer_connections
+if find_text "Connections" "Conexiones" >/dev/null; then
+    pass "drawer shows Connections (replacing FTP)"
+else
+    fail "drawer has no Connections entry"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
 demo remote_profiles; sleep 3
 shot 01_profiles_list
 if find_text "CI OpenSSH" >/dev/null && find_text "CI Telnet" >/dev/null; then
@@ -100,10 +108,27 @@ else
 fi
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
+demo remote_add_sheet; sleep 3
+shot 01b_add_connection_sheet
+if find_text "SSH" >/dev/null && find_text "Telnet" >/dev/null && find_text "WebDAV" >/dev/null \
+    && find_text "SFTP" >/dev/null && find_text "SMB" >/dev/null; then
+    pass "add sheet lists SSH, Telnet, FTP, SFTP, SMB and WebDAV"
+else
+    fail "add sheet is missing connection types"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+
 demo remote_edit; sleep 3
 shot 02_profile_editor
 adb shell input swipe 540 1800 540 600 400; sleep 1
-shot 03_profile_editor_shortcuts
+shot 03_profile_editor_collapsed_bars
+if pos=$(find_text "Commands after login" "Comandos al iniciar sesión"); then
+    adb shell input tap $pos; sleep 1
+    shot 03b_profile_editor_startup_expanded
+    pass "startup commands bar expands on tap"
+else
+    fail "startup commands bar not found"
+fi
 adb shell input keyevent KEYCODE_BACK; sleep 1
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
@@ -159,6 +184,31 @@ else
     fail "typed command not executed"
 fi
 shot 07_ssh_after_typing
+
+log "=== Predictive echo with +150 ms server latency ==="
+sudo tc qdisc add dev lo root handle 1: prio
+sudo tc qdisc add dev lo parent 1:3 handle 30: netem delay 150ms
+sudo tc filter add dev lo protocol ip parent 1:0 prio 3 u32 match ip sport 2222 0xffff flowid 1:3
+clear_probe /tmp/om_pred_probe
+adb shell "input text 'echo%sOM_PREDICTED_OK%s>%s/tmp/om_pred_probe'"
+shot 07b_ssh_predictive_echo
+adb shell input keyevent KEYCODE_ENTER
+if wait_file 20 /tmp/om_pred_probe OM_PREDICTED_OK; then
+    pass "command typed over a 150 ms link executed"
+else
+    fail "command typed over a 150 ms link not executed"
+fi
+adb shell input keyevent KEYCODE_HOME; sleep 2
+echo_line=$(adb logcat -d -s OMEcho | tail -n 1)
+log "      $echo_line"
+shown=$(echo "$echo_line" | sed -nE 's/.*shownConfirmed=([0-9]+).*/\1/p')
+if [ "${shown:-0}" -gt 0 ]; then
+    pass "predictive echo drew $shown keys before the server echo and all were confirmed"
+else
+    fail "predictive echo did not predict any key"
+fi
+sudo tc qdisc del dev lo root || true
+demo remote_ssh; sleep 3
 adb shell dumpsys meminfo $PKG > "$OUT/meminfo_ssh_session.txt" 2>/dev/null || true
 adb shell dumpsys gfxinfo $PKG > "$OUT/gfxinfo_ssh_session.txt" 2>/dev/null || true
 
@@ -218,11 +268,47 @@ fi
 sleep 2
 shot 11_telnet_session
 
-log "=== Crash audit ==="
+# Keep the terminal-phase log: the video phase clears logcat per clip.
 adb logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
-    fail "FATAL EXCEPTION in logcat"
+    fail "FATAL EXCEPTION during terminal/connections tests"
     grep -A 20 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -60 >> "$REPORT"
+fi
+
+log "=== Video: 4K H.264 / 1080p HEVC playback ==="
+for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
+    [ -f "/tmp/$clip" ] || { fail "missing test clip $clip"; continue; }
+    adb push "/tmp/$clip" "/sdcard/Movies/$clip" >/dev/null
+    adb logcat -c
+    adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
+        -a android.intent.action.VIEW -d "file:///sdcard/Movies/$clip" -t video/mp4 >/dev/null
+    sleep 9
+    adb shell input tap 540 1200; sleep 1
+    if pos=$(find_text "Playback statistics" "Estadísticas de reproducción"); then
+        adb shell input tap $pos
+    fi
+    sleep 4
+    shot "12_video_${clip%.mp4}"
+    adb logcat -d -s OMVideoPlayer > "$OUT/video_${clip%.mp4}.log" 2>/dev/null || true
+    adb logcat -d | grep -E "FATAL EXCEPTION" -A 20 >> "$OUT/video_${clip%.mp4}.log" || true
+    decoder=$(grep -m1 "Video decoder:" "$OUT/video_${clip%.mp4}.log" | sed 's/.*Video decoder: //')
+    dropped=$(grep -oE "Dropped [0-9]+ frames" "$OUT/video_${clip%.mp4}.log" | awk '{s+=$2} END {print s+0}')
+    if [ -n "$decoder" ]; then
+        pass "$clip plays (decoder: $decoder, dropped frames reported: $dropped)"
+    else
+        fail "$clip did not initialize a video decoder"
+    fi
+    adb shell dumpsys meminfo $PKG > "$OUT/meminfo_video_${clip%.mp4}.txt" 2>/dev/null || true
+    adb shell am force-stop $PKG; sleep 1
+done
+adb logcat -d > "$OUT/logcat_video.txt" 2>/dev/null || true
+if grep -q "FATAL EXCEPTION" "$OUT/logcat_video.txt"; then fail "crash during video playback"; fi
+
+log "=== Crash audit ==="
+adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
+if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then
+    fail "FATAL EXCEPTION in logcat"
+    grep -h -A 20 "FATAL EXCEPTION" "$OUT"/logcat*.txt | head -60 >> "$REPORT"
 else
     pass "no FATAL exceptions"
 fi

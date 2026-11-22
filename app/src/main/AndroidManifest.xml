@@ -277,9 +277,9 @@
         </activity>
 
         <activity
-            android:name="me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity"
+            android:name="me.zhanghai.android.files.terminal.remote.ConnectionsActivity"
             android:exported="false"
-            android:label="@string/om_remote_profiles_title"
+            android:label="@string/om_connections_title"
             android:theme="@style/Theme.MaterialFiles" />
 
         <activity

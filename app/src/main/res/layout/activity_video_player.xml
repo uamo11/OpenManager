@@ -6,11 +6,36 @@
     android:layout_height="match_parent"
     android:background="#000000">
 
-    <VideoView
-        android:id="@+id/videoView"
+    <!-- SurfaceView: frames go straight from the decoder to a hardware overlay (no GPU copy). -->
+    <SurfaceView
+        android:id="@+id/videoSurface"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center" />
+
+    <ProgressBar
+        android:id="@+id/videoBuffering"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:indeterminateTint="#FFFFFF"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvVideoSeekFeedback"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/badge_background_18dp"
+        android:backgroundTint="#99000000"
+        android:paddingStart="16dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:visibility="gone" />
 
     <!-- Overlay Controls -->
     <FrameLayout
@@ -23,12 +48,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="top"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
             android:background="#99000000"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:paddingStart="12dp"
-            android:paddingEnd="12dp"
             android:paddingTop="36dp"
+            android:paddingEnd="12dp"
             android:paddingBottom="12dp">
 
             <ImageButton
@@ -36,24 +61,51 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/om_action_return"
                 android:src="@drawable/arrow_back_icon_white_24dp"
-                app:tint="#FFFFFF"
-                android:contentDescription="@string/om_action_return" />
+                app:tint="#FFFFFF" />
 
             <TextView
                 android:id="@+id/tvVideoTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:layout_marginStart="12dp"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
                 android:text="@string/om_video_title"
                 android:textColor="#FFFFFF"
                 android:textSize="16sp"
-                android:textStyle="bold"
-                android:singleLine="true"
-                android:ellipsize="marquee"
-                android:marqueeRepeatLimit="marquee_forever" />
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnVideoSpeed"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/om_video_speed"
+                android:gravity="center"
+                android:minWidth="44dp"
+                android:text="1×"
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btnVideoStats"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/om_video_stats"
+                android:fontFamily="monospace"
+                android:gravity="center"
+                android:minWidth="44dp"
+                android:text="i"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
             <ImageButton
                 android:id="@+id/btnVideoLocate"
@@ -61,18 +113,18 @@
                 android:layout_height="40dp"
                 android:layout_marginEnd="4dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/om_smart_open_location"
                 android:src="@drawable/directory_icon_white_24dp"
-                app:tint="#FFFFFF"
-                android:contentDescription="@string/om_smart_open_location" />
+                app:tint="#FFFFFF" />
 
             <ImageButton
                 android:id="@+id/btnVideoAspect"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/om_video_aspect_ratio"
                 android:src="@drawable/ic_aspect_ratio_24dp"
-                app:tint="#FFFFFF"
-                android:contentDescription="@string/om_video_aspect_ratio" />
+                app:tint="#FFFFFF" />
         </LinearLayout>
 
         <!-- Center Play/Pause -->
@@ -100,18 +152,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
             android:background="#99000000"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
             android:paddingStart="16dp"
-            android:paddingEnd="16dp"
             android:paddingTop="12dp"
+            android:paddingEnd="16dp"
             android:paddingBottom="24dp">
 
             <TextView
                 android:id="@+id/tvVideoElapsed"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:text="00:00"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
@@ -120,21 +173,38 @@
                 android:id="@+id/seekBarVideo"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
+                android:layout_weight="1"
                 android:max="100"
                 android:progress="0"
                 android:progressTint="#2196F3"
+                android:secondaryProgressTint="#66FFFFFF"
                 android:thumbTint="#2196F3" />
 
             <TextView
                 android:id="@+id/tvVideoDuration"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:fontFamily="monospace"
                 android:text="00:00"
                 android:textColor="#FFFFFF"
                 android:textSize="12sp" />
         </LinearLayout>
     </FrameLayout>
+
+    <!-- Playback statistics (decoder, resolution, fps, dropped frames) -->
+    <TextView
+        android:id="@+id/tvVideoStats"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="104dp"
+        android:background="#B3000000"
+        android:fontFamily="monospace"
+        android:padding="8dp"
+        android:textColor="#7EE787"
+        android:textSize="11sp"
+        android:visibility="gone" />
 </FrameLayout>

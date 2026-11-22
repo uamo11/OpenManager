@@ -17,14 +17,18 @@
     android:paddingTop="10dp"
     android:paddingBottom="10dp">
 
-    <TextView
-        android:id="@+id/protocolBadge"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:fontFamily="monospace"
-        android:gravity="center"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+    <FrameLayout
+        android:id="@+id/typeTile"
+        android:layout_width="44dp"
+        android:layout_height="44dp">
+
+        <ImageView
+            android:id="@+id/typeIcon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:importantForAccessibility="no" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="0dp"

@@ -15,6 +15,8 @@ object TerminalSettings {
     private const val PREF_FONT_SIZE = "terminal_font_size"
     private const val PREF_KEEP_BLACK_THEME = "terminal_keep_black_theme"
     private const val PREF_ROOT_SESSION = "terminal_root_session"
+    private const val PREF_INSTANT_TYPING = "terminal_instant_typing"
+    private const val PREF_PREDICTIVE_ECHO = "terminal_predictive_echo"
 
     const val MIN_FONT_SIZE_SP = 8
     const val MAX_FONT_SIZE_SP = 36
@@ -72,5 +74,24 @@ object TerminalSettings {
         PreferenceManager.getDefaultSharedPreferences(context).edit {
             putBoolean(PREF_ROOT_SESSION, root)
         }
+    }
+
+    /**
+     * Commit every key immediately instead of letting the keyboard hold a composing word (which is
+     * what makes text appear late with Samsung/Gboard in `ssh` started from the local shell).
+     */
+    fun isInstantTyping(context: Context): Boolean =
+        PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_INSTANT_TYPING, true)
+
+    fun setInstantTyping(context: Context, enabled: Boolean) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit { putBoolean(PREF_INSTANT_TYPING, enabled) }
+    }
+
+    /** Mosh-style predictive echo for SSH/Telnet profiles. */
+    fun isPredictiveEcho(context: Context): Boolean =
+        PreferenceManager.getDefaultSharedPreferences(context).getBoolean(PREF_PREDICTIVE_ECHO, true)
+
+    fun setPredictiveEcho(context: Context, enabled: Boolean) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit { putBoolean(PREF_PREDICTIVE_ECHO, enabled) }
     }
 }

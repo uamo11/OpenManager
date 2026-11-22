@@ -22,6 +22,7 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import androidx.core.widget.doAfterTextChanged
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 
@@ -85,7 +86,25 @@ class RemoteProfileEditActivity : AppActivity() {
         keepAliveEdit = findViewById(R.id.keepAliveEdit)
 
         if (savedInstanceState == null) {
-            bind(original ?: RemoteProfile())
+            val preset = intent.getStringExtra(EXTRA_PROTOCOL)?.let { RemoteProtocol.parse(it) }
+            bind(original ?: RemoteProfile(protocol = preset ?: RemoteProtocol.SSH))
+        }
+        setupExpandableSection(
+            R.id.startupHeader, R.id.startupBody, R.id.startupChevron, R.id.startupSummary, startupEdit
+        ) { text ->
+            val lines = RemoteProfile.parseCommandLines(text)
+            when {
+                lines.isEmpty() -> getString(R.string.om_remote_section_none)
+                lines.size == 1 -> lines[0]
+                else -> getString(R.string.om_remote_section_commands_summary, lines[0], lines.size - 1)
+            }
+        }
+        setupExpandableSection(
+            R.id.shortcutsHeader, R.id.shortcutsBody, R.id.shortcutsChevron, R.id.shortcutsSummary, shortcutsEdit
+        ) { text ->
+            val shortcuts = RemoteProfile.parseShortcuts(text)
+            if (shortcuts.isEmpty()) getString(R.string.om_remote_section_none)
+            else shortcuts.joinToString("  ·  ") { it.label }
         }
         protocolToggle.addOnButtonCheckedListener { _, checkedId, isChecked ->
             if (!isChecked) return@addOnButtonCheckedListener
@@ -104,7 +123,7 @@ class RemoteProfileEditActivity : AppActivity() {
         findViewById<MaterialButton>(R.id.saveConnectButton).setOnClickListener {
             val profile = collectValid() ?: return@setOnClickListener
             RemoteProfileStore.save(this, profile)
-            RemoteProfilesActivity.connect(this, profile)
+            ConnectionsActivity.connect(this, profile)
             finish()
         }
         setupShortcutPresets()
@@ -128,6 +147,38 @@ class RemoteProfileEditActivity : AppActivity() {
         startupEdit.setText(profile.startupCommands)
         shortcutsEdit.setText(RemoteProfile.formatShortcuts(profile.shortcuts))
         keepAliveEdit.setText(profile.keepAliveSeconds.toString())
+    }
+
+    /** A tappable bar that shows a one-line summary and expands into the full editor. */
+    private fun setupExpandableSection(
+        headerId: Int,
+        bodyId: Int,
+        chevronId: Int,
+        summaryId: Int,
+        edit: TextInputEditText,
+        summarize: (String) -> String
+    ) {
+        val header = findViewById<View>(headerId)
+        val body = findViewById<View>(bodyId)
+        val chevron = findViewById<View>(chevronId)
+        val summary = findViewById<android.widget.TextView>(summaryId)
+        val updateSummary = { summary.text = summarize(edit.text?.toString().orEmpty()) }
+        updateSummary()
+        edit.doAfterTextChanged { updateSummary() }
+        fun setExpanded(expanded: Boolean) {
+            body.visibility = if (expanded) View.VISIBLE else View.GONE
+            chevron.animate().rotation(if (expanded) 180f else 0f).setDuration(150).start()
+            header.isActivated = expanded
+        }
+        setExpanded(false)
+        header.setOnClickListener {
+            val expand = body.visibility != View.VISIBLE
+            setExpanded(expand)
+            if (expand) {
+                edit.requestFocus()
+                edit.setSelection(edit.text?.length ?: 0)
+            }
+        }
     }
 
     private fun protocolFor(buttonId: Int): RemoteProtocol =
@@ -285,6 +336,7 @@ class RemoteProfileEditActivity : AppActivity() {
 
     companion object {
         private const val EXTRA_PROFILE_ID = "me.zhanghai.android.files.terminal.remote.extra.PROFILE_ID"
+        private const val EXTRA_PROTOCOL = "me.zhanghai.android.files.terminal.remote.extra.PROTOCOL"
         private const val MENU_SAVE = 1
         private const val MAX_KEY_BYTES = 64 * 1024
 
@@ -301,9 +353,10 @@ class RemoteProfileEditActivity : AppActivity() {
             "df -h" to "df -h"
         )
 
-        fun createIntent(context: Context, profileId: String?): Intent =
+        fun createIntent(context: Context, profileId: String?, protocol: RemoteProtocol? = null): Intent =
             Intent(context, RemoteProfileEditActivity::class.java).apply {
                 if (profileId != null) putExtra(EXTRA_PROFILE_ID, profileId)
+                if (protocol != null) putExtra(EXTRA_PROTOCOL, protocol.name)
             }
     }
 }

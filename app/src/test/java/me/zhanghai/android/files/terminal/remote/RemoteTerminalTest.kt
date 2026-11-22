@@ -162,9 +162,9 @@ class RemoteTerminalTest {
             .substringBefore("true\n")
         assertTrue(longPress.contains("TerminalLaunchChooser.show"))
         val nav = resolveMainFile("java/me/zhanghai/android/files/navigation/NavigationItems.kt").readText()
-        assertTrue(nav.substringAfter("class TerminalMenuItem").contains("RemoteProfilesActivity"))
+        assertTrue(nav.substringAfter("class TerminalMenuItem").contains("ConnectionsActivity"))
         val manifest = resolveMainFile("AndroidManifest.xml").readText()
-        assertTrue(manifest.contains("terminal.remote.RemoteProfilesActivity"))
+        assertTrue(manifest.contains("terminal.remote.ConnectionsActivity"))
         assertTrue(manifest.contains("terminal.remote.RemoteProfileEditActivity"))
         val layout = resolveMainFile("res/layout/remote_profiles_activity.xml").readText()
         assertTrue(layout.contains("@drawable/add_icon_white_24dp"))
@@ -177,5 +177,56 @@ class RemoteTerminalTest {
         val es = names.findAll(resolveMainFile("res/values-es/strings.xml").readText()).map { it.groupValues[1] }.toSet()
         assertTrue(en.size > 50)
         assertEquals(en, es)
+    }
+
+    @Test
+    fun drawerOffersConnectionsHubBelowTerminal() {
+        val drawer = resolveMainFile("res/layout/file_list_activity.xml").readText()
+        assertFalse("FTP entry is replaced by Connections", drawer.contains("@+id/drawerItemFtp"))
+        val terminal = drawer.indexOf("@+id/drawerItemTerminal")
+        val connections = drawer.indexOf("@+id/drawerItemConnections")
+        assertTrue(terminal in 0 until connections)
+        val hub = resolveMainFile("java/me/zhanghai/android/files/terminal/remote/ConnectionsActivity.kt").readText()
+        for (type in listOf("SSH(", "TELNET(", "FTP(", "SFTP(", "SMB(", "WEBDAV(", "FTP_SERVER(")) {
+            assertTrue("Missing connection type $type", hub.contains(type))
+        }
+        assertTrue("The device FTP server stays reachable", hub.contains("FtpServerActivity::class.java"))
+    }
+
+    @Test
+    fun startupCommandsAndShortcutsAreCollapsibleBars() {
+        val layout = resolveMainFile("res/layout/remote_profile_edit_activity.xml").readText()
+        for (section in listOf("startup", "shortcuts")) {
+            assertTrue(layout.contains("@+id/${section}Header"))
+            val body = layout.substringAfter("@+id/${section}Body").substringBefore(">")
+            assertTrue("$section editor starts collapsed", body.contains("android:visibility=\"gone\""))
+        }
+        assertTrue(
+            layout.indexOf("@+id/startupBody") < layout.indexOf("@+id/startupEdit")
+        )
+    }
+
+    @Test
+    fun typingIsInstantByDefault() {
+        val settings = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalSettings.kt").readText()
+        assertTrue(settings.contains("getBoolean(PREF_INSTANT_TYPING, true)"))
+        assertTrue(settings.contains("getBoolean(PREF_PREDICTIVE_ECHO, true)"))
+        val activity = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalActivity.kt").readText()
+        assertTrue(activity.contains("TerminalSettings.isInstantTyping(this@TerminalActivity)"))
+    }
+
+    @Test
+    fun videoPlayerUsesHardwareDecodingWithFallbackOnASurface() {
+        val player = resolveMainFile("java/me/zhanghai/android/files/viewer/video/VideoPlayerActivity.kt").readText()
+        assertTrue(player.contains("ExoPlayer.Builder"))
+        assertTrue(player.contains("setEnableDecoderFallback(true)"))
+        assertTrue(player.contains("setVideoSurfaceView"))
+        assertFalse(player.contains("VideoView"))
+        val layout = resolveMainFile("res/layout/activity_video_player.xml").readText()
+        assertTrue(layout.contains("<SurfaceView"))
+        assertEquals("1:02:03", me.zhanghai.android.files.viewer.video.formatTime(3_723_000))
+        assertEquals("01:05", me.zhanghai.android.files.viewer.video.formatTime(65_000))
+        assertEquals("1.5×", me.zhanghai.android.files.viewer.video.formatSpeed(1.5f))
+        assertEquals("2×", me.zhanghai.android.files.viewer.video.formatSpeed(2f))
     }
 }
