@@ -91,6 +91,7 @@ class TerminalActivity : AppActivity() {
     private var btnOverflowMenu: ImageButton? = null
     private var layoutDeadManAlertBadge: View? = null
     private var remoteShortcutsScroll: View? = null
+    private var btnShowExtraKeys: View? = null
     private var remoteShortcutsContainer: android.widget.LinearLayout? = null
 
     /** Profile of the attached SSH/Telnet session, null for local shells. */
@@ -359,6 +360,7 @@ class TerminalActivity : AppActivity() {
         btnOverflowMenu = findViewById(R.id.btnOverflowMenu)
         layoutDeadManAlertBadge = findViewById(R.id.layoutDeadManAlertBadge)
         remoteShortcutsScroll = findViewById(R.id.remoteShortcutsScroll)
+        btnShowExtraKeys = findViewById(R.id.btnShowExtraKeys)
         remoteShortcutsContainer = findViewById(R.id.remoteShortcutsContainer)
         RemotePrompter.attach(this)
 
@@ -586,6 +588,18 @@ class TerminalActivity : AppActivity() {
                 Toast.LENGTH_SHORT
             ).show()
         }
+        extraKeysView.deckMode = TerminalSettings.getExtraKeysMode(this)
+        extraKeysView.onDeckModeSelected = { mode ->
+            TerminalSettings.setExtraKeysMode(this, mode)
+            updateExtraKeysHandle()
+        }
+        btnShowExtraKeys?.setOnClickListener { extraKeysView.showDeckMenu(it) }
+        updateExtraKeysHandle()
+    }
+
+    /** With the key deck hidden, a small ⋮ over the terminal brings it back. */
+    private fun updateExtraKeysHandle() {
+        btnShowExtraKeys?.isVisible = extraKeysView.deckMode == TerminalExtraKeysView.DeckMode.HIDDEN
     }
 
     private fun toggleSoftKeyboard() {
@@ -766,7 +780,7 @@ class TerminalActivity : AppActivity() {
 
     private fun updateCwdDisplay(rawPath: String?) {
         remoteProfile?.let {
-            tvTerminalBreadcrumb?.text = it.endpoint
+            tvTerminalBreadcrumb?.text = remoteBreadcrumb(it)
             return
         }
         if (!rawPath.isNullOrBlank()) {
@@ -1105,7 +1119,7 @@ class TerminalActivity : AppActivity() {
             renderSessionBadge()
             return
         }
-        tvTerminalBreadcrumb?.text = profile.endpoint
+        tvTerminalBreadcrumb?.text = remoteBreadcrumb(profile)
         val light = lastIsLightChrome
         val chipText = if (light) 0xFF1E293B.toInt() else 0xFFE2E8F0.toInt()
         val chipBg = if (light) 0xFFFFFFFF.toInt() else 0xFF1B2230.toInt()
@@ -1147,6 +1161,13 @@ class TerminalActivity : AppActivity() {
         }
         renderSessionBadge()
     }
+
+    /**
+     * What the remote shell last reported as its title (usually "user@host: ~/dir"), so reopening
+     * the screen from the notification shows the same location instead of the bare endpoint.
+     */
+    private fun remoteBreadcrumb(profile: RemoteProfile): String =
+        terminalSession?.takeIf { it.isRemote }?.title?.takeIf { it.isNotBlank() } ?: profile.endpoint
 
     private fun sendRemoteShortcut(command: String) {
         val session = terminalSession ?: return

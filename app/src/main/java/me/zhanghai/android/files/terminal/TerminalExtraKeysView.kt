@@ -19,6 +19,7 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
+import android.view.View
 import android.view.ViewConfiguration
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -80,6 +81,19 @@ class TerminalExtraKeysView @JvmOverloads constructor(
         isAmoled = false,
         accentColor = 0xFF58A6FF.toInt()
     )
+
+    /** Layout of the key deck, chosen from its ⋮ button. */
+    enum class DeckMode { FULL, COMPACT, HIDDEN }
+
+    var deckMode: DeckMode = DeckMode.FULL
+        set(value) {
+            if (field == value) return
+            field = value
+            buildKeys()
+        }
+
+    /** Called when the user picks another layout from the ⋮ menu. */
+    var onDeckModeSelected: ((DeckMode) -> Unit)? = null
 
     init {
         orientation = VERTICAL
@@ -168,153 +182,181 @@ class TerminalExtraKeysView @JvmOverloads constructor(
         removeAllViews()
         ctrlButton = null
         altButton = null
+        visibility = if (deckMode == DeckMode.HIDDEN) GONE else VISIBLE
+        when (deckMode) {
+            DeckMode.FULL -> buildFullDeck()
+            DeckMode.COMPACT -> buildCompactDeck()
+            DeckMode.HIDDEN -> Unit
+        }
+        updateModifierStyles()
+    }
 
-        // Row 0: Quick shell syntax chips & interrupt signals (Scrollable)
-        val scrollSymbols = HorizontalScrollView(context).apply {
-            isHorizontalScrollBarEnabled = false
-            overScrollMode = OVER_SCROLL_NEVER
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(34)).apply {
-                bottomMargin = dp(4)
+    /** A scrollable row of chips plus the fixed ⋮ button at its end. */
+    private fun addChipRow(keys: List<Pair<String, String>>, heightDp: Int, bottomMarginDp: Int) {
+        val line = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(heightDp)).apply {
+                bottomMargin = dp(bottomMarginDp)
             }
         }
-        val row0 = LinearLayout(context).apply {
+        val scroll = HorizontalScrollView(context).apply {
+            isHorizontalScrollBarEnabled = false
+            overScrollMode = OVER_SCROLL_NEVER
+            layoutParams = LayoutParams(0, LayoutParams.MATCH_PARENT, 1f)
+        }
+        val row = LinearLayout(context).apply {
             orientation = HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT)
         }
-        val row0Keys = arrayOf(
-            "/" to "/",
-            "-" to "-",
-            "." to ".",
-            "|" to "|",
-            "$" to "$",
-            "~" to "~",
-            "*" to "*",
-            "&" to "&",
-            ">" to ">",
-            ">>" to ">>",
-            "\"" to "\"",
-            "'" to "'",
-            "=" to "=",
-            "(" to "(",
-            ")" to ")",
-            "^C" to "\u0003",
-            "^D" to "\u0004",
-            "^Z" to "\u001a",
-            "Clear" to "\u000c"
-        )
-        for ((label, action) in row0Keys) {
+        for ((label, action) in keys) {
             val minW = if (label.length >= 2) dp(50) else dp(38)
             val btn = createChipButton(label, minW)
-            btn.setOnClickListener {
+            bindKey(btn, label, action)
+            row.addView(btn)
+        }
+        scroll.addView(row)
+        line.addView(scroll)
+        line.addView(createMenuButton())
+        addView(line)
+    }
+
+    private fun createMenuButton(): TextView {
+        val btn = createChipButton("⋮", dp(36))
+        btn.contentDescription = context.getString(me.zhanghai.android.files.R.string.om_term_keys_layout)
+        btn.setOnClickListener { anchor ->
+            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            showDeckMenu(anchor)
+        }
+        return btn
+    }
+
+    fun showDeckMenu(anchor: View) {
+        val popup = androidx.appcompat.widget.PopupMenu(context, anchor)
+        val labels = listOf(
+            DeckMode.FULL to me.zhanghai.android.files.R.string.om_term_keys_full,
+            DeckMode.COMPACT to me.zhanghai.android.files.R.string.om_term_keys_compact,
+            DeckMode.HIDDEN to me.zhanghai.android.files.R.string.om_term_keys_hidden
+        )
+        for ((index, entry) in labels.withIndex()) {
+            popup.menu.add(0, index, index, entry.second).apply {
+                isCheckable = true
+                isChecked = entry.first == deckMode
+            }
+        }
+        popup.menu.setGroupCheckable(0, true, true)
+        popup.setOnMenuItemClickListener { item ->
+            val mode = labels[item.itemId].first
+            deckMode = mode
+            onDeckModeSelected?.invoke(mode)
+            true
+        }
+        popup.show()
+    }
+
+    private fun buildFullDeck() {
+        // Row 0: Quick shell syntax chips & interrupt signals (Scrollable) + ⋮
+        addChipRow(
+            listOf(
+                "/" to "/", "-" to "-", "." to ".", "|" to "|", "$" to "$", "~" to "~", "*" to "*",
+                "&" to "&", ">" to ">", ">>" to ">>", "\"" to "\"", "'" to "'", "=" to "=",
+                "(" to "(", ")" to ")", "^C" to "\u0003", "^D" to "\u0004", "^Z" to "\u001a",
+                "Clear" to "\u000c"
+            ),
+            heightDp = 34,
+            bottomMarginDp = 4
+        )
+        // Row 1: Esc | Tab | PgUp | Home | ▲ | End | ⌨
+        addKeycapRow(
+            listOf(
+                "Esc" to "\u001b", "Tab" to "\t", "PgUp" to "\u001b[5~", "Home" to "\u001b[1~",
+                "▲" to "\u001b[A", "End" to "\u001b[4~", "⌨" to "KEYBOARD"
+            ),
+            bottomMarginDp = 4
+        )
+        // Row 2: Ctrl | Alt | PgDn | ◀ | ▼ | ▶ | ⌫
+        addKeycapRow(
+            listOf(
+                "Ctrl" to "CTRL", "Alt" to "ALT", "PgDn" to "\u001b[6~", "◀" to "\u001b[D",
+                "▼" to "\u001b[B", "▶" to "\u001b[C", "⌫" to "\u007f"
+            ),
+            bottomMarginDp = 0
+        )
+    }
+
+    /** One row with the keys used most while typing; the rest stays one tap away in ⋮. */
+    private fun buildCompactDeck() {
+        addChipRow(
+            listOf(
+                "Esc" to "\u001b", "Tab" to "\t", "Ctrl" to "CTRL", "Alt" to "ALT",
+                "◀" to "\u001b[D", "▼" to "\u001b[B", "▲" to "\u001b[A", "▶" to "\u001b[C",
+                "/" to "/", "-" to "-", "|" to "|", "~" to "~", "^C" to "\u0003",
+                "⌫" to "\u007f", "⌨" to "KEYBOARD"
+            ),
+            heightDp = 38,
+            bottomMarginDp = 0
+        )
+    }
+
+    private fun addKeycapRow(keys: List<Pair<String, String>>, bottomMarginDp: Int) {
+        val row = LinearLayout(context).apply {
+            orientation = HORIZONTAL
+            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(39)).apply {
+                bottomMargin = dp(bottomMarginDp)
+            }
+        }
+        for ((label, action) in keys) {
+            val btn = createStandardKeycap(label)
+            bindKey(btn, label, action)
+            row.addView(btn)
+        }
+        addView(row)
+    }
+
+    /** Wires a key: modifiers toggle/lock, arrows and ⌫ repeat while held, the rest send once. */
+    private fun bindKey(btn: TextView, label: String, action: String) {
+        when (action) {
+            "CTRL" -> {
+                ctrlButton = btn
+                btn.setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    ctrlState = TerminalUiHelper.onTap(ctrlState)
+                    updateModifierStyles()
+                }
+                btn.setOnLongClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    ctrlState = TerminalUiHelper.onLongPress(ctrlState)
+                    updateModifierStyles()
+                    if (ctrlState == ModifierState.LOCKED) onModifierLockedToast?.invoke("Ctrl")
+                    true
+                }
+            }
+            "ALT" -> {
+                altButton = btn
+                btn.setOnClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    altState = TerminalUiHelper.onTap(altState)
+                    updateModifierStyles()
+                }
+                btn.setOnLongClickListener {
+                    performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    altState = TerminalUiHelper.onLongPress(altState)
+                    updateModifierStyles()
+                    if (altState == ModifierState.LOCKED) onModifierLockedToast?.invoke("Alt")
+                    true
+                }
+            }
+            "KEYBOARD" -> btn.setOnClickListener {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                onToggleKeyboardClick?.invoke()
+            }
+            "\u001b[A", "\u001b[D", "\u001b[B", "\u001b[C", "\u007f" -> attachRepeatableAction(btn, action)
+            else -> btn.setOnClickListener {
                 performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                 dispatchKeyAction(action)
             }
-            row0.addView(btn)
         }
-        scrollSymbols.addView(row0)
-        addView(scrollSymbols)
-
-        // Row 1: Esc | Tab | PgUp | Home | ▲ | End | ⌨
-        val row1 = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(39)).apply {
-                bottomMargin = dp(4)
-            }
-        }
-        val row1Keys = arrayOf(
-            "Esc" to "\u001b",
-            "Tab" to "\t",
-            "PgUp" to "\u001b[5~",
-            "Home" to "\u001b[1~",
-            "▲" to "\u001b[A",
-            "End" to "\u001b[4~",
-            "⌨" to "KEYBOARD"
-        )
-        for ((label, action) in row1Keys) {
-            val btn = createStandardKeycap(label)
-            if (label == "▲") {
-                attachRepeatableAction(btn, action)
-            } else if (action == "KEYBOARD") {
-                btn.setOnClickListener {
-                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    onToggleKeyboardClick?.invoke()
-                }
-            } else {
-                btn.setOnClickListener {
-                    performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                    dispatchKeyAction(action)
-                }
-            }
-            row1.addView(btn)
-        }
-        addView(row1)
-
-        // Row 2: Ctrl | Alt | PgDn | ◀ | ▼ | ▶ | ⌫
-        val row2 = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, dp(39))
-        }
-        val row2Keys = arrayOf(
-            "Ctrl" to "CTRL",
-            "Alt" to "ALT",
-            "PgDn" to "\u001b[6~",
-            "◀" to "\u001b[D",
-            "▼" to "\u001b[B",
-            "▶" to "\u001b[C",
-            "⌫" to "\u007f"
-        )
-        for ((label, action) in row2Keys) {
-            val btn = createStandardKeycap(label)
-            when (action) {
-                "CTRL" -> {
-                    ctrlButton = btn
-                    btn.setOnClickListener {
-                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        ctrlState = TerminalUiHelper.onTap(ctrlState)
-                        updateModifierStyles()
-                    }
-                    btn.setOnLongClickListener {
-                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        ctrlState = TerminalUiHelper.onLongPress(ctrlState)
-                        updateModifierStyles()
-                        if (ctrlState == ModifierState.LOCKED) {
-                            onModifierLockedToast?.invoke("Ctrl")
-                        }
-                        true
-                    }
-                }
-                "ALT" -> {
-                    altButton = btn
-                    btn.setOnClickListener {
-                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        altState = TerminalUiHelper.onTap(altState)
-                        updateModifierStyles()
-                    }
-                    btn.setOnLongClickListener {
-                        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                        altState = TerminalUiHelper.onLongPress(altState)
-                        updateModifierStyles()
-                        if (altState == ModifierState.LOCKED) {
-                            onModifierLockedToast?.invoke("Alt")
-                        }
-                        true
-                    }
-                }
-                "\u001b[D", "\u001b[B", "\u001b[C", "\u007f" -> {
-                    attachRepeatableAction(btn, action)
-                }
-                else -> {
-                    btn.setOnClickListener {
-                        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        dispatchKeyAction(action)
-                    }
-                }
-            }
-            row2.addView(btn)
-        }
-        addView(row2)
-        updateModifierStyles()
     }
 
     private fun dispatchKeyAction(action: String) {

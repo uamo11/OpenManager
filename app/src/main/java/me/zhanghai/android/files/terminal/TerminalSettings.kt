@@ -17,6 +17,7 @@ object TerminalSettings {
     private const val PREF_ROOT_SESSION = "terminal_root_session"
     private const val PREF_INSTANT_TYPING = "terminal_instant_typing"
     private const val PREF_PREDICTIVE_ECHO = "terminal_predictive_echo"
+    private const val PREF_EXTRA_KEYS_MODE = "terminal_extra_keys_mode"
 
     const val MIN_FONT_SIZE_SP = 8
     const val MAX_FONT_SIZE_SP = 36
@@ -93,5 +94,15 @@ object TerminalSettings {
 
     fun setPredictiveEcho(context: Context, enabled: Boolean) {
         PreferenceManager.getDefaultSharedPreferences(context).edit { putBoolean(PREF_PREDICTIVE_ECHO, enabled) }
+    }
+
+    fun getExtraKeysMode(context: Context): TerminalExtraKeysView.DeckMode {
+        val name = PreferenceManager.getDefaultSharedPreferences(context).getString(PREF_EXTRA_KEYS_MODE, null)
+        return TerminalExtraKeysView.DeckMode.entries.firstOrNull { it.name == name }
+            ?: TerminalExtraKeysView.DeckMode.FULL
+    }
+
+    fun setExtraKeysMode(context: Context, mode: TerminalExtraKeysView.DeckMode) {
+        PreferenceManager.getDefaultSharedPreferences(context).edit { putString(PREF_EXTRA_KEYS_MODE, mode.name) }
     }
 }

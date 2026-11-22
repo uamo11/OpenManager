@@ -1729,6 +1729,32 @@ class FileListActivity : AppActivity() {
         })
     }
 
+    private val panelHitRect = android.graphics.Rect()
+
+    /**
+     * Any touch inside a panel makes it the active one before the touch is handled, whatever was
+     * touched (file list, breadcrumb, empty or error view and its buttons, fast scroller...).
+     * Previously only the file list did this, so navigating a panel through its breadcrumb or
+     * error view left the other panel active and the back button acted on the wrong side.
+     */
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN &&
+            this::containerA.isInitialized && this::fragmentA.isInitialized && this::fragmentB.isInitialized &&
+            this::drawerLayout.isInitialized && !drawerLayout.isDrawerOpen(GravityCompat.START)
+        ) {
+            val x = ev.rawX.toInt()
+            val y = ev.rawY.toInt()
+            when {
+                isTouchInside(containerA, x, y) -> onPanelFocused(fragmentA)
+                isTouchInside(containerB, x, y) -> onPanelFocused(fragmentB)
+            }
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun isTouchInside(view: View, x: Int, y: Int): Boolean =
+        view.isShown && view.getGlobalVisibleRect(panelHitRect) && panelHitRect.contains(x, y)
+
     fun onPanelFocused(fragment: FileListFragment) {
         val newIndex = if (fragment == fragmentA) 0 else 1
         if (activePanelIndex != newIndex) {

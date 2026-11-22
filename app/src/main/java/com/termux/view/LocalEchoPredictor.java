@@ -93,7 +93,7 @@ final class LocalEchoPredictor {
 
     /** A printable key was sent to the server. */
     void onPrintable(TerminalEmulator emulator, int codePoint) {
-        if (emulator == null) return;
+        if (!mEnabled || emulator == null) return;
         onPrintable(of(emulator), codePoint);
     }
 

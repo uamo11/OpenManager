@@ -229,4 +229,41 @@ class RemoteTerminalTest {
         assertEquals("1.5×", me.zhanghai.android.files.viewer.video.formatSpeed(1.5f))
         assertEquals("2×", me.zhanghai.android.files.viewer.video.formatSpeed(2f))
     }
+
+    @Test
+    fun touchingAnyPartOfAPanelMakesItActive() {
+        val activity = resolveMainFile("java/me/zhanghai/android/files/filelist/FileListActivity.kt").readText()
+        val dispatch = activity.substringAfter("override fun dispatchTouchEvent(ev: android.view.MotionEvent)")
+            .substringBefore("private fun isTouchInside")
+        assertTrue(dispatch.contains("ACTION_DOWN"))
+        assertTrue(dispatch.contains("isTouchInside(containerA, x, y) -> onPanelFocused(fragmentA)"))
+        assertTrue(dispatch.contains("isTouchInside(containerB, x, y) -> onPanelFocused(fragmentB)"))
+        assertTrue("Touch must still reach the views", dispatch.contains("return super.dispatchTouchEvent(ev)"))
+        // Both back buttons act on the active panel.
+        assertTrue(activity.contains("btnMainBack.setOnClickListener {\n            activeFragment.navigateUp()"))
+    }
+
+    @Test
+    fun reopenedRemoteSessionShowsTheShellLocation() {
+        val activity = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalActivity.kt").readText()
+        val breadcrumb = activity.substringAfter("private fun remoteBreadcrumb(").substringBefore("\n\n")
+        assertTrue(breadcrumb.contains(".title?.takeIf { it.isNotBlank() } ?: profile.endpoint"))
+        val cwd = activity.substringAfter("private fun updateCwdDisplay(").substringBefore("if (!rawPath")
+        assertTrue(cwd.contains("remoteBreadcrumb(it)"))
+    }
+
+    @Test
+    fun zoomStepperIsGoneAndKeyDeckHasThreeLayouts() {
+        val layout = resolveMainFile("res/layout/activity_terminal.xml").readText()
+        val pill = layout.substringAfter("@+id/layoutZoomPill").substringBefore(">")
+        assertTrue("Pinch zoom replaces the - / + stepper", pill.contains("android:visibility=\"gone\""))
+        assertTrue(layout.contains("@+id/btnShowExtraKeys"))
+        val deck = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalExtraKeysView.kt").readText()
+        assertTrue(deck.contains("enum class DeckMode { FULL, COMPACT, HIDDEN }"))
+        assertTrue("⋮ is on every visible layout", deck.substringAfter("private fun addChipRow").contains("createMenuButton()"))
+        assertTrue(
+            "deckMode must be declared before init {} builds the keys",
+            deck.indexOf("var deckMode") < deck.indexOf("    init {")
+        )
+    }
 }

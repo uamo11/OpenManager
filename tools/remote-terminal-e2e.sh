@@ -212,6 +212,32 @@ demo remote_ssh; sleep 3
 adb shell dumpsys meminfo $PKG > "$OUT/meminfo_ssh_session.txt" 2>/dev/null || true
 adb shell dumpsys gfxinfo $PKG > "$OUT/gfxinfo_ssh_session.txt" 2>/dev/null || true
 
+log "=== Reopening the SSH screen keeps the shell location ==="
+adb shell input keyevent KEYCODE_HOME; sleep 1
+adb shell am start -n $PKG/me.zhanghai.android.files.terminal.TerminalActivity >/dev/null; sleep 3
+shot 07c_ssh_reopened_from_notification
+if find_text "10.0.2.2:2222" "omtest@10.0.2.2:2222" >/dev/null; then
+    fail "reopened session shows the bare endpoint instead of the shell location"
+else
+    pass "reopened session keeps the remote shell location in the path chip"
+fi
+
+log "=== Key deck layouts ==="
+if pos=$(find_text "⋮"); then
+    adb shell input tap $pos; sleep 1
+    if pos2=$(find_text "Compact bar (1 row)" "Barra compacta (1 fila)"); then
+        adb shell input tap $pos2; sleep 1
+        shot 07d_keys_compact
+        pass "key deck switches to the compact layout"
+        pos=$(find_text "⋮") && adb shell input tap $pos && sleep 1
+        pos2=$(find_text "Full bar (3 rows)" "Barra completa (3 filas)") && adb shell input tap $pos2 && sleep 1
+    else
+        fail "key deck layout menu did not open"
+    fi
+else
+    fail "key deck has no ⋮ button"
+fi
+
 log "=== SSH: reconnect with the trusted key must not ask again ==="
 clear_probe /tmp/om_ssh_probe
 adb shell am force-stop $PKG; sleep 1

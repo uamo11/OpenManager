@@ -196,7 +196,8 @@
                 android:layout_height="30dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:background="@drawable/bg_terminal_zoom_capsule">
+                android:background="@drawable/bg_terminal_zoom_capsule"
+                android:visibility="gone">
 
                 <TextView
                     android:id="@+id/btnZoomOut"
@@ -276,6 +277,24 @@
             android:background="#000000"
             android:focusable="true"
             android:focusableInTouchMode="true" />
+
+        <!-- Brings the hidden extra-keys deck back -->
+        <TextView
+            android:id="@+id/btnShowExtraKeys"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="10dp"
+            android:background="@drawable/bg_terminal_dead_man_badge"
+            android:backgroundTint="#CC1B2230"
+            android:contentDescription="@string/om_term_keys_layout"
+            android:elevation="4dp"
+            android:gravity="center"
+            android:text="⋮"
+            android:textColor="#E2E8F0"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <!-- Floating Dead Man Alert Capsule -->
         <LinearLayout
