@@ -214,13 +214,25 @@ adb shell dumpsys gfxinfo $PKG > "$OUT/gfxinfo_ssh_session.txt" 2>/dev/null || t
 
 log "=== Reopening the SSH screen keeps the shell location ==="
 adb shell input keyevent KEYCODE_HOME; sleep 1
-adb shell am start -n $PKG/me.zhanghai.android.files.terminal.TerminalActivity >/dev/null; sleep 3
-shot 07c_ssh_reopened_from_notification
-if find_text "10.0.2.2:2222" "omtest@10.0.2.2:2222" >/dev/null; then
-    fail "reopened session shows the bare endpoint instead of the shell location"
-else
-    pass "reopened session keeps the remote shell location in the path chip"
-fi
+# TerminalActivity is not exported: reopen through the app, which reattaches the live session
+# exactly like the notification does.
+demo remote_ssh; sleep 4
+shot 07c_ssh_reopened
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_reopened.xml"
+chip=$(python3 - "$OUT/ui_reopened.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+m = re.search(r'text="([^"]*)"[^>]*resource-id="[^"]*tvTerminalBreadcrumb"', xml) or \
+    re.search(r'resource-id="[^"]*tvTerminalBreadcrumb"[^>]*text="([^"]*)"', xml)
+print(m.group(1) if m else "")
+PY
+)
+log "      path chip: '$chip'"
+case "$chip" in
+    omtest@ip-*|*"~"*) pass "reopened session keeps the remote shell location ($chip)" ;;
+    *) fail "reopened session shows '$chip' instead of the shell location" ;;
+esac
 
 log "=== Key deck layouts ==="
 if pos=$(find_text "⋮"); then
