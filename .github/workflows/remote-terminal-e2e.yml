@@ -59,7 +59,7 @@ jobs:
       run: |
         set -x
         sudo apt-get update -qq
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq openssh-server busybox tmux htop
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq openssh-server busybox tmux htop telnet
         sudo useradd -m -s /bin/bash omtest
         echo 'omtest:omtest-Pass1' | sudo chpasswd
         sudo mkdir -p /tmp/sshd_om /run/sshd
@@ -77,10 +77,20 @@ jobs:
         EOF
         sudo /usr/sbin/sshd -t -f /tmp/sshd_om/sshd_config
         sudo /usr/sbin/sshd -f /tmp/sshd_om/sshd_config -E /tmp/sshd_om.log
-        busybox --list | grep -qx telnetd
-        sudo busybox telnetd -p 2323 -l /bin/login
+        if busybox --list | grep -qx telnetd; then
+          sudo busybox telnetd -p 2323 -l /bin/login
+        else
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq inetutils-telnetd socat
+          TELNETD=$(ls /usr/sbin/in.telnetd /usr/sbin/telnetd /usr/libexec/inetutils/telnetd 2>/dev/null | head -n 1)
+          echo "telnetd: $TELNETD"
+          # inetd-style: each connection execs telnetd with the socket as stdin/stdout.
+          sudo nohup socat TCP-LISTEN:2323,reuseaddr,fork EXEC:"$TELNETD",nofork >/tmp/telnetd_om.log 2>&1 &
+        fi
+        sleep 1
         sleep 1
         ss -ltnp | grep -E ':2222|:2323'
+        # Sanity check from the runner itself: the login prompt must appear.
+        (sleep 3) | timeout 5 telnet 127.0.0.1 2323 | head -n 20 || true
 
     - name: Enable KVM
       run: |
