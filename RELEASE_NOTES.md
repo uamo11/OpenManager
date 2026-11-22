@@ -1,3 +1,33 @@
+# OpenManager v2.0.4: Protección Real de Comandos, Dead Man y DFRoot Reconstruidos y Nueva Auditoría
+
+### 🛡️ Los borrados se deciden ANTES de ejecutarse
+- **"Preguntar" ahora espera de verdad**: antes, el `rm` vigilado borraba igualmente y el diálogo aparecía cuando el archivo ya no existía. Ahora el comando se detiene hasta que respondes **Permitir**, **Bloquear** o **Permitir todo (sesión)**. Si la terminal no está en pantalla, llega una notificación con los mismos botones; sin respuesta en 90 s, se bloquea.
+- **Más comandos vigilados**: `rm`, `rmdir`, `unlink`, `find -delete`/`-exec rm`, `busybox`/`toybox rm`, `dd` hacia dispositivos y herramientas de formateo (`mkfs`, `mke2fs`, `wipefs`, `blkdiscard`, `flash_image`).
+- **Los scripts quedan protegidos**: antes, un script lanzado con `sh script.sh` no cargaba la vigilancia. Ahora sí, y también las sesiones root, aunque `su` borre las variables de entorno.
+- **Tu terminal queda limpia**: ya no aparecen marcas `[OM_TRACER:...]`; solo se muestra un mensaje cuando algo se bloquea.
+- Lo que escribes tú a mano y los scripts internos de `pkg`/`apt` no te preguntan; Dead Man y DFRoot siguen protegiendo siempre.
+
+### ☠️ Dead Man y DFRoot sin huecos ni falsos positivos
+- Cada ruta se resuelve con la carpeta actual del shell, `..`, comodines y enlaces simbólicos, y se compara por segmentos completos:
+  - **Antes no se detectaba**: `cd / && rm -rf *`, `rm -rf ../../system`, `busybox rm -rf /vendor`, `find / -exec rm` o un enlace en `/sdcard` que apunta a `/system`. Ahora se bloquean.
+  - **Antes se bloqueaba sin motivo**: `rm -rf /sdcard/tmp`, o archivos tuyos dentro de carpetas llamadas `system` o `vendor`, o llamados `init` o `fstab.txt`. Ahora se permiten.
+- El explorador usa el mismo clasificador para proteger edición, renombrado y permisos.
+- Cuando algo se bloquea, la terminal muestra la insignia de calavera sin ventanas que interrumpan; al tocarla se abre la auditoría.
+
+### 📋 Auditoría nueva (cómoda y útil)
+- Hoja inferior que respeta el tema claro, oscuro y AMOLED, con:
+  - Estado de Dead Man y DFRoot.
+  - La opción **Preguntar / Bloquear / Permitir** del script, que ahora se aplica al momento, incluso con el script en marcha.
+  - La **actividad real en vivo**: comando, rutas afectadas y por qué se permitió o bloqueó.
+- Análisis estático del script y muestreo de llamadas al sistema en secciones plegables.
+- Se eliminó la telemetría inventada (falsas ráfagas de syscalls) y el muestreo que vaciaba el registro en segundos.
+
+### ✅ Verificación
+- 26 comprobaciones de punta a punta en el emulador: el archivo sigue existiendo mientras se pregunta, Bloquear lo conserva y el script continúa, Permitir lo borra, Dead Man bloquea una ruta relativa a `/system` sin preguntar, y no hay crashes.
+- Más de 350 tests unitarios, entre ellos los nuevos del clasificador de rutas.
+
+---
+
 # OpenManager v2.0.3: Corrección del Botón Atrás en Doble Panel, Ruta de la VPS al Reabrir y Barra de Teclas Configurable
 
 ### 🐞 Correcciones

@@ -200,9 +200,9 @@ class V2075StabilityAndSplitInstallTest {
         }
 
         val buildGradle = resolveAppBuildGradle().readText()
-        assertTrue("app/build.gradle must define versionCode 117", buildGradle.contains("versionCode 117"))
-        assertTrue("app/build.gradle must define versionName '2.0.3'", buildGradle.contains("versionName '2.0.3'"))
-        assertTrue(UpdateChecker.isVersionNewer("2.0.3", "2.0.2"))
-        assertTrue(UpdateChecker.isVersionNewer("2.0.3", "1.9.73"))
+        assertTrue("app/build.gradle must define versionCode 118", buildGradle.contains("versionCode 118"))
+        assertTrue("app/build.gradle must define versionName '2.0.4'", buildGradle.contains("versionName '2.0.4'"))
+        assertTrue(UpdateChecker.isVersionNewer("2.0.4", "2.0.3"))
+        assertTrue(UpdateChecker.isVersionNewer("2.0.4", "1.9.73"))
     }
 }
