@@ -1,3 +1,21 @@
+# OpenManager v2.0.5: Apps en Ejecución más Ligera y Agrupada, y Barra de la Terminal de VPS Rediseñada
+
+### 📊 Apps en ejecución
+- **Mucho menos consumo**: la lista de apps instaladas y sus nombres se guardan en caché durante 60 s, en lugar de pedírselos al sistema en cada refresco (cada 2,5 s). Ese coste era lo que hacía que OpenManager se marcara a sí mismo con más del 50% de CPU. Al refrescar a mano se actualiza al momento.
+- **Una fila por app**: los procesos de una misma app (por ejemplo `com.y.om` y `com.y.om:root:0`) se agrupan con la memoria sumada y el número de procesos, y "Finalizar" termina todos. Se puede desactivar en ⋮ › *Agrupar procesos por app*.
+- **Más seguro**: aviso antes de finalizar el propio OpenManager o un proceso del sistema que podría reiniciar el dispositivo. Con Shizuku ya no se informa de un éxito que no se puede comprobar.
+- **Sin root ni Shizuku**: con el permiso *Acceso a datos de uso* aparecen las apps activas en los últimos 30 minutos (etiqueta **RECIENTE**), con acceso directo a su ficha para forzar la detención.
+
+### 🔐 Terminal de VPS (SSH / Telnet)
+- El escudo de auditoría de scripts se sustituye por **Conexión** (candado): protocolo, servidor, software del servidor, método de inicio de sesión, clave y huella del servidor (verificada o nueva), algoritmos negociados (cifrado, intercambio de claves, MAC), tiempo conectado y latencia estimada. Incluye *Copiar huella* y *Desconectar*.
+- El botón rojo ahora es una **✕ que desconecta y cierra la terminal de un toque**, sin menú de Ctrl+C.
+- **Copiar** pasa al menú ⋮ (también en la terminal local).
+
+### ✅ Verificación
+- 28 comprobaciones de punta a punta en el emulador contra un servidor OpenSSH real, incluidos el diálogo de conexión y el cierre de un toque, y tests nuevos de agrupación de procesos.
+
+---
+
 # OpenManager v2.0.4: Protección Real de Comandos, Dead Man y DFRoot Reconstruidos y Nueva Auditoría
 
 ### 🛡️ Los borrados se deciden ANTES de ejecutarse
