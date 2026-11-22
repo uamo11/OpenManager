@@ -1,3 +1,18 @@
+# OpenManager v2.0.3: Corrección del Botón Atrás en Doble Panel, Ruta de la VPS al Reabrir y Barra de Teclas Configurable
+
+### 🐞 Correcciones
+- **El botón Atrás actuaba en el panel equivocado**: ahora, al tocar cualquier parte de un panel (ruta superior, carpeta vacía, pantalla de error de permisos y sus botones), ese panel pasa a ser el activo antes de procesar el toque. Antes solo ocurría al tocar la lista de archivos.
+- **La sesión SSH mostraba `IP:puerto` al volver desde la notificación**: el chip de ruta conserva ahora la ubicación que envía el shell (`usuario@host: ~/carpeta`).
+
+### ⌨️ Terminal más cómoda
+- Se quita el control `− 14sp +`: el zoom se hace con dos dedos o con las teclas de volumen.
+- Nuevo botón **⋮** en la barra de teclas para elegir entre **completa** (3 filas), **compacta** (1 fila con Esc, Tab, Ctrl, Alt, flechas, símbolos, ^C y ⌫) u **oculta** (con un ⋮ flotante para recuperarla). La elección queda guardada.
+
+### ✅ Verificación
+- 21 comprobaciones de punta a punta en CI contra servidores OpenSSH y Telnet reales, sin crashes.
+
+---
+
 # OpenManager v2.0.2: Escritura Instantánea con Eco Predictivo, Centro de Conexiones y Nuevo Reproductor de Vídeo 4K
 
 ### ⌨️ Escritura sin retardo en la terminal
