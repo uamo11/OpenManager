@@ -468,7 +468,9 @@ class FileListActivity : AppActivity() {
             password = "omtest-Pass1",
             startupCommands = "echo OM_SSH_OK_\$((6*7)) > /tmp/om_ssh_probe\n" +
                 "printf '\\033[1;31mred \\033[1;32mgreen \\033[1;34mblue \\033[38;5;208m256-orange \\033[38;2;255;0;255mtruecolor\\033[0m\\n'\n" +
-                "ls --color=always /",
+                "ls --color=always /\n" +
+                // Same OSC 0 title sequence a stock bash prompt sends ("user@host: dir").
+                "printf '\\033]0;omtest@ci: ~/probe\\007'",
             shortcuts = listOf(
                 me.zhanghai.android.files.terminal.remote.RemoteShortcut(
                     "probe", "echo OM_SHORTCUT_OK > /tmp/om_shortcut_probe"

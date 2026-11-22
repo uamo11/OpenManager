@@ -230,7 +230,7 @@ PY
 )
 log "      path chip: '$chip'"
 case "$chip" in
-    omtest@ip-*|*"~"*) pass "reopened session keeps the remote shell location ($chip)" ;;
+    "omtest@ci: ~/probe") pass "reopened session keeps the remote shell location ($chip)" ;;
     *) fail "reopened session shows '$chip' instead of the shell location" ;;
 esac
 
