@@ -80,9 +80,18 @@ object TerminalUiHelper {
         isRoot: Boolean,
         isTermex: Boolean,
         exitStatus: Int?,
-        isLightChrome: Boolean
+        isLightChrome: Boolean,
+        remoteLabel: String? = null
     ): SessionBadgeSpec {
         return when {
+            isRunning && remoteLabel != null -> SessionBadgeSpec(
+                label = remoteLabel,
+                dotColor = 0xFFA78BFA.toInt(),
+                haloColor = 0x38A78BFA,
+                bgColor = if (isLightChrome) 0xFFF5F3FF.toInt() else 0xFF1E1633.toInt(),
+                strokeColor = if (isLightChrome) 0xFF8B5CF6.toInt() else 0xFF4C1D95.toInt(),
+                textColor = if (isLightChrome) 0xFF6D28D9.toInt() else 0xFFC4B5FD.toInt()
+            )
             isRunning && isRoot -> SessionBadgeSpec(
                 label = "ROOT #",
                 dotColor = 0xFFF59E0B.toInt(),

@@ -373,10 +373,7 @@ private val menuItems: List<NavigationItem>
             R.drawable.ic_running_apps_white_24dp, R.string.navigation_running_apps,
             RunningAppsActivity::class.createIntent()
         ),
-        IntentMenuItem(
-            R.drawable.terminal_icon_white_24dp, R.string.navigation_terminal,
-            TerminalActivity::class.createIntent()
-        ),
+        TerminalMenuItem(),
         IntentMenuItem(
             R.drawable.shared_directory_icon_white_24dp, R.string.navigation_ftp_server,
             FtpServerActivity::class.createIntent()
@@ -409,6 +406,29 @@ private class IntentMenuItem(
     override fun onClick(listener: Listener) {
         listener.launchIntent(intent)
         listener.closeNavigationDrawer()
+    }
+}
+
+/** Terminal entry: tap opens the local shell, long press opens the SSH/Telnet profiles. */
+private class TerminalMenuItem : MenuItem(
+    R.drawable.terminal_icon_white_24dp, R.string.navigation_terminal
+) {
+    private val intent = TerminalActivity::class.createIntent()
+
+    override val id: Long
+        get() = intent.component.hashCode().toLong()
+
+    override fun onClick(listener: Listener) {
+        listener.launchIntent(intent)
+        listener.closeNavigationDrawer()
+    }
+
+    override fun onLongClick(listener: Listener): Boolean {
+        listener.launchIntent(
+            me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity::class.createIntent()
+        )
+        listener.closeNavigationDrawer()
+        return true
     }
 }
 

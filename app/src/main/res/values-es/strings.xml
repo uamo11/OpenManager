@@ -2742,4 +2742,111 @@
     <string name="om_term_running_timer_format">En ejecución • %1$s</string>
     <string name="om_term_running_pid_timer_format">PID %1$d • %2$s</string>
     <string name="om_term_modifier_locked_format">%1$s fijado (toca para soltar)</string>
+
+    <!-- SSH / Telnet remote terminal profiles -->
+    <string name="om_remote_profiles_title">SSH / Telnet</string>
+    <string name="om_remote_profiles_empty_title">Sin conexiones guardadas</string>
+    <string name="om_remote_profiles_empty_message">Toca + para añadir un servidor SSH o Telnet. Cada perfil guarda host, usuario, puerto, credenciales y tus accesos directos.</string>
+    <string name="om_remote_profile_add">Nueva conexión</string>
+    <string name="om_remote_profile_edit">Editar conexión</string>
+    <string name="om_remote_profile_actions">Opciones de la conexión</string>
+    <string name="om_remote_profile_duplicate">Duplicar</string>
+    <string name="om_remote_profile_copy_name">%1$s (copia)</string>
+    <string name="om_remote_profile_delete">Eliminar</string>
+    <string name="om_remote_profile_delete_message">¿Eliminar «%1$s»? También se borran su contraseña y clave guardadas.</string>
+    <string name="om_remote_profile_forget_hostkey">Olvidar huella del servidor</string>
+    <string name="om_remote_hostkey_forgotten">Huella olvidada. Se volverá a verificar en la próxima conexión.</string>
+    <string name="om_remote_profile_incomplete">Completa primero los datos de la conexión</string>
+    <string name="om_remote_profile_missing">Esta conexión ya no existe</string>
+    <string name="om_remote_profile_saved">Conexión guardada</string>
+    <string name="om_remote_open_local_terminal">Abrir terminal local</string>
+    <string name="om_remote_connect">Conectar</string>
+    <string name="om_remote_reconnect">Reconectar a %1$s</string>
+    <string name="om_remote_menu_ssh_telnet">Conexiones SSH / Telnet…</string>
+    <string name="om_remote_chooser_title">Abrir terminal</string>
+    <string name="om_remote_chooser_local">Terminal local</string>
+    <string name="om_remote_chooser_manage">Gestionar perfiles SSH / Telnet…</string>
+    <string name="om_remote_chooser_new">+ Nueva conexión</string>
+    <string name="om_remote_protocol_ssh">SSH</string>
+    <string name="om_remote_protocol_telnet">Telnet</string>
+    <string name="om_remote_telnet_warning">Telnet no está cifrado: cualquiera en la red puede leer la sesión, contraseña incluida. Úsalo solo con routers, placas o equipos de una red de confianza; usa SSH siempre que el servidor lo admita.</string>
+    <string name="om_remote_field_name">Nombre (opcional)</string>
+    <string name="om_remote_field_host">Host o IP</string>
+    <string name="om_remote_field_port">Puerto</string>
+    <string name="om_remote_field_username">Usuario</string>
+    <string name="om_remote_field_username_telnet_helper">Se escribe solo cuando el servidor muestra «login:»</string>
+    <string name="om_remote_section_auth">Autenticación</string>
+    <string name="om_remote_auth_password">Contraseña</string>
+    <string name="om_remote_auth_key">Clave privada</string>
+    <string name="om_remote_field_password">Contraseña</string>
+    <string name="om_remote_field_password_fallback">Contraseña (si la clave es rechazada)</string>
+    <string name="om_remote_field_password_helper">Se guarda cifrada con el Keystore de Android. Déjala vacía para que se pida en cada conexión.</string>
+    <string name="om_remote_field_password_telnet_helper">Solo se escribe cuando el servidor pide «Password:». Déjala vacía para escribirla tú.</string>
+    <string name="om_remote_field_private_key">Clave privada (OpenSSH / PEM / PuTTY)</string>
+    <string name="om_remote_field_private_key_helper">Pégala o importa el archivo. Se guarda cifrada.</string>
+    <string name="om_remote_import_key">Importar archivo de clave</string>
+    <string name="om_remote_field_passphrase">Frase de la clave</string>
+    <string name="om_remote_field_passphrase_helper">Solo para claves cifradas. Vacía = preguntar al conectar.</string>
+    <string name="om_remote_section_session">Sesión y accesos directos</string>
+    <string name="om_remote_field_startup">Comandos al iniciar sesión</string>
+    <string name="om_remote_field_startup_helper">Uno por línea, p. ej. tmux new -A -s main o cd ~/OpenManager</string>
+    <string name="om_remote_field_shortcuts">Barra de accesos directos</string>
+    <string name="om_remote_field_shortcuts_helper">Uno por línea: «etiqueta = comando» o solo el comando. Aparecen como botones sobre el teclado.</string>
+    <string name="om_remote_field_keepalive">Keepalive (segundos)</string>
+    <string name="om_remote_field_keepalive_helper">Mantiene viva la conexión y detecta cortes de red. 0 = desactivado.</string>
+    <string name="om_remote_save_and_connect">Guardar y conectar</string>
+    <string name="om_remote_discard_changes">¿Descartar los cambios de esta conexión?</string>
+    <string name="om_remote_discard">Descartar</string>
+    <string name="om_remote_error_host">Introduce un host o una IP válidos</string>
+    <string name="om_remote_error_port">El puerto debe estar entre 1 y 65535</string>
+    <string name="om_remote_error_username">SSH necesita un usuario</string>
+    <string name="om_remote_error_private_key">Pega o importa la clave privada</string>
+    <string name="om_remote_error_key_format">Formato de clave privada no reconocido</string>
+    <string name="om_remote_error_auth">Autenticación fallida para %1$s</string>
+    <string name="om_remote_error_cancelled">Conexión cancelada</string>
+    <string name="om_remote_error_unknown_host">No se puede resolver el host %1$s</string>
+    <string name="om_remote_error_timeout">%1$s no respondió a tiempo</string>
+    <string name="om_remote_error_refused">%1$s rechazó la conexión (¿está el servicio activo en ese puerto?)</string>
+    <string name="om_remote_status_connecting">Conectando a %1$s…</string>
+    <string name="om_remote_status_connected">Conectado a %1$s</string>
+    <string name="om_remote_status_password_saved">Contraseña guardada (cifrada)</string>
+    <string name="om_remote_status_telnet_plaintext">Telnet: sesión sin cifrar</string>
+    <string name="om_remote_status_hostkey_changed">AVISO: la clave del servidor HA CAMBIADO</string>
+    <string name="om_remote_hostkey_unknown_title">Verifica el servidor</string>
+    <string name="om_remote_hostkey_unknown_message">Primera conexión a %1$s.
+
+Huella de la clave %2$s:
+%3$s
+
+Compárala con la del servidor (ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub) antes de confiar.</string>
+    <string name="om_remote_hostkey_changed_title">¡La clave del servidor cambió!</string>
+    <string name="om_remote_hostkey_changed_message">La clave de %1$s no es la que confiaste antes.
+
+Antes:
+%2$s
+
+Ahora (%3$s):
+%4$s
+
+Ocurre si el servidor se reinstaló, pero también es lo que se ve cuando un atacante intercepta la conexión. Reemplázala solo si sabes por qué cambió.</string>
+    <string name="om_remote_hostkey_trust">Confiar y guardar</string>
+    <string name="om_remote_hostkey_once">Solo esta vez</string>
+    <string name="om_remote_hostkey_reject">Cancelar</string>
+    <string name="om_remote_hostkey_replace">Reemplazar clave</string>
+    <string name="om_remote_password_title">Contraseña de %1$s</string>
+    <string name="om_remote_password_hint">Contraseña</string>
+    <string name="om_remote_password_remember">Recordar (cifrada)</string>
+    <string name="om_remote_passphrase_title">Frase de la clave privada</string>
+    <string name="om_remote_passphrase_hint">Frase</string>
+    <string name="om_remote_telnet_confirm_title">Conexión sin cifrar</string>
+    <string name="om_remote_telnet_confirm_message">%1$s está fuera de tu red local y Telnet envía todo en texto plano, contraseña incluida. ¿Conectar de todos modos?</string>
+    <string name="om_remote_telnet_confirm_always">Siempre en este perfil</string>
+    <string name="om_remote_detail_unencrypted">Telnet · sin cifrar</string>
+    <string name="om_remote_detail_key">🔑 Clave</string>
+    <string name="om_remote_detail_password_saved">🔒 Contraseña guardada</string>
+    <string name="om_remote_detail_password_ask">Pide contraseña</string>
+    <plurals name="om_remote_detail_shortcuts">
+        <item quantity="one">%1$d acceso directo</item>
+        <item quantity="other">%1$d accesos directos</item>
+    </plurals>
 </resources>

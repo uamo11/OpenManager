@@ -450,6 +450,58 @@ class FileListActivity : AppActivity() {
         }
     }
 
+    /**
+     * Debug-only fixtures for the CI end-to-end test (tools/remote-terminal-e2e.sh): the emulator
+     * reaches the runner's OpenSSH (2222) and Telnet (2323) test servers through 10.0.2.2.
+     */
+    private fun handleRemoteTerminalDemo(action: String) {
+        if (!BuildConfig.DEBUG) return
+        val store = me.zhanghai.android.files.terminal.remote.RemoteProfileStore
+        val profiles = me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity
+        val ssh = me.zhanghai.android.files.terminal.remote.RemoteProfile(
+            id = "ci-ssh",
+            name = "CI OpenSSH",
+            protocol = me.zhanghai.android.files.terminal.remote.RemoteProtocol.SSH,
+            host = "10.0.2.2",
+            port = 2222,
+            username = "omtest",
+            password = "omtest-Pass1",
+            startupCommands = "echo OM_SSH_OK_\$((6*7)) > /tmp/om_ssh_probe\n" +
+                "printf '\\033[1;31mred \\033[1;32mgreen \\033[1;34mblue \\033[38;5;208m256-orange \\033[38;2;255;0;255mtruecolor\\033[0m\\n'\n" +
+                "ls --color=always /",
+            shortcuts = listOf(
+                me.zhanghai.android.files.terminal.remote.RemoteShortcut(
+                    "probe", "echo OM_SHORTCUT_OK > /tmp/om_shortcut_probe"
+                ),
+                me.zhanghai.android.files.terminal.remote.RemoteShortcut("tmux", "tmux new -A -s main"),
+                me.zhanghai.android.files.terminal.remote.RemoteShortcut("htop", "htop")
+            )
+        )
+        val telnet = me.zhanghai.android.files.terminal.remote.RemoteProfile(
+            id = "ci-telnet",
+            name = "CI Telnet",
+            protocol = me.zhanghai.android.files.terminal.remote.RemoteProtocol.TELNET,
+            host = "10.0.2.2",
+            port = 2323,
+            username = "omtest",
+            password = "omtest-Pass1",
+            startupCommands = "echo OM_TELNET_OK_\$((6*7)) > /tmp/om_telnet_probe"
+        )
+        if (store.get(this, ssh.id) == null) store.save(this, ssh)
+        if (store.get(this, telnet.id) == null) store.save(this, telnet)
+        when (action) {
+            "remote_profiles" -> startActivity(profiles.createIntent(this))
+            "remote_ssh" -> profiles.connect(this, store.get(this, ssh.id)!!)
+            "remote_telnet" -> profiles.connect(this, store.get(this, telnet.id)!!)
+            "remote_chooser" -> me.zhanghai.android.files.terminal.remote.TerminalLaunchChooser.show(this) {
+                activeFragment.openTerminal()
+            }
+            "remote_edit" -> startActivity(
+                me.zhanghai.android.files.terminal.remote.RemoteProfileEditActivity.createIntent(this, ssh.id)
+            )
+        }
+    }
+
     private fun handleDemoIntent(intent: Intent?) {
         if (!BuildConfig.DEBUG) return
         val action = intent?.getStringExtra("SHOW_DEMO_DIALOG") ?: return
@@ -553,6 +605,8 @@ class FileListActivity : AppActivity() {
                             fragmentB.navigateTo(java8.nio.file.Paths.get("/data"))
                         }
                     }
+                    "remote_profiles", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
+                        handleRemoteTerminalDemo(action)
                     "terminal" -> {
                         startActivity(
                             me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
@@ -864,6 +918,15 @@ class FileListActivity : AppActivity() {
         findViewById<View>(R.id.drawerItemTerminal)?.setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             activeFragment.openTerminal()
+        }
+        // Long press: choose local shell or an SSH/Telnet profile.
+        findViewById<View>(R.id.drawerItemTerminal)?.setOnLongClickListener {
+            it.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            drawerLayout.closeDrawer(GravityCompat.START)
+            me.zhanghai.android.files.terminal.remote.TerminalLaunchChooser.show(this) {
+                activeFragment.openTerminal()
+            }
+            true
         }
 
         val drawerItemRecycleBin = findViewById<View>(R.id.drawerItemRecycleBin)

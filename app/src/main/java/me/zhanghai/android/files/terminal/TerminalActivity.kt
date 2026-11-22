@@ -46,6 +46,12 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.settings.PerformanceModeManager
+import me.zhanghai.android.files.terminal.remote.ProfileTransport
+import me.zhanghai.android.files.terminal.remote.RemoteProfile
+import me.zhanghai.android.files.terminal.remote.RemoteProfileStore
+import me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity
+import me.zhanghai.android.files.terminal.remote.RemotePrompter
+import me.zhanghai.android.files.terminal.remote.RemoteProtocol
 import me.zhanghai.android.files.terminal.tracer.BinaryTracerEngine
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.isUiAlive
@@ -84,6 +90,11 @@ class TerminalActivity : AppActivity() {
     private var btnDeadManSkull: ImageButton? = null
     private var btnOverflowMenu: ImageButton? = null
     private var layoutDeadManAlertBadge: View? = null
+    private var remoteShortcutsScroll: View? = null
+    private var remoteShortcutsContainer: android.widget.LinearLayout? = null
+
+    /** Profile of the attached SSH/Telnet session, null for local shells. */
+    private var remoteProfile: RemoteProfile? = null
 
     private var lastDeadManTarget: String = ""
     private var lastDeadManCmd: String = ""
@@ -120,6 +131,13 @@ class TerminalActivity : AppActivity() {
         const val EXTRA_FORCE_ROOT = "me.zhanghai.android.files.terminal.extra.FORCE_ROOT"
         const val EXTRA_FORCE_TERMEX = "me.zhanghai.android.files.terminal.extra.FORCE_TERMEX"
         const val EXTRA_ACTIVE_SCRIPT_PATH = "me.zhanghai.android.files.terminal.extra.ACTIVE_SCRIPT_PATH"
+        const val EXTRA_REMOTE_PROFILE_ID = "me.zhanghai.android.files.terminal.extra.REMOTE_PROFILE_ID"
+
+        /** Opens the terminal connected to a saved SSH/Telnet profile. */
+        fun createRemoteIntent(context: Context, profileId: String): Intent =
+            Intent(context, TerminalActivity::class.java).apply {
+                putExtra(EXTRA_REMOTE_PROFILE_ID, profileId)
+            }
 
         fun createIntent(
             context: Context,
@@ -204,6 +222,8 @@ class TerminalActivity : AppActivity() {
         ) {
             val activity = hostActivity ?: return
             if (!activity.isUiAlive || length <= 0) return
+            // The syscall tracer only understands local scripts.
+            if (session.isRemote) return
             val boundedLength = length.coerceAtMost(16384)
             val chunk = String(data, offset, boundedLength, Charsets.UTF_8)
             val activeScript = ScriptExecutionManager.activeScriptPath
@@ -219,6 +239,11 @@ class TerminalActivity : AppActivity() {
             val activity = hostActivity ?: return
             activity.runOnUiThread {
                 if (!activity.isUiAlive) return@runOnUiThread
+                if (changedSession.isRemote) {
+                    // Remote shells usually report "user@host: ~/dir"; show it verbatim.
+                    activity.tvTerminalBreadcrumb?.text = title
+                    return@runOnUiThread
+                }
                 if (title.contains("/") || title.startsWith("~")) {
                     activity.updateCwdDisplay(title)
                 }
@@ -243,7 +268,11 @@ class TerminalActivity : AppActivity() {
                     )
                 }
             }
-            ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, appContext)
+            // A replaced session (e.g. the previous SSH connection) must not end the new one's service.
+            val current = ScriptExecutionManager.activeSession
+            if (current == null || current === finishedSession) {
+                ScriptExecutionManager.onSessionFinished(finishedSession.exitStatus, appContext)
+            }
         }
 
         override fun onCopyTextToClipboard(session: TerminalSession, text: String) {
@@ -329,6 +358,9 @@ class TerminalActivity : AppActivity() {
         btnDeadManSkull = findViewById(R.id.btnDeadManSkull)
         btnOverflowMenu = findViewById(R.id.btnOverflowMenu)
         layoutDeadManAlertBadge = findViewById(R.id.layoutDeadManAlertBadge)
+        remoteShortcutsScroll = findViewById(R.id.remoteShortcutsScroll)
+        remoteShortcutsContainer = findViewById(R.id.remoteShortcutsContainer)
+        RemotePrompter.attach(this)
 
         setupEdgeToEdgeInsets()
         setupControls()
@@ -340,6 +372,7 @@ class TerminalActivity : AppActivity() {
 
     override fun onResume() {
         super.onResume()
+        RemotePrompter.attach(this)
         applyPreferences()
         if (terminalSession?.isRunning == true) {
             startRuntimeTicker()
@@ -354,6 +387,10 @@ class TerminalActivity : AppActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.hasExtra(EXTRA_REMOTE_PROFILE_ID)) {
+            startTerminalSession()
+            return
+        }
         val cmd = intent.getStringExtra(EXTRA_COMMAND)
         if (cmd != null && cmd != ScriptExecutionManager.activeCommand) {
             startTerminalSession()
@@ -686,7 +723,8 @@ class TerminalActivity : AppActivity() {
             isRoot = lastIsRoot,
             isTermex = lastIsTermex,
             exitStatus = lastExitStatus,
-            isLightChrome = lastIsLightChrome
+            isLightChrome = lastIsLightChrome,
+            remoteLabel = remoteProfile?.let { if (it.protocol == RemoteProtocol.SSH) "SSH" else "TELNET" }
         )
         viewSessionDotHalo?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
@@ -720,6 +758,10 @@ class TerminalActivity : AppActivity() {
     }
 
     private fun updateCwdDisplay(rawPath: String?) {
+        remoteProfile?.let {
+            tvTerminalBreadcrumb?.text = it.endpoint
+            return
+        }
         if (!rawPath.isNullOrBlank()) {
             val normalized = rawPath.trim()
             val cleanCwd = if (File(normalized).isFile) {
@@ -795,7 +837,8 @@ class TerminalActivity : AppActivity() {
 
     private fun startTerminalSession(
         forceRootOverride: Boolean? = null,
-        forceTermexOverride: Boolean? = null
+        forceTermexOverride: Boolean? = null,
+        forceLocal: Boolean = false
     ) {
         val initialCommand = if (forceRootOverride == null && forceTermexOverride == null) {
             intent.getStringExtra(EXTRA_COMMAND)
@@ -824,7 +867,9 @@ class TerminalActivity : AppActivity() {
             }
 
             override fun shouldBackButtonBeMappedToEscape(): Boolean = false
-            override fun shouldEnforceCharBasedInput(): Boolean = false
+            // Remote shells echo every byte themselves: commit each key immediately instead of
+            // letting the keyboard hold a composing word (the "typing lag" of IMEs like Samsung's).
+            override fun shouldEnforceCharBasedInput(): Boolean = terminalSession?.isRemote == true
             override fun shouldUseCtrlSpaceWorkaround(): Boolean = false
             override fun isTerminalViewSelected(): Boolean = true
             override fun copyModeChanged(copyMode: Boolean) {}
@@ -867,11 +912,23 @@ class TerminalActivity : AppActivity() {
             override fun logStackTrace(tag: String?, e: Exception?) {}
         }
 
+        val remoteProfileId = if (forceRootOverride == null && forceTermexOverride == null &&
+            !forceLocal
+        ) {
+            intent.getStringExtra(EXTRA_REMOTE_PROFILE_ID)
+        } else {
+            null
+        }
+        val activeRemoteId = (ScriptExecutionManager.activeSession?.remoteTransport as? ProfileTransport)
+            ?.profile?.id
+
         // 1. Reattach to active background session cleanly unless switching environment explicitly
         if (forceRootOverride == null && forceTermexOverride == null &&
-            initialCommand == null && ScriptExecutionManager.hasActiveSession()
+            initialCommand == null && ScriptExecutionManager.hasActiveSession() &&
+            (remoteProfileId == null || remoteProfileId == activeRemoteId)
         ) {
             val existingSession = ScriptExecutionManager.activeSession!!
+            setRemoteProfile((existingSession.remoteTransport as? ProfileTransport)?.profile)
             existingSession.updateTerminalSessionClient(sessionClient)
             terminalSession = existingSession
             currentPid = ScriptExecutionManager.activePid
@@ -895,6 +952,20 @@ class TerminalActivity : AppActivity() {
         }
 
         terminalSession?.finishIfRunning()
+
+        if (remoteProfileId != null) {
+            val profile = RemoteProfileStore.get(this, remoteProfileId)
+            if (profile == null) {
+                Toast.makeText(this, R.string.om_remote_profile_missing, Toast.LENGTH_SHORT).show()
+                finish()
+                return
+            }
+            startRemoteSession(profile, sessionClient, viewClient)
+            return
+        }
+        setRemoteProfile(null)
+        // Switching to a local shell: a later recreation must not reopen the old connection.
+        intent.removeExtra(EXTRA_REMOTE_PROFILE_ID)
 
         if (!initialCommand.isNullOrEmpty() &&
             DeadManProtectionManager.isDfrootProtectionActive(this) &&
@@ -970,6 +1041,103 @@ class TerminalActivity : AppActivity() {
         )
     }
 
+    private fun startRemoteSession(
+        profile: RemoteProfile,
+        sessionClient: DetachableSessionClient,
+        viewClient: TerminalViewClient
+    ) {
+        // Replacing an older remote connection: close it instead of leaving it open in background.
+        ScriptExecutionManager.activeSession
+            ?.takeIf { it.isRemote && it.isRunning }
+            ?.finishIfRunning()
+        val transport = ProfileTransport.create(this, profile)
+        val session = TerminalSession(
+            transport,
+            PerformanceModeManager.currentBudget.terminalTranscriptRows,
+            sessionClient
+        )
+        terminalSession = session
+        setRemoteProfile(profile)
+        ScriptExecutionManager.startExecution(
+            context = this,
+            session = session,
+            scriptName = profile.displayName,
+            path = null,
+            command = null,
+            root = false,
+            termex = false
+        )
+        currentPid = -1
+        terminalView.setTerminalViewClient(viewClient)
+        terminalView.attachSession(session)
+        terminalView.requestFocus()
+        toolbar.title = profile.displayName
+        tvTerminalBreadcrumb?.text = profile.endpoint
+        updateHudState(isRoot = false, isTermex = false, isRunning = true)
+    }
+
+    /** Shows the profile's shortcut chips and switches the HUD to remote mode. */
+    private fun setRemoteProfile(profile: RemoteProfile?) {
+        remoteProfile = profile
+        val container = remoteShortcutsContainer ?: return
+        container.removeAllViews()
+        val shortcuts = profile?.shortcuts.orEmpty()
+        remoteShortcutsScroll?.isVisible = profile != null && shortcuts.isNotEmpty()
+        if (profile == null) {
+            renderSessionBadge()
+            return
+        }
+        tvTerminalBreadcrumb?.text = profile.endpoint
+        val light = lastIsLightChrome
+        val chipText = if (light) 0xFF1E293B.toInt() else 0xFFE2E8F0.toInt()
+        val chipBg = if (light) 0xFFFFFFFF.toInt() else 0xFF1B2230.toInt()
+        val chipStroke = if (light) 0xFFCBD5E1.toInt() else 0xFF334155.toInt()
+        for (shortcut in shortcuts) {
+            val chip = TextView(this).apply {
+                text = shortcut.label
+                setTextColor(chipText)
+                textSize = 12.5f
+                typeface = Typeface.MONOSPACE
+                maxLines = 1
+                gravity = android.view.Gravity.CENTER
+                setPadding(dp(12), 0, dp(12), 0)
+                contentDescription = shortcut.command
+                background = RippleDrawable(
+                    ColorStateList.valueOf(if (light) 0x200F172A else 0x35FFFFFF),
+                    GradientDrawable().apply {
+                        cornerRadius = dpF(14f)
+                        setColor(chipBg)
+                        setStroke(dp(1), chipStroke)
+                    },
+                    null
+                )
+                setOnClickListener {
+                    it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    sendRemoteShortcut(shortcut.command)
+                }
+                setOnLongClickListener {
+                    Toast.makeText(this@TerminalActivity, shortcut.command, Toast.LENGTH_SHORT).show()
+                    true
+                }
+            }
+            container.addView(
+                chip,
+                android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, dp(30)
+                ).apply { marginEnd = dp(6) }
+            )
+        }
+        renderSessionBadge()
+    }
+
+    private fun sendRemoteShortcut(command: String) {
+        val session = terminalSession ?: return
+        if (!session.isRunning) return
+        // Bracketed paste would insert it without running; type it like the user would.
+        session.write(command + "\r")
+        terminalView.requestFocus()
+    }
+
     private fun showStopSignalMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         popup.menu.apply {
@@ -1013,6 +1181,8 @@ class TerminalActivity : AppActivity() {
             }
             add(Menu.NONE, 5, 5, R.string.om_term_switch_termex)
             add(Menu.NONE, 6, 6, R.string.om_term_new_clean_session)
+            remoteProfile?.let { add(Menu.NONE, 8, 7, getString(R.string.om_remote_reconnect, it.displayName)) }
+            add(Menu.NONE, 7, 8, R.string.om_remote_menu_ssh_telnet)
         }
         popup.setOnMenuItemClickListener { item ->
             when (item.itemId) {
@@ -1053,8 +1223,18 @@ class TerminalActivity : AppActivity() {
                     true
                 }
                 6 -> {
-                    startTerminalSession(forceRootOverride = false, forceTermexOverride = null)
+                    startTerminalSession(forceRootOverride = false, forceTermexOverride = null, forceLocal = true)
                     Toast.makeText(this, R.string.om_term_new_session_started, Toast.LENGTH_SHORT).show()
+                    true
+                }
+                7 -> {
+                    startActivity(RemoteProfilesActivity.createIntent(this))
+                    true
+                }
+                8 -> {
+                    remoteProfile?.let { profile ->
+                        RemoteProfileStore.get(this, profile.id)?.let { RemoteProfilesActivity.connect(this, it) }
+                    }
                     true
                 }
                 else -> false
@@ -1087,13 +1267,13 @@ class TerminalActivity : AppActivity() {
                 getString(R.string.terminal_wakelock)
             }
             add(Menu.NONE, 1, 1, wakeTitle)
-            add(Menu.NONE, 12, 2, R.string.tracer_menu_item)
+            if (remoteProfile == null) add(Menu.NONE, 12, 2, R.string.tracer_menu_item)
             add(Menu.NONE, 10, 3, R.string.script_menu_keep_background)
             add(Menu.NONE, 11, 4, R.string.script_menu_terminate)
             add(Menu.NONE, 5, 5, R.string.terminal_paste)
             add(Menu.NONE, 6, 5, R.string.om_term_copy_all_screen)
             add(Menu.NONE, 7, 6, R.string.om_term_clear_screen)
-            add(Menu.NONE, 8, 7, R.string.om_term_switch_root)
+            if (remoteProfile == null) add(Menu.NONE, 8, 7, R.string.om_term_switch_root)
             add(Menu.NONE, 9, 8, R.string.om_term_new_clean_session)
             add(Menu.NONE, 3, 9, R.string.terminal_reset)
             add(Menu.NONE, 4, 10, R.string.terminal_preferences)
@@ -1211,6 +1391,7 @@ class TerminalActivity : AppActivity() {
     }
 
     override fun onDestroy() {
+        RemotePrompter.detach(this)
         stopRuntimeTicker()
         detachableClient?.detach(this)
         detachableClient = null

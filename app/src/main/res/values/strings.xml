@@ -2846,4 +2846,111 @@
     <string name="om_term_running_timer_format">Running • %1$s</string>
     <string name="om_term_running_pid_timer_format">PID %1$d • %2$s</string>
     <string name="om_term_modifier_locked_format">%1$s locked (tap to release)</string>
+
+    <!-- SSH / Telnet remote terminal profiles -->
+    <string name="om_remote_profiles_title">SSH / Telnet</string>
+    <string name="om_remote_profiles_empty_title">No saved connections</string>
+    <string name="om_remote_profiles_empty_message">Tap + to add an SSH or Telnet server. Profiles keep the host, user, port, credentials and your shortcuts.</string>
+    <string name="om_remote_profile_add">New connection</string>
+    <string name="om_remote_profile_edit">Edit connection</string>
+    <string name="om_remote_profile_actions">Connection options</string>
+    <string name="om_remote_profile_duplicate">Duplicate</string>
+    <string name="om_remote_profile_copy_name">%1$s (copy)</string>
+    <string name="om_remote_profile_delete">Delete</string>
+    <string name="om_remote_profile_delete_message">Delete “%1$s”? Its saved password and key are erased too.</string>
+    <string name="om_remote_profile_forget_hostkey">Forget server fingerprint</string>
+    <string name="om_remote_hostkey_forgotten">Fingerprint forgotten. It will be verified again on the next connection.</string>
+    <string name="om_remote_profile_incomplete">Complete the connection details first</string>
+    <string name="om_remote_profile_missing">This connection no longer exists</string>
+    <string name="om_remote_profile_saved">Connection saved</string>
+    <string name="om_remote_open_local_terminal">Open local terminal</string>
+    <string name="om_remote_connect">Connect</string>
+    <string name="om_remote_reconnect">Reconnect to %1$s</string>
+    <string name="om_remote_menu_ssh_telnet">SSH / Telnet connections…</string>
+    <string name="om_remote_chooser_title">Open terminal</string>
+    <string name="om_remote_chooser_local">Local terminal</string>
+    <string name="om_remote_chooser_manage">Manage SSH / Telnet profiles…</string>
+    <string name="om_remote_chooser_new">+ New connection</string>
+    <string name="om_remote_protocol_ssh">SSH</string>
+    <string name="om_remote_protocol_telnet">Telnet</string>
+    <string name="om_remote_telnet_warning">Telnet is not encrypted: anyone on the network can read the session, password included. Use it only for routers, boards or hosts on a network you trust; prefer SSH whenever the server supports it.</string>
+    <string name="om_remote_field_name">Name (optional)</string>
+    <string name="om_remote_field_host">Host or IP</string>
+    <string name="om_remote_field_port">Port</string>
+    <string name="om_remote_field_username">User</string>
+    <string name="om_remote_field_username_telnet_helper">Typed automatically when the server shows “login:”</string>
+    <string name="om_remote_section_auth">Authentication</string>
+    <string name="om_remote_auth_password">Password</string>
+    <string name="om_remote_auth_key">Private key</string>
+    <string name="om_remote_field_password">Password</string>
+    <string name="om_remote_field_password_fallback">Password (if the key is refused)</string>
+    <string name="om_remote_field_password_helper">Stored encrypted with the Android Keystore. Leave empty to be asked on every connection.</string>
+    <string name="om_remote_field_password_telnet_helper">Only typed after the server asks “Password:”. Leave empty to type it yourself.</string>
+    <string name="om_remote_field_private_key">Private key (OpenSSH / PEM / PuTTY)</string>
+    <string name="om_remote_field_private_key_helper">Paste it or import the file. Stored encrypted.</string>
+    <string name="om_remote_import_key">Import key file</string>
+    <string name="om_remote_field_passphrase">Key passphrase</string>
+    <string name="om_remote_field_passphrase_helper">Only for encrypted keys. Empty = ask when connecting.</string>
+    <string name="om_remote_section_session">Session and shortcuts</string>
+    <string name="om_remote_field_startup">Commands after login</string>
+    <string name="om_remote_field_startup_helper">One per line, e.g. tmux new -A -s main or cd ~/OpenManager</string>
+    <string name="om_remote_field_shortcuts">Shortcut bar</string>
+    <string name="om_remote_field_shortcuts_helper">One per line: “label = command” or just the command. They appear as buttons above the keyboard.</string>
+    <string name="om_remote_field_keepalive">Keepalive (seconds)</string>
+    <string name="om_remote_field_keepalive_helper">Keeps the connection alive and detects network drops. 0 = off.</string>
+    <string name="om_remote_save_and_connect">Save and connect</string>
+    <string name="om_remote_discard_changes">Discard the changes to this connection?</string>
+    <string name="om_remote_discard">Discard</string>
+    <string name="om_remote_error_host">Enter a valid host name or IP address</string>
+    <string name="om_remote_error_port">Port must be between 1 and 65535</string>
+    <string name="om_remote_error_username">SSH needs a user name</string>
+    <string name="om_remote_error_private_key">Paste or import the private key</string>
+    <string name="om_remote_error_key_format">Unrecognized private key format</string>
+    <string name="om_remote_error_auth">Authentication failed for %1$s</string>
+    <string name="om_remote_error_cancelled">Connection cancelled</string>
+    <string name="om_remote_error_unknown_host">Cannot resolve host %1$s</string>
+    <string name="om_remote_error_timeout">%1$s did not answer in time</string>
+    <string name="om_remote_error_refused">%1$s refused the connection (is the service running on that port?)</string>
+    <string name="om_remote_status_connecting">Connecting to %1$s…</string>
+    <string name="om_remote_status_connected">Connected to %1$s</string>
+    <string name="om_remote_status_password_saved">Password saved (encrypted)</string>
+    <string name="om_remote_status_telnet_plaintext">Telnet: unencrypted session</string>
+    <string name="om_remote_status_hostkey_changed">WARNING: the server key has CHANGED</string>
+    <string name="om_remote_hostkey_unknown_title">Verify the server</string>
+    <string name="om_remote_hostkey_unknown_message">First connection to %1$s.
+
+%2$s key fingerprint:
+%3$s
+
+Compare it with the server (ssh-keygen -lf /etc/ssh/ssh_host_*_key.pub) before trusting it.</string>
+    <string name="om_remote_hostkey_changed_title">Server key changed!</string>
+    <string name="om_remote_hostkey_changed_message">The key of %1$s is not the one you trusted before.
+
+Before:
+%2$s
+
+Now (%3$s):
+%4$s
+
+This happens when the server is reinstalled, but it is also what an attacker intercepting the connection looks like. Only replace it if you know why it changed.</string>
+    <string name="om_remote_hostkey_trust">Trust and save</string>
+    <string name="om_remote_hostkey_once">Only this time</string>
+    <string name="om_remote_hostkey_reject">Cancel</string>
+    <string name="om_remote_hostkey_replace">Replace key</string>
+    <string name="om_remote_password_title">Password for %1$s</string>
+    <string name="om_remote_password_hint">Password</string>
+    <string name="om_remote_password_remember">Remember (encrypted)</string>
+    <string name="om_remote_passphrase_title">Private key passphrase</string>
+    <string name="om_remote_passphrase_hint">Passphrase</string>
+    <string name="om_remote_telnet_confirm_title">Unencrypted connection</string>
+    <string name="om_remote_telnet_confirm_message">%1$s is outside your local network and Telnet sends everything in clear text, password included. Connect anyway?</string>
+    <string name="om_remote_telnet_confirm_always">Always for this profile</string>
+    <string name="om_remote_detail_unencrypted">Telnet · unencrypted</string>
+    <string name="om_remote_detail_key">🔑 Key</string>
+    <string name="om_remote_detail_password_saved">🔒 Password saved</string>
+    <string name="om_remote_detail_password_ask">Asks for password</string>
+    <plurals name="om_remote_detail_shortcuts">
+        <item quantity="one">%1$d shortcut</item>
+        <item quantity="other">%1$d shortcuts</item>
+    </plurals>
 </resources>

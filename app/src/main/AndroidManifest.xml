@@ -277,6 +277,19 @@
         </activity>
 
         <activity
+            android:name="me.zhanghai.android.files.terminal.remote.RemoteProfilesActivity"
+            android:exported="false"
+            android:label="@string/om_remote_profiles_title"
+            android:theme="@style/Theme.MaterialFiles" />
+
+        <activity
+            android:name="me.zhanghai.android.files.terminal.remote.RemoteProfileEditActivity"
+            android:exported="false"
+            android:label="@string/om_remote_profile_add"
+            android:theme="@style/Theme.MaterialFiles"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name="me.zhanghai.android.files.terminal.TerminalActivity"
             android:exported="false"
             android:label="@string/terminal_title"
