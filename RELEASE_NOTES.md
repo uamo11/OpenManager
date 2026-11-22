@@ -1,4 +1,23 @@
-# OpenManager v2.0.75: Instalador Nativo de Splits (.apks/.xapk/.apkm), Compatibilidad Android 16, Termex Propio y Auto-Updates Mejoradas
+# OpenManager v2.0.1: Terminal SSH / Telnet con Perfiles, Modo Ultra RAM (< 20 MB por Pantalla) y Serie 2.0 Completa
+
+### 🔐 Terminal SSH y Telnet con Perfiles
+- **Mantén pulsado el botón Terminal** (panel lateral o menú de navegación) para elegir entre la terminal local, tus conexiones recientes, el gestor de perfiles o **+ Nueva conexión**.
+- **Perfiles completos**: nombre, host/IP (IPv4/IPv6), puerto, usuario, contraseña o clave privada (OpenSSH / PEM / PuTTY, pegada o importada desde archivo) con frase opcional, comandos al iniciar sesión (p. ej. `tmux new -A -s main` y `cd ~/OpenManager`) y keepalive configurable.
+- **Seguridad**: contraseñas, claves y frases se guardan cifradas con AES-256-GCM y una clave no exportable del **Android Keystore**. SSH verifica la huella del servidor (`SHA256:` como `ssh-keygen -lf`) en la primera conexión, y si la clave **cambia** muestra un aviso de posible ataque *man-in-the-middle* sin botón de aceptar con un toque.
+- **Telnet seguro dentro de lo posible**: aviso claro de que viaja sin cifrar, confirmación para hosts fuera de la red local y usuario/contraseña escritos **solo** cuando el servidor muestra `login:` / `Password:`.
+- **Colores reales**: PTY `xterm-256color` con soporte de 16, 256 colores y *truecolor*.
+- **Escritura sin espera**: cada tecla se envía al instante (`TCP_NODELAY`, *flush* por pulsación y teclado en modo carácter a carácter). En la prueba automática, el comando escrito llegó al servidor en ~250 ms, contando adb.
+- **Barra de accesos directos**: botones de un toque sobre las teclas extra (`tmux`, `htop`, `cd OpenManager`, `git status`…) definidos por perfil.
+- Reconexión rápida desde la cápsula de sesión (`SSH ▾` / `TELNET ▾`), sesión activa en segundo plano y redimensionado de ventana remoto.
+- Verificado en CI contra servidores **OpenSSH** y **Telnet** reales: login, huella, reconexión sin volver a preguntar, bloqueo de clave cambiada, accesos directos, escritura y auto-login de Telnet.
+
+### ⚡ Modo de Alto Rendimiento: Ultra RAM
+- Con el modo activado, ninguna pantalla supera **20 MB** de memoria propia de la app (Java + nativa): explorador ~19 MB, ajustes ~17 MB, editor ~20 MB, apps instaladas ~12 MB, terminal ~14 MB.
+- Arranque en frío del explorador ~2 veces más rápido (~0,9 s frente a ~1,8 s).
+- Las filas de archivos usan vistas de icono ligeras, BouncyCastle se carga solo al usar SFTP/SSH/BKS, las listas de charsets e idiomas se construyen solo al abrirlas, los logos del panel Root/Shizuku se decodifican al tamaño visible y el explorador oculto libera sus filas al quedar tapado.
+- Con el modo **apagado**, la app se comporta y se ve exactamente igual que antes.
+
+## Incluido también en la serie 2.0
 
 ### 📦 Instalador, Firmado y Verificación Nativa para `.apks`, `.xapk` y `.apkm`
 - **Instalación Directa sin Root (`PackageInstaller.Session`) y por Root / Shizuku (`pm install-create`)**:
