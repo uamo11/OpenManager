@@ -27,3 +27,13 @@ Este archivo documenta todas las decisiones arquitecturales, técnicas y de dise
 ## 6. Arquitectura del Editor de Código de Alto Rendimiento
 - **Decisión**: Reemplazar el antiguo motor de expresiones regulares re-compiladas por `FastSyntaxScanner`, un tokenizador lineal $O(N)$ con pre-resaltado en segundo plano (`Dispatchers.Default`), `CodeEditText` con renderizado de búsqueda y resaltado de línea activa en Canvas, y `LineNumberView` fijado al lateral para números de línea sincronizados.
 - **Motivo**: Resolver de raíz los bloqueos del hilo principal de UI al cargar archivos de código o al teclear en tiempo real, brindando soporte fluido de 60fps, emparejamiento de llaves/paréntesis, auto-indentación inteligente y navegación rápida.
+
+## 7. Modo Ultra RAM: métrica honesta y medición reproducible
+- **Decisión**: La meta "ninguna pantalla por encima de 20 MB" se mide como **memoria activa de la app** = `Dalvik Heap Alloc` + `Native Heap Alloc` − buffers del pipe GL del emulador (`libOpenglSystemCommon`, ~9 MB constantes que no existen en un teléfono real), mediana de 3 lecturas de `dumpsys meminfo` por pantalla. El PSS total (65–85 MB) no puede bajar de 20 MB en ninguna app Android: ~30 MB son código DEX mapeado y el framework; el gestor de archivos del sistema (DocumentsUI) mide ~14 MB con esta métrica en el mismo emulador.
+- **Herramientas**: `.github/workflows/perf-probe.yml` (ramas `perf/**`) ejecuta `tools/perf-probe.sh`: tabla por pantalla con modo ON/OFF, tiempo de arranque, hilos, volcado nativo con malloc debug atribuido por librería (`tools/native_heap_summary.py`) y volcados hprof con histograma, Bitmaps y referencias (`tools/hprof_summary.py`).
+- **Optimizaciones derivadas de los volcados** (visualmente idénticas):
+  - Filas de la lista con `LiteDisabledAlphaImageView` (sin `ShapeableImageView`): −120 `MaterialShapeDrawable`, −~960 `Paint` en el explorador.
+  - BouncyCastle se registra bajo demanda en modo ON (SFTP, claves SSH, BKS); en modo OFF sigue registrándose al arrancar.
+  - `CharsetPreference`, `LocalePreference` y el submenú de codificación del editor construyen sus listas solo al abrirse (ICU dejaba ~2,6 MB nativos).
+  - Logos PNG de 512–1024 px del panel Root/Shizuku decodificados al tamaño de la vista (`SampledImageResources`).
+  - Modo ON: el explorador oculto libera sus filas (`onStop`) y las reconstruye conservando el scroll; tras abrir, cerrar o cubrir una pantalla se hace GC, `trimMemory(UI_HIDDEN)` del renderer y `M_PURGE`.
