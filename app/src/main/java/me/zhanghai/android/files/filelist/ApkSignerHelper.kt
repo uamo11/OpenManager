@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.filelist
 
+import me.zhanghai.android.files.provider.sftp.client.SecurityProviderHelper
 import android.app.Activity
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -122,7 +123,7 @@ object ApkSignerHelper {
             try {
                 val ks = try {
                     if (ksType == "BKS") {
-                        try { KeyStore.getInstance("BKS", "BC") } catch (_: Throwable) { KeyStore.getInstance("BKS") }
+                        try { run { SecurityProviderHelper.ensureInitialized(); KeyStore.getInstance("BKS", "BC") } } catch (_: Throwable) { KeyStore.getInstance("BKS") }
                     } else {
                         KeyStore.getInstance(ksType)
                     }

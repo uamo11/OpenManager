@@ -54,10 +54,6 @@ object SftpFileSystemProvider : FileSystemProvider(), PathObservableProvider, Se
 
     private val lock = Any()
 
-    init {
-        SecurityProviderHelper.init()
-    }
-
     override fun getScheme(): String = SCHEME
 
     override fun newFileSystem(uri: URI, env: Map<String, *>): FileSystem {
@@ -75,6 +71,7 @@ object SftpFileSystemProvider : FileSystemProvider(), PathObservableProvider, Se
         synchronized(lock) { fileSystems[authority] ?: newFileSystemLocked(authority) }
 
     private fun newFileSystemLocked(authority: Authority): SftpFileSystem {
+        SecurityProviderHelper.ensureInitialized()
         val fileSystem = SftpFileSystem(this, authority)
         fileSystems[authority] = fileSystem
         return fileSystem

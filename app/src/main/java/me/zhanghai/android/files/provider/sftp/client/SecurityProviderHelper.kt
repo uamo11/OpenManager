@@ -13,10 +13,31 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider
 // @see net.schmizz.sshj.DefaultConfig.DefaultConfig
 // SSHJ requires BouncyCastle to be registered before enabling most functionality by default, so we
 // better keep BouncyCastle registered.
+//
+// Registering BouncyCastle loads ~1,500 OIDs, all algorithm SPIs (including post-quantum ones) and
+// their classes, so callers that only *may* need it (SFTP, BKS keystores) use ensureInitialized()
+// and the app registers it eagerly only when Ultra RAM mode is off.
 object SecurityProviderHelper {
+    @Volatile
+    private var initialized = false
+
     fun init() {
-        val bouncyCastleProvider = BouncyCastleProvider()
-        Security.removeProvider(bouncyCastleProvider.name)
-        Security.addProvider(bouncyCastleProvider)
+        synchronized(this) {
+            val bouncyCastleProvider = BouncyCastleProvider()
+            Security.removeProvider(bouncyCastleProvider.name)
+            Security.addProvider(bouncyCastleProvider)
+            initialized = true
+        }
+    }
+
+    fun ensureInitialized() {
+        if (initialized) {
+            return
+        }
+        synchronized(this) {
+            if (!initialized) {
+                init()
+            }
+        }
     }
 }

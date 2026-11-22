@@ -26,6 +26,9 @@ import java.util.Locale
 class LocalePreference : ListPreference {
     lateinit var setApplicationLocalesPre33: (LocaleListCompat) -> Unit
 
+    // Declared before init {} so its initializer doesn't overwrite the value set there.
+    private var pendingEntries: (() -> Array<CharSequence>)? = null
+
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet?) : super(context, attrs)
@@ -57,15 +60,35 @@ class LocalePreference : ListPreference {
             setDefaultValue(VALUE_SYSTEM_DEFAULT)
             val supportedLocales = LocaleConfigCompat(context).supportedLocales!!.toList()
                 .sortedBy { it.toLanguageTag() }
-            entries = supportedLocales.mapTo(mutableListOf(systemDefaultEntry)) {
-                it.sentenceCasedLocalizedDisplayName
-            }.toTypedArray<CharSequence>()
             entryValues =
                 supportedLocales
                     .mapTo(mutableListOf(VALUE_SYSTEM_DEFAULT)) { it.toLanguageTag() }
                     .toTypedArray<CharSequence>()
-            summaryProvider = SimpleSummaryProvider.getInstance()
+            // Localized display names make ICU load the locale data of every supported language
+            // (several MB of native heap), so they are only built when the list is actually
+            // needed (dialog or settings search); the summary only resolves the current locale.
+            pendingEntries = {
+                supportedLocales.mapTo(mutableListOf(systemDefaultEntry)) {
+                    it.sentenceCasedLocalizedDisplayName
+                }.toTypedArray<CharSequence>()
+            }
+            summaryProvider = SummaryProvider<LocalePreference> { preference ->
+                val value = preference.value
+                if (value.isNullOrEmpty() || value == VALUE_SYSTEM_DEFAULT) {
+                    systemDefaultEntry
+                } else {
+                    Locale.forLanguageTag(value).sentenceCasedLocalizedDisplayName
+                }
+            }
         }
+    }
+
+    override fun getEntries(): Array<CharSequence>? {
+        pendingEntries?.let {
+            pendingEntries = null
+            entries = it()
+        }
+        return super.getEntries()
     }
 
     private val Locale.sentenceCasedLocalizedDisplayName: String

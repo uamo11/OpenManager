@@ -86,8 +86,10 @@ def main():
             lib = short(m[2]) if m else "[unknown]"
             if lib in ALLOCATOR_LIBS and not chain:
                 continue
+            if chain and chain[-1] == lib:
+                continue
             chain.append(lib)
-            if len(chain) >= 3:
+            if len(chain) >= 4:
                 break
         if chain:
             owner = chain[0]
@@ -100,7 +102,7 @@ def main():
     print("\n--- By owning library ---")
     for lib, size in by_lib.most_common(top_n):
         print(f"{size / mib:8.2f} MiB  {100.0 * size / max(total, 1):5.1f}%  {lib}")
-    print("\n--- By call chain (3 libs deep) ---")
+    print("\n--- By call chain (distinct libs, 4 deep) ---")
     for site, size in by_site.most_common(top_n):
         print(f"{size / mib:8.2f} MiB  {site}")
 

@@ -25,7 +25,7 @@
         android:duplicateParentState="true"
         android:padding="2dp">
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:id="@+id/iconImage"
             android:layout_width="32dp"
             android:layout_height="32dp"
@@ -33,7 +33,7 @@
             android:duplicateParentState="true"
             android:scaleType="fitCenter" />
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:id="@+id/thumbnailImage"
             android:layout_width="32dp"
             android:layout_height="32dp"
@@ -43,7 +43,7 @@
             android:clipToOutline="true"
             android:scaleType="centerCrop" />
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:id="@+id/appIconBadgeImage"
             android:layout_width="@dimen/badge_size_plus_1dp"
             android:layout_height="@dimen/badge_size_plus_1dp"
@@ -54,7 +54,7 @@
             android:layout_marginBottom="-0.5dp"
             android:duplicateParentState="true" />
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:id="@+id/badgeImage"
             android:layout_width="@dimen/badge_size"
             android:layout_height="@dimen/badge_size"
@@ -62,7 +62,7 @@
             android:background="@drawable/badge_background_18dp"
             android:duplicateParentState="true" />
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:layout_width="@dimen/badge_size"
             android:layout_height="@dimen/badge_size"
             android:layout_gravity="end|bottom"

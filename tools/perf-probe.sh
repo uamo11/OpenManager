@@ -115,15 +115,25 @@ done
 adb shell setprop wrap.$PKG "''"
 adb shell am force-stop $PKG
 
-log "Java heap dump + smaps (Performance Mode ON, Files explorer)"
-start_cmp $PKG/me.zhanghai.android.files.filelist.FileListActivity
-sleep 6
-pid=$(adb shell pidof $PKG | tr -d '\r')
-adb shell am dumpheap "$pid" /data/local/tmp/files.hprof
-sleep 6
-adb pull /data/local/tmp/files.hprof "$OUT/files.hprof" >/dev/null 2>&1 || true
-adb shell showmap "$pid" > "$OUT/showmap_files.txt" 2>&1 || true
-adb shell cat /proc/$pid/smaps_rollup > "$OUT/smaps_rollup_files.txt" 2>&1 || true
+log "Java heap dumps + hwui caches (Performance Mode ON)"
+for target in filelist.FileListActivity settings.SettingsActivity; do
+    name=${target%%.*}
+    start_cmp $PKG/me.zhanghai.android.files.$target
+    sleep 6
+    pid=$(adb shell pidof $PKG | tr -d '\r')
+    adb shell dumpsys gfxinfo $PKG > "$OUT/gfxinfo_$name.txt" 2>&1 || true
+    adb shell am dumpheap "$pid" /data/local/tmp/$name.hprof
+    sleep 6
+    adb pull /data/local/tmp/$name.hprof "$OUT/$name.hprof" >/dev/null 2>&1 || true
+    {
+        echo "=== Java heap: $name ==="
+        python3 -I tools/hprof_summary.py "$OUT/$name.hprof" 25 android.graphics.Paint android.graphics.Bitmap 2>&1
+        echo
+        echo "=== hwui caches: $name ==="
+        sed -n '/Caches:/,/Pipeline/p' "$OUT/gfxinfo_$name.txt"
+        echo
+    } >> "$REPORT"
+done
 
 set_perf off
 adb logcat -d > "$OUT/logcat.txt"
@@ -131,6 +141,16 @@ if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
     log "FATAL EXCEPTION found in logcat"
     grep -A 20 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -80 >> "$REPORT"
 fi
+
+# Device-equivalent "app memory": Java + native allocations minus the emulator-only GL pipe
+# buffers (libOpenglSystemCommon via gralloc.ranchu / libEGL_emulation), which do not exist on
+# real hardware and are identical for every UI process on this emulator.
+EMU_GL_KB=$(python3 -I tools/native_heap_summary.py "$OUT/native_heap_filelist.txt" 50 2>/dev/null \
+    | awk '/^--- By owning/{f=1} f && /libOpenglSystemCommon.so/ {printf "%d", $1 * 1024; exit}')
+EMU_GL_KB=${EMU_GL_KB:-0}
+log "Emulator GL pipe (excluded from device-equivalent): ${EMU_GL_KB} KB"
+awk -F, -v emu="$EMU_GL_KB" 'NR==1 {print $0",device_equiv_kb,budget_20mb"; next}
+    {d=$12-emu; printf "%s,%d,%s\n", $0, d, (d <= 20480 ? "OK" : "OVER")}' "$CSV" > "$CSV.tmp" && mv "$CSV.tmp" "$CSV"
 
 echo
 column -s, -t < "$CSV" | tee -a "$REPORT"

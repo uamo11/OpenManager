@@ -24,7 +24,7 @@
         android:duplicateParentState="true"
         app:aspectRatio="1.78">
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:id="@+id/directoryThumbnailImage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -32,7 +32,7 @@
             android:scaleType="fitCenter"
             android:src="@drawable/file_directory_thumbnail" />
 
-        <me.zhanghai.android.files.ui.DisabledAlphaImageView
+        <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
             android:id="@+id/thumbnailIconImage"
             android:layout_width="@dimen/large_icon_size"
             android:layout_height="@dimen/large_icon_size"
@@ -76,7 +76,7 @@
             android:duplicateParentState="true"
             android:padding="@dimen/touch_target_large_icon_padding">
 
-            <me.zhanghai.android.files.ui.DisabledAlphaImageView
+            <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
                 android:id="@+id/iconImage"
                 android:layout_width="@dimen/icon_size"
                 android:layout_height="@dimen/icon_size"
@@ -84,7 +84,7 @@
                 android:duplicateParentState="true"
                 android:scaleType="centerCrop" />
 
-            <me.zhanghai.android.files.ui.DisabledAlphaImageView
+            <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
                 android:id="@+id/appIconBadgeImage"
                 android:layout_width="@dimen/badge_size_plus_1dp"
                 android:layout_height="@dimen/badge_size_plus_1dp"
@@ -95,7 +95,7 @@
                 android:layout_marginBottom="-0.5dp"
                 android:duplicateParentState="true" />
 
-            <me.zhanghai.android.files.ui.DisabledAlphaImageView
+            <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
                 android:id="@+id/badgeImage"
                 android:layout_width="@dimen/badge_size"
                 android:layout_height="@dimen/badge_size"
@@ -103,7 +103,7 @@
                 android:background="@drawable/badge_background_18dp"
                 android:duplicateParentState="true" />
 
-            <me.zhanghai.android.files.ui.DisabledAlphaImageView
+            <me.zhanghai.android.files.ui.LiteDisabledAlphaImageView
                 android:layout_width="@dimen/badge_size"
                 android:layout_height="@dimen/badge_size"
                 android:layout_gravity="end|bottom"

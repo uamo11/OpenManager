@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.filelist
 
+import me.zhanghai.android.files.provider.sftp.client.SecurityProviderHelper
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -221,7 +222,7 @@ object KeystoreGeneratorHelper {
         storePass: String
     ) {
         val ks = try {
-            KeyStore.getInstance("BKS", "BC")
+            run { SecurityProviderHelper.ensureInitialized(); KeyStore.getInstance("BKS", "BC") }
         } catch (_: Throwable) {
             KeyStore.getInstance("BKS")
         }
@@ -260,7 +261,7 @@ object KeystoreGeneratorHelper {
             try {
                 val ks = try {
                     if (type == "BKS") {
-                        try { KeyStore.getInstance("BKS", "BC") } catch (_: Throwable) { KeyStore.getInstance("BKS") }
+                        try { run { SecurityProviderHelper.ensureInitialized(); KeyStore.getInstance("BKS", "BC") } } catch (_: Throwable) { KeyStore.getInstance("BKS") }
                     } else {
                         KeyStore.getInstance(type)
                     }

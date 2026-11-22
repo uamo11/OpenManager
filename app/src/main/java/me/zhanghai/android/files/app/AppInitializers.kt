@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import me.zhanghai.android.files.provider.ftp.client.Client as FtpClient
 import me.zhanghai.android.files.provider.sftp.client.Client as SftpClient
 import me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher
+import me.zhanghai.android.files.provider.sftp.client.SecurityProviderHelper
 import me.zhanghai.android.files.provider.smb.client.Client as SmbClient
 import me.zhanghai.android.files.provider.webdav.client.Client as WebDavClient
 
@@ -119,6 +120,8 @@ private fun initializePerformanceMode() {
     val enabled = Settings.VISUAL_PERFORMANCE_MODE.valueCompat
     PerformanceModeManager.initialize(enabled)
     if (!enabled) {
+        // Ultra RAM mode registers BouncyCastle lazily on first SFTP / BKS use instead.
+        SecurityProviderHelper.init()
         // SingletonContext.init() calls NameServiceClientImpl.initCache() which connects to network.
         AsyncTask.THREAD_POOL_EXECUTOR.execute {
             ensureSmbSingletonContextInitialized()

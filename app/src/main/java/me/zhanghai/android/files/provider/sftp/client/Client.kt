@@ -237,6 +237,7 @@ object Client {
             }
             val authentication = authenticator.getAuthentication(authority)
                 ?: throw ClientException("No authentication found for $authority")
+            SecurityProviderHelper.ensureInitialized()
             val sshClient = SSHClient().apply { addHostKeyVerifier(PromiscuousVerifier()) }
             try {
                 sshClient.connect(authority.host, authority.port)

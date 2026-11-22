@@ -56,6 +56,7 @@ data class PublicKeyAuthentication(
             privateKey: String,
             privateKeyPassword: String?
         ): KeyProvider {
+            SecurityProviderHelper.ensureInitialized()
             val format = KeyProviderUtil.detectKeyFileFormat(privateKey, false)
             val keyProvider = Factory.Named.Util.create(KEY_PROVIDER_FACTORIES, format.toString())
                 ?: throw IOException("No key provider factory found for $format")
