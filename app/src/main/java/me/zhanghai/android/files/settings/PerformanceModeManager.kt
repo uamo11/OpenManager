@@ -10,6 +10,8 @@ import android.content.Context
 import android.os.Debug
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
 import me.zhanghai.android.files.appmanager.NativeAppIconLoader
 import me.zhanghai.android.files.coil.clearCoilMemory
@@ -198,6 +200,13 @@ object PerformanceModeManager {
                     // The renderer frees its caches asynchronously on the RenderThread.
                     Thread.sleep(HIDDEN_UI_RENDERER_WAIT_MS)
                     purgeNativeHeapSafe()
+                    if (BuildConfig.DEBUG) {
+                        val heap = readLiveHeapSnapshot()
+                        Log.i(
+                            LOG_TAG, "UI release done: java=${heap.formatJavaCompact()} " +
+                                "java+native=${heap.formatCompact()}"
+                        )
+                    }
                 } catch (_: Throwable) {
                 } finally {
                     hiddenUiReleasePending.set(false)
@@ -223,6 +232,7 @@ object PerformanceModeManager {
 
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
+    private const val LOG_TAG = "UltraRam"
     private const val HIDDEN_UI_RELEASE_DELAY_MS = 1500L
     private const val HIDDEN_UI_CLEANER_WAIT_MS = 300L
     private const val HIDDEN_UI_RENDERER_WAIT_MS = 400L

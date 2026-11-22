@@ -32,8 +32,9 @@ adb shell "mkdir -p /storage/emulated/0/OM_Probe && cd /storage/emulated/0/OM_Pr
 measure() {
     local mode="$1" section="$2" pkg="${3:-$PKG}"
     sleep 6
-    local mi
-    mi=$(adb shell dumpsys meminfo "$pkg")
+    # Median of 3 samples (by app_alloc): single meminfo readings on the emulator vary by
+    # +-1.5 MB depending on when RenderThread/Cleaner work lands.
+    local samples="" mi="" i
     local spid threads
     spid=$(adb shell pidof "$pkg" | tr -d '\r' | awk '{print $1}')
     threads=$(adb shell ls /proc/$spid/task 2>/dev/null | wc -l | tr -d ' ')
@@ -41,12 +42,15 @@ measure() {
         adb shell "for t in /proc/$spid/task/*; do cat \$t/comm; done" 2>/dev/null | sed 's/[0-9]*$//' | sort | uniq -c | sort -rn \
             > "$OUT/threads_${mode}_$(echo "$section" | tr -c 'A-Za-z0-9' '_').txt" || true
     fi
-    {
-        echo "=== [$mode] $section ==="
-        echo "$mi" | grep -E "Native Heap|Dalvik Heap|^ *TOTAL|Java Heap:|Native Heap:|Code:|Graphics:|Private Other:|System:|Activities:|Views:"
-        echo
-    } >> "$REPORT"
-    echo "$mi" | awk -v mode="$mode" -v sec="$section" -v start="${LAST_START_MS:--}" -v threads="${threads:-0}" '
+    for i in 1 2 3; do
+        [ "$i" -gt 1 ] && sleep 3
+        mi=$(adb shell dumpsys meminfo "$pkg")
+        {
+            echo "=== [$mode] $section (sample $i) ==="
+            echo "$mi" | grep -E "Native Heap|Dalvik Heap|^ *TOTAL|Java Heap:|Native Heap:|Code:|Graphics:|Private Other:|System:|Activities:|Views:"
+            echo
+        } >> "$REPORT"
+        samples="$samples$(echo "$mi" | awk -v mode="$mode" -v sec="$section" -v start="${LAST_START_MS:--}" -v threads="${threads:-0}" '
         /^ *Native Heap / && !nh { nh=1; nalloc=$(NF-1) }
         /^ *Dalvik Heap / && !dh { dh=1; dalloc=$(NF-1) }
         /^ *TOTAL / && !tt { tt=1; total=$2 }
@@ -59,7 +63,10 @@ measure() {
         /Activities:/ { acts=$NF }
         /Views:/ { views=$2 }
         END { printf "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n", mode, sec, start, threads, total, java, native, code, gfx, other, sys, dalloc, nalloc, dalloc+nalloc, acts, views }
-    ' >> "$CSV"
+    ')
+"
+    done
+    printf "%s" "$samples" | grep -v '^$' | sort -t, -k14,14n | sed -n 2p >> "$CSV"
 }
 
 LAST_START_MS=""
@@ -182,6 +189,8 @@ done
 
 set_perf off
 adb logcat -d > "$OUT/logcat.txt"
+log "Ultra RAM release cycles logged: $(grep -c 'UltraRam.*UI release done' "$OUT/logcat.txt")"
+grep 'UltraRam' "$OUT/logcat.txt" | tail -n 20 >> "$REPORT"
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
     log "FATAL EXCEPTION found in logcat"
     grep -A 20 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -80 >> "$REPORT"
