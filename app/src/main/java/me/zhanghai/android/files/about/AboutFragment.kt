@@ -45,6 +45,7 @@ class AboutFragment : Fragment() {
             me.zhanghai.android.files.update.UpdateChecker.checkUpdate(requireActivity(), isManual = true)
         }
         binding.gitHubLayout.setOnClickListener { startActivitySafe(GITHUB_URI.createViewIntent()) }
+        binding.telegramLayout.setOnClickListener { startActivitySafe(TELEGRAM_URI.createViewIntent()) }
         binding.licensesLayout.setOnClickListener { LicensesDialogFragment.show(this) }
         binding.privacyPolicyLayout.setOnClickListener {
             startActivitySafe(PRIVACY_POLICY_URI.createViewIntent())
@@ -85,6 +86,7 @@ class AboutFragment : Fragment() {
 
     companion object {
         private val GITHUB_URI = Uri.parse("https://github.com/uamo11/OpenManager")
+        private val TELEGRAM_URI = Uri.parse("https://t.me/yOpenManager")
         private val PRIVACY_POLICY_URI =
             Uri.parse("https://github.com/uamo11/OpenManager/blob/main/PRIVACY.md")
         private val AUTHOR_WEB_URI = Uri.parse("https://uam.lol")

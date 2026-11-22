@@ -10,6 +10,7 @@
   <a href="https://uamo11.github.io/OpenManager/"><img src="https://img.shields.io/badge/官方网站-OpenManager-blue.svg?logo=googlechrome&logoColor=white" alt="官方网站" /></a>
   <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="CI 状态" /></a>
   <a href="https://github.com/uamo11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=release" alt="最新版本" /></a>
+  <a href="https://t.me/yOpenManager"><img src="https://img.shields.io/badge/Telegram-%E9%A2%91%E9%81%93-26A5E4.svg?logo=telegram&logoColor=white" alt="Telegram 频道" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="GPLv3 许可证" /></a>
   <img src="https://img.shields.io/badge/Android-5.0%2B%20(API%2021%2B)-brightgreen.svg?logo=android" alt="Android 5.0+" />
   <img src="https://img.shields.io/badge/Kotlin-2.0-purple.svg?logo=kotlin" alt="Kotlin" />
@@ -184,6 +185,8 @@ cd OpenManager
 所有正式版本的发布日志、变更记录均同步托管在 GitHub Releases 官方页面：
 
 👉 **[前往 GitHub Releases 查阅各版本](https://github.com/uamo11/OpenManager/releases)**
+
+👉 **[加入 Telegram 频道](https://t.me/yOpenManager)** 获取最新动态、测试版本与支持。
 
 ---
 

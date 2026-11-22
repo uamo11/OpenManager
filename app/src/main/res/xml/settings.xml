@@ -638,6 +638,16 @@
             app:iconSpaceReserved="true" />
 
         <Preference
+            android:key="key_telegram_channel"
+            android:title="@string/about_telegram_title"
+            android:summary="@string/about_telegram_summary"
+            app:iconSpaceReserved="true">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://t.me/yOpenManager" />
+        </Preference>
+
+        <Preference
             android:key="@string/pref_key_acknowledgement"
             android:title="@string/settings_acknowledgement_title"
             android:summary="@string/settings_acknowledgement_summary"

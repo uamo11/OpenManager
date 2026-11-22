@@ -10,6 +10,7 @@
   <a href="https://uamo11.github.io/OpenManager/"><img src="https://img.shields.io/badge/Sitio%20Web-OpenManager-blue.svg?logo=googlechrome&logoColor=white" alt="Sitio Web Oficial" /></a>
   <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="Estado del CI" /></a>
   <a href="https://github.com/uamo11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=versión" alt="Última versión" /></a>
+  <a href="https://t.me/yOpenManager"><img src="https://img.shields.io/badge/Telegram-Canal-26A5E4.svg?logo=telegram&logoColor=white" alt="Canal de Telegram" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-GPLv3-blue.svg" alt="Licencia GPLv3" /></a>
   <img src="https://img.shields.io/badge/Android-5.0%2B%20(API%2021%2B)-brightgreen.svg?logo=android" alt="Android 5.0+" />
   <img src="https://img.shields.io/badge/Kotlin-2.0-purple.svg?logo=kotlin" alt="Kotlin" />
@@ -192,6 +193,8 @@ Para generar versiones de **Release firmadas**, copia `signing.properties.exampl
 Las notas de cada versión, el registro de cambios detallado y las compilaciones se publican de forma oficial en la sección de releases de GitHub:
 
 👉 **[Consultar versiones en GitHub Releases](https://github.com/uamo11/OpenManager/releases)**
+
+👉 **[Únete al canal de Telegram](https://t.me/yOpenManager)** para novedades, versiones de prueba y soporte.
 
 ---
 

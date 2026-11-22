@@ -10,6 +10,7 @@
   <a href="https://uamo11.github.io/OpenManager/"><img src="https://img.shields.io/badge/Website-OpenManager-blue.svg?logo=googlechrome&logoColor=white" alt="Official Website" /></a>
   <a href="https://github.com/uamo11/OpenManager/actions/workflows/android.yml"><img src="https://github.com/uamo11/OpenManager/actions/workflows/android.yml/badge.svg" alt="CI Status" /></a>
   <a href="https://github.com/uamo11/OpenManager/releases"><img src="https://img.shields.io/github/v/release/uamo11/OpenManager?color=green&label=version" alt="Latest Release" /></a>
+  <a href="https://t.me/yOpenManager"><img src="https://img.shields.io/badge/Telegram-Channel-26A5E4.svg?logo=telegram&logoColor=white" alt="Telegram channel" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg" alt="GPLv3 License" /></a>
   <img src="https://img.shields.io/badge/Android-6.0%2B%20(API%2023%2B)-brightgreen.svg?logo=android" alt="Android 6.0+" />
   <img src="https://img.shields.io/badge/Kotlin-2.0-purple.svg?logo=kotlin" alt="Kotlin" />
@@ -192,6 +193,8 @@ To build signed **Release** versions, copy `signing.properties.example` to `sign
 Release notes, detailed changelogs, and official builds are published on GitHub Releases:
 
 👉 **[View Releases on GitHub](https://github.com/uamo11/OpenManager/releases)**
+
+👉 **[Join the Telegram channel](https://t.me/yOpenManager)** for news, test builds and support.
 
 ---
 

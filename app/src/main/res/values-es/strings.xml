@@ -2969,4 +2969,5 @@
         <item quantity="one">PID: %1$d · %2$d proceso</item>
         <item quantity="other">PID: %1$d · %2$d procesos</item>
     </plurals>
+    <string name="about_telegram_title">Canal de Telegram</string>
 </resources>

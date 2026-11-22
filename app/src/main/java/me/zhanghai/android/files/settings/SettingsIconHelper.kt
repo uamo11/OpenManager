@@ -281,6 +281,7 @@ object SettingsIconHelper {
             "key_view_error_logs" -> IconSpec(R.drawable.ic_database_table_24dp, COLOR_ORANGE)
             "key_auto_check_updates" -> IconSpec(R.drawable.ic_perf_bolt_24dp, COLOR_EMERALD)
             "key_check_for_update" -> IconSpec(R.drawable.download_icon_white_24dp, COLOR_BLUE)
+            "key_telegram_channel" -> IconSpec(R.drawable.ic_telegram_24dp, COLOR_CYAN)
             "key_acknowledgement" -> IconSpec(R.drawable.information_icon_white_24dp, COLOR_TEAL)
             "key_about_settings" -> IconSpec(R.drawable.about_icon_white_24dp, COLOR_CYAN)
             "key_user_agreement" -> IconSpec(R.drawable.document_icon_white_24dp, COLOR_SLATE)
