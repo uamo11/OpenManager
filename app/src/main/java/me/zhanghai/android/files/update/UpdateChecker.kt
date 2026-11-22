@@ -1373,6 +1373,31 @@ object UpdateChecker {
         }
     }
 
+    private const val APK_MIME = "application/vnd.android.package-archive"
+
+    /** The device's package installer (never OpenManager), or null to let Android choose. */
+    fun systemInstallerPackage(context: Context, apkUri: Uri): String? {
+        val pm = context.packageManager
+        @Suppress("DEPRECATION")
+        val probes = listOf(
+            Intent(Intent.ACTION_INSTALL_PACKAGE).setDataAndType(apkUri, APK_MIME),
+            Intent(Intent.ACTION_VIEW).setDataAndType(apkUri, APK_MIME)
+        )
+        for (probe in probes) {
+            val candidates = runCatching { pm.queryIntentActivities(probe, 0) }.getOrNull().orEmpty()
+                .map { it.activityInfo.packageName }
+                .filter { it != context.packageName }
+            pickInstaller(candidates)?.let { return it }
+        }
+        return null
+    }
+
+    /** Prefers the platform installer when several apps claim APKs. */
+    fun pickInstaller(candidates: List<String>): String? =
+        candidates.firstOrNull { it == "com.google.android.packageinstaller" || it == "com.android.packageinstaller" }
+            ?: candidates.firstOrNull { it.endsWith(".packageinstaller") }
+            ?: candidates.firstOrNull()
+
     private fun launchApkInstallation(activity: FragmentActivity, apkFile: File) {
         activity.lifecycleScope.launch {
             if (Settings.USE_ROOT_INSTALL.valueCompat && ApkInstallHelper.isRootAvailable()) {
@@ -1404,8 +1429,11 @@ object UpdateChecker {
                 }
 
                 val intent = Intent(Intent.ACTION_VIEW).apply {
-                    setDataAndType(apkUri, "application/vnd.android.package-archive")
+                    setDataAndType(apkUri, APK_MIME)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    // OpenManager itself opens APKs too: without this Android asks "Open with" and
+                    // picking OpenManager would show the APK instead of installing the update.
+                    systemInstallerPackage(activity, apkUri)?.let { setPackage(it) }
                 }
                 activity.startActivity(intent)
             } catch (e: Exception) {

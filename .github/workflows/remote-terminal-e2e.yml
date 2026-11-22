@@ -134,9 +134,21 @@ jobs:
   update-e2e:
     name: Self-update from an older release
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'gradle'
+    - name: Build this branch as an older version
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug -PomVersionCode=100 -PomVersionName=2.0.0 --stacktrace
+        mkdir -p apk-to-test && cp app/build/outputs/apk/debug/app-debug.apk apk-to-test/old.apk
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

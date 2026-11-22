@@ -308,4 +308,14 @@ class UpdateCheckerLogicTest {
         assertEquals("1m 5s", UpdateChecker.formatEtaSeconds(65_000L, 1_000L))
         assertEquals("1h 1m", UpdateChecker.formatEtaSeconds(3_660_000L, 1_000L))
     }
+
+    @Test
+    fun updatesGoToThePlatformInstallerNotToOpenManager() {
+        assertEquals(
+            "com.google.android.packageinstaller",
+            UpdateChecker.pickInstaller(listOf("com.other.apkviewer", "com.google.android.packageinstaller"))
+        )
+        assertEquals("com.miui.packageinstaller", UpdateChecker.pickInstaller(listOf("x.y", "com.miui.packageinstaller")))
+        assertEquals(null, UpdateChecker.pickInstaller(emptyList()))
+    }
 }

@@ -36,10 +36,16 @@ installed_version() { adb shell dumpsys package $PKG | grep -m1 versionName | se
 adb wait-for-device
 while [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do sleep 3; done
 
-OLD=v2.0.4
 LATEST=$(curl -fsSL https://api.github.com/repos/uamo11/OpenManager/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
+if [ -f apk-to-test/old.apk ]; then
+    # This branch built as an "older" version: exercises the update code being shipped.
+    OLD="this branch (built as 2.0.0)"
+    cp apk-to-test/old.apk "$OUT/old.apk"
+else
+    OLD=v2.0.4
+    curl -fsSL -o "$OUT/old.apk" "https://github.com/uamo11/OpenManager/releases/download/$OLD/OpenManager-$OLD-release.apk"
+fi
 log "Old: $OLD  Latest on GitHub: $LATEST"
-curl -fsSL -o "$OUT/old.apk" "https://github.com/uamo11/OpenManager/releases/download/$OLD/OpenManager-$OLD-release.apk"
 adb install -r "$OUT/old.apk" >/dev/null
 log "Installed: $(installed_version)"
 adb shell pm grant $PKG android.permission.READ_EXTERNAL_STORAGE 2>/dev/null || true
@@ -57,7 +63,14 @@ else
     shot 01_no_update_dialog
     fail "no update dialog appeared"
 fi
-if pos=$(wait_text 180 "Install" "INSTALL" "Update" "UPDATE" "Instalar" "Actualizar"); then
+if pos=$(wait_text 180 "Install" "INSTALL" "Update" "UPDATE" "Instalar" "Actualizar" "Open with" "Abrir con"); then
+    if find_text "Open with" "Abrir con" >/dev/null; then
+        shot 02_chooser_instead_of_installer
+        fail "Android asked which app opens the APK instead of the installer"
+        pos=$(find_text "Package installer" "Instalador de paquetes") && adb shell input tap $pos && sleep 1
+        pos=$(find_text "Just once" "JUST ONCE" "Solo una vez") && adb shell input tap $pos && sleep 2
+        pos=$(wait_text 20 "Install" "INSTALL" "Instalar") || true
+    fi
     shot 02_system_installer
     pass "download finished and Android's installer opened"
     adb shell input tap $pos

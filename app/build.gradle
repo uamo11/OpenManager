@@ -21,8 +21,9 @@ android {
         // Not supporting the ACCESS_LOCAL_NETWORK runtime permission yet.
         //noinspection OldTargetApi
         targetSdk 36
-        versionCode 119
-        versionName '2.0.5'
+        // -PomVersionCode / -PomVersionName let CI build an "older" app to test self-updates.
+        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 119
+        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.5'
         resValue 'string', 'app_version', versionName + ' (' + versionCode + ')'
         buildConfigField 'String', 'FILE_PROVIDIER_AUTHORITY', 'APPLICATION_ID + ".file_provider"'
         resValue 'string', 'app_provider_authority', applicationId + '.app_provider'
