@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.settings
 
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.os.Debug
 import android.os.Handler
@@ -172,9 +173,15 @@ object PerformanceModeManager {
     private val hiddenUiReleasePending = AtomicBoolean(false)
 
     /**
-     * Called when a screen drops its hidden views. Their native memory (RenderNodes, Paints, text
-     * layouts) is only freed by Cleaners after a GC, so once the next screen has finished starting
-     * we collect and then return the freed pages to the kernel.
+     * Called whenever a screen is opened, closed or covered while Ultra RAM mode is on. Once the
+     * new screen has settled it:
+     *  1. collects garbage, so Cleaners free the native RenderNodes/Paints/text layouts of views
+     *     that are gone (they only count as "allocated" until then);
+     *  2. trims the renderer's global caches (Skia glyph/path caches, unused GPU resources) the
+     *     same way Android does when the app goes to background, so caches warmed by a previous
+     *     screen don't stay resident;
+     *  3. returns the freed dirty pages to the kernel.
+     * Requests arriving while one is pending are coalesced.
      */
     fun scheduleHiddenUiRelease() {
         if (!isEnabled || !hiddenUiReleasePending.compareAndSet(false, true)) {
@@ -187,6 +194,9 @@ object PerformanceModeManager {
                     System.runFinalization()
                     // Cleaners run on the ReferenceQueueDaemon shortly after the GC.
                     Thread.sleep(HIDDEN_UI_CLEANER_WAIT_MS)
+                    mainHandler.post { trimRendererCaches() }
+                    // The renderer frees its caches asynchronously on the RenderThread.
+                    Thread.sleep(HIDDEN_UI_RENDERER_WAIT_MS)
                     purgeNativeHeapSafe()
                 } catch (_: Throwable) {
                 } finally {
@@ -196,10 +206,26 @@ object PerformanceModeManager {
         }, HIDDEN_UI_RELEASE_DELAY_MS)
     }
 
+    private fun trimRendererCaches() {
+        if (!isEnabled) {
+            return
+        }
+        try {
+            // Hidden API (checks are disabled by HiddenApi at startup); this is exactly what
+            // ActivityThread does on TRIM_MEMORY_UI_HIDDEN. It never destroys the EGL context at
+            // this level, so visible windows simply re-warm what they actually draw.
+            val globalClass = Class.forName("android.view.WindowManagerGlobal")
+            val global = globalClass.getMethod("getInstance").invoke(null)
+            globalClass.getMethod("trimMemory", Int::class.javaPrimitiveType)
+                .invoke(global, ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN)
+        } catch (_: Throwable) {}
+    }
+
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     private const val HIDDEN_UI_RELEASE_DELAY_MS = 1500L
     private const val HIDDEN_UI_CLEANER_WAIT_MS = 300L
+    private const val HIDDEN_UI_RENDERER_WAIT_MS = 400L
 
     fun purgeNativeHeapSafe() {
         try {

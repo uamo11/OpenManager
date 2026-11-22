@@ -146,7 +146,7 @@ for target in filelist.FileListActivity settings.SettingsActivity terminal.Termi
     sleep 10
     pid=$(adb shell pidof $PKG | tr -d '\r')
     if [ -n "$pid" ]; then
-        adb shell am dumpheap -n "$pid" /data/local/tmp/nh_$name.txt
+        timeout 120 adb shell am dumpheap -n "$pid" /data/local/tmp/nh_$name.txt || echo "(native dump timed out for $name)" >> "$REPORT"
         sleep 5
         adb pull /data/local/tmp/nh_$name.txt "$OUT/native_heap_$name.txt" >/dev/null 2>&1 || true
         python3 tools/native_heap_summary.py "$OUT/native_heap_$name.txt" 30 >> "$REPORT" 2>&1 || echo "(summary failed for $name)" >> "$REPORT"
@@ -167,7 +167,7 @@ for target in filelist.FileListActivity settings.SettingsActivity editor; do
     sleep 6
     pid=$(adb shell pidof $PKG | tr -d '\r')
     adb shell dumpsys gfxinfo $PKG > "$OUT/gfxinfo_$name.txt" 2>&1 || true
-    adb shell am dumpheap "$pid" /data/local/tmp/$name.hprof
+    timeout 120 adb shell am dumpheap "$pid" /data/local/tmp/$name.hprof || echo "(java dump timed out for $name)" >> "$REPORT"
     sleep 6
     adb pull /data/local/tmp/$name.hprof "$OUT/$name.hprof" >/dev/null 2>&1 || true
     {

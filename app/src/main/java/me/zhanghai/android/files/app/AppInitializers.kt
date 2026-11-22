@@ -170,12 +170,15 @@ private fun initializeTerminalBinTools() {
 }
 
 private fun initializeMemoryTrimAndWarmUp() {
-    // Ultra RAM: when a screen is closed (or fully covered), collect its views once the next
-    // screen has settled so their native RenderNodes/Paints/text layouts are freed promptly.
+    // Ultra RAM: whenever a screen opens, closes or gets covered, collect and trim once it has
+    // settled so dead views and warmed caches don't stay resident (see scheduleHiddenUiRelease).
     application.registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
         override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
         override fun onActivityStarted(activity: Activity) {}
-        override fun onActivityResumed(activity: Activity) {}
+        override fun onActivityResumed(activity: Activity) {
+            // Drops the start-up garbage of the screen that just opened.
+            PerformanceModeManager.scheduleHiddenUiRelease()
+        }
         override fun onActivityPaused(activity: Activity) {}
         override fun onActivityStopped(activity: Activity) {
             PerformanceModeManager.scheduleHiddenUiRelease()
