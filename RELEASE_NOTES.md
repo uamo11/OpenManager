@@ -1,3 +1,26 @@
+# OpenManager v2.0.2: Escritura Instantánea con Eco Predictivo, Centro de Conexiones y Nuevo Reproductor de Vídeo 4K
+
+### ⌨️ Escritura sin retardo en la terminal
+- **Escritura instantánea (activada por defecto)**: cada tecla se envía al momento, sin que el teclado (Samsung, Gboard…) retenga la palabra hasta confirmarla. También vale cuando abres `ssh` a mano desde la terminal local.
+- **Eco predictivo en SSH/Telnet (estilo mosh)**: lo que escribes aparece al instante, subrayado, mientras llega la respuesta del servidor, que luego lo confirma. Ideal para usar Claude, vim o la shell en un VPS lejano.
+  - **Seguro con contraseñas**: solo se activa después de que el servidor haya devuelto la primera tecla de la línea, así que en los prompts sin eco (`sudo`, `passwd`) nunca se muestra nada.
+  - En CI, con 150 ms de latencia añadida, se mostraron por adelantado 43 teclas y el servidor confirmó todas.
+- Los dos interruptores están en **Ajustes de la terminal**.
+
+### 🌐 Centro de Conexiones (sustituye a "FTP" en el menú lateral)
+- Nueva entrada **Conexiones** debajo de Terminal, que reúne perfiles SSH/Telnet, servidores FTP, SFTP, SMB y WebDAV, y el servidor FTP de este dispositivo.
+- El botón **+** abre un selector por categorías con iconos: *Terminal remoto* (SSH, Telnet), *Archivos remotos* (FTP, SFTP, SMB, WebDAV) y *Este dispositivo* (Servidor FTP).
+- En el editor de perfiles, **Comandos al iniciar sesión** y **Barra de accesos directos** son ahora barras plegables: muestran un resumen y se abren al tocarlas.
+
+### 🎬 Reproductor de vídeo nuevo (Media3 / ExoPlayer)
+- Decodificador **por hardware**, con cambio automático a otro decodificador si el principal no acepta el vídeo (la causa típica de que un 4K "no se reproduzca").
+- Salida por `SurfaceView` (del decodificador a la pantalla sin copias extra por GPU) y descarte de fotogramas tardíos para que el audio siga fluido en equipos justos de potencia.
+- Los archivos locales y los `content://` se reproducen **sin copiarlos antes a la caché**.
+- Búfer limitado: con un 4K, el heap Java bajó de 44 a 28 MB.
+- Doble toque a los lados para ±10 s, velocidad de 0,5× a 2×, giro automático a horizontal, modo ajustar/llenar y panel de estadísticas (decodificador, resolución, FPS y fotogramas perdidos).
+
+---
+
 # OpenManager v2.0.1: Terminal SSH / Telnet con Perfiles, Modo Ultra RAM (< 20 MB por Pantalla) y Serie 2.0 Completa
 
 ### 🔐 Terminal SSH y Telnet con Perfiles
