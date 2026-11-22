@@ -62,6 +62,12 @@ jobs:
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq openssh-server busybox tmux htop telnet ffmpeg
         sudo useradd -m -s /bin/bash omtest
         echo 'omtest:omtest-Pass1' | sudo chpasswd
+        # Like a stock Ubuntu account: colored prompt that also sets the terminal title.
+        printf '%s\n' \
+          'PS1="\[\e]0;\u@\h: \w\a\]\[\e[01;32m\]\u@\h\[\e[00m\]:\[\e[01;34m\]\w\[\e[00m\]\$ "' \
+          | sudo tee /home/omtest/.bashrc >/dev/null
+        echo '[ -f ~/.bashrc ] && . ~/.bashrc' | sudo tee /home/omtest/.profile >/dev/null
+        sudo chown omtest:omtest /home/omtest/.bashrc /home/omtest/.profile
         sudo mkdir -p /tmp/sshd_om /run/sshd
         sudo ssh-keygen -q -t ed25519 -N '' -f /tmp/sshd_om/ssh_host_ed25519_key
         sudo tee /tmp/sshd_om/sshd_config >/dev/null <<'EOF'
