@@ -11,6 +11,11 @@ enum class SmartOpenKind {
     DIRECTORY,
     PDF,
     VIDEO,
+    IMAGE,
+    AUDIO,
+    TEXT,
+    DOCUMENT,
+    /** Archives, APKs and anything else: shown in the explorer, which has the tools for them. */
     FILE_LOCATION
 }
 
@@ -29,6 +34,23 @@ object SmartFileOpenEngine {
     private val VIDEO_EXTENSIONS = setOf(
         "mp4", "mkv", "webm", "avi", "mov", "flv", "wmv",
         "3gp", "3gpp", "m4v", "mpeg", "mpg", "ogv", "m2ts", "mts", "vob"
+    )
+
+    private val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "avif", "ico")
+    private val AUDIO_EXTENSIONS = setOf("mp3", "m4a", "aac", "flac", "ogg", "oga", "opus", "wav", "amr", "mid", "midi", "wma")
+    private val DOCUMENT_EXTENSIONS = setOf("docx", "doc")
+    private val DOCUMENT_MIME_TYPES = setOf(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword", "application/x-msword", "application/vnd.ms-word"
+    )
+    private val TEXT_MIME_TYPES = setOf(
+        "application/ecmascript", "application/javascript", "application/json", "application/typescript",
+        "application/x-sh", "application/x-shellscript", "application/xml", "application/yaml"
+    )
+    private val TEXT_EXTENSIONS = setOf(
+        "txt", "md", "log", "csv", "json", "xml", "yaml", "yml", "ini", "conf", "cfg", "properties",
+        "sh", "bash", "py", "js", "ts", "kt", "kts", "java", "c", "h", "cpp", "hpp", "go", "rs", "rb",
+        "php", "html", "htm", "css", "sql", "smali", "gradle", "toml", "srt", "vtt"
     )
 
     private val MULTI_SLASH_REGEX = Regex("/+")
@@ -92,7 +114,16 @@ object SmartFileOpenEngine {
         ) {
             return SmartOpenKind.VIDEO
         }
-        return SmartOpenKind.FILE_LOCATION
+        val hasExt = !ext.isNullOrEmpty() && ext != trimmedName?.lowercase(Locale.ROOT)
+        val mime = normalizedMime.orEmpty()
+        return when {
+            mime.startsWith("image/") || (hasExt && ext in IMAGE_EXTENSIONS) -> SmartOpenKind.IMAGE
+            mime.startsWith("audio/") || (hasExt && ext in AUDIO_EXTENSIONS) -> SmartOpenKind.AUDIO
+            mime in DOCUMENT_MIME_TYPES || (hasExt && ext in DOCUMENT_EXTENSIONS) -> SmartOpenKind.DOCUMENT
+            mime.startsWith("text/") || mime in TEXT_MIME_TYPES || (hasExt && ext in TEXT_EXTENSIONS) ->
+                SmartOpenKind.TEXT
+            else -> SmartOpenKind.FILE_LOCATION
+        }
     }
 
     fun normalizeKernelOrProviderPath(rawPath: String?): String? {

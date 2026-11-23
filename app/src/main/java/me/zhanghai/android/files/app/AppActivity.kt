@@ -9,6 +9,9 @@ import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.theme.custom.CustomThemeHelper
 import me.zhanghai.android.files.theme.night.NightModeHelper
@@ -37,6 +40,48 @@ abstract class AppActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
         disableActivityTransitionIfUltra(isOpen = true)
+        if (openedFromOtherApp) {
+            // Registered first, so screens' own back handling (unsaved text, search...) wins.
+            onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() = leaveToIncomingFile()
+            })
+        }
+    }
+
+    /** This viewer was opened for a file sent by another app (see SmartOpenActivity). */
+    val openedFromOtherApp: Boolean
+        get() = intent?.getBooleanExtra(EXTRA_OPENED_FROM_OTHER_APP, false) == true
+
+    private var leavingToIncomingFile = false
+
+    /**
+     * Back/up from a file another app sent: show it in the explorer, so it can be copied or moved
+     * (received without a real path it is first copied to a temporary "Received" folder).
+     * Screens opened inside OpenManager simply close.
+     */
+    fun leaveToIncomingFile() {
+        if (!openedFromOtherApp) {
+            finish()
+            return
+        }
+        if (leavingToIncomingFile) return
+        leavingToIncomingFile = true
+        lifecycleScope.launch {
+            runCatching {
+                me.zhanghai.android.files.filelist.SmartUriPathResolver.locateCurrentOrIncomingInExplorer(
+                    this@AppActivity, intent, intent.extraPath
+                )
+            }
+            finish()
+        }
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        if (openedFromOtherApp) {
+            leaveToIncomingFile()
+            return true
+        }
+        return super.onSupportNavigateUp()
     }
 
     override fun onDestroy() {
@@ -92,5 +137,10 @@ abstract class AppActivity : AppCompatActivity() {
             finish()
         }
         return true
+    }
+
+    companion object {
+        /** Set by SmartOpenActivity on viewers it opens for files received from other apps. */
+        const val EXTRA_OPENED_FROM_OTHER_APP = "me.zhanghai.android.files.extra.OPENED_FROM_OTHER_APP"
     }
 }

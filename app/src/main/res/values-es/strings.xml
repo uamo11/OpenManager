@@ -2721,7 +2721,7 @@
     <string name="om_smart_open_watch_video_sub">Reproducir en el visor integrado</string>
     <string name="om_smart_open_location">Abrir ubicación</string>
     <string name="om_smart_open_location_sub">Mostrar archivo en el explorador</string>
-    <string name="om_smart_open_staged_toast">Importado desde ubicación externa en %1$s</string>
+    <string name="om_smart_open_staged_toast">Copia temporal en %1$s (se borra a los 7 días): cópiala o muévela para conservarla</string>
     <string name="om_smart_open_resolving">Abriendo archivo…</string>
     <string name="om_smart_open_error">No se pudo abrir el archivo</string>
     <string name="om_split_install_title">Instalando paquete dividido</string>
@@ -2989,4 +2989,10 @@
     <string name="om_key_install_action">Instalar clave</string>
     <string name="om_key_installed_toast">Clave enviada al servidor. La próxima conexión la usará (la contraseña guardada queda de respaldo).</string>
     <string name="om_open_view_pdf">Ver PDF</string>
+    <string name="om_open_view_image">Ver imagen</string>
+    <string name="om_open_play_video">Reproducir vídeo</string>
+    <string name="om_open_play_audio">Reproducir audio</string>
+    <string name="om_open_text">Abrir texto</string>
+    <string name="om_open_view_document">Ver documento</string>
+    <string name="om_open_in_openmanager">Abrir en OpenManager</string>
 </resources>

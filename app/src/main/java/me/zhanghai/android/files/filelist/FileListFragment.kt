@@ -2570,6 +2570,15 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             DocxViewerActivity.start(requireContext(), file.path)
             return
         }
+        if (file.mimeType.isImage && !file.path.isArchivePath) {
+            // Straight to the built-in viewer, with the folder's images to swipe through.
+            val intent = Intent(requireContext(), ImageViewerActivity::class.java).apply {
+                extraPath = file.path
+                maybeAddImageViewerActivityExtras(this, file.path, file.mimeType)
+            }
+            startActivitySafe(intent)
+            return
+        }
         if (file.mimeType.isImage) {
             openFileWithIntent(file, false)
             return

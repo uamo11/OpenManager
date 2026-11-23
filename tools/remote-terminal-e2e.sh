@@ -554,6 +554,44 @@ else
     fail "back did not show the PDF in the explorer"
 fi
 
+log "=== Other file types received from another app ==="
+python3 - "$OUT/om_received.png" <<'PY'
+import struct, sys, zlib
+w, h = 64, 48
+raw = b"".join(b"\x00" + bytes([40, 120, 200]) * w for _ in range(h))
+def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+open(sys.argv[1], "wb").write(png)
+PY
+printf 'OpenManager received text\nline 2\n' > "$OUT/om_received.txt"
+adb push "$OUT/om_received.png" /sdcard/Download/om_pdf_test/om_received.png >/dev/null
+adb push "$OUT/om_received.txt" /sdcard/Download/om_pdf_test/om_received.txt >/dev/null
+for spec in "png:image/png:19_image" "txt:text/plain:20_text"; do
+    ext=${spec%%:*}; rest=${spec#*:}; mime=${rest%%:*}; tag=${rest#*:}
+    f=/sdcard/Download/om_pdf_test/om_received.$ext
+    adb shell cmd package query-activities --brief -a android.intent.action.VIEW -d file://$f -t $mime > "$OUT/handlers_$ext.txt" 2>&1
+    n=$(grep -o "$PKG/[A-Za-z0-9_.]*" "$OUT/handlers_$ext.txt" | sort -u | wc -l | tr -d ' ')
+    if [ "$n" = "1" ]; then pass "Android lists OpenManager once for $mime"; else fail "OpenManager appears $n times for $mime"; fi
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -a android.intent.action.VIEW -t $mime -d file://$f \
+        -n $PKG/me.zhanghai.android.files.filelist.SmartOpenActivity >/dev/null
+    sleep 5
+    shot ${tag}_from_other_app
+    top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -o "$PKG/[A-Za-z0-9_.]*")
+    log "      $mime opened in: $top"
+    case "$ext:$top" in
+        png:*ImageViewerActivity|txt:*TextEditorActivity) pass "$mime opens straight in its viewer" ;;
+        *) fail "$mime did not open in its viewer ($top)" ;;
+    esac
+    adb shell input keyevent KEYCODE_BACK; sleep 4
+    shot ${tag}_back_to_explorer
+    if find_text "om_received.$ext" >/dev/null; then
+        pass "back from $mime shows it in the explorer"
+    else
+        fail "back from $mime did not show it in the explorer"
+    fi
+done
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

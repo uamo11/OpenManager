@@ -72,9 +72,18 @@ class SmartFileOpenEngineTest {
             SmartOpenKind.FILE_LOCATION,
             SmartFileOpenEngine.classifySmartOpen("application/vnd.android.package-archive", "app.apk", null)
         )
+        // Files with a viewer open directly in it; archives, APKs and unknown types go to the explorer.
+        assertEquals(SmartOpenKind.TEXT, SmartFileOpenEngine.classifySmartOpen("text/plain", "notes.txt", null))
+        assertEquals(SmartOpenKind.TEXT, SmartFileOpenEngine.classifySmartOpen("application/octet-stream", "build.gradle", null))
+        assertEquals(SmartOpenKind.IMAGE, SmartFileOpenEngine.classifySmartOpen("image/jpeg", "IMG_1.jpg", null))
+        assertEquals(SmartOpenKind.IMAGE, SmartFileOpenEngine.classifySmartOpen(null, "photo.HEIC", null))
+        assertEquals(SmartOpenKind.AUDIO, SmartFileOpenEngine.classifySmartOpen("audio/ogg", "voice", null))
+        assertEquals(SmartOpenKind.AUDIO, SmartFileOpenEngine.classifySmartOpen(null, "nota de voz.opus", null))
         assertEquals(
-            SmartOpenKind.FILE_LOCATION,
-            SmartFileOpenEngine.classifySmartOpen("text/plain", "notes.txt", null)
+            SmartOpenKind.DOCUMENT,
+            SmartFileOpenEngine.classifySmartOpen(
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "cv", null
+            )
         )
         assertEquals(
             SmartOpenKind.FILE_LOCATION,

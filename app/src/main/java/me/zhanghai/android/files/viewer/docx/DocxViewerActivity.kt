@@ -96,7 +96,7 @@ class DocxViewerActivity : AppActivity() {
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        binding.toolbar.setNavigationOnClickListener { finish() }
+        binding.toolbar.setNavigationOnClickListener { leaveToIncomingFile() }
 
         setupSystemUi()
         setupWindowInsets()

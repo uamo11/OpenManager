@@ -140,7 +140,60 @@
                 <data android:mimeType="application/pdf" />
                 <data android:mimeType="application/x-pdf" />
             </intent-filter>
-            <intent-filter tools:ignore="AppLinkUrlError">
+            <intent-filter
+                android:icon="@mipmap/launcher_icon"
+                android:label="@string/om_open_view_image"
+                android:priority="1"
+                tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <intent-filter
+                android:icon="@mipmap/launcher_icon"
+                android:label="@string/om_open_play_audio"
+                android:priority="1"
+                tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="audio/*" />
+            </intent-filter>
+            <intent-filter
+                android:icon="@mipmap/launcher_icon"
+                android:label="@string/om_open_text"
+                android:priority="1"
+                tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/ecmascript" />
+                <data android:mimeType="application/javascript" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="application/typescript" />
+                <data android:mimeType="application/x-sh" />
+                <data android:mimeType="application/x-shellscript" />
+                <data android:mimeType="application/xml" />
+                <data android:mimeType="application/yaml" />
+                <data android:mimeType="text/*" />
+            </intent-filter>
+            <intent-filter
+                android:icon="@mipmap/launcher_icon"
+                android:label="@string/om_open_view_document"
+                android:priority="1"
+                tools:ignore="AppLinkUrlError">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <data android:mimeType="application/msword" />
+                <data android:mimeType="application/x-msword" />
+                <data android:mimeType="application/vnd.ms-word" />
+            </intent-filter>
+            <intent-filter
+                android:label="@string/om_open_in_openmanager"
+                tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -166,7 +219,11 @@
                 <data android:mimeType="application/x-xz" />
                 <data android:mimeType="application/x-7z-compressed" />
             </intent-filter>
-            <intent-filter tools:ignore="AppLinkUrlError">
+            <intent-filter
+                android:icon="@mipmap/launcher_icon"
+                android:label="@string/om_open_play_video"
+                android:priority="1"
+                tools:ignore="AppLinkUrlError">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
@@ -432,33 +489,13 @@
             android:exported="true"
             android:label="@string/text_editor_title"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/Theme.MaterialFiles">
-            <intent-filter tools:ignore="AppLinkUrlError">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="application/ecmascript" />
-                <data android:mimeType="application/javascript" />
-                <data android:mimeType="application/json" />
-                <data android:mimeType="application/typescript" />
-                <data android:mimeType="application/x-sh" />
-                <data android:mimeType="application/x-shellscript" />
-                <data android:mimeType="application/xml" />
-                <data android:mimeType="application/yaml" />
-                <data android:mimeType="text/*" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.MaterialFiles" />
 
         <activity
             android:name="me.zhanghai.android.files.viewer.image.ImageViewerActivity"
             android:exported="true"
             android:label="@string/image_viewer_title"
-            android:theme="@style/Theme.MaterialFiles.Immersive">
-            <intent-filter tools:ignore="AppLinkUrlError">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="image/*" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.MaterialFiles.Immersive" />
 
         <activity
             android:name="me.zhanghai.android.files.viewer.video.VideoPlayerActivity"
@@ -471,13 +508,7 @@
             android:name="me.zhanghai.android.files.viewer.audio.AudioPlayerActivity"
             android:exported="true"
             android:label="Reproductor de audio"
-            android:theme="@style/Theme.MaterialFiles.Translucent">
-            <intent-filter tools:ignore="AppLinkUrlError">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="audio/*" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.MaterialFiles.Translucent" />
 
         <activity
             android:name="me.zhanghai.android.files.viewer.sqlite.SqliteViewerActivity"
@@ -497,17 +528,7 @@
             android:exported="true"
             android:label="@string/docx_viewer_title"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-            android:theme="@style/Theme.MaterialFiles.Immersive">
-            <intent-filter tools:ignore="AppLinkUrlError">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:mimeType="application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-                <data android:mimeType="application/msword" />
-                <data android:mimeType="application/x-msword" />
-                <data android:mimeType="application/vnd.ms-word" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.MaterialFiles.Immersive" />
 
         <service
             android:name="me.zhanghai.android.files.filejob.FileJobService"

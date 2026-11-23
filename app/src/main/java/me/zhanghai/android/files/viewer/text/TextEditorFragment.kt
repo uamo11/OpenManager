@@ -1502,7 +1502,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     override fun finish() {
-        requireActivity().finish()
+        // A file sent by another app goes back to the explorer (to keep or copy it).
+        val activity = requireActivity()
+        (activity as? me.zhanghai.android.files.app.AppActivity)?.leaveToIncomingFile() ?: activity.finish()
     }
 
     private fun onEncodingChanged(encoding: Charset) {

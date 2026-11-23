@@ -2825,7 +2825,7 @@
     <string name="om_smart_open_watch_video_sub">Play in built-in video player</string>
     <string name="om_smart_open_location">Open location</string>
     <string name="om_smart_open_location_sub">Show file in explorer</string>
-    <string name="om_smart_open_staged_toast">Imported from external location to %1$s</string>
+    <string name="om_smart_open_staged_toast">Temporary copy in %1$s (deleted after 7 days): copy or move it to keep it</string>
     <string name="om_smart_open_resolving">Opening file…</string>
     <string name="om_smart_open_error">Could not open file</string>
     <string name="om_split_install_title">Installing split package</string>
@@ -3094,4 +3094,10 @@
     <string name="om_key_install_action">Install key</string>
     <string name="om_key_installed_toast">Key sent to the server. The next connection will use it (the saved password stays as a fallback).</string>
     <string name="om_open_view_pdf">View PDF</string>
+    <string name="om_open_view_image">View image</string>
+    <string name="om_open_play_video">Play video</string>
+    <string name="om_open_play_audio">Play audio</string>
+    <string name="om_open_text">Open text</string>
+    <string name="om_open_view_document">View document</string>
+    <string name="om_open_in_openmanager">Open in OpenManager</string>
 </resources>

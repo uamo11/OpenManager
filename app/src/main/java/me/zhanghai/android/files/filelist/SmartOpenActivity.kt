@@ -7,29 +7,21 @@ package me.zhanghai.android.files.filelist
 
 import android.content.ClipData
 import android.content.Intent
-import android.content.res.ColorStateList
-import android.graphics.Typeface
 import android.os.Bundle
-import android.util.TypedValue
-import android.view.Gravity
-import android.view.ViewGroup
-import android.widget.ImageView
-import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
-import androidx.core.widget.ImageViewCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java8.nio.file.Paths
 import kotlinx.coroutines.launch
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
-import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.extraPath
 import me.zhanghai.android.files.util.startActivitySafe
+import me.zhanghai.android.files.viewer.audio.AudioPlayerActivity
+import me.zhanghai.android.files.viewer.docx.DocxViewerActivity
+import me.zhanghai.android.files.viewer.image.ImageViewerActivity
 import me.zhanghai.android.files.viewer.pdf.PdfViewerActivity
+import me.zhanghai.android.files.viewer.text.TextEditorActivity
 import me.zhanghai.android.files.viewer.video.VideoPlayerActivity
 
 class SmartOpenActivity : AppActivity() {
@@ -63,12 +55,31 @@ class SmartOpenActivity : AppActivity() {
                     }
                     finish()
                 }
+                // One tap from the other app straight into the viewer; back shows the file in the
+                // explorer to keep, copy or move it (see AppActivity.leaveToIncomingFile).
                 SmartOpenKind.PDF -> {
-                    openPdf(target)
+                    openInViewer(target, PdfViewerActivity::class.java)
                     finish()
                 }
                 SmartOpenKind.VIDEO -> {
-                    showVideoChoiceDialog(target)
+                    openInViewer(target, VideoPlayerActivity::class.java)
+                    finish()
+                }
+                SmartOpenKind.IMAGE -> {
+                    openInViewer(target, ImageViewerActivity::class.java)
+                    finish()
+                }
+                SmartOpenKind.AUDIO -> {
+                    openInViewer(target, AudioPlayerActivity::class.java)
+                    finish()
+                }
+                SmartOpenKind.TEXT -> {
+                    openInViewer(target, TextEditorActivity::class.java)
+                    finish()
+                }
+                SmartOpenKind.DOCUMENT -> {
+                    openInViewer(target, DocxViewerActivity::class.java)
+                    finish()
                 }
                 SmartOpenKind.FILE_LOCATION -> {
                     locateTargetInExplorer(target)
@@ -77,43 +88,36 @@ class SmartOpenActivity : AppActivity() {
         }
     }
 
-    private fun openPdf(target: SmartUriPathResolver.ResolvedIncomingTarget) {
-        val pdfIntent = Intent(this, PdfViewerActivity::class.java).apply {
-            // Opened from another app: back shows the PDF in the explorer to copy/move it.
-            putExtra(PdfViewerActivity.EXTRA_OPENED_FROM_OTHER_APP, true)
-            val direct = target.directFile
-            if (direct != null && direct.isFile && direct.canRead()) {
-                extraPath = Paths.get(direct.absolutePath)
-            }
-            val uri = target.sourceUri
-            if (uri != null) {
-                data = uri
-                clipData = ClipData.newRawUri("", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-        }
-        startActivitySafe(pdfIntent)
-    }
-
-    private fun openVideo(target: SmartUriPathResolver.ResolvedIncomingTarget) {
-        val videoIntent = Intent(this, VideoPlayerActivity::class.java).apply {
-            val direct = target.directFile
-            if (direct != null && direct.isFile && direct.canRead()) {
-                extraPath = Paths.get(direct.absolutePath)
-            }
-            val uri = target.sourceUri
-            if (uri != null) {
-                data = uri
-                clipData = ClipData.newRawUri("", uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            if (!target.mimeType.isNullOrBlank()) {
-                putExtra(VideoPlayerActivity.EXTRA_DISPLAY_NAME, target.displayName)
+    private fun openInViewer(target: SmartUriPathResolver.ResolvedIncomingTarget, viewer: Class<*>) {
+        val incoming = intent
+        // OpenManager itself also lands here (open with, files inside archives): keep its extras
+        // (image list, path) and its usual back behaviour.
+        val fromOwnApp = referrer?.host == packageName
+        val viewerIntent = Intent(this, viewer).apply {
+            if (fromOwnApp) {
+                incoming.extras?.let { putExtras(it) }
             } else {
-                putExtra(VideoPlayerActivity.EXTRA_DISPLAY_NAME, target.displayName)
+                putExtra(AppActivity.EXTRA_OPENED_FROM_OTHER_APP, true)
             }
+            val uri = target.sourceUri
+            if (uri != null) {
+                // Re-grant to the viewer: the other app's grant ends with this activity.
+                setDataAndType(uri, target.mimeType)
+                clipData = ClipData.newRawUri("", uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                // Pass on write access only when the other app gave it (text edits save back).
+                if (incoming.flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION != 0) {
+                    addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                }
+            }
+            val direct = target.directFile
+            if (direct != null && direct.isFile && direct.canRead()) {
+                // A real path beats the URI (editing, siblings, faster reads).
+                extraPath = Paths.get(direct.absolutePath)
+            }
+            putExtra(VideoPlayerActivity.EXTRA_DISPLAY_NAME, target.displayName)
         }
-        startActivitySafe(videoIntent)
+        startActivitySafe(viewerIntent)
     }
 
     private suspend fun locateTargetInExplorer(target: SmartUriPathResolver.ResolvedIncomingTarget) {
@@ -130,129 +134,4 @@ class SmartOpenActivity : AppActivity() {
         }
     }
 
-    private fun showVideoChoiceDialog(target: SmartUriPathResolver.ResolvedIncomingTarget) {
-        val palette = OpenManagerPalette.from(this)
-        val density = resources.displayMetrics.density
-        val padH = (20 * density).toInt()
-        val padV = (14 * density).toInt()
-        var actionTaken = false
-
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(0, (8 * density).toInt(), 0, (12 * density).toInt())
-        }
-
-        val subtitleText = target.directFile?.parent
-            ?: target.sourceUri?.authority
-            ?: target.mimeType
-        if (!subtitleText.isNullOrBlank()) {
-            val tvSubtitle = TextView(this).apply {
-                text = subtitleText
-                setTextColor(palette.textSecondary)
-                textSize = 12f
-                setPadding(padH, 0, padH, (10 * density).toInt())
-                maxLines = 2
-            }
-            container.addView(tvSubtitle)
-        }
-
-        val outValue = TypedValue()
-        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
-
-        lateinit var dialog: androidx.appcompat.app.AlertDialog
-
-        fun addOptionRow(
-            iconRes: Int,
-            iconTint: Int,
-            titleRes: Int,
-            subtitleRes: Int,
-            onClick: () -> Unit
-        ) {
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(padH, padV, padH, padV)
-                setBackgroundResource(outValue.resourceId)
-                isClickable = true
-                isFocusable = true
-                layoutParams = LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT
-                )
-            }
-            val icon = ImageView(this).apply {
-                val size = (28 * density).toInt()
-                layoutParams = LinearLayout.LayoutParams(size, size).apply {
-                    marginEnd = (16 * density).toInt()
-                }
-                setImageDrawable(ContextCompat.getDrawable(this@SmartOpenActivity, iconRes))
-                ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(iconTint))
-            }
-            val textCol = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            val tvTitle = TextView(this).apply {
-                setText(titleRes)
-                setTextColor(palette.textPrimary)
-                textSize = 15.5f
-                setTypeface(null, Typeface.BOLD)
-            }
-            val tvSub = TextView(this).apply {
-                setText(subtitleRes)
-                setTextColor(palette.textSecondary)
-                textSize = 12.5f
-            }
-            textCol.addView(tvTitle)
-            textCol.addView(tvSub)
-            row.addView(icon)
-            row.addView(textCol)
-            row.setOnClickListener {
-                actionTaken = true
-                dialog.dismiss()
-                onClick()
-            }
-            container.addView(row)
-        }
-
-        addOptionRow(
-            iconRes = R.drawable.video_icon_white_24dp,
-            iconTint = palette.accentColor,
-            titleRes = R.string.om_smart_open_watch_video,
-            subtitleRes = R.string.om_smart_open_watch_video_sub
-        ) {
-            openVideo(target)
-            finish()
-        }
-
-        addOptionRow(
-            iconRes = R.drawable.directory_icon_white_24dp,
-            iconTint = palette.iconTint,
-            titleRes = R.string.om_smart_open_location,
-            subtitleRes = R.string.om_smart_open_location_sub
-        ) {
-            lifecycleScope.launch {
-                locateTargetInExplorer(target)
-            }
-        }
-
-        dialog = MaterialAlertDialogBuilder(this)
-            .setTitle(target.displayName)
-            .setView(container)
-            .setNegativeButton(android.R.string.cancel) { _, _ ->
-                actionTaken = true
-                finish()
-            }
-            .setOnCancelListener {
-                if (!actionTaken) {
-                    finish()
-                }
-            }
-            .setOnDismissListener {
-                if (!actionTaken && !isFinishing) {
-                    finish()
-                }
-            }
-            .show()
-    }
 }

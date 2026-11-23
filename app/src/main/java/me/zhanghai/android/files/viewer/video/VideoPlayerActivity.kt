@@ -158,7 +158,7 @@ class VideoPlayerActivity : AppActivity() {
             ?: getString(R.string.om_video_title)
         tvVideoTitle.isSelected = true
 
-        findViewById<ImageButton>(R.id.btnVideoBack).setOnClickListener { finish() }
+        findViewById<ImageButton>(R.id.btnVideoBack).setOnClickListener { leaveToIncomingFile() }
         findViewById<ImageButton>(R.id.btnVideoLocate).setOnClickListener { locateVideoInExplorer() }
         btnVideoPlayPause.setOnClickListener {
             togglePlayPause()

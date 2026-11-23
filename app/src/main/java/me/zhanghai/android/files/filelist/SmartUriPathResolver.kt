@@ -35,7 +35,8 @@ import java.io.FileOutputStream
 
 object SmartUriPathResolver {
 
-    private const val STAGED_DIR_NAME = "OpenManager_Recibidos"
+    private const val STAGED_DIR_NAME = "Recibidos"
+    private const val STAGE_RETENTION_MS = 7L * 24 * 60 * 60 * 1000
 
     data class ResolvedIncomingTarget(
         val kind: SmartOpenKind,
@@ -466,20 +467,18 @@ object SmartUriPathResolver {
         }
     }
 
+    /**
+     * Where files received from other apps without a real path are copied so the explorer can show
+     * them: an app-specific "Received" folder (no permission needed, removed with the app) whose
+     * copies are deleted after [STAGE_RETENTION_MS]; keeping one means copying or moving it.
+     */
     private fun getStageDirectory(context: Context): File {
-        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val primaryStage = File(downloads, STAGED_DIR_NAME)
-        if (primaryStage.exists() || primaryStage.mkdirs()) {
-            if (primaryStage.isDirectory && primaryStage.canWrite()) {
-                return primaryStage
-            }
-        }
-        val fallbackBase = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS) ?: context.filesDir
-        val fallbackStage = File(fallbackBase, STAGED_DIR_NAME)
-        if (!fallbackStage.exists()) {
-            fallbackStage.mkdirs()
-        }
-        return fallbackStage
+        val base = context.getExternalFilesDir(null) ?: context.filesDir
+        val stage = File(base, STAGED_DIR_NAME)
+        if (!stage.exists()) stage.mkdirs()
+        val cutoff = System.currentTimeMillis() - STAGE_RETENTION_MS
+        stage.listFiles()?.forEach { if (it.isFile && it.lastModified() < cutoff) it.delete() }
+        return stage
     }
 
     private fun copyTargetToFile(

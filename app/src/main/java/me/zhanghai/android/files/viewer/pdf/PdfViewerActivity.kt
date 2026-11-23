@@ -100,10 +100,7 @@ class PdfViewerActivity : AppActivity() {
 
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        binding.toolbar.setNavigationOnClickListener { leave() }
-        onBackPressedDispatcher.addCallback(this, object : androidx.activity.OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() = leave()
-        })
+        binding.toolbar.setNavigationOnClickListener { leaveToIncomingFile() }
 
         setupSystemUi()
         setupWindowInsets()
@@ -409,30 +406,6 @@ class PdfViewerActivity : AppActivity() {
         return super.onOptionsItemSelected(item)
     }
 
-    private var isLeaving = false
-
-    /**
-     * Back/up: a PDF received from another app is shown in the explorer (copied to Downloads first
-     * when the other app gives no real path) so it can be kept, copied or moved; otherwise close.
-     */
-    private fun leave() {
-        if (!intent.getBooleanExtra(EXTRA_OPENED_FROM_OTHER_APP, false)) {
-            finish()
-            return
-        }
-        if (isLeaving) return
-        isLeaving = true
-        lifecycleScope.launch {
-            val shown = runCatching {
-                SmartUriPathResolver.locateCurrentOrIncomingInExplorer(this@PdfViewerActivity, intent, currentPath)
-            }.getOrDefault(false)
-            if (!shown && isUiAlive) {
-                Toast.makeText(this@PdfViewerActivity, R.string.om_smart_open_error, Toast.LENGTH_SHORT).show()
-            }
-            finish()
-        }
-    }
-
     private fun openLocationInExplorer() {
         lifecycleScope.launch {
             try {
@@ -712,7 +685,6 @@ class PdfViewerActivity : AppActivity() {
     }
 
     companion object {
-        const val EXTRA_OPENED_FROM_OTHER_APP = "me.zhanghai.android.files.viewer.pdf.extra.FROM_OTHER_APP"
         private const val PREFS_NAME = "pdf_viewer_prefs"
         private const val KEY_THEME = "reading_theme"
 

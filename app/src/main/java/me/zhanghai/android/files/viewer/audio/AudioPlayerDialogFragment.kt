@@ -300,17 +300,13 @@ class AudioPlayerDialogFragment : AppCompatDialogFragment() {
     override fun onDismiss(dialog: DialogInterface) {
         super.onDismiss(dialog)
         releasePlayer()
-        if (activity is AudioPlayerActivity) {
-            activity?.finish()
-        }
+        (activity as? AudioPlayerActivity)?.leaveToIncomingFile()
     }
 
     override fun onCancel(dialog: DialogInterface) {
         super.onCancel(dialog)
         releasePlayer()
-        if (activity is AudioPlayerActivity) {
-            activity?.finish()
-        }
+        (activity as? AudioPlayerActivity)?.leaveToIncomingFile()
     }
 
     override fun onDestroy() {
