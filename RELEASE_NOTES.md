@@ -1,3 +1,35 @@
+# OpenManager v2.0.6: Varias Sesiones a la Vez, Claves SSH en un Toque, SFTP Verificado y Arranque más Rápido
+
+### 🔑 Claves SSH sin salir del móvil (algo que MT Manager no tiene)
+- **Generar clave Ed25519** en el editor de perfiles, en formato OpenSSH estándar (compatible con `ssh-keygen`, PuTTYgen y Termux) y guardada cifrada con el Keystore de Android.
+- **Ver clave pública** con botones para copiarla o copiar el comando de instalación.
+- **Entrar con clave (sin contraseña)**, desde el menú de una sesión SSH abierta: instala la clave en `~/.ssh/authorized_keys` del servidor con los permisos correctos y cambia el perfil a clave. La contraseña guardada queda de respaldo.
+
+### 🧵 Varias sesiones y scripts a la vez
+- Lanzar un script, una shell o una conexión SSH ya **no termina la que estaba en marcha**.
+- La cápsula de sesión (`SH ▾`) lista todas las sesiones (● en marcha, ○ terminada) para cambiar entre ellas o **Cerrar esta sesión**.
+- Al lanzar un script con otro en marcha se ofrece **Ejecutar a la vez**.
+- La notificación sigue mientras quede alguna sesión activa.
+
+### ⌨️ Terminal
+- **Barra de escritura** (⋮ en la barra de teclas): escribes la línea en el móvil, con las sugerencias del teclado y sin esperar a la red, y la envías entera. El texto de varias líneas llega como un solo bloque a Claude, vim, etc.
+- **Historial estable con wifi lento**: leer el historial ya no salta al final con cada trozo de salida que llega, ni da saltos enormes hacia arriba al deslizar. Al escribir vuelve sola al prompt.
+
+### 🔐 Seguridad y estabilidad
+- **SFTP verifica la identidad del servidor**: antes aceptaba cualquier clave, de modo que un equipo de la misma red podía hacerse pasar por el servidor. Ahora usa la misma comprobación de huella que la terminal SSH, y el aviso aparece en cualquier pantalla.
+- **Autoactualización arreglada**: la actualización descargada se abre directamente en el instalador del sistema. Antes Android preguntaba "Abrir con" y, si se elegía OpenManager, no se instalaba. *Al actualizar desde la v2.0.5 o anterior todavía puede aparecer: elige "Instalador de paquetes".*
+
+### ⚡ Rendimiento
+- **Arranque más rápido**: el registro de BouncyCastle (unos 230–1.000 ms en el emulador) ya no bloquea la primera pantalla. Los pasos de inicio del hilo principal suman ahora 70–170 ms.
+
+### ✅ Verificación
+- En el emulador contra un OpenSSH real: la clave se generó, se instaló desde la sesión y el servidor registró **"Accepted publickey"** en la reconexión.
+- Dos scripts avanzando a la vez y la barra de escritura enviando comandos.
+- La app compilada como versión antigua se actualizó sola a la última release.
+- Tests unitarios del generador de claves: la clave producida la lee el mismo parser que inicia sesión.
+
+---
+
 # OpenManager v2.0.5: Apps en Ejecución más Ligera y Agrupada, y Barra de la Terminal de VPS Rediseñada
 
 ### 📊 Apps en ejecución
