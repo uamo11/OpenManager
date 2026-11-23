@@ -507,9 +507,13 @@ else
 fi
 
 log "=== Root seatbelt on a real Android kernel (adb root) ==="
-demo seatbelt_export; sleep 3
+demo seatbelt_export
+for i in $(seq 1 15); do adb shell ls /sdcard/om_guard_test/om_seatbelt.sh >/dev/null 2>&1 && break; sleep 1; done
+# Root's view of /sdcard differs per namespace: run it from /data/local/tmp like a root tool would.
+adb shell cp /sdcard/om_guard_test/om_seatbelt.sh /data/local/tmp/om_seatbelt.sh
+log "      exported: $(adb shell ls -l /data/local/tmp/om_seatbelt.sh 2>&1 | tr -d '\r')"
 before=$(adb shell "ls /dev/block | wc -l" | tr -d '\r ')
-inside=$(adb shell "su 0 sh /sdcard/om_guard_test/om_seatbelt.sh /system/bin/sh -c 'echo entries=\$(ls /dev/block | wc -l) belt=\$OM_SEATBELT; touch /system/om_belt_probe 2>&1 | head -n 1'" 2>&1 | tr -d '\r')
+inside=$(adb shell "su 0 sh /data/local/tmp/om_seatbelt.sh /system/bin/sh -c 'echo entries=\$(ls /dev/block | wc -l) belt=\$OM_SEATBELT; touch /system/om_belt_probe 2>&1 | head -n 1'" 2>&1 | tr -d '\r')
 after=$(adb shell "ls /dev/block | wc -l" | tr -d '\r ')
 log "      /dev/block outside: $before -> $after; inside: $(echo "$inside" | tr '\n' ' ')"
 case "$inside" in
