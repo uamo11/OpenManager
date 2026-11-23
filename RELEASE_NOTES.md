@@ -1,3 +1,16 @@
+# OpenManager v2.0.13: App en Chino Simplificado
+
+### 🇨🇳 Chino simplificado completo (issue #2)
+- Los ~2.200 textos propios de OpenManager (ajustes, herramientas, terminal, conexiones, visores, Dead Man…) solo existían en inglés y español. Con la app en chino simplificado casi todo seguía en inglés y parecía que el cambio de idioma no funcionaba. Ahora están todos traducidos.
+- El estado de root de Ajustes ("No Root" / "Working") ya no está fijo en inglés.
+- Un test unitario impide que vuelva a quedar un texto sin traducir al chino o con marcadores distintos; en el emulador se pone la app en chino y se comprueban Ajustes y el menú lateral.
+
+### 🐞 Otros arreglos
+- El editor ARSC mostraba sus textos en español aunque la app estuviera en inglés.
+- El resumen al comparar archivos binarios perdía los saltos de línea.
+
+---
+
 # OpenManager v2.0.12: Fotos y Vídeo 4K Inteligentes
 
 ### 🖼️ Fotos grandes sin gastar memoria de más
