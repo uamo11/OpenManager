@@ -1759,10 +1759,20 @@ class FileListActivity : AppActivity() {
 
     private var lastBackPressTime = 0L
 
+    private val returnOnBackPath: Path? by lazy {
+        intent?.getStringExtra(EXTRA_RETURN_ON_BACK_AT)?.takeIf { it.isNotEmpty() }
+            ?.let { runCatching { Paths.get(java.net.URI(it)) }.getOrNull() }
+    }
+
+    /** True on the folder this explorer was opened at for its caller, or any folder above it. */
     private fun isBackAtReturnPath(): Boolean {
-        val start = intent?.getStringExtra(EXTRA_RETURN_ON_BACK_AT)?.takeIf { it.isNotEmpty() } ?: return false
-        val current = runCatching { activeFragment.currentPath.toUri().toString() }.getOrNull() ?: return false
-        return start == current || start.startsWith(current.trimEnd('/') + "/")
+        val start = returnOnBackPath ?: return false
+        val current = runCatching { activeFragment.currentPath }.getOrNull() ?: return false
+        val atOrAbove = runCatching {
+            current == start || (current.fileSystem == start.fileSystem && start.startsWith(current))
+        }.getOrDefault(false)
+        if (BuildConfig.DEBUG) android.util.Log.d("OMReturnOnBack", "start=$start current=$current -> $atOrAbove")
+        return atOrAbove
     }
 
     private fun setupBackPressedHandler() {

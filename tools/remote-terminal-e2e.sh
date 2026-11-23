@@ -298,18 +298,21 @@ if pos=$(find_text "$chip"); then
 else
     fail "no folder chip to tap ('$chip')"
 fi
-# Back (viewer, then the explorer's folders) must lead to the live VPS terminal again.
-back_ok=""
-for i in 1 2 3 4 5; do
-    if find_text "⋮" >/dev/null; then back_ok=1; break; fi
+# Back from the photo, then back from the start folder: the live VPS terminal again (2 presses).
+adb logcat -c
+backs=0
+while [ $backs -lt 5 ]; do
     adb shell input keyevent KEYCODE_BACK; sleep 2
+    backs=$((backs + 1))
+    find_text "⋮" >/dev/null && break
 done
 shot 07f_back_to_vps_terminal
-if [ -n "$back_ok" ]; then
-    pass "back from the VPS files returns to the SSH session"
+if find_text "⋮" >/dev/null && [ $backs -le 2 ]; then
+    pass "back from the VPS files returns to the SSH session ($backs presses)"
 else
-    fail "back from the VPS files did not return to the SSH session"
-    demo remote_ssh; sleep 4
+    fail "back from the VPS files took $backs presses to reach the SSH session"
+    adb logcat -d -s OMReturnOnBack | tail -5 | sed 's/^/      /' | tee -a "$REPORT" >/dev/null
+    find_text "⋮" >/dev/null || { demo remote_ssh; sleep 4; }
 fi
 
 log "=== Key deck layouts ==="
