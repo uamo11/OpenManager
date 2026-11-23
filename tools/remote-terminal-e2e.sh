@@ -24,6 +24,11 @@ shot() {
     adb pull "/data/local/tmp/$1.png" "$OUT/$1.png" >/dev/null 2>&1 || true
 }
 
+# True if one of the logs has a crash of the app itself (uiautomator sometimes dies while dumping).
+app_crashed() {
+    cat "$@" 2>/dev/null | grep -A 3 "FATAL EXCEPTION" | grep -q "Process: $PKG"
+}
+
 demo() {
     adb shell am start -n "$MAIN" --es SHOW_DEMO_DIALOG "$1" >/dev/null 2>&1
 }
@@ -466,7 +471,7 @@ shot 11_telnet_session
 
 # Keep the terminal-phase log: the video phase clears logcat per clip.
 adb logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
-if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
+if app_crashed "$OUT/logcat.txt"; then
     fail "FATAL EXCEPTION during terminal/connections tests"
     grep -A 20 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -60 >> "$REPORT"
 fi
@@ -630,7 +635,7 @@ for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
     adb shell am force-stop $PKG; sleep 1
 done
 adb logcat -d > "$OUT/logcat_video.txt" 2>/dev/null || true
-if grep -q "FATAL EXCEPTION" "$OUT/logcat_video.txt"; then fail "crash during video playback"; fi
+if app_crashed "$OUT/logcat_video.txt"; then fail "crash during video playback"; fi
 
 log "=== Start-up cost (debug OMStartup log) ==="
 grep -h "OMStartup" "$OUT"/logcat*.txt 2>/dev/null | sed -E 's/^.*OMStartup: //' | sort | uniq -c | sort -rn | head -20 >> "$REPORT" || true
@@ -834,7 +839,7 @@ adb shell input keyevent KEYCODE_BACK; sleep 1
 
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
-if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then
+if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then
     fail "FATAL EXCEPTION in logcat"
     grep -h -A 20 "FATAL EXCEPTION" "$OUT"/logcat*.txt | head -60 >> "$REPORT"
 else

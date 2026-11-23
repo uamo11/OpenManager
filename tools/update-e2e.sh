@@ -127,7 +127,8 @@ else
     fail "still on $now after the update"
 fi
 adb logcat -d | grep -E "FATAL EXCEPTION" -A 15 > "$OUT/fatal.txt" || true
-[ -s "$OUT/fatal.txt" ] && fail "crash during the update flow"
+# Only the app's own crashes count (uiautomator itself sometimes dies while dumping).
+grep -q "Process: $PKG" "$OUT/fatal.txt" && fail "crash during the update flow"
 log ""
 [ $FAILED -eq 0 ] && log "RESULT: ALL PASSED" || log "RESULT: FAILURES"
 exit $FAILED
