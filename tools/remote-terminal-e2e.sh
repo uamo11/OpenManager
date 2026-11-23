@@ -535,14 +535,11 @@ case "$inside" in
             fail "the seatbelt changed /dev/block outside ($before -> $after)"
         fi ;;
     *"No mount-namespace support"*|*"not private"*|*"Could not cover"*)
-        log "      (isolation not available on this emulator image; the app then refuses or warns)"
-        if [ "$after" = "$before" ]; then pass "without isolation nothing was mounted"; else fail "partial isolation leaked"; fi ;;
+        # Android's toybox supports it (verified on API 29): a regression, even if nothing leaked.
+        if [ "$after" = "$before" ]; then fail "isolation unavailable (nothing leaked): $inside"; else fail "partial isolation leaked"; fi ;;
     *) fail "unexpected seatbelt result: $inside" ;;
 esac
 adb shell su 0 rm -f /system/om_belt_probe 2>/dev/null
-# Diagnostics: what this Android's tools accept for private propagation.
-adb shell "su 0 sh -c 'echo unshare=\$(command -v unshare) busybox=\$(command -v busybox); toybox --version 2>&1 | head -n1;
-  unshare -m sh -c \"mount --make-rprivate / ; echo make-rprivate=\\\$?; mount -o rprivate / ; echo o-rprivate=\\\$?; mount --make-private / ; echo make-private=\\\$?; mount -o private,rec / 2>&1; echo private-rec=\\\$?; grep -E \\\" / / | /dev | / /dev \\\" /proc/self/mountinfo | head -n 6\"'" 2>&1 | tr -d '\r' | sed 's/^/      diag: /' | tee -a "$REPORT" >/dev/null
 
 log "=== Two scripts at the same time ==="
 adb shell am force-stop $PKG; sleep 1
