@@ -1,3 +1,26 @@
+# OpenManager v2.0.8: Archivos de la VPS junto a los del Móvil
+
+### 🗂️ Explorador de la VPS desde la terminal
+- En una sesión SSH, **toca el chip de carpeta** (el que muestra `usuario@servidor: ~/carpeta`) o elige **Archivos de la VPS** en el menú ⋮.
+- Se abre el explorador de doble panel: **la VPS en un lado**, empezando en la carpeta donde está la terminal, y **los archivos del móvil en el otro**, para copiar o mover en ambos sentidos.
+- **Fotos, música, vídeo y texto** de la VPS se abren con los visores de la app.
+- Usa la clave o la contraseña del perfil. Si la contraseña no está guardada, se pide una vez y solo se guarda en memoria.
+- La identidad del servidor se verifica igual que en la terminal.
+- **Atrás** desde la carpeta inicial vuelve directamente a la sesión SSH.
+- Mantener pulsado el chip sigue copiando la ruta.
+
+### 📦 Peso
+- No añade ninguna librería: reutiliza el cliente SFTP que ya incluía la app.
+
+### ✅ Verificación
+- En el emulador, contra un OpenSSH real:
+  - el chip abre `~/probe` del servidor;
+  - el otro panel muestra el almacenamiento del móvil;
+  - una foto de la VPS se ve en el visor;
+  - con dos "atrás" se vuelve a la sesión.
+
+---
+
 # OpenManager v2.0.7: Abrir Archivos desde Otras Apps con un Toque
 
 ### 📂 Abrir desde otras apps
