@@ -270,6 +270,7 @@ raw = b"".join(b"\x00" + bytes([220, 90, 40]) * w for _ in range(h))
 def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
 open(sys.argv[1], "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 PY
+sudo -u omtest mkdir -p /home/omtest/probe
 sudo install -o omtest -g omtest -m 644 "$OUT/vps_photo.png" /home/omtest/probe/vps_photo.png
 echo "notes from the VPS" | sudo -u omtest tee /home/omtest/probe/vps_notes.txt >/dev/null
 if pos=$(find_text "$chip"); then
