@@ -9,6 +9,7 @@ import me.zhanghai.android.files.viewer.image.ImageDisplayPlan
 import me.zhanghai.android.files.viewer.image.ImageDisplayPlan.Mode
 import me.zhanghai.android.files.viewer.video.isDecoderStruggling
 import me.zhanghai.android.files.viewer.video.isSoftwareDecoder
+import me.zhanghai.android.files.viewer.video.sampleBufferBytes
 import me.zhanghai.android.files.viewer.video.shouldRememberPosition
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,7 +29,9 @@ class SmartMediaTest {
         assertEquals(Mode.TILES, ImageDisplayPlan.mode(3840, 2160, "image/png", w, h))
         assertEquals(Mode.TILES, ImageDisplayPlan.mode(8000, 6000, "image/webp", w, h))
         // About one screen: a single bitmap is cheaper than tiles.
-        assertEquals(Mode.BITMAP, ImageDisplayPlan.mode(1080, 2400, "image/jpeg", w, h))
+        assertEquals(Mode.BITMAP, ImageDisplayPlan.mode(1080, 1920, "image/jpeg", w, h))
+        // A tall screenshot keeps full detail for zooming, as before.
+        assertEquals(Mode.TILES, ImageDisplayPlan.mode(1080, 2400, "image/jpeg", w, h))
         assertEquals(Mode.BITMAP, ImageDisplayPlan.mode(1920, 1080, "image/jpeg", w, h))
         assertEquals(Mode.BITMAP, ImageDisplayPlan.mode(640, 480, "image/png", w, h))
     }
@@ -95,5 +98,16 @@ class SmartMediaTest {
         assertFalse(shouldRememberPosition(tenMin - 2_000L, tenMin))
         // A 20 s clip always starts from the beginning.
         assertFalse(shouldRememberPosition(10_000L, 20_000L))
+    }
+
+    @Test
+    fun sampleBufferFitsTheJavaHeap() {
+        val mb = 1024L * 1024
+        // Normal phones (256 MB heap): 16 MB, or 6 MB in Ultra RAM mode.
+        assertEquals(16 * mb, sampleBufferBytes(256 * mb, ultraRam = false).toLong())
+        assertEquals(6 * mb, sampleBufferBytes(256 * mb, ultraRam = true).toLong())
+        // A 16 MB heap (seen on the CI emulator) ran out of memory with 16 MB of samples.
+        assertEquals(4 * mb, sampleBufferBytes(16 * mb, ultraRam = false).toLong())
+        assertEquals(2 * mb, sampleBufferBytes(4 * mb, ultraRam = false).toLong())
     }
 }

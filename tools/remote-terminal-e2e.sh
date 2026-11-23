@@ -636,7 +636,13 @@ for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
     else
         fail "$clip did not initialize a video decoder"
     fi
-    summary=$(grep -m1 "Summary decoder=" "$OUT/video_${clip%.mp4}.log" | sed 's/.*Summary //')
+    # logcat -c does not always clear everything: the newest summary is this clip's.
+    summary=$(grep "Summary decoder=" "$OUT/video_${clip%.mp4}.log" | tail -n1 | sed 's/.*Summary //')
+    heaplimit=$(adb shell getprop dalvik.vm.heapgrowthlimit | tr -d '\r')
+    log "      device Java heap limit: ${heaplimit:-?}"
+    if grep -q "Playback error" "$OUT/video_${clip%.mp4}.log"; then
+        fail "$clip stopped with a playback error: $(grep -m1 -oE 'Caused by: [^ ]+: [^,]{0,80}' "$OUT/video_${clip%.mp4}.log")"
+    fi
     rendered=$(echo "$summary" | grep -oE "rendered=[0-9]+" | cut -d= -f2)
     sdropped=$(echo "$summary" | grep -oE "dropped=[0-9]+" | cut -d= -f2)
     position=$(echo "$summary" | grep -oE "positionMs=[0-9]+" | cut -d= -f2)

@@ -46,3 +46,13 @@ fun shouldRememberPosition(positionMs: Long, durationMs: Long): Boolean =
     durationMs >= RESUME_MIN_DURATION_MS &&
         positionMs >= RESUME_EDGE_MS &&
         positionMs <= durationMs - RESUME_EDGE_MS
+
+/**
+ * Bytes of queued samples. They live on the Java heap, so they are capped at a quarter of it:
+ * a fixed 16 MB ran out of memory on a device with a 16 MB heap limit.
+ */
+fun sampleBufferBytes(maxHeapBytes: Long, ultraRam: Boolean): Int {
+    val mb = 1024L * 1024
+    val wanted = if (ultraRam) 6 * mb else 16 * mb
+    return (maxHeapBytes / 4).coerceIn(2 * mb, wanted).toInt()
+}

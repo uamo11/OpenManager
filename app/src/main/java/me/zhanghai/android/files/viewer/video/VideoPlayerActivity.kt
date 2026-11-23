@@ -248,7 +248,7 @@ class VideoPlayerActivity : AppActivity() {
                 1_000,
                 2_000
             )
-            .setTargetBufferBytes(if (ultraRam) 6 * 1024 * 1024 else 16 * 1024 * 1024)
+            .setTargetBufferBytes(sampleBufferBytes(Runtime.getRuntime().maxMemory(), ultraRam))
             .setPrioritizeTimeOverSizeThresholds(false)
             .build()
         val exoPlayer = ExoPlayer.Builder(this, renderersFactory)
