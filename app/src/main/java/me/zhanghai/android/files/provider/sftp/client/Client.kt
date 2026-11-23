@@ -29,6 +29,18 @@ object Client {
     lateinit var authenticator: Authenticator
 
     private val clients = mutableMapOf<Authority, SFTPClient>()
+    private val sshClients = mutableMapOf<Authority, SSHClient>()
+
+    /**
+     * Drops the connection to [authority], so the next operation connects again. Used when the
+     * link died (network change, server restart): a dead connection fails with odd internal errors.
+     */
+    fun disconnect(authority: Authority) {
+        synchronized(clients) {
+            clients.remove(authority)?.closeSafe()
+            sshClients.remove(authority)?.closeSafe()
+        }
+    }
 
     private val directoryFileAttributesCache =
         Collections.synchronizedMap(WeakHashMap<Path, FileAttributes>())
@@ -227,11 +239,15 @@ object Client {
         synchronized(clients) {
             var client = clients[authority]
             if (client != null) {
-                if (client.sftpEngine.subsystem.isOpen) {
+                val ssh = sshClients[authority]
+                val alive = client.sftpEngine.subsystem.isOpen &&
+                    (ssh == null || (ssh.isConnected && ssh.transport.isRunning))
+                if (alive) {
                     return client
                 } else {
                     client.closeSafe()
                     clients -= authority
+                    sshClients.remove(authority)?.closeSafe()
                 }
             }
             val authentication = authenticator.getAuthentication(authority)
@@ -262,8 +278,14 @@ object Client {
                 sshClient.closeSafe()
                 throw ClientException(e)
             }
-            client = sshClient.newSFTPClient()
+            client = try {
+                sshClient.newSFTPClient()
+            } catch (e: IOException) {
+                sshClient.closeSafe()
+                throw ClientException(e)
+            }
             clients[authority] = client
+            sshClients[authority] = sshClient
             return client
         }
     }

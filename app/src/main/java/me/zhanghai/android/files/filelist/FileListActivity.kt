@@ -120,7 +120,7 @@ class FileListActivity : AppActivity() {
     private lateinit var btnBottomForward: ImageButton
     private lateinit var btnBottomAdd: ImageButton
     private lateinit var btnBottomSwap: ImageButton
-    private lateinit var btnBottomUp: ImageButton
+    private lateinit var btnBottomHome: ImageButton
 
     private lateinit var btnSelectionClose: ImageButton
     private lateinit var btnCopyOpposite: ImageButton
@@ -163,6 +163,16 @@ class FileListActivity : AppActivity() {
 
     fun getOppositeFragment(fragment: FileListFragment): FileListFragment =
         if (fragment == fragmentA) fragmentB else fragmentA
+
+    private fun homeFor(fragment: FileListFragment): Path? {
+        val current = try { fragment.currentPath } catch (_: Exception) { return null }
+        me.zhanghai.android.files.terminal.remote.RemoteFilesLauncher.homeOf(current)?.let { return it }
+        return if (isFragmentA(fragment)) {
+            Settings.FILE_LIST_DEFAULT_DIRECTORY.valueCompat
+        } else {
+            Settings.FILE_LIST_DEFAULT_DIRECTORY_RIGHT.valueCompat
+        }
+    }
 
     fun isFragmentA(fragment: FileListFragment): Boolean =
         (::fragmentA.isInitialized && fragment === fragmentA)
@@ -247,7 +257,7 @@ class FileListActivity : AppActivity() {
         btnBottomForward = findViewById(R.id.btnBottomForward)
         btnBottomAdd = findViewById(R.id.btnBottomAdd)
         btnBottomSwap = findViewById(R.id.btnBottomSwap)
-        btnBottomUp = findViewById(R.id.btnBottomUp)
+        btnBottomHome = findViewById(R.id.btnBottomHome)
 
         btnSelectionClose = findViewById(R.id.btnSelectionClose)
         btnCopyOpposite = findViewById(R.id.btnCopyOpposite)
@@ -1645,9 +1655,12 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        btnBottomUp.setOnClickListener {
-            if (activeFragment.canNavigateUp) {
-                activeFragment.navigateUp()
+        // Home of the active panel: the VPS home on a VPS, else that panel's start folder (the
+        // phone's storage by default). Going up one folder stays in the top bar's arrow.
+        btnBottomHome.setOnClickListener {
+            val home = homeFor(activeFragment)
+            if (home != null && home != activeFragment.currentPath) {
+                activeFragment.navigateTo(home)
             }
         }
 
@@ -1927,7 +1940,7 @@ class FileListActivity : AppActivity() {
 
         findViewById<View>(R.id.bottomBar)?.setBackgroundColor(palette.bottomBarBg)
         listOf(
-            btnBottomBack, btnBottomForward, btnBottomAdd, btnBottomSwap, btnBottomUp,
+            btnBottomBack, btnBottomForward, btnBottomAdd, btnBottomSwap, btnBottomHome,
             btnSelectionClose, btnCopyOpposite, btnMoveOpposite, btnDeleteSelection, btnMoreSelection
         ).forEach { ImageViewCompat.setImageTintList(it, iconTintList) }
 

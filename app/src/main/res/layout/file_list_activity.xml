@@ -185,13 +185,13 @@
                     app:tint="@android:color/white" />
 
                 <ImageButton
-                    android:id="@+id/btnBottomUp"
+                    android:id="@+id/btnBottomHome"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:background="?selectableItemBackgroundBorderless"
-                    android:src="@drawable/arrow_up_icon_white_24dp"
-                    android:contentDescription="@string/om_action_parent_dir"
+                    android:src="@drawable/home_icon_white_24dp"
+                    android:contentDescription="@string/om_action_home_dir"
                     app:tint="@android:color/white" />
             </LinearLayout>
 

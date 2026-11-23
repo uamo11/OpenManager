@@ -2998,6 +2998,11 @@
     <string name="om_remote_files_menu">Archivos de la VPS</string>
     <string name="om_remote_files_opening">Abriendo los archivos de %1$s…</string>
     <string name="om_remote_files_error_title">No se pudieron abrir los archivos de la VPS</string>
+    <string name="om_remote_files_disconnected">La sesión con %1$s no está conectada. Reconéctala para ver sus archivos.</string>
+    <string name="om_remote_files_reconnect">Reconectar</string>
+    <string name="om_remote_files_error_lost">Se perdió la conexión con %1$s. Comprueba que la sesión sigue conectada e inténtalo de nuevo.</string>
+    <string name="om_remote_files_error_denied">El servidor no permite leer esa carpeta con este usuario.</string>
+    <string name="om_action_home_dir">Inicio</string>
     <string name="om_guard_reason_kernel_mismatch">El módulo no encaja con este kernel: %1$s</string>
     <string name="om_guard_reason_unprivileged">Sin root Android protege el sistema</string>
     <string name="om_guard_mass_title_many">¿Borrar más de %1$d archivos?</string>

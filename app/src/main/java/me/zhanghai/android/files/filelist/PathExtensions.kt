@@ -18,6 +18,8 @@ import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.document.isDocumentPath
 import me.zhanghai.android.files.provider.document.resolver.DocumentResolver
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.provider.sftp.client.Client
+import me.zhanghai.android.files.storage.SftpServerAuthenticator
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.storage.DocumentTree
 import me.zhanghai.android.files.util.valueCompat
@@ -31,8 +33,17 @@ val Path.isInsideRecycleBin: Boolean
         false
     }
 
+/** "My VPS" for a server with a name, else "user@host", for paths on an SFTP server. */
+val Path.sftpServerLabel: String?
+    get() {
+        val authority = (this as? Client.Path)?.authority ?: return null
+        return SftpServerAuthenticator.displayName(authority) ?: "${authority.username}@${authority.host}"
+    }
+
 val Path.name: String
-    get() = if (isInsideRecycleBin && toString().trimEnd('/') == Settings.recycleBinDirectory.toString().trimEnd('/')) {
+    get() = if (fileName == null && !isArchivePath && sftpServerLabel != null) {
+        sftpServerLabel!!
+    } else if (isInsideRecycleBin && toString().trimEnd('/') == Settings.recycleBinDirectory.toString().trimEnd('/')) {
         try {
             application.getString(R.string.recycle_bin_display_name)
         } catch (_: Throwable) {
@@ -98,6 +109,10 @@ fun Path.toDisplayPath(trailingSlash: Boolean = true): String {
         }
         isLinuxPath -> {
             toFile().path
+        }
+        sftpServerLabel != null -> {
+            // "My VPS:/root/" like scp, so the VPS panel cannot be mistaken for the phone's root.
+            "$sftpServerLabel:$this"
         }
         else -> {
             toString()

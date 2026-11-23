@@ -1540,6 +1540,18 @@ class TerminalActivity : AppActivity() {
             return
         }
         if (openingRemoteFiles) return
+        if (terminalSession?.takeIf { it.isRemote }?.isRunning != true) {
+            // The files go over the same server: offer to reconnect instead of a confusing error.
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.om_remote_files_error_title)
+                .setMessage(getString(R.string.om_remote_files_disconnected, profile.displayName))
+                .setPositiveButton(R.string.om_remote_files_reconnect) { _, _ ->
+                    RemoteProfileStore.get(this, profile.id)?.let { ConnectionsActivity.connect(this, it) }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
         openingRemoteFiles = true
         Toast.makeText(this, getString(R.string.om_remote_files_opening, profile.displayName), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
@@ -1550,7 +1562,8 @@ class TerminalActivity : AppActivity() {
             result.onSuccess { dir ->
                 startActivity(RemoteFilesLauncher.explorerIntent(dir))
             }.onFailure { e ->
-                val reason = generateSequence(e) { it.cause }.mapNotNull { it.message }.lastOrNull() ?: e.toString()
+                android.util.Log.w("OMRemoteFiles", "Opening the VPS files failed", e)
+                val reason = RemoteFilesLauncher.describeError(this@TerminalActivity, profile, e)
                 MaterialAlertDialogBuilder(this@TerminalActivity)
                     .setTitle(R.string.om_remote_files_error_title)
                     .setMessage(reason)

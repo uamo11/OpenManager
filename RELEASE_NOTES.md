@@ -1,3 +1,28 @@
+# OpenManager v2.0.10: Archivos de la VPS más Claros y Fiables
+
+### 🗂️ Archivos de la VPS
+- El panel de la VPS muestra **su nombre** delante de la ruta, por ejemplo `Mi VPS:/root/`, para no confundirlo con la raíz del móvil. En la barra de ruta, la raíz del servidor también aparece con ese nombre.
+- **Solo se abre si la sesión sigue conectada**. Si no lo está, se ofrece **Reconectar** en lugar de un error.
+- Antes de abrir el explorador se comprueba que la carpeta **se puede leer**.
+- Si la conexión quedó colgada (cambio de Wi-Fi a datos, reinicio del servidor), la app abre una conexión nueva automáticamente. Antes reutilizaba la conexión muerta y salía un error interno como `src.length=1 … dstPos=-4`.
+- Los errores se explican con claridad: contraseña incorrecta, servidor que no responde, sin permiso para la carpeta o conexión perdida.
+- Si escribes la contraseña otra vez, se usa la nueva, no una anterior equivocada.
+
+### 🏠 Botón de inicio
+- En la barra inferior, la flecha "subir" pasa a ser una **casa** que lleva al inicio **del panel activo**:
+  - en el móvil, a su carpeta de inicio (el almacenamiento, salvo que la cambies en ajustes);
+  - en la VPS, a la carpeta personal del usuario en el servidor.
+- Para subir una carpeta sigue estando la flecha de la barra superior.
+
+### ✅ Verificación
+- En el emulador, contra un OpenSSH real:
+  - el panel mostró `CI OpenSSH:/home/omtest/probe/`;
+  - la casa llevó a `/home/omtest`;
+  - la foto de la VPS se abrió en el visor;
+  - con dos "atrás" se volvió a la sesión.
+
+---
+
 # OpenManager v2.0.9: Seguridad Root más Sólida y Avisos de Actualización Fiables
 
 ### 🔔 Actualizaciones automáticas

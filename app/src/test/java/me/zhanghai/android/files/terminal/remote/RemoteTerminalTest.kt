@@ -316,5 +316,8 @@ class RemoteTerminalTest {
         val activity = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalActivity.kt").readText()
         assertTrue(activity.contains("openRemoteFiles(profile)"))
         assertTrue(activity.contains("setOnLongClickListener"))
+        // Only over a live session: otherwise reconnect instead of an internal SSH error.
+        assertTrue(activity.contains("isRunning != true"))
+        assertTrue(activity.contains("RemoteFilesLauncher.describeError"))
     }
 }

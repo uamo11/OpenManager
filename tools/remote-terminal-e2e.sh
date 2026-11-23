@@ -283,6 +283,25 @@ if pos=$(find_text "$chip"); then
         else
             fail "the other panel does not show the phone's files"
         fi
+        if find_text "CI OpenSSH:/home/omtest/probe/" >/dev/null; then
+            pass "the VPS panel is labelled with the profile name (CI OpenSSH:/home/omtest/probe/)"
+        else
+            fail "the VPS panel does not show 'CI OpenSSH:/home/omtest/probe/'"
+        fi
+        if pos=$(find_text "Home" "Inicio"); then
+            adb shell input tap $pos
+            if wait_text 15 "CI OpenSSH:/home/omtest/" >/dev/null && find_text "probe" >/dev/null; then
+                shot 07d2_vps_home
+                pass "the home button takes the VPS panel to the VPS home folder"
+            else
+                shot 07d2_vps_home_wrong
+                fail "the home button did not open /home/omtest on the VPS"
+            fi
+            pos=$(find_text "probe") && adb shell input tap $pos
+            wait_text 15 "vps_photo.png" >/dev/null || fail "could not return to ~/probe"
+        else
+            fail "no home button in the bottom bar"
+        fi
         adb shell input tap $(find_text "vps_photo.png"); sleep 5
         shot 07e_vps_photo
         top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -o "$PKG/[A-Za-z0-9_.]*")

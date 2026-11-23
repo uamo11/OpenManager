@@ -24,7 +24,21 @@ object SftpServerAuthenticator : Authenticator {
     }
 
     fun addTransientServer(server: SftpServer) {
-        synchronized(transientServers) { transientServers += server }
+        synchronized(transientServers) {
+            // Replaces an earlier entry for the same server, which may hold an old password.
+            transientServers.removeAll { it.authority == server.authority }
+            transientServers += server
+        }
+    }
+
+    /** Name the user gave this server (the VPS profile or the saved storage), if any. */
+    fun displayName(authority: Authority): String? {
+        val server = synchronized(transientServers) {
+            transientServers.find { it.authority == authority }
+        } ?: Settings.STORAGES.valueCompat.find {
+            it is SftpServer && it.authority == authority
+        } as SftpServer?
+        return server?.customName?.takeIf { it.isNotBlank() }
     }
 
     fun removeTransientServer(server: SftpServer) {
