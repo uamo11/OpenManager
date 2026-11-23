@@ -701,6 +701,49 @@ adb logcat -d > "$OUT/logcat_photo.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_photo.txt"; then fail "crash while viewing photos"; fi
 adb shell am force-stop $PKG; sleep 1
 
+log "=== Issue #2: Simplified Chinese settings and drawer ==="
+# Share of visible texts that contain Chinese characters, and the texts left in Latin letters.
+cjk_report() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_$1.xml" 2>/dev/null
+    python3 - "$OUT/ui_$1.xml" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+texts = [html.unescape(t) for t in re.findall(r' text="([^"]+)"', xml)]
+words = [t for t in texts if re.search(r"[A-Za-z一-鿿]", t)]
+zh = [t for t in words if re.search(r"[一-鿿]", t)]
+latin = [t for t in words if t not in zh]
+print(len(zh), len(words), " | ".join(latin[:12]))
+PY
+}
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE zh-CN >/dev/null 2>&1
+sleep 5
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity >/dev/null 2>&1
+sleep 4
+shot 40_settings_zh_CN
+read zh_n all_n latin_left <<< "$(cjk_report settings_zh)"
+log "      settings: $zh_n of $all_n texts in Chinese; still Latin: $(cjk_report settings_zh | cut -d' ' -f3-)"
+if [ "${all_n:-0}" -gt 5 ] && [ $((zh_n * 100)) -ge $((all_n * 80)) ]; then
+    pass "settings page is in Simplified Chinese ($zh_n/$all_n texts)"
+else
+    fail "settings page is not in Chinese ($zh_n/$all_n texts)"
+fi
+adb shell am start -W -n "$MAIN" >/dev/null 2>&1
+sleep 5
+demo drawer; sleep 2
+shot 41_drawer_zh_CN
+if find_text "根目录" >/dev/null && find_text "工具" >/dev/null && find_text "设置" >/dev/null; then
+    pass "drawer shows 根目录 / 工具 / 设置 in Chinese"
+else
+    fail "drawer is not in Chinese: $(cjk_report drawer_zh | cut -d' ' -f3-)"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset >/dev/null 2>&1
+sleep 4
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Start-up cost (debug OMStartup log) ==="
 grep -h "OMStartup" "$OUT"/logcat*.txt 2>/dev/null | sed -E 's/^.*OMStartup: //' | sort | uniq -c | sort -rn | head -20 >> "$REPORT" || true
 

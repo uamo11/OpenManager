@@ -3066,16 +3066,7 @@
     <string name="om_compare_only_line_endings">Mismo texto: solo cambian los finales de línea (CRLF/LF) o el salto final.</string>
     <string name="om_compare_text_summary">−%1$d líneas quitadas · +%2$d líneas añadidas</string>
     <string name="om_compare_too_different">Los archivos son demasiado distintos para mostrarlos línea a línea (%1$d y %2$d líneas).</string>
-    <string name="om_compare_binary_summary">Los archivos binarios son distintos.
-
-%1$s: %2$d bytes
-%3$s: %4$d bytes
-Primera diferencia en: %5$s
-Bytes distintos: %6$d
-
-SHA-256
-%7$s
-%8$s</string>
+    <string name="om_compare_binary_summary">Los archivos binarios son distintos.\n\n%1$s: %2$d bytes\n%3$s: %4$d bytes\nPrimera diferencia en: %5$s\nBytes distintos: %6$d\n\nSHA-256\n%7$s\n%8$s</string>
     <string name="om_compare_gap">··· %1$d líneas sin cambios ···</string>
     <string name="om_compare_error">No se pudo comparar: %1$s</string>
     <string-array name="om_batch_rename_cases">
