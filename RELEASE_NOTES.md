@@ -1,3 +1,25 @@
+# OpenManager v2.0.12: Fotos y Vídeo 4K Inteligentes
+
+### 🖼️ Fotos grandes sin gastar memoria de más
+- Las fotos claramente más grandes que la pantalla (fotos de 12 MP o más, capturas 4K) se muestran **por teselas**: una imagen base del tamaño de la pantalla y, al hacer zoom, solo la zona ampliada a resolución completa. Antes se cargaba la foto entera (33–48 MB cada una, más las vecinas).
+- Las fotos de cámara con **rotación EXIF** se muestran derechas también en este modo.
+- Los formatos que no admiten teselas (HEIC, AVIF…) se cargan como máximo al doble de la pantalla: siguen nítidos con zoom sin guardar el original completo.
+- Si el decodificador por teselas falla, la foto se abre igualmente de la forma normal.
+
+### 🎬 Vídeo 4K más fiable
+- **Corregido**: en móviles con poca memoria para Java, un 4K podía cortarse a los pocos segundos por falta de memoria. El búfer ahora se ajusta a la memoria disponible.
+- Al **arrastrar la barra** se ve el fotograma en tiempo real (fotogramas clave, rápidos incluso en 4K); al soltar, va al punto exacto.
+- Los vídeos de más de 3 minutos **continúan donde los dejaste**.
+- Si el móvil decodifica un vídeo grande por software y no da abasto, lo avisa una vez en vez de ir a saltos sin explicación.
+- Las estadísticas indican si el decodificador es por hardware o por software.
+
+### ✅ Verificado en el emulador
+- 4K H.264 y 1080p HEVC se reproducen los 20 s completos, con fotogramas mostrados y sin errores.
+- Foto de 12 MP con EXIF girado: teselas y orientación correcta; foto pequeña: carga normal.
+- El APK no crece: sin librerías nuevas.
+
+---
+
 # OpenManager v2.0.11: Gestión desde el Navegador, Renombrado por Lotes y Comparar Archivos
 
 ### 🌐 Acceso desde el navegador
