@@ -540,6 +540,9 @@ case "$inside" in
     *) fail "unexpected seatbelt result: $inside" ;;
 esac
 adb shell su 0 rm -f /system/om_belt_probe 2>/dev/null
+# Diagnostics: what this Android's tools accept for private propagation.
+adb shell "su 0 sh -c 'echo unshare=\$(command -v unshare) busybox=\$(command -v busybox); toybox --version 2>&1 | head -n1;
+  unshare -m sh -c \"mount --make-rprivate / ; echo make-rprivate=\\\$?; mount -o rprivate / ; echo o-rprivate=\\\$?; mount --make-private / ; echo make-private=\\\$?; mount -o private,rec / 2>&1; echo private-rec=\\\$?; grep -E \\\" / / | /dev | / /dev \\\" /proc/self/mountinfo | head -n 6\"'" 2>&1 | tr -d '\r' | sed 's/^/      diag: /' | tee -a "$REPORT" >/dev/null
 
 log "=== Two scripts at the same time ==="
 adb shell am force-stop $PKG; sleep 1
