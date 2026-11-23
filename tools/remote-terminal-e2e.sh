@@ -507,10 +507,21 @@ else
 fi
 
 log "=== Root seatbelt on a real Android kernel (adb root) ==="
-demo seatbelt_export
-for i in $(seq 1 15); do adb shell ls /sdcard/om_guard_test/om_seatbelt.sh >/dev/null 2>&1 && break; sleep 1; done
-# Root's view of /sdcard differs per namespace: run it from /data/local/tmp like a root tool would.
-adb shell cp /sdcard/om_guard_test/om_seatbelt.sh /data/local/tmp/om_seatbelt.sh
+# The exact script the app ships (RootSeatbelt.SCRIPT), rendered from the source.
+python3 - "$OUT/om_seatbelt.sh" <<'PY'
+import re, sys
+src = open("app/src/main/java/me/zhanghai/android/files/terminal/RootSeatbelt.kt").read()
+code = int(re.search(r"EXIT_UNAVAILABLE = (\d+)", src).group(1))
+mounts = re.search(r"READ_ONLY_MOUNTS = listOf\((.*?)\)", src, re.S).group(1)
+mounts = " ".join(re.findall(r'"([^"]+)"', mounts))
+body = src[src.index('val SCRIPT: String = """') + len('val SCRIPT: String = """'):src.index('""".trimMargin()')]
+lines = [m.group(1) for l in body.split("\n") for m in [re.match(r"^\s*\|(.*)$", l)] if m]
+text = "\n".join(lines) + "\n"
+text = text.replace("${'$'}", "$").replace("$EXIT_UNAVAILABLE", str(code))
+text = text.replace('${READ_ONLY_MOUNTS.joinToString(" ")}', mounts)
+open(sys.argv[1], "w").write(text)
+PY
+adb push "$OUT/om_seatbelt.sh" /data/local/tmp/om_seatbelt.sh >/dev/null
 log "      exported: $(adb shell ls -l /data/local/tmp/om_seatbelt.sh 2>&1 | tr -d '\r')"
 before=$(adb shell "ls /dev/block | wc -l" | tr -d '\r ')
 inside=$(adb shell "su 0 sh /data/local/tmp/om_seatbelt.sh /system/bin/sh -c 'echo entries=\$(ls /dev/block | wc -l) belt=\$OM_SEATBELT; touch /system/om_belt_probe 2>&1 | head -n 1'" 2>&1 | tr -d '\r')
