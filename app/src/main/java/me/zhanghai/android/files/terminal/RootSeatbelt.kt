@@ -49,7 +49,12 @@ object RootSeatbelt {
         |if [ "${'$'}1" = "--om-inside" ]; then
         |    shift
         |    # Our mounts must never reach the real system: make everything private, then verify.
-        |    mount --make-rprivate / 2>/dev/null || mount -o rprivate / 2>/dev/null
+        |    # busybox (Magisk/KernelSU/APatch) takes --make-rprivate; Android's toybox needs a source
+        |    # argument, or it looks the single path up in /etc/fstab.
+        |    { [ -n "${'$'}{OM_BB:-}" ] && "${'$'}OM_BB" mount --make-rprivate / 2>/dev/null; } ||
+        |        mount --make-rprivate / 2>/dev/null ||
+        |        mount -o rprivate none / 2>/dev/null ||
+        |        mount -o rec,private none / 2>/dev/null
         |    while read -r _id _parent _dev _root _point _opts _rest; do
         |        case "${'$'}_point" in
         |            /|/dev|/dev/block)
@@ -77,6 +82,11 @@ object RootSeatbelt {
         |done < /proc/self/status
         |[ "${'$'}_om_uid" = "0" ] || exec "${'$'}@"
         |[ "${'$'}{OM_SEATBELT:-0}" = "1" ] && exec "${'$'}@"
+        |OM_BB=""
+        |for _om_b in /data/adb/magisk/busybox /data/adb/ksu/bin/busybox /data/adb/ap/bin/busybox /system/xbin/busybox; do
+        |    if [ -x "${'$'}_om_b" ]; then OM_BB="${'$'}_om_b"; break; fi
+        |done
+        |export OM_BB
         |for _om_u in unshare /data/adb/magisk/busybox /data/adb/ksu/bin/busybox /data/adb/ap/bin/busybox /system/xbin/busybox; do
         |    case "${'$'}_om_u" in
         |        unshare) command -v unshare >/dev/null 2>&1 || continue; _om_cmd="unshare" ;;
