@@ -2291,6 +2291,7 @@
 
     <!-- OpenManager SuperuserStatusPreference Localization (Batch 2G) -->
     <string name="om_su_superuser_label">Superuser</string>
+    <string name="om_su_status_working">Working</string>
     <string name="om_su_exec_perm_tag">[Execution Permission]</string>
     <string name="om_su_detected_format">%1$s Detected</string>
     <string name="om_su_unauthorized_tag">[Unauthorized]</string>

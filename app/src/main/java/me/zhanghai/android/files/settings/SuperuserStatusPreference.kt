@@ -173,7 +173,7 @@ class SuperuserStatusPreference : Preference {
         ivIcon.imageTintList = android.content.res.ColorStateList.valueOf(0xFFB0BEC5.toInt())
         ivIcon.clearColorFilter()
         tvManagerHeader.visibility = View.GONE
-        tvStatus.text = "No Root"
+        tvStatus.text = context.getString(R.string.om_no_root)
         tvStatus.setTextColor(0xFFE2E8F0.toInt())
         tvJailbreakTag.visibility = View.GONE
         ivDfRootMini.visibility = View.GONE
@@ -229,7 +229,7 @@ class SuperuserStatusPreference : Preference {
                 tvManagerHeader.text = headerText
 
                 // Status beside icon
-                tvStatus.text = "Working"
+                tvStatus.text = context.getString(R.string.om_su_status_working)
                 tvStatus.setTextColor(0xFFFFFFFF.toInt())
 
                 when {
@@ -269,7 +269,7 @@ class SuperuserStatusPreference : Preference {
                 val modeStr = if (status.shizukuUid == 0) "Root API" else "ADB API"
                 tvManagerHeader.text = "Shizuku ($modeStr)"
 
-                tvStatus.text = "Working"
+                tvStatus.text = context.getString(R.string.om_su_status_working)
                 tvStatus.setTextColor(0xFFFFFFFF.toInt())
 
                 tvJailbreakTag.text = context.getString(R.string.om_su_exec_perm_tag)
@@ -301,7 +301,7 @@ class SuperuserStatusPreference : Preference {
                 tvManagerHeader.setTextColor(0xFF94A3B8.toInt())
                 tvManagerHeader.text = context.getString(R.string.om_su_detected_format, status.type.displayName)
 
-                tvStatus.text = "No Root"
+                tvStatus.text = context.getString(R.string.om_no_root)
                 tvStatus.setTextColor(0xFFE2E8F0.toInt())
 
                 tvJailbreakTag.text = context.getString(R.string.om_su_unauthorized_tag)
@@ -322,7 +322,7 @@ class SuperuserStatusPreference : Preference {
                 tvManagerHeader.setTextColor(0xFF38BDF8.toInt())
                 tvManagerHeader.text = context.getString(R.string.om_su_shizuku_detected)
 
-                tvStatus.text = "No Root"
+                tvStatus.text = context.getString(R.string.om_no_root)
                 tvStatus.setTextColor(0xFFE2E8F0.toInt())
 
                 tvJailbreakTag.text = context.getString(R.string.om_su_request_exec_perm_tag)
@@ -339,7 +339,7 @@ class SuperuserStatusPreference : Preference {
                 ivIcon.clearColorFilter()
 
                 tvManagerHeader.visibility = View.GONE
-                tvStatus.text = "No Root"
+                tvStatus.text = context.getString(R.string.om_no_root)
                 tvStatus.setTextColor(0xFFE2E8F0.toInt())
 
                 tvJailbreakTag.visibility = View.GONE

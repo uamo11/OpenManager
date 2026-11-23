@@ -1401,6 +1401,7 @@
     <string name="om_dec_success_format">已解密的文件：\n%1$s</string>
     <string name="om_dec_error_title">解密出错</string>
     <string name="om_su_superuser_label">超级用户</string>
+    <string name="om_su_status_working">正常工作</string>
     <string name="om_su_exec_perm_tag">[执行权限]</string>
     <string name="om_su_detected_format">检测到 %1$s</string>
     <string name="om_su_unauthorized_tag">[未授权]</string>
