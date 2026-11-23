@@ -1,3 +1,42 @@
+# OpenManager v2.0.9: Seguridad Root más Sólida y Avisos de Actualización Fiables
+
+### 🔔 Actualizaciones automáticas
+- El aviso de nueva versión ahora aparece **cada vez que abres la app**, también cuando Android la tenía en memoria. Antes solo se comprobaba al abrirla desde cero.
+- **Funciona también con el modo Ultra RAM**, que antes desactivaba la comprobación por completo.
+- La pausa entre comprobaciones bajó de 2 horas a 15 minutos. Cada comprobación es una petición mínima a GitHub.
+- Si la versión acaba de publicarse y su APK aún se está subiendo, la app espera al archivo en lugar de ofrecer una descarga que fallaría, y vuelve a mirar la próxima vez que la abras.
+- Si el aviso se cierra porque giraste la pantalla o Android cerró la app en segundo plano, vuelve a mostrarse.
+- "Más tarde" se respeta: no vuelve a preguntar al momento.
+
+### 🛡️ Sin root: sin interrupciones
+- Ya no aparece ninguna confirmación al ejecutar scripts sin root, tampoco para rutas como `/data/data`: Android ya las protege.
+- Solo se pide confirmación ante un **borrado masivo**: todo el almacenamiento, una carpeta principal (DCIM, Download, WhatsApp…) o más de 5.000 archivos.
+
+### 🔐 Con root
+- **DFRoot** bloquea cualquier cambio en el sistema o el arranque, no solo los borrados: `mv`, `cp`, `chmod`, `chown`, `chcon`, `ln -f`, `truncate` y remontar `/` o `/system` con escritura.
+- **Dead Man** bloquea acciones catastróficas como `chmod -R 777 /` o mover `/system/bin`.
+- Los scripts con root ya no preguntan en cada `rm`, salvo que elijas "Preguntar" para ese script.
+
+### 🧩 Módulos del kernel (`.ko`)
+- Antes de cargarlos se muestra qué son: nombre, autor, para qué kernel están compilados y si están firmados.
+- Se bloquean si son de otro kernel u otra CPU, también con `insmod -f`.
+- Con DFRoot se bloquean además si acceden a las particiones.
+
+### 🧱 Binarios ELF y scripts como root
+- Con Dead Man o DFRoot activos se ejecutan **aislados**: sin acceso a las particiones y con el sistema en solo lectura, solo para ese programa. El resto del teléfono no se ve afectado.
+- Si el aislamiento no se puede garantizar, no se monta nada.
+- Con DFRoot, un binario que carga código en el kernel no se ejecuta, porque ningún aislamiento lo contiene.
+
+### 🔒 Otros
+- Los comandos de prueba internos ya no se registran en la versión publicada.
+
+### ✅ Verificación
+- En el emulador, la app antigua ofreció la actualización con el modo Ultra RAM activado, respetó "Más tarde" y volvió a ofrecerla al reabrirla desde memoria. Después se instaló encima conservando los datos.
+- Sin root, un borrado normal no pidió nada; uno de 5.200 archivos pidió confirmación y "Bloquear" los conservó.
+- El aislamiento se probó con root real en el kernel de Android: dentro no había particiones y `/system` estaba en solo lectura; fuera, todo siguió igual.
+
+---
+
 # OpenManager v2.0.8: Archivos de la VPS junto a los del Móvil
 
 ### 🗂️ Explorador de la VPS desde la terminal

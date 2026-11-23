@@ -158,11 +158,13 @@ private fun createNotificationChannels() {
 }
 
 private fun initializeTerminalBinTools() {
-    if (PerformanceModeManager.isEnabled) return
+    val ultraRam = PerformanceModeManager.isEnabled
     AsyncTask.THREAD_POOL_EXECUTOR.execute {
-        try {
-            me.zhanghai.android.files.terminal.TerminalExpansionManager.ensureBinTools(application)
-        } catch (_: Throwable) {}
+        if (!ultraRam) {
+            try {
+                me.zhanghai.android.files.terminal.TerminalExpansionManager.ensureBinTools(application)
+            } catch (_: Throwable) {}
+        }
         try {
             me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(application)
         } catch (_: Throwable) {}

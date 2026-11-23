@@ -314,22 +314,25 @@ class FileListActivity : AppActivity() {
         setupBackPressedHandler()
         checkAutoCleanRecycleBin()
 
-        if (!PerformanceModeManager.isEnabled) {
-            me.zhanghai.android.files.update.UpdateChecker.ensureAutoUpdateDefaultMigrated(this)
-            if (savedInstanceState == null && Settings.AUTO_CHECK_UPDATES.valueCompat) {
-                me.zhanghai.android.files.update.UpdateChecker.checkUpdate(this, isManual = false)
-            }
-        }
-
         Settings.VISUAL_PERFORMANCE_MODE.observe(this) { applyPerformanceModePoolSizing(it) }
 
-        val demoFilter = IntentFilter("me.zhanghai.android.files.action.DEMO")
-        androidx.core.content.ContextCompat.registerReceiver(
-            this,
-            demoReceiver,
-            demoFilter,
-            androidx.core.content.ContextCompat.RECEIVER_EXPORTED
-        )
+        if (BuildConfig.DEBUG) {
+            // Test hooks only: any app could send this broadcast.
+            val demoFilter = IntentFilter("me.zhanghai.android.files.action.DEMO")
+            androidx.core.content.ContextCompat.registerReceiver(
+                this,
+                demoReceiver,
+                demoFilter,
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Every time the app is opened, also when Android kept it in memory, and in Ultra RAM mode
+        // too: the check is one small request after the first frame.
+        me.zhanghai.android.files.update.UpdateChecker.checkOnForeground(this)
     }
 
     override fun onStop() {
@@ -604,6 +607,7 @@ class FileListActivity : AppActivity() {
     }
 
     fun handleDemoAction(action: String) {
+        if (!BuildConfig.DEBUG) return
         android.util.Log.i("DemoReceiver", "Executing demo action: $action")
         window.decorView.postDelayed({
             try {
@@ -612,6 +616,10 @@ class FileListActivity : AppActivity() {
                     "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
                     "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
                     "create_choice" -> showCreateDialog()
+                    "update_cooldown_expire" ->
+                        androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).edit()
+                            .putLong(me.zhanghai.android.files.update.UpdateChecker.PREF_LAST_CHECK_TIME, 1L)
+                            .commit()
                     "show_update_dialog" -> {
                         val mockAsset = me.zhanghai.android.files.update.ReleaseAsset(
                             name = "OpenManager-v1.9.61-release.apk",

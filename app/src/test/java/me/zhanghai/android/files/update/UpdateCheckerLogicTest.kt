@@ -318,4 +318,18 @@ class UpdateCheckerLogicTest {
         assertEquals("com.miui.packageinstaller", UpdateChecker.pickInstaller(listOf("x.y", "com.miui.packageinstaller")))
         assertEquals(null, UpdateChecker.pickInstaller(emptyList()))
     }
+
+    @Test
+    fun autoCheckRunsAgainSoonAfterALastCheck() {
+        val now = 1_800_000_000_000L
+        val pause = UpdateChecker.AUTO_CHECK_COOLDOWN_MS
+        assertTrue(UpdateChecker.isAutoCheckDue(0L, now))
+        assertFalse(UpdateChecker.isAutoCheckDue(now - 60_000L, now))
+        assertTrue(UpdateChecker.isAutoCheckDue(now - pause, now))
+        // A release published an hour after the last check is still found when the app is opened.
+        assertTrue(UpdateChecker.isAutoCheckDue(now - 60 * 60_000L, now))
+        assertTrue(pause <= 30 * 60_000L)
+        // The clock went backwards: check instead of waiting until it catches up.
+        assertTrue(UpdateChecker.isAutoCheckDue(now + 60 * 60_000L, now))
+    }
 }

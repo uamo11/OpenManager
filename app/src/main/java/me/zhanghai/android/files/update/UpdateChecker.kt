@@ -95,7 +95,9 @@ object UpdateChecker {
     private const val PREF_SKIPPED_UPDATE_VERSION = "pref_skipped_update_version"
     private const val PREF_CACHED_ETAG = "pref_update_etag"
     private const val PREF_CACHED_RELEASE_JSON = "pref_update_cached_release_json"
-    private const val AUTO_CHECK_COOLDOWN_MS = 2 * 60 * 60 * 1000L // 2 hours
+    // Each check is one conditional request (a 304 does not count against GitHub's limit), so a
+    // short pause is enough to avoid asking again on every app switch.
+    const val AUTO_CHECK_COOLDOWN_MS = 15 * 60 * 1000L
     private const val AUTO_STARTUP_DELAY_MS = 2_500L
     private const val MIN_CLEANUP_AGE_MS = 15_000L
     private const val STALE_TMP_AGE_MS = 3_600_000L
@@ -107,6 +109,54 @@ object UpdateChecker {
 
     private val isCheckingUpdate = AtomicBoolean(false)
     private var activeUpdateDialogRef: WeakReference<AlertDialog>? = null
+
+    /** A release shown in a dialog the user has not answered yet (the activity went away first). */
+    @Volatile
+    private var unansweredRelease: ReleaseInfo? = null
+
+    /** True when an automatic check is due: never checked, or the last one is older than the pause. */
+    fun isAutoCheckDue(lastCheckMs: Long, nowMs: Long): Boolean =
+        lastCheckMs <= 0L || nowMs < lastCheckMs || nowMs - lastCheckMs >= AUTO_CHECK_COOLDOWN_MS
+
+    /**
+     * Called every time the explorer comes to the foreground, not only on a cold start: Android
+     * usually keeps the app in memory, so "opening" it again resumes the same activity.
+     */
+    fun checkOnForeground(activity: FragmentActivity) {
+        ensureAutoUpdateDefaultMigrated(activity)
+        if (!Settings.AUTO_CHECK_UPDATES.valueCompat || isDownloadingUpdate) return
+        if (activeUpdateDialogRef?.get()?.isShowing == true) return
+        val pending = unansweredRelease
+        if (pending != null && isVersionNewer(pending.version, BuildConfig.VERSION_NAME)) {
+            showUpdateDialog(activity, pending)
+            return
+        }
+        checkUpdate(activity, isManual = false)
+    }
+
+    /**
+     * The release can be visible on GitHub a few minutes before its APK finishes uploading. An
+     * automatic check waits for the file instead of offering a download that would fail.
+     */
+    private fun isApkPublished(releaseInfo: ReleaseInfo): Boolean {
+        val asset = releaseInfo.targetAsset
+        if (asset.size > 0L && releaseInfo.assets.any { it.name == asset.name }) return true
+        return try {
+            val conn = URL(asset.downloadUrl).openConnection() as HttpURLConnection
+            try {
+                conn.requestMethod = "HEAD"
+                conn.instanceFollowRedirects = false
+                conn.connectTimeout = 15000
+                conn.readTimeout = 15000
+                conn.setRequestProperty("User-Agent", "OpenManager-Android/${BuildConfig.VERSION_NAME}")
+                conn.responseCode in 200..399
+            } finally {
+                conn.disconnect()
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     data class ResumeDecision(
         val startOffset: Long,
@@ -846,11 +896,8 @@ object UpdateChecker {
         val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
         val now = System.currentTimeMillis()
 
-        if (!isManual) {
-            val lastCheck = prefs.getLong(PREF_LAST_CHECK_TIME, 0L)
-            if (now - lastCheck < AUTO_CHECK_COOLDOWN_MS) {
-                return
-            }
+        if (!isManual && !isAutoCheckDue(prefs.getLong(PREF_LAST_CHECK_TIME, 0L), now)) {
+            return
         }
 
         if (!isCheckingUpdate.compareAndSet(false, true)) {
@@ -882,6 +929,13 @@ object UpdateChecker {
                 }
 
                 val releaseInfo = fetchLatestRelease(activity)
+                if (!isManual && releaseInfo != null &&
+                    isVersionNewer(releaseInfo.version, BuildConfig.VERSION_NAME) &&
+                    !withContext(Dispatchers.IO) { isApkPublished(releaseInfo) }
+                ) {
+                    // Not recorded as checked: the next time the app is opened it looks again.
+                    return@launch
+                }
                 prefs.edit().putLong(PREF_LAST_CHECK_TIME, System.currentTimeMillis()).apply()
 
                 loadingDialog?.dismissSafely()
@@ -1009,6 +1063,8 @@ object UpdateChecker {
             .bindToLifecycle(activity)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         activeUpdateDialogRef = WeakReference(dialog)
+        unansweredRelease = releaseInfo
+        dialog.setOnCancelListener { unansweredRelease = null }
 
         val rootUpdateCard = view.findViewById<View>(R.id.rootUpdateCard)
         val tvUpdateTitle = view.findViewById<TextView>(R.id.tvUpdateTitle)
@@ -1087,10 +1143,12 @@ object UpdateChecker {
         }
 
         btnUpdateLater.setOnClickListener {
+            unansweredRelease = null
             dialog.dismissSafely()
         }
 
         btnUpdateSkip?.setOnClickListener {
+            unansweredRelease = null
             PreferenceManager.getDefaultSharedPreferences(activity).edit()
                 .putString(PREF_SKIPPED_UPDATE_VERSION, releaseInfo.version)
                 .apply()
@@ -1112,6 +1170,7 @@ object UpdateChecker {
         }
 
         btnUpdateDownload.setOnClickListener {
+            unansweredRelease = null
             dialog.dismissSafely()
             if (preDownloadedApk != null && isValidDownloadedApk(activity, preDownloadedApk, releaseInfo.targetAsset.size)) {
                 PreferenceManager.getDefaultSharedPreferences(activity).edit()

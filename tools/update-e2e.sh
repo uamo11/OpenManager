@@ -54,14 +54,50 @@ adb shell appops set $PKG MANAGE_EXTERNAL_STORAGE allow 2>/dev/null || true
 # The user-facing "allow installs from this app" switch.
 adb shell appops set $PKG REQUEST_INSTALL_PACKAGES allow 2>/dev/null || true
 
+BRANCH_BUILD=0; [ -f apk-to-test/old.apk ] && BRANCH_BUILD=1
+if [ $BRANCH_BUILD -eq 1 ]; then
+    # Ultra RAM mode used to switch the automatic check off completely.
+    adb shell am start -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_PERF_MODE on >/dev/null
+    sleep 4
+    adb shell am force-stop $PKG
+fi
 adb shell am start -n $PKG/me.zhanghai.android.files.filelist.FileListActivity >/dev/null
 if pos=$(wait_text 60 "Download & Install" "Descargar e instalar"); then
     shot 01_update_dialog
-    pass "the auto check found an update without user action"
-    adb shell input tap $pos
+    pass "the auto check found an update without user action (Ultra RAM mode on: $BRANCH_BUILD)"
 else
     shot 01_no_update_dialog
     fail "no update dialog appeared"
+fi
+if [ $BRANCH_BUILD -eq 1 ] && pos=$(find_text "Later" "LATER" "Más tarde" "MÁS TARDE"); then
+    # The usual case: the app stays in memory, so opening it again does not create the screen anew.
+    adb shell input tap $pos
+    sleep 2
+    adb shell input keyevent KEYCODE_HOME
+    sleep 2
+    adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+    if wait_text 10 "Download & Install" "Descargar e instalar" >/dev/null; then
+        shot 01b_asked_right_away
+        fail "the dialog came back right after Later"
+    else
+        pass "Later is respected when the app is reopened at once"
+    fi
+    adb shell input keyevent KEYCODE_HOME
+    sleep 2
+    # As if the pause had passed (a release published meanwhile).
+    adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action update_cooldown_expire >/dev/null
+    sleep 3
+    adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+    if wait_text 60 "Download & Install" "Descargar e instalar" >/dev/null; then
+        shot 01c_warm_reopen
+        pass "reopening the app from memory checks again and offers the update"
+    else
+        shot 01c_no_dialog_on_reopen
+        fail "reopening the app from memory did not offer the update"
+    fi
+fi
+if pos=$(find_text "Download & Install" "Descargar e instalar"); then
+    adb shell input tap $pos
 fi
 if pos=$(wait_text 180 "Install" "INSTALL" "Update" "UPDATE" "Instalar" "Actualizar" "Open with" "Abrir con"); then
     if find_text "Open with" "Abrir con" >/dev/null; then
