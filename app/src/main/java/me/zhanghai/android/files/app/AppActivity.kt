@@ -76,13 +76,6 @@ abstract class AppActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        if (openedFromOtherApp) {
-            leaveToIncomingFile()
-            return true
-        }
-        return super.onSupportNavigateUp()
-    }
 
     override fun onDestroy() {
         me.zhanghai.android.files.terminal.remote.RemotePrompter.detach(this)
@@ -133,6 +126,10 @@ abstract class AppActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean {
+        if (openedFromOtherApp) {
+            leaveToIncomingFile()
+            return true
+        }
         if (!super.onSupportNavigateUp()) {
             finish()
         }
