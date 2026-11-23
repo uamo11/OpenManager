@@ -507,6 +507,9 @@ done
 adb logcat -d > "$OUT/logcat_video.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat_video.txt"; then fail "crash during video playback"; fi
 
+log "=== Start-up cost (debug OMStartup log) ==="
+grep -h "OMStartup" "$OUT"/logcat*.txt 2>/dev/null | sed -E 's/^.*OMStartup: //' | sort | uniq -c | sort -rn | head -20 >> "$REPORT" || true
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

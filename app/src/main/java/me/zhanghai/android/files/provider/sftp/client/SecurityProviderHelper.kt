@@ -23,10 +23,20 @@ object SecurityProviderHelper {
 
     fun init() {
         synchronized(this) {
+            val start = System.nanoTime()
             val bouncyCastleProvider = BouncyCastleProvider()
             Security.removeProvider(bouncyCastleProvider.name)
             Security.addProvider(bouncyCastleProvider)
             initialized = true
+            if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+                runCatching {
+                    android.util.Log.i(
+                        "OMStartup",
+                        "BouncyCastle registered in ${(System.nanoTime() - start) / 1_000_000} ms on " +
+                            Thread.currentThread().name
+                    )
+                }
+            }
         }
     }
 
