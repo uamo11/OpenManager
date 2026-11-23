@@ -1,3 +1,24 @@
+# OpenManager v2.0.7: Abrir Archivos desde Otras Apps con un Toque
+
+### 📂 Abrir desde otras apps
+- OpenManager aparece **una sola vez** en "Abrir con", con el nombre de lo que hará: **Ver PDF**, **Ver imagen**, **Reproducir vídeo**, **Reproducir audio**, **Abrir texto** o **Ver documento**. Antes salían dos entradas (por ejemplo "OpenManager" y "Visor PDF").
+- El archivo se abre **directamente** en su visor, sin pasos intermedios.
+- **Atrás te deja en el explorador con el archivo seleccionado**, listo para guardarlo, copiarlo o moverlo al otro panel.
+- Comprimidos, APK y otros tipos aparecen como **Abrir en OpenManager** y van al explorador, donde están sus herramientas.
+- Si el texto tiene cambios sin guardar, se pregunta antes de salir, como siempre.
+
+### 🗂️ Archivos recibidos sin ruta (WhatsApp, Telegram, Gmail…)
+- Se copian a una carpeta **Recibidos** de la app en lugar de llenar `Descargas`, y las copias se borran solas a los 7 días. Un aviso indica que la copia es temporal: cópiala o muévela para conservarla.
+
+### 🖼️ Explorador
+- Las fotos abiertas desde el explorador van directas al visor integrado, deslizando entre las de la carpeta.
+- "Abrir con otra app" desde el visor de PDF ya no ofrece al propio OpenManager.
+
+### ✅ Verificación
+- En el emulador: PDF, imagen y texto aparecen una sola vez en "Abrir con", abren en su visor y al volver atrás se muestran seleccionados en el explorador.
+
+---
+
 # OpenManager v2.0.6: Varias Sesiones a la Vez, Claves SSH en un Toque, SFTP Verificado y Arranque más Rápido
 
 ### 🔑 Claves SSH sin salir del móvil (algo que MT Manager no tiene)
