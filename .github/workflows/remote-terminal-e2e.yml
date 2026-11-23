@@ -172,6 +172,8 @@ jobs:
         sudo udevadm control --reload-rules
         sudo udevadm trigger --name-match=kvm
     - name: Update on Emulator
+      env:
+        GH_TOKEN: ${{ github.token }}
       uses: reactivecircus/android-emulator-runner@v2
       with:
         api-level: 29

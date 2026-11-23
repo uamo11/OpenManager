@@ -36,7 +36,23 @@ installed_version() { adb shell dumpsys package $PKG | grep -m1 versionName | se
 adb wait-for-device
 while [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" != "1" ]; do sleep 3; done
 
-LATEST=$(curl -fsSL https://api.github.com/repos/uamo11/OpenManager/releases/latest | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])')
+# Latest tag: the API (with the workflow token when there is one, since anonymous calls from shared
+# runners hit the rate limit), else the tag /releases/latest redirects to.
+latest_tag() {
+    local auth=()
+    [ -n "${GH_TOKEN:-}" ] && auth=(-H "Authorization: Bearer $GH_TOKEN")
+    curl -fsSL "${auth[@]}" https://api.github.com/repos/uamo11/OpenManager/releases/latest 2>/dev/null \
+        | python3 -c 'import json,sys; print(json.load(sys.stdin)["tag_name"])' 2>/dev/null && return 0
+    curl -fsSI https://github.com/uamo11/OpenManager/releases/latest 2>/dev/null \
+        | tr -d '\r' | sed -n 's|^[Ll]ocation: .*/releases/tag/||p' | head -n1
+}
+LATEST=""
+for _ in 1 2 3 4 5; do
+    LATEST=$(latest_tag)
+    [ -n "$LATEST" ] && break
+    sleep 5
+done
+[ -n "$LATEST" ] || { echo "Could not find the latest release tag"; exit 1; }
 if [ -f apk-to-test/old.apk ]; then
     # This branch built as an "older" version: exercises the update code being shipped.
     OLD="this branch (built as 2.0.0)"
