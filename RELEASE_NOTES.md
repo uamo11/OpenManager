@@ -1,3 +1,48 @@
+# OpenManager v2.0.11: Gestión desde el Navegador, Renombrado por Lotes y Comparar Archivos
+
+### 🌐 Acceso desde el navegador
+- Gestiona los archivos del móvil **desde el navegador de un PC**, una tablet u otro móvil conectado a la misma Wi-Fi. Está en **Conexiones → Este dispositivo → Acceso desde el navegador**.
+- Desde la web puedes:
+  - navegar por las carpetas;
+  - ver fotos y vídeos (con avance y retroceso);
+  - descargar uno o varios archivos;
+  - **subir arrastrando archivos a la página**, con barra de progreso;
+  - crear carpetas, renombrar y borrar.
+- **Seguridad:**
+  - cada vez que se inicia se genera un **código de 8 caracteres**, y 10 intentos fallidos bloquean el acceso;
+  - solo se accede al almacenamiento del móvil;
+  - lo que se sube nunca sobrescribe nada sin preguntar;
+  - una página HTML subida no se ejecuta en el navegador.
+- La notificación muestra la dirección y el código, con un botón **Detener**.
+- No añade librerías: es un servidor propio muy ligero.
+
+### ✏️ Renombrado por lotes
+- Selecciona varios archivos y elige **Más → Renombrar por lotes**.
+- **Plantilla** con `{name}` (nombre actual), `{n}` (número con los dígitos que quieras) y `{ext}` (extensión). Por ejemplo, `Viaje {n}` da `Viaje 01.jpg`, `Viaje 02.jpg`…
+- **Buscar y reemplazar**, con expresiones regulares opcionales.
+- **Mayúsculas y minúsculas:** igual, minúsculas, MAYÚSCULAS o Tipo Título.
+- **Vista previa en vivo** de cada nombre, antiguo → nuevo, que marca los nombres vacíos, repetidos o que ya existen antes de renombrar nada.
+- Se pueden intercambiar o desplazar nombres (`1.jpg` → `2.jpg` → `3.jpg`) sin pisar ningún archivo. Si algo falla, todo vuelve a como estaba.
+
+### 🔍 Comparar archivos
+- Selecciona dos archivos y elige **Más → Comparar**. También puedes elegir **Comparar con el otro panel** si en el otro panel hay un archivo con el mismo nombre.
+- **Texto:** se muestran las líneas quitadas (rojo) y añadidas (verde) con contexto, y se pliegan los tramos sin cambios. Los botones **Cambio anterior / siguiente** saltan entre diferencias.
+- Si solo cambian los finales de línea (CRLF/LF), lo indica.
+- **Binarios:** tamaños, posición del primer byte distinto, número de bytes distintos y SHA-256 de ambos archivos.
+
+### 🧪 Pruebas
+- Los cierres de la herramienta de pruebas `uiautomator` ya no se cuentan como cierres de la app.
+
+### ✅ Verificación
+- En el emulador:
+  - el renombrado por lotes convirtió `IMG_00x.jpg` en `Viaje 0x.jpg` en orden y dejó intacto `keep.txt`;
+  - la comparación mostró `−1 +2` con la línea cambiada;
+  - desde el runner, sin código la app solo mostró el inicio de sesión;
+  - con el código se subió un archivo a `Download`, se listó, se descargó idéntico y se borró;
+  - una ruta fuera del almacenamiento devolvió 403.
+
+---
+
 # OpenManager v2.0.10: Archivos de la VPS más Claros y Fiables
 
 ### 🗂️ Archivos de la VPS
