@@ -510,6 +510,50 @@ if grep -q "FATAL EXCEPTION" "$OUT/logcat_video.txt"; then fail "crash during vi
 log "=== Start-up cost (debug OMStartup log) ==="
 grep -h "OMStartup" "$OUT"/logcat*.txt 2>/dev/null | sed -E 's/^.*OMStartup: //' | sort | uniq -c | sort -rn | head -20 >> "$REPORT" || true
 
+log "=== PDF received from another app ==="
+python3 - "$OUT/om_received.pdf" <<'PY'
+import sys
+objs = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        None, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+stream = b"BT /F1 24 Tf 40 100 Td (OpenManager PDF) Tj ET"
+out = bytearray(b"%PDF-1.4\n"); offsets = []
+for i, body in enumerate(objs, 1):
+    offsets.append(len(out))
+    if body is None:
+        out += b"%d 0 obj << /Length %d >> stream\n" % (i, len(stream)) + stream + b"\nendstream endobj\n"
+    else:
+        out += b"%d 0 obj " % i + body.encode() + b" endobj\n"
+xref = len(out)
+out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+for o in offsets: out += b"%010d 00000 n \n" % o
+out += b"trailer << /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
+open(sys.argv[1], "wb").write(out)
+PY
+adb shell mkdir -p /sdcard/Download/om_pdf_test
+adb push "$OUT/om_received.pdf" /sdcard/Download/om_pdf_test/om_received.pdf >/dev/null
+adb shell cmd package query-activities --brief -a android.intent.action.VIEW \
+    -d file:///sdcard/Download/om_pdf_test/om_received.pdf -t application/pdf > "$OUT/pdf_handlers.txt" 2>&1
+entries=$(grep -o "$PKG/[A-Za-z0-9_.]*" "$OUT/pdf_handlers.txt" | sort -u | wc -l | tr -d ' ')
+log "      OpenManager entries for a PDF: $entries"
+if [ "$entries" = "1" ]; then
+    pass "Android lists OpenManager once for a PDF (View PDF)"
+else
+    fail "OpenManager appears $entries times for a PDF"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -a android.intent.action.VIEW -t application/pdf \
+    -d file:///sdcard/Download/om_pdf_test/om_received.pdf -n $PKG/me.zhanghai.android.files.filelist.SmartOpenActivity >/dev/null
+sleep 5
+shot 17_pdf_from_other_app
+adb shell input keyevent KEYCODE_BACK; sleep 4
+shot 18_pdf_back_to_explorer
+if find_text "om_received.pdf" >/dev/null; then
+    pass "back from the PDF shows it in the explorer to copy or move"
+else
+    fail "back did not show the PDF in the explorer"
+fi
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

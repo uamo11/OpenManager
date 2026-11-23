@@ -2988,4 +2988,5 @@
     <string name="om_key_install_explain">OpenManager creará una clave Ed25519 para este perfil (o usará la que ya tiene), la añadirá a ~/.ssh/authorized_keys en %1$s escribiendo el comando en esta sesión, y la usará desde la próxima conexión. Hazlo con el prompt del shell, no dentro de un editor.</string>
     <string name="om_key_install_action">Instalar clave</string>
     <string name="om_key_installed_toast">Clave enviada al servidor. La próxima conexión la usará (la contraseña guardada queda de respaldo).</string>
+    <string name="om_open_view_pdf">Ver PDF</string>
 </resources>

@@ -3093,4 +3093,5 @@
     <string name="om_key_install_explain">OpenManager will create an Ed25519 key for this profile (or use its current one), add it to ~/.ssh/authorized_keys on %1$s by typing the command in this session, and use it from the next connection. Run it at the shell prompt, not inside an editor.</string>
     <string name="om_key_install_action">Install key</string>
     <string name="om_key_installed_toast">Key sent to the server. The next connection will use it (the saved password stays as a fallback).</string>
+    <string name="om_open_view_pdf">View PDF</string>
 </resources>

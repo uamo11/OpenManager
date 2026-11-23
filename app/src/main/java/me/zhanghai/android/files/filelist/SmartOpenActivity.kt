@@ -79,6 +79,8 @@ class SmartOpenActivity : AppActivity() {
 
     private fun openPdf(target: SmartUriPathResolver.ResolvedIncomingTarget) {
         val pdfIntent = Intent(this, PdfViewerActivity::class.java).apply {
+            // Opened from another app: back shows the PDF in the explorer to copy/move it.
+            putExtra(PdfViewerActivity.EXTRA_OPENED_FROM_OTHER_APP, true)
             val direct = target.directFile
             if (direct != null && direct.isFile && direct.canRead()) {
                 extraPath = Paths.get(direct.absolutePath)
