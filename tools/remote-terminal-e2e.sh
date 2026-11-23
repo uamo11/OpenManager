@@ -452,41 +452,79 @@ if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt"; then
     grep -A 20 "FATAL EXCEPTION" "$OUT/logcat.txt" | head -60 >> "$REPORT"
 fi
 
-log "=== Command guard: a script must ask BEFORE deleting ==="
+log "=== Command guard without root: ordinary deletions never ask ==="
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_guard_test
-demo guard_script
-if pos=$(wait_text 30 "Block" "Bloquear"); then
-    shot 14_guard_ask_dialog
-    if adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1; then
-        pass "file still exists while the user is being asked"
-    else
-        fail "file was deleted before the user answered"
-    fi
-    adb shell input tap $pos; sleep 4
-    ran=$(adb shell cat /sdcard/om_guard_test/script_ran.txt 2>/dev/null | tr -d '\r')
-    if adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1 && [ "$ran" = "rm exit=1" ]; then
-        pass "Block kept the file and the script continued (rm returned 1)"
-    else
-        fail "Block did not work (script_ran='$ran')"
-    fi
+demo guard_script; sleep 8
+shot 14_guard_no_root
+ran=$(adb shell cat /sdcard/om_guard_test/script_ran.txt 2>/dev/null | tr -d '\r')
+if find_text "Block" "Bloquear" >/dev/null; then
+    fail "a confirmation appeared for an ordinary deletion without root"
+elif ! adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1 && [ "$ran" = "rm exit=0" ]; then
+    pass "a script without root deletes a file with no confirmation"
 else
-    shot 14_guard_ask_missing
-    fail "no confirmation dialog for a script deletion"
+    fail "the script's deletion did not run (script_ran='$ran')"
 fi
+
+log "=== Command guard without root: a massive deletion asks first ==="
 adb shell am force-stop $PKG; sleep 1
-demo guard_script
-if pos=$(wait_text 30 "Allow" "Permitir"); then
-    adb shell input tap $pos; sleep 4
-    ran=$(adb shell cat /sdcard/om_guard_test/script_ran.txt 2>/dev/null | tr -d '\r')
-    if ! adb shell ls /sdcard/om_guard_test/victim.txt >/dev/null 2>&1 && [ "$ran" = "rm exit=0" ]; then
-        pass "Allow deleted the file"
+demo guard_mass
+for i in $(seq 1 60); do adb shell ls /sdcard/om_guard_test/mass_ready.txt >/dev/null 2>&1 && break; sleep 1; done
+if pos=$(wait_text 40 "Block" "Bloquear"); then
+    shot 14b_guard_mass_dialog
+    left=$(adb shell "ls /sdcard/om_guard_test/mass 2>/dev/null | wc -l" | tr -d '\r ')
+    log "      files while asking: $left"
+    if [ "${left:-0}" -gt 5000 ]; then
+        pass "nothing was deleted while asking about $left files"
     else
-        fail "Allow did not delete the file (script_ran='$ran')"
+        fail "files were deleted before the answer ($left left)"
+    fi
+    adb shell input tap $pos; sleep 4
+    ran=$(adb shell cat /sdcard/om_guard_test/mass_ran.txt 2>/dev/null | tr -d '\r')
+    left=$(adb shell "ls /sdcard/om_guard_test/mass 2>/dev/null | wc -l" | tr -d '\r ')
+    if [ "$ran" = "rm exit=1" ] && [ "${left:-0}" -gt 5000 ]; then
+        pass "Block kept the $left files and the script went on"
+    else
+        fail "Block did not keep the files (mass_ran='$ran', left=$left)"
     fi
 else
-    fail "no confirmation dialog on the second run"
+    shot 14b_guard_mass_missing
+    fail "no confirmation for deleting more than 5000 files"
 fi
+adb shell rm -rf /sdcard/om_guard_test/mass
+
+log "=== DFRoot (root, simulated in the debug build): changes to /system are blocked ==="
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+demo guard_dfroot; sleep 7
+ran=$(adb shell cat /sdcard/om_guard_test/dfroot_ran.txt 2>/dev/null | tr -d '\r')
+guard_log=$(adb logcat -d -s OMCommandGuard | grep -m1 "DFROOT")
+log "      $guard_log"
+if [ "$ran" = "chmod exit=1" ] && [ -n "$guard_log" ]; then
+    pass "DFRoot blocked 'chmod 755 /system/bin/sh' before it ran"
+else
+    fail "DFRoot did not block the chmod (dfroot_ran='$ran')"
+fi
+
+log "=== Root seatbelt on a real Android kernel (adb root) ==="
+demo seatbelt_export; sleep 3
+before=$(adb shell "ls /dev/block | wc -l" | tr -d '\r ')
+inside=$(adb shell "su 0 sh /sdcard/om_guard_test/om_seatbelt.sh /system/bin/sh -c 'echo entries=\$(ls /dev/block | wc -l) belt=\$OM_SEATBELT; touch /system/om_belt_probe 2>&1 | head -n 1'" 2>&1 | tr -d '\r')
+after=$(adb shell "ls /dev/block | wc -l" | tr -d '\r ')
+log "      /dev/block outside: $before -> $after; inside: $(echo "$inside" | tr '\n' ' ')"
+case "$inside" in
+    *"entries=0 belt=1"*)
+        if [ "$after" = "$before" ] && [ "${after:-0}" -gt 0 ]; then
+            pass "the seatbelt hides the partitions inside only, the phone keeps them"
+        else
+            fail "the seatbelt changed /dev/block outside ($before -> $after)"
+        fi ;;
+    *"No mount-namespace support"*|*"not private"*|*"Could not cover"*)
+        log "      (isolation not available on this emulator image; the app then refuses or warns)"
+        if [ "$after" = "$before" ]; then pass "without isolation nothing was mounted"; else fail "partial isolation leaked"; fi ;;
+    *) fail "unexpected seatbelt result: $inside" ;;
+esac
+adb shell su 0 rm -f /system/om_belt_probe 2>/dev/null
 
 log "=== Two scripts at the same time ==="
 adb shell am force-stop $PKG; sleep 1

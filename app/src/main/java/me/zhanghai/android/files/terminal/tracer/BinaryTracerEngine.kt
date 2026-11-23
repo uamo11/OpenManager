@@ -250,7 +250,10 @@ object BinaryTracerEngine {
     ) {
         totalDeletionsIntercepted.incrementAndGet()
         if (allowed) totalDeletionsAllowed.incrementAndGet() else totalDeletionsBlocked.incrementAndGet()
-        if (reason == me.zhanghai.android.files.provider.root.CommandGuard.Reason.POLICY_ASK) {
+        if (reason == me.zhanghai.android.files.provider.root.CommandGuard.Reason.POLICY_ASK ||
+            reason == me.zhanghai.android.files.provider.root.CommandGuard.Reason.MASS_DELETE ||
+            reason == me.zhanghai.android.files.provider.root.CommandGuard.Reason.KERNEL_MODULE
+        ) {
             totalAsked.incrementAndGet()
         }
         val targets = analysis.targets.joinToString("\n") { it.path }.ifEmpty { cwd }

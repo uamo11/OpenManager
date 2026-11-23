@@ -51,6 +51,7 @@ import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.terminal.ScriptExecutionManager
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.terminal.tracer.ScriptTracerPreferences
+import me.zhanghai.android.files.terminal.RootSeatbelt
 import me.zhanghai.android.files.terminal.TerminalExpansionManager
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.util.escapeShellArg
@@ -1030,7 +1031,8 @@ object ScriptRunnerHelper {
         btnAction4.text = activity.getString(R.string.script_action_execute)
         btnAction4.setTextColor(if (palette.isDark) Color.parseColor("#4CAF50") else Color.parseColor("#2E7D32"))
         fun runWithAuditCheck(report: ScriptAuditReport?, content: String) {
-            if (report != null && report.totalFindings > 0) {
+            // Without root Android already protects the system: no warning screens, just run it.
+            if (report != null && report.totalFindings > 0 && willRunAsRoot(activity)) {
                 showPreExecutionAuditWarningDialog(
                     activity = activity,
                     path = path,
@@ -1231,7 +1233,7 @@ object ScriptRunnerHelper {
             return
         }
 
-        if (DeadManProtectionManager.isDfrootProtectionActive(activity)) {
+        if (willRunAsRoot(activity) && DeadManProtectionManager.isDfrootProtectionActive(activity)) {
             val isCriticalScript = runCatching {
                 if (!isElfBinary(path)) {
                     val snippet = path.newInputStream().use { stream ->
@@ -1271,6 +1273,12 @@ object ScriptRunnerHelper {
         }
 
         checkConflictAndExecute(activity, path)
+    }
+
+    /** The next run will use root (root available and "run as root" chosen). */
+    fun willRunAsRoot(context: Context): Boolean {
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return sp.getBoolean(KEY_EXEC_ROOT, false) && TerminalExpansionManager.isRootAvailable()
     }
 
     private fun checkConflictAndExecute(activity: Activity, path: Path) {
@@ -1322,15 +1330,38 @@ object ScriptRunnerHelper {
             Toast.makeText(activity, R.string.om_script_runner_termex_unavailable, Toast.LENGTH_SHORT).show()
         }
 
+        val deadMan = DeadManProtectionManager.isDeadManProtectionActive(activity)
+        val dfroot = DeadManProtectionManager.isDfrootProtectionActive(activity)
         if (isElf) {
             val binName = File(scriptPath).name
             execCmd = if (withRoot) {
-                if (scriptPath.startsWith("/storage/") || scriptPath.startsWith("/sdcard/")) {
-                    val tmpPath = "/data/local/tmp/$binName"
-                    "cp -f ${scriptPath.escapeShellArg()} ${tmpPath.escapeShellArg()} 2>/dev/null && chmod 755 ${tmpPath.escapeShellArg()} 2>/dev/null; ${tmpPath.escapeShellArg()}"
-                } else {
-                    "chmod 755 ${scriptPath.escapeShellArg()} 2>/dev/null; ${scriptPath.escapeShellArg()}"
+                val elf = runCatching { ElfInspector.inspect(path) }.getOrNull()
+                val plan = RootSeatbelt.planForElf(
+                    elf?.findings?.map { it.symbol }?.toSet().orEmpty(),
+                    elf?.systemCalls.orEmpty(),
+                    deadMan, dfroot
+                )
+                if (plan.refuse) {
+                    MaterialAlertDialogBuilder(activity)
+                        .setTitle(R.string.om_guard_elf_refused_title)
+                        .setMessage(R.string.om_guard_elf_refused_kernel)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                    return
                 }
+                val (prep, target) = if (scriptPath.startsWith("/storage/") || scriptPath.startsWith("/sdcard/")) {
+                    val tmpPath = "/data/local/tmp/$binName"
+                    "cp -f ${scriptPath.escapeShellArg()} ${tmpPath.escapeShellArg()} 2>/dev/null && chmod 755 ${tmpPath.escapeShellArg()} 2>/dev/null" to tmpPath
+                } else {
+                    "chmod 755 ${scriptPath.escapeShellArg()} 2>/dev/null" to scriptPath
+                }
+                // Dead Man / DFRoot: the binary runs with partitions hidden and the OS read-only.
+                val run = if (plan.isolate) {
+                    RootSeatbelt.wrap(activity, target.escapeShellArg(), plan.isolationRequired)
+                } else {
+                    target.escapeShellArg()
+                }
+                "$prep; $run"
             } else if (isBashUsable) {
                 val termexDir = File(activity.filesDir, "termex")
                 val termexTmp = File(termexDir, "tmp").apply { mkdirs() }
@@ -1369,7 +1400,15 @@ object ScriptRunnerHelper {
         } else {
             val shell = if (isBashUsable) "bash" else "sh"
             execCmd = if (withRoot) {
-                "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null; $shell ${scriptPath.escapeShellArg()}"
+                val prep = "chmod 777 ${scriptPath.escapeShellArg()} 2>/dev/null"
+                if (deadMan || dfroot) {
+                    // The guard sees the script's commands; the belt also covers what it cannot
+                    // see (redirections into /dev/block, binaries the script starts).
+                    val inner = "$shell -c '. \"\$OM_GUARD_RC\" 2>/dev/null; . \"\$0\"' ${scriptPath.escapeShellArg()}"
+                    "$prep; ${RootSeatbelt.wrap(activity, inner, required = false)}"
+                } else {
+                    "$prep; $shell ${scriptPath.escapeShellArg()}"
+                }
             } else {
                 "$shell ${scriptPath.escapeShellArg()}"
             }

@@ -551,10 +551,48 @@ class FileListActivity : AppActivity() {
                 me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
                     context = this,
                     path = dir.absolutePath,
-                    // Relative path from "/": only path resolution can tell this is /system.
-                    command = "cd / && rm -rf system/om_fake_dir; echo \"rm exit=\$?\" > /sdcard/om_guard_test/deadman_ran.txt"
+                    // Relative path from "/": only path resolution can tell this is /system. The
+                    // emulator app has no root, so the debug build lets the guard treat it as root.
+                    command = "export OM_GUARD_SIM_ROOT=1; cd / && rm -rf system/om_fake_dir; " +
+                        "echo \"rm exit=\$?\" > /sdcard/om_guard_test/deadman_ran.txt"
                 )
             )
+            "guard_dfroot" -> startActivity(
+                me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                    context = this,
+                    path = dir.absolutePath,
+                    command = "export OM_GUARD_SIM_ROOT=1; chmod 755 /system/bin/sh; " +
+                        "echo \"chmod exit=\$?\" > /sdcard/om_guard_test/dfroot_ran.txt"
+                )
+            )
+            "guard_mass" -> {
+                // More files than the "massive" threshold, deleted by a script without root.
+                Thread {
+                    val mass = java.io.File(dir, "mass").apply { mkdirs() }
+                    for (i in 0 until me.zhanghai.android.files.provider.root.CommandGuard.MASS_DELETE_THRESHOLD + 200) {
+                        java.io.File(mass, "f$i.txt").writeText("x")
+                    }
+                    val script = java.io.File(dir, "wipe_mass.sh")
+                    script.writeText(
+                        "#!/system/bin/sh\n" +
+                            "rm -rf /sdcard/om_guard_test/mass\n" +
+                            "echo \"rm exit=\$?\" > /sdcard/om_guard_test/mass_ran.txt\n"
+                    )
+                    java.io.File(dir, "mass_ready.txt").writeText("ready")
+                    runOnUiThread {
+                        startActivity(
+                            me.zhanghai.android.files.terminal.TerminalActivity.createIntent(
+                                context = this,
+                                path = dir.absolutePath,
+                                command = "sh '${script.absolutePath}'",
+                                activeScriptPath = script.absolutePath
+                            )
+                        )
+                    }
+                }.start()
+            }
+            "seatbelt_export" -> java.io.File(dir, me.zhanghai.android.files.terminal.RootSeatbelt.SCRIPT_NAME)
+                .writeText(me.zhanghai.android.files.terminal.RootSeatbelt.SCRIPT)
         }
     }
 
@@ -661,7 +699,8 @@ class FileListActivity : AppActivity() {
                             fragmentB.navigateTo(java8.nio.file.Paths.get("/data"))
                         }
                     }
-                    "guard_script", "guard_deadman", "multi_sessions" -> handleGuardDemo(action)
+                    "guard_script", "guard_deadman", "guard_dfroot", "guard_mass", "seatbelt_export",
+                    "multi_sessions" -> handleGuardDemo(action)
                     "remote_profiles", "remote_add_sheet", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
                         handleRemoteTerminalDemo(action)
                     "terminal" -> {

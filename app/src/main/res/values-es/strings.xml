@@ -2998,4 +2998,31 @@
     <string name="om_remote_files_menu">Archivos de la VPS</string>
     <string name="om_remote_files_opening">Abriendo los archivos de %1$s…</string>
     <string name="om_remote_files_error_title">No se pudieron abrir los archivos de la VPS</string>
+    <string name="om_guard_reason_kernel_mismatch">El módulo no encaja con este kernel: %1$s</string>
+    <string name="om_guard_reason_unprivileged">Sin root Android protege el sistema</string>
+    <string name="om_guard_mass_title_many">¿Borrar más de %1$d archivos?</string>
+    <string name="om_guard_mass_title_storage">¿Borrar una carpeta entera del almacenamiento?</string>
+    <string name="om_guard_mass_note">Esto elimina de golpe una gran parte de tus archivos y no se puede deshacer.</string>
+    <string name="om_guard_module_title">¿Cargar este módulo en el kernel?</string>
+    <string name="om_guard_module_unload_title">¿Descargar este módulo del kernel?</string>
+    <string name="om_guard_module_name">Módulo: %1$s</string>
+    <string name="om_guard_module_description">Descripción: %1$s</string>
+    <string name="om_guard_module_author">Autor: %1$s</string>
+    <string name="om_guard_module_license">Licencia: %1$s</string>
+    <string name="om_guard_module_built_for">Compilado para: %1$s (%2$s)</string>
+    <string name="om_guard_module_this_kernel">Este teléfono: %1$s</string>
+    <string name="om_guard_module_depends">Necesita: %1$s</string>
+    <string name="om_guard_module_signed">Módulo firmado</string>
+    <string name="om_guard_module_unsigned">Sin firmar</string>
+    <string name="om_guard_module_partitions">⚠ Accede a las particiones del almacenamiento (dispositivos de bloque).</string>
+    <string name="om_guard_module_unreadable">No se pudo leer %1$s para comprobarlo.</string>
+    <string name="om_guard_module_note">Un módulo se ejecuta dentro del kernel sin ningún límite: si falla, congela o reinicia el teléfono. Tras reiniciar no queda nada, salvo que escriba en las particiones.</string>
+    <string name="om_guard_module_unload_note">Descargar un controlador en uso puede congelar el teléfono hasta que se reinicie.</string>
+    <string name="om_guard_module_blocked_toast">Módulo del kernel bloqueado: %1$s</string>
+    <string name="om_guard_elf_refused_title">No ejecutado: protección DFRoot</string>
+    <string name="om_guard_elf_refused_kernel">Este binario carga código en el kernel (init_module o kexec). El código del kernel se salta cualquier protección, así que con DFRoot activo no se ejecuta como root. Desactiva la protección DFRoot en Ajustes si confías en él.</string>
+    <plurals name="om_guard_mass_title_count">
+        <item quantity="one">¿Borrar %d archivo?</item>
+        <item quantity="other">¿Borrar %d archivos?</item>
+    </plurals>
 </resources>

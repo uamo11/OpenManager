@@ -1037,7 +1037,12 @@ class TerminalActivity : AppActivity() {
         // Switching to a local shell: a later recreation must not reopen the old connection.
         intent.removeExtra(EXTRA_REMOTE_PROFILE_ID)
 
-        if (!initialCommand.isNullOrEmpty() &&
+        // Only a root shell can harm the system; without root Android already refuses.
+        val rootRequested = forceRootOverride
+            ?: (if (intent.hasExtra(EXTRA_FORCE_ROOT)) intent.getBooleanExtra(EXTRA_FORCE_ROOT, false) else null)
+            ?: TerminalSettings.isRootSession(this)
+        val willBeRoot = rootRequested && TerminalExpansionManager.isRootAvailable()
+        if (!initialCommand.isNullOrEmpty() && willBeRoot &&
             DeadManProtectionManager.isDfrootProtectionActive(this) &&
             DeadManProtectionManager.containsDangerousSystemCommand(initialCommand)
         ) {

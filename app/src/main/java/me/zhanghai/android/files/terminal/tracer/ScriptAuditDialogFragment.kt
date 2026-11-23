@@ -145,13 +145,19 @@ class ScriptAuditDialogFragment : BottomSheetDialogFragment() {
         val label = view.findViewById<TextView>(R.id.auditPolicyLabel)
         val perScript = scriptPath.isNotEmpty() && File(scriptPath).isFile
         switch.isChecked = ScriptTracerPreferences.isTracerEnabled(context, scriptPath)
-        toggle.check(
-            when (ScriptTracerPreferences.getDeletionPolicy(context, scriptPath)) {
-                ScriptTracerPreferences.DeletionPolicy.ASK -> R.id.policyAsk
-                ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> R.id.policyBlock
-                ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> R.id.policyAllow
-            }
-        )
+        // Nothing picked: only the automatic protections apply (mass deletions, Dead Man, DFRoot).
+        if (ScriptTracerPreferences.hasDeletionPolicy(context, scriptPath)) {
+            toggle.check(
+                when (ScriptTracerPreferences.getDeletionPolicy(context, scriptPath)) {
+                    ScriptTracerPreferences.DeletionPolicy.ASK -> R.id.policyAsk
+                    ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> R.id.policyBlock
+                    ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> R.id.policyAllow
+                }
+            )
+        } else {
+            toggle.isSelectionRequired = false
+            toggle.clearChecked()
+        }
         fun syncEnabled() {
             val enabled = perScript && switch.isChecked
             toggle.isEnabled = enabled

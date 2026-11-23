@@ -55,6 +55,13 @@ object ScriptTracerPreferences {
         }
     }
 
+    /** The user picked a deletion policy for this script (otherwise only the automatic protections apply). */
+    fun hasDeletionPolicy(context: Context, scriptPath: String?): Boolean {
+        if (scriptPath.isNullOrEmpty()) return false
+        val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return sp.contains(PREFIX_DELETION_POLICY + getScriptKey(scriptPath))
+    }
+
     fun setDeletionPolicy(context: Context, scriptPath: String?, policy: DeletionPolicy) {
         if (scriptPath.isNullOrEmpty()) return
         val sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

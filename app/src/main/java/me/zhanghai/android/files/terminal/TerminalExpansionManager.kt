@@ -324,7 +324,7 @@ object TerminalExpansionManager {
                     }
                 fi
 
-                export -f _om_guard rm rmdir unlink find dd busybox toybox mkfs mke2fs make_ext4fs wipefs blkdiscard flash_image 2>/dev/null || true
+                export -f _om_is_root _om_guard _om_outside_user rm rmdir unlink find dd mv cp install chmod chown chgrp chcon ln truncate mount insmod modprobe rmmod busybox toybox mkfs mke2fs make_ext4fs wipefs blkdiscard flash_image 2>/dev/null || true
             """.trimIndent() + "\n"
             if (!initFile.exists() || initFile.readText() != rcContent) {
                 initFile.writeText(rcContent)
@@ -332,18 +332,46 @@ object TerminalExpansionManager {
             }
             val guardFile = File(context.filesDir, GUARD_RC_NAME)
             val guardContent = """
-                # OpenManager command guard: destructive commands ask the app *before* running.
+                # OpenManager command guard: risky commands ask the app *before* running.
                 # The app answers through ${'$'}OM_GUARD_DIR (see CommandGuardServer); nothing is printed unless
-                # something is blocked.
+                # something is blocked. Without root Android already protects the system, so only recursive
+                # deletions (which can wipe the user's own files) are looked at, and nothing else waits.
+                # Asked once per shell (not exported: a root shell started from a user one must re-check).
+                _om_is_root() {
+                    [ "${'$'}{OM_GUARD_SIM_ROOT:-0}" = "1" ] && return 0
+                    [ "${'$'}{_om_uid:=${'$'}(id -u 2>/dev/null || echo 0)}" = "0" ]
+                }
+
                 _om_guard() {
                     [ "${'$'}{OM_GUARD_ON:-0}" = "1" ] && [ -n "${'$'}OM_GUARD_DIR" ] && [ -d "${'$'}OM_GUARD_DIR" ] || return 0
+                    if ! _om_is_root; then
+                        _om_c="${'$'}1"
+                        case "${'$'}_om_c" in busybox|toybox) _om_c="${'$'}2" ;; esac
+                        case "${'$'}_om_c" in
+                            rm)
+                                _om_r=0
+                                for _om_a in "${'$'}@"; do
+                                    case "${'$'}_om_a" in
+                                        --) break ;;
+                                        --recursive) _om_r=1 ;;
+                                        --*) ;;
+                                        -*[rR]*) _om_r=1 ;;
+                                    esac
+                                done
+                                [ "${'$'}_om_r" = "1" ] || return 0 ;;
+                            find) ;;
+                            *) return 0 ;;
+                        esac
+                    fi
                     _om_id="${'$'}${'$'}_${'$'}{RANDOM:-0}_${'$'}(date +%s 2>/dev/null)"
-                    printf '%s\0' "${'$'}PWD" "${'$'}@" > "${'$'}OM_GUARD_DIR/.q_${'$'}_om_id" 2>/dev/null || return 0
+                    printf '%s\0' "@om2" "${'$'}{OM_GUARD_SIM_ROOT:-0}" "${'$'}PWD" "${'$'}@" > "${'$'}OM_GUARD_DIR/.q_${'$'}_om_id" 2>/dev/null || return 0
                     command mv -f "${'$'}OM_GUARD_DIR/.q_${'$'}_om_id" "${'$'}OM_GUARD_DIR/req.${'$'}_om_id" 2>/dev/null || return 0
                     _om_t=0
                     while [ ! -f "${'$'}OM_GUARD_DIR/ans.${'$'}_om_id" ]; do
                         if [ "${'$'}_om_t" -ge 40 ] && [ -f "${'$'}OM_GUARD_DIR/req.${'$'}_om_id" ]; then
                             command rm -f "${'$'}OM_GUARD_DIR/req.${'$'}_om_id" 2>/dev/null
+                            # Root fails closed (the OS is at stake); without root only user files are, so go on.
+                            ! _om_is_root && return 0
                             echo "[OpenManager] Protection unavailable, blocked: ${'$'}*" >&2
                             return 1
                         fi
@@ -357,6 +385,21 @@ object TerminalExpansionManager {
                         allow*) return 0 ;;
                     esac
                     echo "[OpenManager] Blocked: ${'$'}* -- ${'$'}{_om_ans#block }" >&2
+                    return 1
+                }
+
+                # Root only: does this change reach outside the user's storage? (pure shell, no process started,
+                # so copying files around /sdcard as root costs nothing).
+                _om_outside_user() {
+                    _om_is_root || return 1
+                    case "${'$'}PWD" in /storage/*|/sdcard|/sdcard/*|/data/local/tmp|/data/local/tmp/*|/data/media/*) ;; *) return 0 ;; esac
+                    for _om_a in "${'$'}@"; do
+                        case "${'$'}_om_a" in
+                            *..*) return 0 ;;
+                            /storage/*|/sdcard/*|/data/local/tmp/*|/data/media/*) ;;
+                            /*) return 0 ;;
+                        esac
+                    done
                     return 1
                 }
 
@@ -375,15 +418,36 @@ object TerminalExpansionManager {
                     esac
                     command dd "${'$'}@"
                 }
+                mv() { if _om_outside_user "${'$'}@"; then _om_guard mv "${'$'}@" || return 1; fi; command mv "${'$'}@"; }
+                cp() { if _om_outside_user "${'$'}@"; then _om_guard cp "${'$'}@" || return 1; fi; command cp "${'$'}@"; }
+                install() { if _om_outside_user "${'$'}@"; then _om_guard install "${'$'}@" || return 1; fi; command install "${'$'}@"; }
+                chmod() { if _om_outside_user "${'$'}@"; then _om_guard chmod "${'$'}@" || return 1; fi; command chmod "${'$'}@"; }
+                chown() { if _om_outside_user "${'$'}@"; then _om_guard chown "${'$'}@" || return 1; fi; command chown "${'$'}@"; }
+                chgrp() { if _om_outside_user "${'$'}@"; then _om_guard chgrp "${'$'}@" || return 1; fi; command chgrp "${'$'}@"; }
+                chcon() { if _om_outside_user "${'$'}@"; then _om_guard chcon "${'$'}@" || return 1; fi; command chcon "${'$'}@"; }
+                ln() { if _om_outside_user "${'$'}@"; then _om_guard ln "${'$'}@" || return 1; fi; command ln "${'$'}@"; }
+                truncate() { if _om_outside_user "${'$'}@"; then _om_guard truncate "${'$'}@" || return 1; fi; command truncate "${'$'}@"; }
+                mount() { if _om_is_root && [ ${'$'}# -gt 0 ]; then _om_guard mount "${'$'}@" || return 1; fi; command mount "${'$'}@"; }
+                insmod() { if _om_is_root; then _om_guard insmod "${'$'}@" || return 1; fi; command insmod "${'$'}@"; }
+                modprobe() { if _om_is_root; then _om_guard modprobe "${'$'}@" || return 1; fi; command modprobe "${'$'}@"; }
+                rmmod() { if _om_is_root; then _om_guard rmmod "${'$'}@" || return 1; fi; command rmmod "${'$'}@"; }
                 busybox() {
                     case "${'$'}1" in
                         rm|rmdir|unlink|find|dd|mkfs*|mke2fs|wipefs|blkdiscard) _om_guard busybox "${'$'}@" || return 1 ;;
+                        mv|cp|install|chmod|chown|chgrp|chcon|ln|truncate)
+                            if _om_outside_user "${'$'}@"; then _om_guard busybox "${'$'}@" || return 1; fi ;;
+                        mount|insmod|modprobe|rmmod)
+                            if _om_is_root; then _om_guard busybox "${'$'}@" || return 1; fi ;;
                     esac
                     command busybox "${'$'}@"
                 }
                 toybox() {
                     case "${'$'}1" in
                         rm|rmdir|unlink|find|dd|mkfs*|mke2fs|wipefs|blkdiscard) _om_guard toybox "${'$'}@" || return 1 ;;
+                        mv|cp|install|chmod|chown|chgrp|chcon|ln|truncate)
+                            if _om_outside_user "${'$'}@"; then _om_guard toybox "${'$'}@" || return 1; fi ;;
+                        mount|insmod|modprobe|rmmod)
+                            if _om_is_root; then _om_guard toybox "${'$'}@" || return 1; fi ;;
                     esac
                     command toybox "${'$'}@"
                 }
@@ -428,8 +492,9 @@ object TerminalExpansionManager {
         val deletionPolicy = ScriptTracerPreferences.getDeletionPolicy(context, activeScriptPath)
         val deadManActive = DeadManProtectionManager.isDeadManProtectionActive(context)
         val dfrootActive = DeadManProtectionManager.isDfrootProtectionActive(context)
-        // The guard runs whenever something can decide: tracer policy, Dead Man or DFRoot.
-        val guardOn = tracerEnabled || deadManActive || dfrootActive
+        // Always on: without root it only looks at recursive deletions (massive ones ask), with root
+        // Dead Man / DFRoot / the script's policy decide. Everything else returns in the shell.
+        val guardOn = true
         val guardDir = me.zhanghai.android.files.terminal.tracer.CommandGuardServer.ensureStarted(context)
         me.zhanghai.android.files.terminal.tracer.CommandGuardServer.onNewSession()
         val guardRc = File(context.filesDir, GUARD_RC_NAME).absolutePath

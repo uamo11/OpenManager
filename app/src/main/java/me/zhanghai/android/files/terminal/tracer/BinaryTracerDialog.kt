@@ -84,10 +84,12 @@ class BinaryTracerDialog : DialogFragment() {
 
         // Deletion Policy Radio Group
         val currentPolicy = ScriptTracerPreferences.getDeletionPolicy(ctx, scriptPath)
-        when (currentPolicy) {
-            ScriptTracerPreferences.DeletionPolicy.ASK -> rbAsk.isChecked = true
-            ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> rbBlock.isChecked = true
-            ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> rbAllow.isChecked = true
+        if (ScriptTracerPreferences.hasDeletionPolicy(ctx, scriptPath)) {
+            when (currentPolicy) {
+                ScriptTracerPreferences.DeletionPolicy.ASK -> rbAsk.isChecked = true
+                ScriptTracerPreferences.DeletionPolicy.BLOCK_ALL -> rbBlock.isChecked = true
+                ScriptTracerPreferences.DeletionPolicy.ALLOW_ALL -> rbAllow.isChecked = true
+            }
         }
 
         rgPolicy.setOnCheckedChangeListener { _, checkedId ->

@@ -21,6 +21,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.NotificationIds
 import me.zhanghai.android.files.provider.root.CommandGuard
+import me.zhanghai.android.files.provider.root.KernelModuleInspector
 import me.zhanghai.android.files.terminal.TerminalActivity
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.NotificationChannelTemplate
@@ -58,6 +59,14 @@ object GuardPrompter {
 
     enum class Answer { ALLOW, ALLOW_SESSION, BLOCK, NO_SCREEN }
 
+    /** Why the user is asked, and what the app found out, for the message. */
+    data class Details(
+        val reason: CommandGuard.Reason = CommandGuard.Reason.POLICY_ASK,
+        val deletedCount: Int? = null,
+        val module: KernelModuleInspector.Info? = null,
+        val moduleProblem: String? = null
+    )
+
     private val mainHandler = Handler(Looper.getMainLooper())
 
     @Volatile
@@ -66,7 +75,8 @@ object GuardPrompter {
     private class Pending(
         val commandLine: String,
         val cwd: String,
-        val analysis: CommandGuard.Analysis
+        val analysis: CommandGuard.Analysis,
+        val details: Details
     ) {
         val result = AtomicReference<Answer?>(null)
         val latch = CountDownLatch(1)
@@ -95,8 +105,14 @@ object GuardPrompter {
     }
 
     /** Blocks the calling (guard) thread until the user decides. */
-    fun ask(context: Context, commandLine: String, cwd: String, analysis: CommandGuard.Analysis): Answer {
-        val request = Pending(commandLine, cwd, analysis)
+    fun ask(
+        context: Context,
+        commandLine: String,
+        cwd: String,
+        analysis: CommandGuard.Analysis,
+        details: Details = Details()
+    ): Answer {
+        val request = Pending(commandLine, cwd, analysis, details)
         pending = request
         mainHandler.post {
             val activity = hostRef?.get()
@@ -137,24 +153,81 @@ object GuardPrompter {
         CommandGuard.Zone.OTHER -> R.string.om_guard_zone_other
     }
 
-    private fun showDialog(activity: Activity, request: Pending) {
-        if (request.result.get() != null || !activity.isUiAlive || request.dialog?.isShowing == true) return
-        NotificationManagerCompat.from(activity).cancel(NotificationIds.COMMAND_GUARD)
-        val message = activity.getString(
+    private fun titleFor(context: Context, request: Pending): String = when (request.details.reason) {
+        CommandGuard.Reason.MASS_DELETE -> {
+            val count = request.details.deletedCount
+            if (count != null && count >= CommandGuard.MASS_DELETE_THRESHOLD) {
+                context.getString(R.string.om_guard_mass_title_many, CommandGuard.MASS_DELETE_THRESHOLD)
+            } else if (count != null && count > 0) {
+                context.resources.getQuantityString(R.plurals.om_guard_mass_title_count, count, count)
+            } else {
+                context.getString(R.string.om_guard_mass_title_storage)
+            }
+        }
+        CommandGuard.Reason.KERNEL_MODULE ->
+            context.getString(if (request.analysis.command == "rmmod") R.string.om_guard_module_unload_title else R.string.om_guard_module_title)
+        else -> context.getString(R.string.om_guard_ask_title)
+    }
+
+    private fun messageFor(context: Context, request: Pending): String {
+        val details = request.details
+        if (details.reason == CommandGuard.Reason.KERNEL_MODULE) {
+            val module = details.module
+            val lines = mutableListOf(request.commandLine, "")
+            if (module != null) {
+                module.name?.let { lines += context.getString(R.string.om_guard_module_name, it) }
+                module.description?.let { lines += context.getString(R.string.om_guard_module_description, it) }
+                module.author?.let { lines += context.getString(R.string.om_guard_module_author, it) }
+                module.license?.let { lines += context.getString(R.string.om_guard_module_license, it) }
+                lines += context.getString(
+                    R.string.om_guard_module_built_for,
+                    module.vermagic ?: "?", KernelModuleInspector.machineName(module.machine)
+                )
+                lines += context.getString(R.string.om_guard_module_this_kernel, System.getProperty("os.version").orEmpty())
+                if (module.depends.isNotEmpty()) {
+                    lines += context.getString(R.string.om_guard_module_depends, module.depends.joinToString(", "))
+                }
+                lines += context.getString(if (module.signed) R.string.om_guard_module_signed else R.string.om_guard_module_unsigned)
+                if (module.touchesPartitions) lines += context.getString(R.string.om_guard_module_partitions)
+                details.moduleProblem?.let { lines += "⚠ " + it }
+            } else if (request.analysis.command != "rmmod") {
+                lines += context.getString(R.string.om_guard_module_unreadable, request.analysis.module ?: "?")
+            }
+            lines += ""
+            lines += context.getString(
+                if (request.analysis.command == "rmmod") R.string.om_guard_module_unload_note else R.string.om_guard_module_note
+            )
+            return lines.joinToString("\n")
+        }
+        val base = context.getString(
             R.string.om_guard_ask_message,
             request.commandLine,
             request.cwd,
-            describeTargets(activity, request.analysis)
-        ) + if (request.analysis.recursive) "\n\n" + activity.getString(R.string.om_guard_ask_recursive) else ""
-        val dialog = MaterialAlertDialogBuilder(activity)
+            describeTargets(context, request.analysis)
+        )
+        return when {
+            details.reason == CommandGuard.Reason.MASS_DELETE -> base + "\n\n" + context.getString(R.string.om_guard_mass_note)
+            request.analysis.recursive -> base + "\n\n" + context.getString(R.string.om_guard_ask_recursive)
+            else -> base
+        }
+    }
+
+    private fun showDialog(activity: Activity, request: Pending) {
+        if (request.result.get() != null || !activity.isUiAlive || request.dialog?.isShowing == true) return
+        NotificationManagerCompat.from(activity).cancel(NotificationIds.COMMAND_GUARD)
+        val message = messageFor(activity, request)
+        val builder = MaterialAlertDialogBuilder(activity)
             .setIcon(R.drawable.delete_icon_white_24dp)
-            .setTitle(R.string.om_guard_ask_title)
+            .setTitle(titleFor(activity, request))
             .setMessage(message)
             .setCancelable(false)
             .setNegativeButton(R.string.om_guard_block) { _, _ -> request.complete(Answer.BLOCK) }
             .setPositiveButton(R.string.om_guard_allow) { _, _ -> request.complete(Answer.ALLOW) }
-            .setNeutralButton(R.string.om_guard_allow_session) { _, _ -> request.complete(Answer.ALLOW_SESSION) }
-            .create()
+        // "Allow all this session" makes sense for a script's deletions, not for a kernel module.
+        if (request.details.reason != CommandGuard.Reason.KERNEL_MODULE) {
+            builder.setNeutralButton(R.string.om_guard_allow_session) { _, _ -> request.complete(Answer.ALLOW_SESSION) }
+        }
+        val dialog = builder.create()
         request.dialog = dialog
         dialog.show()
     }
@@ -174,11 +247,11 @@ object GuardPrompter {
             flags
         )
         val notification = commandGuardNotificationTemplate.createBuilder(context)
-            .setContentTitle(context.getString(R.string.om_guard_ask_title))
+            .setContentTitle(titleFor(context, request))
             .setContentText(request.commandLine)
             .setStyle(
                 NotificationCompat.BigTextStyle().bigText(
-                    request.commandLine + "\n" + describeTargets(context, request.analysis)
+                    messageFor(context, request)
                 )
             )
             .setContentIntent(open)
@@ -199,8 +272,11 @@ object GuardPrompter {
             Toast.makeText(
                 context,
                 context.getString(
-                    if (reason == CommandGuard.Reason.DFROOT) R.string.om_guard_dfroot_blocked_toast
-                    else R.string.om_guard_dead_man_blocked_toast,
+                    when (reason) {
+                        CommandGuard.Reason.DFROOT -> R.string.om_guard_dfroot_blocked_toast
+                        CommandGuard.Reason.KERNEL_MISMATCH -> R.string.om_guard_module_blocked_toast
+                        else -> R.string.om_guard_dead_man_blocked_toast
+                    },
                     target
                 ),
                 Toast.LENGTH_LONG

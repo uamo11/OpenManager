@@ -3103,4 +3103,31 @@
     <string name="om_remote_files_menu">VPS files</string>
     <string name="om_remote_files_opening">Opening the files of %1$s…</string>
     <string name="om_remote_files_error_title">Could not open the VPS files</string>
+    <string name="om_guard_reason_kernel_mismatch">The module does not fit this kernel: %1$s</string>
+    <string name="om_guard_reason_unprivileged">Without root Android protects the system</string>
+    <string name="om_guard_mass_title_many">Delete more than %1$d files?</string>
+    <string name="om_guard_mass_title_storage">Delete a whole storage folder?</string>
+    <string name="om_guard_mass_note">This removes a large part of your files at once and cannot be undone.</string>
+    <string name="om_guard_module_title">Load this module into the kernel?</string>
+    <string name="om_guard_module_unload_title">Unload this kernel module?</string>
+    <string name="om_guard_module_name">Module: %1$s</string>
+    <string name="om_guard_module_description">Description: %1$s</string>
+    <string name="om_guard_module_author">Author: %1$s</string>
+    <string name="om_guard_module_license">License: %1$s</string>
+    <string name="om_guard_module_built_for">Built for: %1$s (%2$s)</string>
+    <string name="om_guard_module_this_kernel">This phone: %1$s</string>
+    <string name="om_guard_module_depends">Needs: %1$s</string>
+    <string name="om_guard_module_signed">Signed module</string>
+    <string name="om_guard_module_unsigned">Not signed</string>
+    <string name="om_guard_module_partitions">⚠ It accesses storage partitions (block devices).</string>
+    <string name="om_guard_module_unreadable">Could not read %1$s to check it.</string>
+    <string name="om_guard_module_note">A module runs inside the kernel with no limits: a faulty one freezes or reboots the phone. Nothing is permanent after a reboot unless it writes to partitions.</string>
+    <string name="om_guard_module_unload_note">Unloading a driver that is in use can freeze the phone until it reboots.</string>
+    <string name="om_guard_module_blocked_toast">Kernel module blocked: %1$s</string>
+    <string name="om_guard_elf_refused_title">Not run: DFRoot protection</string>
+    <string name="om_guard_elf_refused_kernel">This binary loads code into the kernel (init_module or kexec). Kernel code ignores every protection, so with DFRoot on it is not run as root. Turn DFRoot protection off in Settings if you trust it.</string>
+    <plurals name="om_guard_mass_title_count">
+        <item quantity="one">Delete %d file?</item>
+        <item quantity="other">Delete %d files?</item>
+    </plurals>
 </resources>
