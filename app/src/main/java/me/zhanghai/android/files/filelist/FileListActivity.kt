@@ -1765,7 +1765,7 @@ class FileListActivity : AppActivity() {
     }
 
     /** True on the folder this explorer was opened at for its caller, or any folder above it. */
-    private fun isBackAtReturnPath(): Boolean {
+    fun isBackAtReturnPath(): Boolean {
         val start = returnOnBackPath ?: return false
         val current = runCatching { activeFragment.currentPath }.getOrNull() ?: return false
         val atOrAbove = runCatching {

@@ -710,6 +710,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val viewLifecycleOwner = viewLifecycleOwner
         val callback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
+                // Opened for a caller (e.g. the VPS terminal): back from its folder returns there.
+                val host = activity as? FileListActivity
+                if (host != null && host.isBackAtReturnPath()) {
+                    host.finish()
+                    return
+                }
                 if (canNavigateUp) {
                     navigateUp()
                 }
