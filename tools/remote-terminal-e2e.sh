@@ -717,6 +717,61 @@ for spec in "png:image/png:19_image" "txt:text/plain:20_text"; do
     fi
 done
 
+log "=== Batch rename: pattern with counter, live preview, nothing else touched ==="
+adb shell input keyevent KEYCODE_HOME; sleep 1
+demo batch_rename
+if pos=$(wait_text 25 "{name}"); then
+    shot 30_batch_rename_dialog
+    adb shell input tap $pos; sleep 1
+    adb shell input keyevent KEYCODE_MOVE_END
+    for _ in 1 2 3 4 5 6 7 8; do adb shell input keyevent KEYCODE_DEL; done
+    adb shell input text "Viaje%s{n}"
+    if pos=$(find_text "0"); then
+        adb shell input tap $pos; sleep 1
+        adb shell input keyevent KEYCODE_MOVE_END; adb shell input keyevent KEYCODE_DEL
+        adb shell input text "2"
+    fi
+    # Hide the keyboard (only if shown: back would otherwise close the dialog).
+    adb shell dumpsys input_method | grep -q "mInputShown=true" && adb shell input keyevent KEYCODE_BACK
+    sleep 1
+    shot 31_batch_rename_preview
+    if find_text "IMG_001.jpg  →  Viaje 01.jpg" >/dev/null || adb shell cat /data/local/tmp/ui.xml | grep -q "Viaje 01.jpg"; then
+        pass "the preview shows old → new names before renaming"
+    else
+        fail "the preview does not show the new names"
+    fi
+    if pos=$(find_text "Rename" "RENAME" "Renombrar" "RENOMBRAR"); then
+        adb shell input tap $pos; sleep 4
+    fi
+    listing=$(adb shell ls /sdcard/om_batch_test | tr -d '\r' | sort | tr '\n' '|')
+    log "      files: $listing"
+    first=$(adb shell cat "'/sdcard/om_batch_test/Viaje 01.jpg'" 2>/dev/null | tr -d '\r')
+    if [ "$listing" = "Viaje 01.jpg|Viaje 02.jpg|Viaje 03.jpg|keep.txt|" ] && [ "$first" = "IMG_001.jpg" ]; then
+        pass "batch rename: IMG_00x.jpg -> Viaje 0x.jpg in name order, keep.txt untouched"
+    else
+        shot 32_batch_rename_result
+        fail "batch rename result is wrong ($listing / first=$first)"
+    fi
+else
+    shot 30_batch_rename_missing
+    fail "the batch rename dialog did not open"
+fi
+
+log "=== Compare files: line diff ==="
+demo compare_files
+if wait_text 25 "−1 lines removed · +2 lines added" "−1 líneas quitadas · +2 líneas añadidas" >/dev/null; then
+    shot 33_compare
+    if adb shell cat /data/local/tmp/ui.xml | grep -q "line twenty-five"; then
+        pass "compare shows the changed and added lines (−1 +2)"
+    else
+        fail "compare summary is right but the changed line is not shown"
+    fi
+else
+    shot 33_compare_missing
+    fail "the compare screen did not show the expected summary"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

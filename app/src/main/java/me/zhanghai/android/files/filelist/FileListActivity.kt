@@ -519,6 +519,48 @@ class FileListActivity : AppActivity() {
     }
 
     /** Debug-only fixtures for the command guard E2E test (tools/remote-terminal-e2e.sh). */
+    private fun handleToolsDemo(action: String) {
+        if (!BuildConfig.DEBUG) return
+        when (action) {
+            "batch_rename" -> {
+                val dir = java.io.File("/sdcard/om_batch_test").apply { deleteRecursively(); mkdirs() }
+                listOf("IMG_003.jpg", "IMG_001.jpg", "IMG_002.jpg", "keep.txt").forEach {
+                    java.io.File(dir, it).writeText(it)
+                }
+                fragmentA.navigateTo(java8.nio.file.Paths.get(dir.path))
+                var tries = 0
+                val open = object : Runnable {
+                    override fun run() {
+                        if (isFinishing || isDestroyed) return
+                        val all = fragmentA.viewModel.fileListStateful.value.orEmpty()
+                        val jpgs = all.filter { it.name.endsWith(".jpg") }
+                        if (jpgs.size < 3 && tries++ < 20) {
+                            window.decorView.postDelayed(this, 500)
+                            return
+                        }
+                        BatchRenameDialog.show(this@FileListActivity, fragmentA.currentPath, jpgs, all.map { it.name }.toSet()) {
+                            fragmentA.reload()
+                        }
+                    }
+                }
+                window.decorView.postDelayed(open, 1000)
+            }
+            "compare_files" -> {
+                val dir = java.io.File("/sdcard/om_compare_test").apply { deleteRecursively(); mkdirs() }
+                val lines = (1..50).map { "line $it" }
+                java.io.File(dir, "a.txt").writeText(lines.joinToString("\n", postfix = "\n"))
+                java.io.File(dir, "b.txt").writeText(
+                    lines.map { if (it == "line 25") "line twenty-five" else it }.plus("extra").joinToString("\n", postfix = "\n")
+                )
+                startActivity(
+                    FileCompareActivity.createIntent(
+                        this, java8.nio.file.Paths.get("${dir.path}/a.txt"), java8.nio.file.Paths.get("${dir.path}/b.txt")
+                    )
+                )
+            }
+        }
+    }
+
     private fun handleGuardDemo(action: String) {
         if (!BuildConfig.DEBUG) return
         val dir = java.io.File("/sdcard/om_guard_test").apply { mkdirs() }
@@ -626,6 +668,7 @@ class FileListActivity : AppActivity() {
                     "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
                     "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
                     "create_choice" -> showCreateDialog()
+                    "batch_rename", "compare_files" -> handleToolsDemo(action)
                     "update_cooldown_expire" ->
                         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).edit()
                             .putLong(me.zhanghai.android.files.update.UpdateChecker.PREF_LAST_CHECK_TIME, 1L)
@@ -2562,6 +2605,16 @@ class FileListActivity : AppActivity() {
         }
     }
 
+    /** The file with the same name in the other panel, to compare two versions of one file. */
+    private fun fileWithSameNameInOtherPanel(file: me.zhanghai.android.files.file.FileItem): me.zhanghai.android.files.file.FileItem? {
+        if (file.attributes.isDirectory) return null
+        val opposite = getOppositeFragment(activeFragment)
+        if (opposite.currentPath == activeFragment.currentPath) return null
+        return opposite.viewModel.fileListStateful.value.orEmpty().firstOrNull {
+            it.name == file.name && !it.attributes.isDirectory
+        }
+    }
+
     private fun showMoreSelectionMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         val isPanelA = (activePanelIndex == 0)
@@ -2575,6 +2628,16 @@ class FileListActivity : AppActivity() {
             }
             if (activeFragment.selectedFiles.size == 2) {
                 add(0, 3, 0, getString(R.string.action_swap_file_names))
+            }
+            val selectedNow = activeFragment.selectedFiles.toList()
+            if (selectedNow.size >= 2 && !activeFragment.currentPath.isArchivePath) {
+                add(0, 14, 0, getString(R.string.om_batch_rename_menu))
+            }
+            if (selectedNow.size == 2 && selectedNow.none { it.attributes.isDirectory }) {
+                add(0, 15, 0, getString(R.string.om_compare_menu))
+            }
+            if (selectedNow.size == 1 && fileWithSameNameInOtherPanel(selectedNow[0]) != null) {
+                add(0, 16, 0, getString(R.string.om_compare_with_other_panel))
             }
             add(0, 6, 0, getString(R.string.om_menu_compress_zip))
             add(0, 13, 0, getString(R.string.share))
@@ -2591,6 +2654,29 @@ class FileListActivity : AppActivity() {
             when (item.itemId) {
                 7 -> {
                     activeFragment.selectAllFiles()
+                    true
+                }
+                14 -> {
+                    val fragment = activeFragment
+                    val names = fragment.viewModel.fileListStateful.value.orEmpty().map { it.name }.toSet()
+                    BatchRenameDialog.show(this, fragment.currentPath, fragment.selectedFiles.toList(), names) {
+                        fragment.clearSelectedFiles()
+                        fragment.reload()
+                    }
+                    true
+                }
+                15 -> {
+                    val files = activeFragment.selectedFiles.toList()
+                    if (files.size == 2) startActivity(FileCompareActivity.createIntent(this, files[0].path, files[1].path))
+                    true
+                }
+                16 -> {
+                    val file = activeFragment.selectedFiles.firstOrNull()
+                    val other = file?.let { fileWithSameNameInOtherPanel(it) }
+                    if (file != null && other != null) {
+                        val (left, right) = if (activePanelIndex == 0) file.path to other.path else other.path to file.path
+                        startActivity(FileCompareActivity.createIntent(this, left, right))
+                    }
                     true
                 }
                 10 -> {

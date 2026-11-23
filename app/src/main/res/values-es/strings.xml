@@ -3030,4 +3030,66 @@
         <item quantity="one">¿Borrar %d archivo?</item>
         <item quantity="other">¿Borrar %d archivos?</item>
     </plurals>
+    <string name="om_batch_rename_menu">Renombrar por lotes</string>
+    <string name="om_batch_rename_template_label">Nombre nuevo</string>
+    <string name="om_batch_rename_template_hint">{name}</string>
+    <string name="om_batch_rename_tokens">{name} = nombre actual · {n} = número · {ext} = extensión</string>
+    <string name="om_batch_rename_find_label">Buscar y reemplazar</string>
+    <string name="om_batch_rename_find_hint">Buscar</string>
+    <string name="om_batch_rename_replace_hint">Reemplazar por</string>
+    <string name="om_batch_rename_regex">Expresión regular</string>
+    <string name="om_batch_rename_ignore_case">Ignorar mayúsculas</string>
+    <string name="om_batch_rename_case_label">Mayúsculas y minúsculas</string>
+    <string name="om_batch_rename_counter_label">Número: inicio · dígitos</string>
+    <string name="om_batch_rename_start_hint">Inicio</string>
+    <string name="om_batch_rename_padding_hint">Dígitos</string>
+    <string name="om_batch_rename_apply">Renombrar</string>
+    <string name="om_batch_rename_summary">Cambian %1$d de %2$d nombres</string>
+    <string name="om_batch_rename_summary_problems">Cambian %1$d nombres · %2$d problemas por resolver</string>
+    <string name="om_batch_rename_problem_empty">nombre vacío</string>
+    <string name="om_batch_rename_problem_char">carácter no válido</string>
+    <string name="om_batch_rename_problem_duplicate">nombre repetido</string>
+    <string name="om_batch_rename_problem_exists">ya hay otro archivo con ese nombre</string>
+    <string name="om_batch_rename_problem_regex">expresión no válida</string>
+    <string name="om_batch_rename_failed_title">Renombrado detenido</string>
+    <string name="om_batch_rename_failed_message">No quedó nada a medias: los archivos conservan sus nombres anteriores.
+
+%1$s</string>
+    <string name="om_compare_menu">Comparar</string>
+    <string name="om_compare_with_other_panel">Comparar con el otro panel</string>
+    <string name="om_compare_title">Comparar archivos</string>
+    <string name="om_compare_previous">◀ Cambio anterior</string>
+    <string name="om_compare_next">Cambio siguiente ▶</string>
+    <string name="om_compare_identical">Los archivos son idénticos.</string>
+    <string name="om_compare_only_line_endings">Mismo texto: solo cambian los finales de línea (CRLF/LF) o el salto final.</string>
+    <string name="om_compare_text_summary">−%1$d líneas quitadas · +%2$d líneas añadidas</string>
+    <string name="om_compare_too_different">Los archivos son demasiado distintos para mostrarlos línea a línea (%1$d y %2$d líneas).</string>
+    <string name="om_compare_binary_summary">Los archivos binarios son distintos.
+
+%1$s: %2$d bytes
+%3$s: %4$d bytes
+Primera diferencia en: %5$s
+Bytes distintos: %6$d
+
+SHA-256
+%7$s
+%8$s</string>
+    <string name="om_compare_gap">··· %1$d líneas sin cambios ···</string>
+    <string name="om_compare_error">No se pudo comparar: %1$s</string>
+    <string-array name="om_batch_rename_cases">
+        <item>Igual</item>
+        <item>minúsculas</item>
+        <item>MAYÚSCULAS</item>
+        <item>Tipo Título</item>
+    </string-array>
+    <plurals name="om_batch_rename_title">
+        <item quantity="one">Renombrar %d archivo</item>
+        <item quantity="many">Renombrar %d archivos</item>
+        <item quantity="other">Renombrar %d archivos</item>
+    </plurals>
+    <plurals name="om_batch_rename_done">
+        <item quantity="one">%d archivo renombrado</item>
+        <item quantity="many">%d archivos renombrados</item>
+        <item quantity="other">%d archivos renombrados</item>
+    </plurals>
 </resources>

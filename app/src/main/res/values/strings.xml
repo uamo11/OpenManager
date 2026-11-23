@@ -3135,4 +3135,64 @@
         <item quantity="one">Delete %d file?</item>
         <item quantity="other">Delete %d files?</item>
     </plurals>
+    <string name="om_batch_rename_menu">Batch rename</string>
+    <string name="om_batch_rename_template_label">New name</string>
+    <string name="om_batch_rename_template_hint">{name}</string>
+    <string name="om_batch_rename_tokens">{name} = current name · {n} = number · {ext} = extension</string>
+    <string name="om_batch_rename_find_label">Find and replace</string>
+    <string name="om_batch_rename_find_hint">Find</string>
+    <string name="om_batch_rename_replace_hint">Replace with</string>
+    <string name="om_batch_rename_regex">Regular expression</string>
+    <string name="om_batch_rename_ignore_case">Ignore case</string>
+    <string name="om_batch_rename_case_label">Letter case</string>
+    <string name="om_batch_rename_counter_label">Number: start · digits</string>
+    <string name="om_batch_rename_start_hint">Start</string>
+    <string name="om_batch_rename_padding_hint">Digits</string>
+    <string name="om_batch_rename_apply">Rename</string>
+    <string name="om_batch_rename_summary">%1$d of %2$d names change</string>
+    <string name="om_batch_rename_summary_problems">%1$d names change · %2$d problems to fix</string>
+    <string name="om_batch_rename_problem_empty">empty name</string>
+    <string name="om_batch_rename_problem_char">invalid character</string>
+    <string name="om_batch_rename_problem_duplicate">repeated name</string>
+    <string name="om_batch_rename_problem_exists">another file has this name</string>
+    <string name="om_batch_rename_problem_regex">invalid expression</string>
+    <string name="om_batch_rename_failed_title">Rename stopped</string>
+    <string name="om_batch_rename_failed_message">Nothing was left half done: the files keep their old names.
+
+%1$s</string>
+    <string name="om_compare_menu">Compare</string>
+    <string name="om_compare_with_other_panel">Compare with the other panel</string>
+    <string name="om_compare_title">Compare files</string>
+    <string name="om_compare_previous">◀ Previous change</string>
+    <string name="om_compare_next">Next change ▶</string>
+    <string name="om_compare_identical">The files are identical.</string>
+    <string name="om_compare_only_line_endings">Same text: only the line endings (CRLF/LF) or the final newline differ.</string>
+    <string name="om_compare_text_summary">−%1$d lines removed · +%2$d lines added</string>
+    <string name="om_compare_too_different">The files are too different to show line by line (%1$d and %2$d lines).</string>
+    <string name="om_compare_binary_summary">Binary files differ.
+
+%1$s: %2$d bytes
+%3$s: %4$d bytes
+First difference at: %5$s
+Differing bytes: %6$d
+
+SHA-256
+%7$s
+%8$s</string>
+    <string name="om_compare_gap">··· %1$d unchanged lines ···</string>
+    <string name="om_compare_error">Could not compare: %1$s</string>
+    <string-array name="om_batch_rename_cases">
+        <item>Keep</item>
+        <item>lowercase</item>
+        <item>UPPERCASE</item>
+        <item>Title Case</item>
+    </string-array>
+    <plurals name="om_batch_rename_title">
+        <item quantity="one">Rename %d file</item>
+        <item quantity="other">Rename %d files</item>
+    </plurals>
+    <plurals name="om_batch_rename_done">
+        <item quantity="one">%d file renamed</item>
+        <item quantity="other">%d files renamed</item>
+    </plurals>
 </resources>
