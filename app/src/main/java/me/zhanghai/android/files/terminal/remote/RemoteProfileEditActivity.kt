@@ -120,6 +120,8 @@ class RemoteProfileEditActivity : AppActivity() {
         findViewById<MaterialButton>(R.id.importKeyButton).setOnClickListener {
             importKeyLauncher.launch("*/*")
         }
+        findViewById<MaterialButton>(R.id.generateKeyButton).setOnClickListener { generateKey() }
+        findViewById<MaterialButton>(R.id.showPublicKeyButton).setOnClickListener { showPublicKey() }
         findViewById<MaterialButton>(R.id.saveConnectButton).setOnClickListener {
             val profile = collectValid() ?: return@setOnClickListener
             RemoteProfileStore.save(this, profile)
@@ -215,6 +217,62 @@ class RemoteProfileEditActivity : AppActivity() {
         if (current.lines().any { it.trim() == line }) return
         shortcutsEdit.setText(if (current.isEmpty()) line else "$current\n$line")
         shortcutsEdit.setSelection(shortcutsEdit.text?.length ?: 0)
+    }
+
+    private fun keyComment(): String =
+        SshKeys.sanitizeComment("openmanager@" + android.os.Build.MODEL.lowercase())
+
+    /** New Ed25519 key, kept encrypted with the profile like any imported key. */
+    private fun generateKey() {
+        val doGenerate = {
+            val pair = SshKeys.generateEd25519(keyComment())
+            privateKeyEdit.setText(pair.privateKeyOpenSsh.trim())
+            passphraseEdit.setText("")
+            privateKeyLayout.error = null
+            showPublicKeyDialog(pair.publicKeyLine)
+        }
+        if (privateKeyEdit.text.isNullOrBlank()) {
+            doGenerate()
+        } else {
+            MaterialAlertDialogBuilder(this)
+                .setMessage(R.string.om_key_replace_confirm)
+                .setPositiveButton(R.string.om_key_generate) { _, _ -> doGenerate() }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun showPublicKey() {
+        val key = privateKeyEdit.text?.toString()?.trim().orEmpty()
+        if (key.isEmpty()) {
+            privateKeyLayout.error = getString(R.string.om_remote_error_private_key)
+            return
+        }
+        val line = runCatching {
+            SshKeys.publicKeyLine(key, passphraseEdit.text?.toString()?.takeIf { it.isNotEmpty() }, keyComment())
+        }.getOrNull()
+        if (line == null) {
+            Toast.makeText(this, R.string.om_remote_error_key_format, Toast.LENGTH_LONG).show()
+            return
+        }
+        showPublicKeyDialog(line)
+    }
+
+    private fun showPublicKeyDialog(publicKeyLine: String) {
+        fun copy(label: String, text: String) {
+            (getSystemService(CLIPBOARD_SERVICE) as? android.content.ClipboardManager)
+                ?.setPrimaryClip(android.content.ClipData.newPlainText(label, text))
+            Toast.makeText(this, R.string.om_key_copied, Toast.LENGTH_SHORT).show()
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_key_public_title)
+            .setMessage(getString(R.string.om_key_public_message, publicKeyLine))
+            .setPositiveButton(R.string.om_key_copy_public) { _, _ -> copy("SSH public key", publicKeyLine) }
+            .setNeutralButton(R.string.om_key_copy_install) { _, _ ->
+                copy("Install SSH key", SshKeys.installCommand(publicKeyLine))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun importKey(uri: Uri) {

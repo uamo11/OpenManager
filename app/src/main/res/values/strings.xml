@@ -3081,4 +3081,16 @@
     <string name="om_term_compose_bar">Writing bar</string>
     <string name="om_term_compose_hint">Type here, send at once</string>
     <string name="om_term_compose_send">Send</string>
+    <string name="om_key_generate">Generate Ed25519 key</string>
+    <string name="om_key_show_public">Show public key</string>
+    <string name="om_key_replace_confirm">Replace the current private key with a new one? Servers that only know the old key will stop accepting this profile.</string>
+    <string name="om_key_public_title">Public key</string>
+    <string name="om_key_public_message">Add this line to ~/.ssh/authorized_keys on the server (or connect with the password and use \"Log in with a key\" from the session menu):\n\n%1$s</string>
+    <string name="om_key_copy_public">Copy key</string>
+    <string name="om_key_copy_install">Copy install command</string>
+    <string name="om_key_copied">Copied</string>
+    <string name="om_key_use_key_menu">Log in with a key (no password)</string>
+    <string name="om_key_install_explain">OpenManager will create an Ed25519 key for this profile (or use its current one), add it to ~/.ssh/authorized_keys on %1$s by typing the command in this session, and use it from the next connection. Run it at the shell prompt, not inside an editor.</string>
+    <string name="om_key_install_action">Install key</string>
+    <string name="om_key_installed_toast">Key sent to the server. The next connection will use it (the saved password stays as a fallback).</string>
 </resources>

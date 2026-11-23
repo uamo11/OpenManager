@@ -59,8 +59,8 @@ class UltraRamFootprintTest {
         val perfInit = appInit.substringAfter("private fun initializePerformanceMode()")
             .substringBefore("private fun ")
         assertTrue(
-            "Performance mode OFF keeps the previous eager registration",
-            perfInit.substringAfter("if (!enabled) {").contains("SecurityProviderHelper.init()")
+            "Performance mode OFF registers eagerly, off the main thread",
+            perfInit.substringAfter("if (!enabled) {").contains("THREAD_POOL_EXECUTOR.execute { SecurityProviderHelper.ensureInitialized() }")
         )
 
         for (path in listOf(

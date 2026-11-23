@@ -39,6 +39,11 @@ abstract class AppActivity : AppCompatActivity() {
         disableActivityTransitionIfUltra(isOpen = true)
     }
 
+    override fun onDestroy() {
+        me.zhanghai.android.files.terminal.remote.RemotePrompter.detach(this)
+        super.onDestroy()
+    }
+
     override fun finish() {
         super.finish()
         disableActivityTransitionIfUltra(isOpen = false)
@@ -46,6 +51,8 @@ abstract class AppActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Any screen can answer SSH/SFTP host key and password questions from network threads.
+        me.zhanghai.android.files.terminal.remote.RemotePrompter.attach(this)
         if (PerformanceModeManager.isEnabled) {
             window?.decorView?.apply {
                 removeCallbacks(ultraPurgeRunnable)

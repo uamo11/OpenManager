@@ -123,8 +123,10 @@ private fun initializePerformanceMode() {
     val enabled = Settings.VISUAL_PERFORMANCE_MODE.valueCompat
     PerformanceModeManager.initialize(enabled)
     if (!enabled) {
-        // Ultra RAM mode registers BouncyCastle lazily on first SFTP / BKS use instead.
-        SecurityProviderHelper.init()
+        // Still registered eagerly (Ultra RAM mode does it lazily), but off the main thread:
+        // building the provider and its ~1,500 algorithm entries delayed the first frame.
+        // Every SFTP/SSH/BKS user calls ensureInitialized(), which waits for this if needed.
+        AsyncTask.THREAD_POOL_EXECUTOR.execute { SecurityProviderHelper.ensureInitialized() }
         // SingletonContext.init() calls NameServiceClientImpl.initCache() which connects to network.
         AsyncTask.THREAD_POOL_EXECUTOR.execute {
             ensureSmbSingletonContextInitialized()

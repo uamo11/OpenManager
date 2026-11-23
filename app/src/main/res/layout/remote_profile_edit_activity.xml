@@ -244,12 +244,36 @@
                             android:scrollHorizontally="false" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/importKeyButton"
+                            style="?materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginEnd="6dp"
+                            android:layout_weight="1"
+                            android:text="@string/om_remote_import_key" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/generateKeyButton"
+                            style="?materialButtonOutlinedStyle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="6dp"
+                            android:layout_weight="1"
+                            android:text="@string/om_key_generate" />
+                    </LinearLayout>
+
                     <com.google.android.material.button.MaterialButton
-                        android:id="@+id/importKeyButton"
-                        style="?materialButtonOutlinedStyle"
+                        android:id="@+id/showPublicKeyButton"
+                        style="?borderlessButtonStyle"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/om_remote_import_key" />
+                        android:text="@string/om_key_show_public" />
 
                     <com.google.android.material.textfield.TextInputLayout
                         android:id="@+id/passphraseLayout"

@@ -35,6 +35,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.appbar.MaterialToolbar
 import com.termux.terminal.TerminalEmulator
@@ -1104,6 +1106,57 @@ class TerminalActivity : AppActivity() {
         )
     }
 
+    /**
+     * Switches the profile from password to key login without leaving the app: generates an
+     * Ed25519 key if the profile has none, types the authorized_keys command into this logged-in
+     * session and stores the key in the profile (the saved password stays as a fallback).
+     */
+    private fun confirmInstallKeyOnServer() {
+        val profile = remoteProfile?.let { RemoteProfileStore.get(this, it.id) ?: it } ?: return
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_key_use_key_menu)
+            .setMessage(getString(R.string.om_key_install_explain, profile.endpoint))
+            .setPositiveButton(R.string.om_key_install_action) { _, _ -> installKeyOnServer(profile) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun installKeyOnServer(profile: RemoteProfile) {
+        val session = terminalSession?.takeIf { it.isRunning && it.isRemote } ?: return
+        val comment = me.zhanghai.android.files.terminal.remote.SshKeys.sanitizeComment(
+            "openmanager@" + android.os.Build.MODEL.lowercase()
+        )
+        lifecycleScope.launch {
+            val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                runCatching {
+                    val existing = profile.privateKey?.takeIf { it.isNotBlank() }
+                    if (existing != null) {
+                        existing to me.zhanghai.android.files.terminal.remote.SshKeys.publicKeyLine(
+                            existing, profile.keyPassphrase, comment
+                        )
+                    } else {
+                        me.zhanghai.android.files.terminal.remote.SshKeys.generateEd25519(comment)
+                            .let { it.privateKeyOpenSsh to it.publicKeyLine }
+                    }
+                }
+            }
+            if (!isUiAlive) return@launch
+            val (privateKey, publicLine) = result.getOrElse {
+                Toast.makeText(this@TerminalActivity, R.string.om_remote_error_key_format, Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            terminalView.scrollToBottomForInput()
+            session.write(me.zhanghai.android.files.terminal.remote.SshKeys.installCommand(publicLine) + "\r")
+            val updated = profile.copy(
+                authType = me.zhanghai.android.files.terminal.remote.RemoteAuthType.PRIVATE_KEY,
+                privateKey = privateKey
+            )
+            RemoteProfileStore.save(this@TerminalActivity, updated)
+            remoteProfile = updated
+            Toast.makeText(this@TerminalActivity, R.string.om_key_installed_toast, Toast.LENGTH_LONG).show()
+        }
+    }
+
     /** Ends the session on screen and shows another open one, or leaves the terminal. */
     private fun closeCurrentSession() {
         val entry = terminalSession?.let { ScriptExecutionManager.entryFor(it) }
@@ -1354,6 +1407,9 @@ class TerminalActivity : AppActivity() {
             add(Menu.NONE, 5, 5, R.string.om_term_switch_termex)
             add(Menu.NONE, 6, 6, R.string.om_term_new_clean_session)
             remoteProfile?.let { add(Menu.NONE, 8, 7, getString(R.string.om_remote_reconnect, it.displayName)) }
+            if (remoteProfile?.protocol == RemoteProtocol.SSH && terminalSession?.isRunning == true) {
+                add(Menu.NONE, 10, 7, R.string.om_key_use_key_menu)
+            }
             add(Menu.NONE, 7, 8, R.string.om_remote_menu_ssh_telnet)
             // Every open session (scripts, shells, SSH) with its state: tap to switch.
             val sessions = ScriptExecutionManager.sessions
@@ -1415,6 +1471,10 @@ class TerminalActivity : AppActivity() {
                 }
                 9 -> {
                     closeCurrentSession()
+                    true
+                }
+                10 -> {
+                    confirmInstallKeyOnServer()
                     true
                 }
                 in MENU_SESSION_BASE until MENU_SESSION_BASE + 100 -> {

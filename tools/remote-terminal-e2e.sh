@@ -278,6 +278,31 @@ else
     fail "key deck has no ⋮ button"
 fi
 
+log "=== Switch the profile to key login from the session ==="
+sudo rm -f /home/omtest/.ssh/authorized_keys
+demo remote_ssh; sleep 3
+if pos=$(find_text "SSH"); then
+    adb shell input tap $pos; sleep 1
+    if pos2=$(find_text "Log in with a key (no password)" "Entrar con clave (sin contraseña)"); then
+        adb shell input tap $pos2; sleep 1
+        if pos3=$(find_text "Install key" "Instalar clave"); then
+            adb shell input tap $pos3; sleep 5
+            shot 07f_key_installed
+            if sudo grep -q "^ssh-ed25519 AAAA" /home/omtest/.ssh/authorized_keys 2>/dev/null; then
+                pass "a generated Ed25519 key was installed in authorized_keys from the session"
+            else
+                fail "authorized_keys has no key"
+            fi
+        else
+            fail "no install confirmation"
+        fi
+    else
+        fail "no 'log in with a key' action in the SSH session menu"
+    fi
+else
+    fail "session badge not found"
+fi
+
 log "=== SSH: reconnect with the trusted key must not ask again ==="
 clear_probe /tmp/om_ssh_probe
 adb shell am force-stop $PKG; sleep 1
@@ -287,6 +312,12 @@ if wait_file 40 /tmp/om_ssh_probe OM_SSH_OK_42; then
         fail "trusted key prompted again"
     else
         pass "trusted host key reconnects without prompting"
+        if sudo grep -q "Accepted publickey for omtest" /tmp/sshd_om.log 2>/dev/null; then
+            pass "the reconnection logged in with the new key, not the password"
+        else
+            fail "the reconnection did not use the key"
+            sudo tail -n 15 /tmp/sshd_om.log >> "$REPORT" 2>/dev/null || true
+        fi
     fi
 else
     fail "reconnect with trusted key failed"

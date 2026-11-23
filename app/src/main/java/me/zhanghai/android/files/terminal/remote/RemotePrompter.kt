@@ -37,10 +37,10 @@ object RemotePrompter {
     }
 
     fun detach(activity: Activity) {
-        if (hostRef?.get() === activity) {
-            hostRef = null
-        }
-        // A closed screen can no longer answer: release waiting network threads right away.
+        if (hostRef?.get() !== activity) return
+        hostRef = null
+        // The screen showing the questions closed: release waiting network threads right away.
+        // (Other screens closing must not answer questions shown elsewhere.)
         pending.toList().forEach { it.run() }
     }
 

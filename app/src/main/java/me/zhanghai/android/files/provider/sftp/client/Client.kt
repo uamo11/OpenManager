@@ -18,7 +18,6 @@ import net.schmizz.sshj.sftp.Response
 import net.schmizz.sshj.sftp.SFTPClient
 import net.schmizz.sshj.sftp.SFTPException
 import net.schmizz.sshj.transport.TransportException
-import net.schmizz.sshj.transport.verification.PromiscuousVerifier
 import net.schmizz.sshj.userauth.UserAuthException
 import java.io.IOException
 import java.util.Collections
@@ -238,7 +237,16 @@ object Client {
             val authentication = authenticator.getAuthentication(authority)
                 ?: throw ClientException("No authentication found for $authority")
             SecurityProviderHelper.ensureInitialized()
-            val sshClient = SSHClient().apply { addHostKeyVerifier(PromiscuousVerifier()) }
+            // Verify the server like the SSH terminal does (it used to accept any key, which let a
+            // machine on the same network impersonate the server and read files and passwords).
+            val sshClient = SSHClient().apply {
+                addHostKeyVerifier(
+                    me.zhanghai.android.files.terminal.remote.KnownHostsVerifier(
+                        me.zhanghai.android.files.app.application,
+                        "SFTP ${authority.username}@${authority.host}:${authority.port}"
+                    )
+                )
+            }
             try {
                 sshClient.connect(authority.host, authority.port)
             } catch (e: IOException) {

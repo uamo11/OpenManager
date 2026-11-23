@@ -16,7 +16,19 @@ lateinit var application: Application private set
 class AppProvider : ContentProvider() {
     override fun onCreate(): Boolean {
         application = context as Application
-        appInitializers.forEach { it() }
+        // Debug builds log what each start-up step costs on the main thread (tag OMStartup).
+        val timed = me.zhanghai.android.files.BuildConfig.DEBUG
+        var total = 0L
+        appInitializers.forEach { initializer ->
+            val start = if (timed) android.os.SystemClock.elapsedRealtimeNanos() else 0L
+            initializer()
+            if (timed) {
+                val ms = (android.os.SystemClock.elapsedRealtimeNanos() - start) / 1_000_000
+                total += ms
+                android.util.Log.i("OMStartup", "${(initializer as kotlin.reflect.KCallable<*>).name}: $ms ms")
+            }
+        }
+        if (timed) android.util.Log.i("OMStartup", "total: $total ms")
         return true
     }
 
