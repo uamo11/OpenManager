@@ -3092,4 +3092,21 @@ SHA-256
         <item quantity="many">%d archivos renombrados</item>
         <item quantity="other">%d archivos renombrados</item>
     </plurals>
+    <string name="om_web_access_title">Acceso desde el navegador</string>
+    <string name="om_web_access_channel">Acceso desde el navegador</string>
+    <string name="om_web_access_caption">Gestionar desde el PC</string>
+    <string name="om_web_access_start">Iniciar</string>
+    <string name="om_web_access_stop">Detener</string>
+    <string name="om_web_access_copy_link">Copiar enlace con el código</string>
+    <string name="om_web_access_link_copied">Enlace copiado</string>
+    <string name="om_web_access_code_label">Código de acceso</string>
+    <string name="om_web_access_running">Activo. Abre esta dirección en un navegador:</string>
+    <string name="om_web_access_stopped">Detenido</string>
+    <string name="om_web_access_starting">Iniciando…</string>
+    <string name="om_web_access_failed">No se pudo iniciar</string>
+    <string name="om_web_access_locked">Bloqueado por demasiados códigos incorrectos. Detenlo e inícialo de nuevo para obtener un código nuevo.</string>
+    <string name="om_web_access_no_network">Conéctate a una Wi-Fi (o activa el punto de acceso) para obtener una dirección</string>
+    <string name="om_web_access_notification_text">%1$s · código %2$s</string>
+    <string name="om_web_access_how">En un ordenador, tablet u otro móvil conectado a la misma Wi-Fi, abre la dirección en el navegador y escribe el código. Podrás navegar, ver fotos y vídeos, descargar, subir (también arrastrando archivos a la página), crear carpetas, renombrar y borrar en el almacenamiento del móvil.</string>
+    <string name="om_web_access_safety">Cualquiera en tu red que tenga el código puede ver y cambiar tus archivos. El código cambia cada vez que lo inicias y 10 intentos fallidos bloquean el acceso. Detenlo cuando termines.</string>
 </resources>

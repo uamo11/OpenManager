@@ -772,6 +772,66 @@ else
 fi
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
+log "=== Browser access: a PC manages the phone files with the code ==="
+demo web_access
+web_ok=0
+for _ in $(seq 1 15); do
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_web.xml" 2>/dev/null
+    read -r WEB_URL WEB_CODE < <(python3 - "$OUT/ui_web.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+texts = re.findall(r' text="([^"]*)"', xml)
+url = next((t for t in texts if t.startswith("http://")), "")
+code = next((t for t in texts if re.fullmatch(r"[A-Z2-9]{8}", t)), "")
+print(url or "-", code or "-")
+PY
+)
+    [ "$WEB_URL" != "-" ] && [ "$WEB_CODE" != "-" ] && { web_ok=1; break; }
+    sleep 2
+done
+shot 34_web_access
+if [ $web_ok -eq 1 ]; then
+    pass "browser access shows an address and a code ($WEB_URL, code ${WEB_CODE:0:2}******)"
+    WEB_PORT=${WEB_URL##*:}
+    adb forward tcp:18088 tcp:$WEB_PORT >/dev/null
+    B=http://127.0.0.1:18088
+    login=$(curl -s "$B/")
+    wrong=$(curl -s -o /dev/null -w "%{http_code}" -H "X-OM-Key: WRONGCOD" "$B/api/ls?p=/")
+    if echo "$login" | grep -q 'name="k"' && [ "$wrong" = "401" ]; then
+        pass "without the code: login page, API refused ($wrong)"
+    else
+        fail "the server answers without the right code (wrong=$wrong)"
+    fi
+    page=$(curl -s "$B/?k=$WEB_CODE")
+    echo "$page" | grep -q "OpenManager" && echo "$page" | grep -q "uploadAll" && pass "the file manager page loads with the code" || fail "the web page did not load with the code"
+    echo "hello from the PC $RANDOM" > "$OUT/from_pc.txt"
+    up=$(curl -s -o /dev/null -w "%{http_code}" -H "X-OM-Key: $WEB_CODE" -T "$OUT/from_pc.txt" "$B/api/up?p=/Download&n=from_pc.txt")
+    on_phone=$(adb shell cat /sdcard/Download/from_pc.txt 2>/dev/null | tr -d '\r')
+    if [ "$up" = "200" ] && [ "$on_phone" = "$(cat "$OUT/from_pc.txt")" ]; then
+        pass "a file uploaded from the PC lands in /sdcard/Download"
+    else
+        fail "upload from the PC failed (http $up, phone has '$on_phone')"
+    fi
+    listing=$(curl -s -H "X-OM-Key: $WEB_CODE" "$B/api/ls?p=/Download")
+    back=$(curl -s "$B/api/dl?p=/Download/from_pc.txt&k=$WEB_CODE")
+    if echo "$listing" | grep -q '"from_pc.txt"' && [ "$back" = "$(cat "$OUT/from_pc.txt")" ]; then
+        pass "the PC lists the folder and downloads the file back"
+    else
+        fail "listing or download from the PC failed"
+    fi
+    escape=$(curl -s -o /dev/null -w "%{http_code}" -H "X-OM-Key: $WEB_CODE" "$B/api/ls?p=/../../data")
+    [ "$escape" = "403" ] && pass "paths outside the storage are refused ($escape)" || fail "path escape not refused ($escape)"
+    curl -s -o /dev/null -X POST -H "X-OM-Key: $WEB_CODE" "$B/api/rm?p=/Download/from_pc.txt"
+    adb shell ls /sdcard/Download/from_pc.txt >/dev/null 2>&1 && fail "delete from the PC did not remove the file" || pass "delete from the PC removes the file"
+    adb forward --remove tcp:18088 >/dev/null 2>&1
+    if pos=$(find_text "Stop" "STOP" "Detener" "DETENER"); then adb shell input tap $pos; sleep 2; fi
+    find_text "Stopped" "Detenido" >/dev/null && pass "stopping browser access from the phone" || fail "browser access did not stop"
+else
+    fail "browser access did not show an address and code"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

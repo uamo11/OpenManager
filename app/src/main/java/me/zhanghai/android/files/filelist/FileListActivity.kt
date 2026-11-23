@@ -545,6 +545,10 @@ class FileListActivity : AppActivity() {
                 }
                 window.decorView.postDelayed(open, 1000)
             }
+            "web_access" -> startActivity(
+                Intent(this, me.zhanghai.android.files.webaccess.WebAccessActivity::class.java)
+                    .putExtra(me.zhanghai.android.files.webaccess.WebAccessActivity.EXTRA_START, true)
+            )
             "compare_files" -> {
                 val dir = java.io.File("/sdcard/om_compare_test").apply { deleteRecursively(); mkdirs() }
                 val lines = (1..50).map { "line $it" }
@@ -668,7 +672,7 @@ class FileListActivity : AppActivity() {
                     "close_drawer" -> drawerLayout.closeDrawer(GravityCompat.START)
                     "more_menu" -> findViewById<View>(R.id.btnMainMore)?.performClick()
                     "create_choice" -> showCreateDialog()
-                    "batch_rename", "compare_files" -> handleToolsDemo(action)
+                    "batch_rename", "compare_files", "web_access" -> handleToolsDemo(action)
                     "update_cooldown_expire" ->
                         androidx.preference.PreferenceManager.getDefaultSharedPreferences(this).edit()
                             .putLong(me.zhanghai.android.files.update.UpdateChecker.PREF_LAST_CHECK_TIME, 1L)

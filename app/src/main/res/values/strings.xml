@@ -3195,4 +3195,21 @@ SHA-256
         <item quantity="one">%d file renamed</item>
         <item quantity="other">%d files renamed</item>
     </plurals>
+    <string name="om_web_access_title">Browser access</string>
+    <string name="om_web_access_channel">Browser access</string>
+    <string name="om_web_access_caption">Manage from a PC</string>
+    <string name="om_web_access_start">Start</string>
+    <string name="om_web_access_stop">Stop</string>
+    <string name="om_web_access_copy_link">Copy link with code</string>
+    <string name="om_web_access_link_copied">Link copied</string>
+    <string name="om_web_access_code_label">Access code</string>
+    <string name="om_web_access_running">Active. Open this address in a browser:</string>
+    <string name="om_web_access_stopped">Stopped</string>
+    <string name="om_web_access_starting">Starting…</string>
+    <string name="om_web_access_failed">Could not start</string>
+    <string name="om_web_access_locked">Locked after too many wrong codes. Stop and start it again for a new code.</string>
+    <string name="om_web_access_no_network">Connect to Wi-Fi (or turn on the hotspot) to get an address</string>
+    <string name="om_web_access_notification_text">%1$s · code %2$s</string>
+    <string name="om_web_access_how">On a computer, tablet or other phone on the same Wi-Fi, open the address in a browser and type the code. You can browse, preview photos and videos, download, upload (also by dragging files onto the page), create folders, rename and delete in the phone storage.</string>
+    <string name="om_web_access_safety">Anyone on your network with the code can see and change your files. The code changes every time you start, and 10 wrong attempts lock access. Stop it when you are done.</string>
 </resources>

@@ -34,6 +34,7 @@ import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.filelist.FileListActivity
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
+import me.zhanghai.android.files.webaccess.WebAccessActivity
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.storage.AddLanSmbServerActivity
 import me.zhanghai.android.files.storage.EditFtpServerActivity
@@ -116,6 +117,7 @@ class ConnectionsActivity : AppActivity() {
         }
         rows += Row.Header(getString(R.string.om_connections_section_device))
         rows += Row.LocalFtpServer
+        rows += Row.LocalWebAccess
         adapter.submit(rows)
         emptyView.visibility = if (profiles.isEmpty() && storages.isEmpty()) View.VISIBLE else View.GONE
     }
@@ -185,6 +187,7 @@ class ConnectionsActivity : AppActivity() {
         data class Profile(val profile: RemoteProfile) : Row()
         data class Server(val storage: Storage) : Row()
         object LocalFtpServer : Row()
+        object LocalWebAccess : Row()
     }
 
     private inner class ConnectionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -218,6 +221,7 @@ class ConnectionsActivity : AppActivity() {
                 is Row.Profile -> (holder as ItemHolder).bindProfile(row.profile)
                 is Row.Server -> (holder as ItemHolder).bindServer(row.storage)
                 Row.LocalFtpServer -> (holder as ItemHolder).bindLocalFtp()
+                Row.LocalWebAccess -> (holder as ItemHolder).bindLocalWebAccess()
             }
         }
     }
@@ -261,6 +265,18 @@ class ConnectionsActivity : AppActivity() {
             menu.setOnClickListener { showServerMenu(it, storage) }
         }
 
+        fun bindLocalWebAccess() {
+            applyType(tile, icon, ConnectionType.WEB_ACCESS)
+            name.setText(R.string.om_web_access_title)
+            endpoint.setText(R.string.om_web_access_caption)
+            detail.visibility = View.GONE
+            menu.visibility = View.GONE
+            itemView.setOnClickListener {
+                startActivitySafe(Intent(this@ConnectionsActivity, WebAccessActivity::class.java))
+            }
+            itemView.setOnLongClickListener(null)
+        }
+
         fun bindLocalFtp() {
             applyType(tile, icon, ConnectionType.FTP_SERVER)
             name.setText(R.string.om_connections_type_ftp_server)
@@ -294,7 +310,9 @@ class ConnectionsActivity : AppActivity() {
         WEBDAV(R.drawable.ic_conn_webdav, 0xFFEC4899.toInt(), R.string.om_connections_type_webdav,
             R.string.om_connections_type_webdav_caption),
         FTP_SERVER(R.drawable.shared_directory_icon_white_24dp, 0xFF14B8A6.toInt(),
-            R.string.om_connections_type_ftp_server, R.string.om_connections_type_ftp_server_caption);
+            R.string.om_connections_type_ftp_server, R.string.om_connections_type_ftp_server_caption),
+        WEB_ACCESS(R.drawable.computer_icon_white_24dp, 0xFF4F8CFF.toInt(),
+            R.string.om_web_access_title, R.string.om_web_access_caption);
 
         companion object {
             fun forProtocol(protocol: RemoteProtocol): ConnectionType =
@@ -348,7 +366,7 @@ class ConnectionsActivity : AppActivity() {
                 R.string.om_connections_section_files to listOf(
                     ConnectionType.FTP, ConnectionType.SFTP, ConnectionType.SMB, ConnectionType.WEBDAV
                 ),
-                R.string.om_connections_section_device to listOf(ConnectionType.FTP_SERVER)
+                R.string.om_connections_section_device to listOf(ConnectionType.FTP_SERVER, ConnectionType.WEB_ACCESS)
             )
             for ((titleRes, types) in groups) {
                 val header = inflater.inflate(R.layout.connection_section_header, root, false) as TextView
@@ -390,6 +408,7 @@ class ConnectionsActivity : AppActivity() {
                 ConnectionType.WEBDAV ->
                     EditWebDavServerActivity::class.createIntent().putArgs(EditWebDavServerFragment.Args())
                 ConnectionType.FTP_SERVER -> Intent(activity, FtpServerActivity::class.java)
+                ConnectionType.WEB_ACCESS -> Intent(activity, WebAccessActivity::class.java)
             }
             activity.startActivitySafe(intent)
         }
