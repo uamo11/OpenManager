@@ -3100,4 +3100,7 @@
     <string name="om_open_text">Open text</string>
     <string name="om_open_view_document">View document</string>
     <string name="om_open_in_openmanager">Open in OpenManager</string>
+    <string name="om_remote_files_menu">VPS files</string>
+    <string name="om_remote_files_opening">Opening the files of %1$s…</string>
+    <string name="om_remote_files_error_title">Could not open the VPS files</string>
 </resources>

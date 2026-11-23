@@ -262,6 +262,43 @@ case "$chip" in
     *) fail "reopened session shows '$chip' instead of the shell location" ;;
 esac
 
+log "=== VPS files: tapping the folder chip opens the VPS next to the phone ==="
+python3 - "$OUT/vps_photo.png" <<'PY'
+import struct, sys, zlib
+w, h = 80, 60
+raw = b"".join(b"\x00" + bytes([220, 90, 40]) * w for _ in range(h))
+def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+open(sys.argv[1], "wb").write(b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
+PY
+sudo install -o omtest -g omtest -m 644 "$OUT/vps_photo.png" /home/omtest/probe/vps_photo.png
+echo "notes from the VPS" | sudo -u omtest tee /home/omtest/probe/vps_notes.txt >/dev/null
+if pos=$(find_text "$chip"); then
+    adb shell input tap $pos
+    if wait_text 30 "vps_photo.png" >/dev/null; then
+        shot 07d_vps_files
+        pass "the folder chip opens the VPS folder (~/probe) in the explorer"
+        if find_text "Download" "DCIM" "Android" >/dev/null; then
+            pass "the other panel shows the phone's files"
+        else
+            fail "the other panel does not show the phone's files"
+        fi
+        adb shell input tap $(find_text "vps_photo.png"); sleep 5
+        shot 07e_vps_photo
+        top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -o "$PKG/[A-Za-z0-9_.]*")
+        case "$top" in
+            *ImageViewerActivity) pass "a photo on the VPS opens in the image viewer" ;;
+            *) fail "the VPS photo did not open in the image viewer ($top)" ;;
+        esac
+    else
+        shot 07d_vps_files_missing
+        fail "the folder chip did not open the VPS files"
+    fi
+    sudo grep -E "Accepted password .* omtest|subsystem request for sftp" /tmp/sshd_om.log | tail -2 | sed 's/^/      sshd: /' | tee -a "$REPORT" >/dev/null || true
+else
+    fail "no folder chip to tap ('$chip')"
+fi
+demo remote_ssh; sleep 4
+
 log "=== Key deck layouts ==="
 if pos=$(find_text "⋮"); then
     adb shell input tap $pos; sleep 1

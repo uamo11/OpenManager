@@ -80,6 +80,7 @@ jobs:
         UsePAM yes
         AllowUsers omtest
         PrintMotd no
+        Subsystem sftp internal-sftp
         EOF
         sudo /usr/sbin/sshd -t -f /tmp/sshd_om/sshd_config
         sudo /usr/sbin/sshd -f /tmp/sshd_om/sshd_config -E /tmp/sshd_om.log

@@ -299,4 +299,22 @@ class RemoteTerminalTest {
         val layout = resolveMainFile("res/layout/activity_terminal.xml").readText()
         assertTrue(layout.contains("@+id/composeBar"))
     }
+
+    @Test
+    fun vpsFilesStartWhereTheShellIs() {
+        assertEquals("~/probe", RemoteFilesLauncher.remoteDirFromTitle("omtest@ci: ~/probe"))
+        assertEquals("/srv/app", RemoteFilesLauncher.remoteDirFromTitle("root@vps: /srv/app"))
+        assertEquals("~", RemoteFilesLauncher.remoteDirFromTitle("~"))
+        // A bare endpoint or a program's title (vim, htop) falls back to the home folder.
+        assertNull(RemoteFilesLauncher.remoteDirFromTitle("omtest@10.0.2.2:2222"))
+        assertNull(RemoteFilesLauncher.remoteDirFromTitle("htop"))
+        assertNull(RemoteFilesLauncher.remoteDirFromTitle(null))
+    }
+
+    @Test
+    fun folderChipOpensTheVpsFiles() {
+        val activity = resolveMainFile("java/me/zhanghai/android/files/terminal/TerminalActivity.kt").readText()
+        assertTrue(activity.contains("openRemoteFiles(profile)"))
+        assertTrue(activity.contains("setOnLongClickListener"))
+    }
 }

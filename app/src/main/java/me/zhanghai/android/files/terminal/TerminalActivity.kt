@@ -49,6 +49,8 @@ import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.terminal.remote.ProfileTransport
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import me.zhanghai.android.files.terminal.remote.RemoteFilesLauncher
 import me.zhanghai.android.files.terminal.remote.RemoteProfile
 import me.zhanghai.android.files.terminal.remote.RemoteProfileStore
 import me.zhanghai.android.files.terminal.remote.ConnectionsActivity
@@ -421,14 +423,18 @@ class TerminalActivity : AppActivity() {
 
         layoutCwdChip?.setOnClickListener {
             it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-            val pathToCopy = currentCwd.ifBlank { "/storage/emulated/0" }
-            val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-            cm?.setPrimaryClip(ClipData.newPlainText("Terminal CWD", pathToCopy))
-            Toast.makeText(
-                this,
-                getString(R.string.om_term_cwd_copied_format, pathToCopy),
-                Toast.LENGTH_SHORT
-            ).show()
+            val profile = remoteProfile
+            if (profile != null && profile.protocol == RemoteProtocol.SSH) {
+                // VPS: its files in the explorer, next to the phone's.
+                openRemoteFiles(profile)
+            } else {
+                copyCwdToClipboard()
+            }
+        }
+        layoutCwdChip?.setOnLongClickListener {
+            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            copyCwdToClipboard()
+            true
         }
 
         btnStopSession?.setOnClickListener {
@@ -1508,6 +1514,68 @@ class TerminalActivity : AppActivity() {
         }
     }
 
+    private fun copyCwdToClipboard() {
+        val pathToCopy = remoteProfile?.let { remoteBreadcrumb(it) } ?: currentCwd.ifBlank { "/storage/emulated/0" }
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        cm?.setPrimaryClip(ClipData.newPlainText("Terminal CWD", pathToCopy))
+        Toast.makeText(
+            this,
+            getString(R.string.om_term_cwd_copied_format, pathToCopy),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private var openingRemoteFiles = false
+
+    /** Opens the VPS over SFTP in the dual-panel explorer, starting where the shell is. */
+    private fun openRemoteFiles(profile: RemoteProfile, typedPassword: String? = null) {
+        val auth = RemoteFilesLauncher.authentication(profile, typedPassword)
+        if (auth == null) {
+            askPasswordForRemoteFiles(profile)
+            return
+        }
+        if (openingRemoteFiles) return
+        openingRemoteFiles = true
+        Toast.makeText(this, getString(R.string.om_remote_files_opening, profile.displayName), Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val title = terminalSession?.takeIf { it.isRemote }?.title
+            val result = runCatching { RemoteFilesLauncher.resolveStartDirectory(profile, auth, title) }
+            openingRemoteFiles = false
+            if (isFinishing || isDestroyed) return@launch
+            result.onSuccess { dir ->
+                startActivity(RemoteFilesLauncher.explorerIntent(dir))
+            }.onFailure { e ->
+                val reason = generateSequence(e) { it.cause }.mapNotNull { it.message }.lastOrNull() ?: e.toString()
+                MaterialAlertDialogBuilder(this@TerminalActivity)
+                    .setTitle(R.string.om_remote_files_error_title)
+                    .setMessage(reason)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .show()
+            }
+        }
+    }
+
+    private fun askPasswordForRemoteFiles(profile: RemoteProfile) {
+        val input = android.widget.EditText(this).apply {
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = getString(R.string.om_remote_password_hint)
+        }
+        val pad = (20 * resources.displayMetrics.density).toInt()
+        val box = android.widget.FrameLayout(this).apply {
+            setPadding(pad, pad / 2, pad, 0)
+            addView(input)
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.om_remote_password_title, profile.endpoint))
+            .setView(box)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val typed = input.text?.toString().orEmpty()
+                if (typed.isNotEmpty()) openRemoteFiles(profile, typed)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     private fun showOverflowMenu(anchor: View) {
         val popup = PopupMenu(this, anchor)
         popup.menu.apply {
@@ -1518,6 +1586,7 @@ class TerminalActivity : AppActivity() {
             }
             add(Menu.NONE, 1, 1, wakeTitle)
             if (remoteProfile == null) add(Menu.NONE, 12, 2, R.string.tracer_menu_item)
+            if (remoteProfile?.protocol == RemoteProtocol.SSH) add(Menu.NONE, 13, 2, R.string.om_remote_files_menu)
             add(Menu.NONE, 10, 3, R.string.script_menu_keep_background)
             add(Menu.NONE, 11, 4, R.string.script_menu_terminate)
             add(Menu.NONE, 5, 5, R.string.terminal_paste)
@@ -1534,6 +1603,10 @@ class TerminalActivity : AppActivity() {
             when (item.itemId) {
                 1 -> {
                     toggleWakeLock()
+                    true
+                }
+                13 -> {
+                    remoteProfile?.let { openRemoteFiles(it) }
                     true
                 }
                 2 -> {
