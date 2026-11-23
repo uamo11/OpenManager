@@ -609,6 +609,8 @@ else
 fi
 
 log "=== Video: 4K H.264 / 1080p HEVC playback ==="
+# The one-time "Viewing full screen" system tip would cover the player.
+adb shell settings put secure immersive_mode_confirmations confirmed >/dev/null 2>&1 || true
 for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
     [ -f "/tmp/$clip" ] || { fail "missing test clip $clip"; continue; }
     adb push "/tmp/$clip" "/sdcard/Movies/$clip" >/dev/null
@@ -622,6 +624,9 @@ for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
     fi
     sleep 4
     shot "12_video_${clip%.mp4}"
+    adb shell dumpsys meminfo $PKG > "$OUT/meminfo_video_${clip%.mp4}.txt" 2>/dev/null || true
+    # Leaving the player logs its summary (frames shown/dropped, position reached).
+    adb shell input keyevent KEYCODE_HOME; sleep 2
     adb logcat -d -s OMVideoPlayer > "$OUT/video_${clip%.mp4}.log" 2>/dev/null || true
     adb logcat -d | grep -E "FATAL EXCEPTION" -A 20 >> "$OUT/video_${clip%.mp4}.log" || true
     decoder=$(grep -m1 "Video decoder:" "$OUT/video_${clip%.mp4}.log" | sed 's/.*Video decoder: //')
@@ -631,11 +636,64 @@ for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
     else
         fail "$clip did not initialize a video decoder"
     fi
-    adb shell dumpsys meminfo $PKG > "$OUT/meminfo_video_${clip%.mp4}.txt" 2>/dev/null || true
+    summary=$(grep -m1 "Summary decoder=" "$OUT/video_${clip%.mp4}.log" | sed 's/.*Summary //')
+    rendered=$(echo "$summary" | grep -oE "rendered=[0-9]+" | cut -d= -f2)
+    sdropped=$(echo "$summary" | grep -oE "dropped=[0-9]+" | cut -d= -f2)
+    position=$(echo "$summary" | grep -oE "positionMs=[0-9]+" | cut -d= -f2)
+    log "      $clip summary: $summary"
+    heap=$(awk '/Java Heap:/{j=$3} /Native Heap:/{n=$3} END{printf "%.1f", (j+n)/1024}' "$OUT/meminfo_video_${clip%.mp4}.txt")
+    log "      $clip Java+Native heap while playing: ${heap} MB"
+    # 13 s on screen: the clock must have moved and real frames must have reached the screen.
+    if [ "${rendered:-0}" -ge 30 ] && [ "${position:-0}" -ge 5000 ]; then
+        pass "$clip really plays: ${rendered} frames shown, ${sdropped} dropped, reached ${position} ms"
+    else
+        fail "$clip did not play smoothly enough to count (rendered=${rendered:-?} position=${position:-?})"
+    fi
+    if [ "$clip" = om_4k_h264.mp4 ]; then
+        if grep -q "Software decoder cannot keep up" "$OUT/video_${clip%.mp4}.log"; then
+            pass "4K on a software decoder tells the user why it stutters"
+        elif echo "$decoder" | grep -qE "^(OMX\.google|c2\.android)"; then
+            log "      (software decoder kept up, no hint needed)"
+        fi
+    fi
     adb shell am force-stop $PKG; sleep 1
 done
 adb logcat -d > "$OUT/logcat_video.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_video.txt"; then fail "crash during video playback"; fi
+
+log "=== Photos: a 12 MP camera photo uses tiles and keeps its EXIF rotation ==="
+for spec in "om_photo_12mp.jpg:TILES:90" "om_photo_small.jpg:BITMAP:0"; do
+    name=${spec%%:*}; rest=${spec#*:}; want_mode=${rest%%:*}; want_rot=${rest#*:}
+    base=${name%.jpg}
+    [ -f "/tmp/$name" ] || { fail "missing test photo $name"; continue; }
+    adb push "/tmp/$name" "/sdcard/Pictures/$name" >/dev/null
+    adb shell am force-stop $PKG; sleep 1
+    adb logcat -c
+    adb shell am start -a android.intent.action.VIEW -t image/jpeg -d "file:///sdcard/Pictures/$name" \
+        -n $PKG/me.zhanghai.android.files.filelist.SmartOpenActivity >/dev/null
+    sleep 7
+    shot "21_photo_$base"
+    adb logcat -d -s OMImageViewer > "$OUT/photo_$base.log" 2>/dev/null || true
+    adb shell dumpsys meminfo $PKG > "$OUT/meminfo_photo_$base.txt" 2>/dev/null || true
+    line=$(grep -m1 "mode=" "$OUT/photo_$base.log" | sed 's/.*OMImageViewer: //')
+    pss=$(awk '/TOTAL PSS:/{printf "%.1f", $3/1024; exit} /^ *TOTAL /{printf "%.1f", $2/1024; exit}' "$OUT/meminfo_photo_$base.txt")
+    log "      $name: $line (app PSS ${pss} MB)"
+    if echo "$line" | grep -q "rotation=$want_rot mode=$want_mode"; then
+        pass "$name is shown as $want_mode (rotation $want_rot)"
+    else
+        fail "$name: expected rotation=$want_rot mode=$want_mode, got: $line"
+    fi
+    if [ "$want_mode" = TILES ]; then
+        if grep -q "tiles ready 4000x3000 orientation=90" "$OUT/photo_$base.log"; then
+            pass "12 MP photo is upright and ready from tiles"
+        else
+            fail "12 MP photo tiles did not get ready upright"
+        fi
+    fi
+done
+adb logcat -d > "$OUT/logcat_photo.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_photo.txt"; then fail "crash while viewing photos"; fi
+adb shell am force-stop $PKG; sleep 1
 
 log "=== Start-up cost (debug OMStartup log) ==="
 grep -h "OMStartup" "$OUT"/logcat*.txt 2>/dev/null | sed -E 's/^.*OMStartup: //' | sort | uniq -c | sort -rn | head -20 >> "$REPORT" || true

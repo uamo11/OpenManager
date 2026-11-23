@@ -41,6 +41,7 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import java8.nio.file.Path
 import kotlinx.coroutines.Dispatchers
@@ -65,7 +66,10 @@ import java.util.Locale
  * - SurfaceView output (decoder → display overlay, no extra GPU copy);
  * - local files and content:// URIs are streamed in place (no full copy before playing);
  * - late frames are dropped by the renderer to keep audio and video in sync instead of stuttering;
- * - small buffers (smaller still in Ultra RAM mode) since sources are local.
+ * - small buffers (smaller still in Ultra RAM mode) since sources are local;
+ * - dragging the seek bar previews key frames (cheap even in 4K), the exact frame on release;
+ * - long videos reopen where they were left;
+ * - a software decoder that cannot keep up with a big video is reported once, not left a mystery.
  */
 @OptIn(UnstableApi::class)
 class VideoPlayerActivity : AppActivity() {
@@ -101,6 +105,12 @@ class VideoPlayerActivity : AppActivity() {
     private var lastRenderedFrames = 0
     private var lastStatsAtMs = 0L
     private var measuredFps = 0f
+    private var resumeChecked = false
+    private var struggleReported = false
+    private var lastScrubSeekAtMs = 0L
+    private lateinit var resumeStore: VideoResumeStore
+    private val resumeKey: String?
+        get() = currentPath?.toString() ?: externalUri?.toString()
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -117,6 +127,7 @@ class VideoPlayerActivity : AppActivity() {
                 tvVideoElapsed.text = formatTime(position)
             }
             if (tvStats.visibility == View.VISIBLE) updateStats()
+            checkDecoderKeepsUp(p)
             // Tick slower while controls and stats are hidden: nothing visible changes.
             val visible = isControlsVisible || tvStats.visibility == View.VISIBLE
             handler.postDelayed(this, if (visible) 250L else 1000L)
@@ -144,6 +155,7 @@ class VideoPlayerActivity : AppActivity() {
         btnVideoPlayPause = findViewById(R.id.btnVideoPlayPause)
         btnVideoAspect = findViewById(R.id.btnVideoAspect)
 
+        resumeStore = VideoResumeStore(this)
         currentPath = intent.extraPath
         externalUri = intent.data
         if (currentPath == null && externalUri == null) {
@@ -190,16 +202,26 @@ class VideoPlayerActivity : AppActivity() {
 
         seekBarVideo.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) tvVideoElapsed.text = formatTime(progress.toLong())
+                if (!fromUser) return
+                tvVideoElapsed.text = formatTime(progress.toLong())
+                // Live preview while dragging: only key frames, which decode at once even in 4K.
+                val now = System.currentTimeMillis()
+                if (isUserTracking && now - lastScrubSeekAtMs >= SCRUB_INTERVAL_MS) {
+                    lastScrubSeekAtMs = now
+                    player?.seekTo(progress.toLong())
+                }
             }
 
             override fun onStartTrackingTouch(sb: SeekBar?) {
                 isUserTracking = true
+                lastScrubSeekAtMs = 0L
+                player?.setSeekParameters(SeekParameters.CLOSEST_SYNC)
                 handler.removeCallbacks(hideControlsRunnable)
             }
 
             override fun onStopTrackingTouch(sb: SeekBar?) {
                 isUserTracking = false
+                player?.setSeekParameters(SeekParameters.EXACT)
                 sb?.let { player?.seekTo(it.progress.toLong()) }
                 scheduleControlsAutoHide()
             }
@@ -258,9 +280,11 @@ class VideoPlayerActivity : AppActivity() {
                 if (duration != C.TIME_UNSET) {
                     seekBarVideo.max = duration.toInt()
                     tvVideoDuration.text = formatTime(duration)
+                    maybeResume(p, duration)
                 }
             }
             if (playbackState == Player.STATE_ENDED) {
+                resumeKey?.let { resumeStore.remove(it) }
                 ivVideoPlayPause.setImageResource(R.drawable.ic_play_arrow_24dp)
                 showControls()
             }
@@ -445,6 +469,35 @@ class VideoPlayerActivity : AppActivity() {
         handler.postDelayed(hideSeekFeedbackRunnable, 700)
     }
 
+    private fun maybeResume(p: ExoPlayer, durationMs: Long) {
+        if (resumeChecked) return
+        resumeChecked = true
+        val key = resumeKey ?: return
+        val saved = resumeStore.get(key) ?: return
+        if (!shouldRememberPosition(saved, durationMs) || p.currentPosition > RESUME_EDGE_MS) return
+        p.seekTo(saved)
+        Log.i(TAG, "Resumed at $saved ms")
+        Toast.makeText(this, getString(R.string.om_video_resumed, formatTime(saved)), Toast.LENGTH_SHORT).show()
+    }
+
+    /** Tells the user once when a software decoder drops most frames of a big video. */
+    private fun checkDecoderKeepsUp(p: ExoPlayer) {
+        if (struggleReported || !p.isPlaying) return
+        val format = p.videoFormat ?: return
+        if (minOf(format.width, format.height) < 1440) return
+        val counters = p.videoDecoderCounters ?: return
+        val software = isSoftwareDecoder(decoderName)
+        if (isDecoderStruggling(counters.renderedOutputBufferCount, counters.droppedBufferCount, software)) {
+            struggleReported = true
+            Log.i(TAG, "Software decoder cannot keep up with ${format.width}x${format.height}")
+            Toast.makeText(
+                this,
+                getString(R.string.om_video_software_decoding, "${format.width}×${format.height}"),
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+
     private fun updateStats() {
         val p = player ?: return
         val format = p.videoFormat
@@ -460,7 +513,9 @@ class VideoPlayerActivity : AppActivity() {
             lastStatsAtMs = now
         }
         tvStats.text = buildString {
-            append(decoderName ?: "—").append('\n')
+            append(decoderName ?: "—")
+            if (decoderName != null) append(if (isSoftwareDecoder(decoderName)) " · software" else " · hardware")
+            append('\n')
             if (format != null) {
                 append(format.sampleMimeType?.substringAfter('/') ?: "?")
                 append("  ").append(format.width).append('×').append(format.height)
@@ -533,6 +588,17 @@ class VideoPlayerActivity : AppActivity() {
 
     override fun onStop() {
         super.onStop()
+        player?.let { p ->
+            val counters = p.videoDecoderCounters
+            Log.i(
+                TAG, "Summary decoder=$decoderName rendered=${counters?.renderedOutputBufferCount ?: 0} " +
+                    "dropped=${counters?.droppedBufferCount ?: 0} positionMs=${p.currentPosition}"
+            )
+            val key = resumeKey
+            if (key != null && p.duration != C.TIME_UNSET && p.playbackState != Player.STATE_ENDED) {
+                resumeStore.put(key, p.currentPosition, p.duration)
+            }
+        }
         // Free the decoder while hidden; position and media item are kept.
         player?.pause()
         handler.removeCallbacks(progressRunnable)
@@ -583,6 +649,7 @@ class VideoPlayerActivity : AppActivity() {
         private const val SEEK_STEP_MS = 10_000L
         private val SPEEDS = floatArrayOf(0.5f, 0.75f, 1f, 1.25f, 1.5f, 2f)
         private const val NORMAL_SPEED_INDEX = 2
+        private const val SCRUB_INTERVAL_MS = 120L
 
         fun start(context: Context, path: Path) {
             val intent = Intent(context, VideoPlayerActivity::class.java).apply {

@@ -2967,6 +2967,8 @@
     <string name="om_video_speed">Playback speed</string>
     <string name="om_video_stats">Playback statistics</string>
     <string name="om_video_exceeds_capabilities">This %1$s video is above what the device decoder declares. Playing it with the hardware decoder and dropping late frames to keep audio smooth.</string>
+    <string name="om_video_resumed">Resuming at %1$s</string>
+    <string name="om_video_software_decoding">This device decodes this %1$s video in software, so it may stutter. Smaller copies (1080p) play smoothly.</string>
     <string name="om_term_keys_layout">Key bar layout</string>
     <string name="om_term_keys_full">Full bar (3 rows)</string>
     <string name="om_term_keys_compact">Compact bar (1 row)</string>

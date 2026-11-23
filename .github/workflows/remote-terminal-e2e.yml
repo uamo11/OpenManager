@@ -107,6 +107,22 @@ jobs:
           -t 20 -c:v libx265 -preset veryfast -tag:v hvc1 -pix_fmt yuv420p -c:a aac -shortest /tmp/om_1080p_hevc.mp4
         ls -la /tmp/om_*.mp4
 
+    - name: Generate test photos (12 MP with EXIF rotation, 720p)
+      run: |
+        ffmpeg -loglevel error -f lavfi -i testsrc2=size=4000x3000:rate=1 -frames:v 1 -q:v 4 /tmp/om_photo_raw.jpg
+        ffmpeg -loglevel error -f lavfi -i testsrc2=size=1280x720:rate=1 -frames:v 1 -q:v 4 /tmp/om_photo_small.jpg
+        # Camera-style photo: landscape pixels with EXIF Orientation = 6 (show rotated 90°).
+        python3 - <<'PY'
+        import struct
+        d = open('/tmp/om_photo_raw.jpg', 'rb').read()
+        assert d[:2] == b'\xff\xd8'
+        tiff = b'MM\x00\x2a' + struct.pack('>I', 8) + struct.pack('>H', 1) \
+            + struct.pack('>HHIHH', 0x0112, 3, 1, 6, 0) + struct.pack('>I', 0)
+        app1 = b'Exif\x00\x00' + tiff
+        open('/tmp/om_photo_12mp.jpg', 'wb').write(d[:2] + b'\xff\xe1' + struct.pack('>H', len(app1) + 2) + app1 + d[2:])
+        PY
+        ls -la /tmp/om_photo_*.jpg
+
     - name: Enable KVM
       run: |
         echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

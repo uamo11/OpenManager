@@ -2863,6 +2863,8 @@
     <string name="om_video_speed">Velocidad de reproducción</string>
     <string name="om_video_stats">Estadísticas de reproducción</string>
     <string name="om_video_exceeds_capabilities">Este vídeo %1$s supera lo que declara el decodificador del dispositivo. Se reproduce con el decodificador por hardware descartando fotogramas tardíos para que el audio siga fluido.</string>
+    <string name="om_video_resumed">Continúa en %1$s</string>
+    <string name="om_video_software_decoding">Este dispositivo decodifica este vídeo %1$s por software, así que puede ir a saltos. Una copia más pequeña (1080p) se reproduce fluida.</string>
     <string name="om_term_keys_layout">Diseño de la barra de teclas</string>
     <string name="om_term_keys_full">Barra completa (3 filas)</string>
     <string name="om_term_keys_compact">Barra compacta (1 fila)</string>

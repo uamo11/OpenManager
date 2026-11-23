@@ -6,15 +6,17 @@
 package me.zhanghai.android.files.viewer.image
 
 import android.graphics.BitmapFactory
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.isVisible
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import coil.dispose
 import coil.load
-import coil.size.Size
+import coil.size.Precision
 import com.davemorrissey.labs.subscaleview.ImageSource
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.DefaultOnImageEventListener
@@ -39,6 +41,7 @@ import me.zhanghai.android.files.util.fadeInUnsafe
 import me.zhanghai.android.files.util.fadeOutUnsafe
 import me.zhanghai.android.files.util.layoutInflater
 import me.zhanghai.android.files.util.shortAnimTime
+import me.zhanghai.android.files.viewer.image.ImageDisplayPlan.Mode
 import kotlin.math.max
 
 class ImageViewerAdapter(
@@ -96,9 +99,25 @@ class ImageViewerAdapter(
         val mimeType = AndroidFileTypeDetector.getMimeType(this, attributes).asMimeType()
         val bitmapOptions = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         newInputStream().use { BitmapFactory.decodeStream(it, null, bitmapOptions) }
+        val actualMimeType = bitmapOptions.outMimeType?.asMimeTypeOrNull() ?: mimeType
+        // The tile view cannot read EXIF through our file provider, so rotation is passed to it.
+        val rotation = if (ImageDisplayPlan.isRegionDecodable(actualMimeType.value)) {
+            try {
+                newInputStream().use {
+                    ImageDisplayPlan.exifRotation(
+                        ExifInterface(it).getAttributeInt(
+                            ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                0
+            }
+        } else {
+            0
+        }
         return ImageInfo(
-            attributes, bitmapOptions.outWidth, bitmapOptions.outHeight,
-            bitmapOptions.outMimeType?.asMimeTypeOrNull() ?: mimeType
+            attributes, bitmapOptions.outWidth, bitmapOptions.outHeight, actualMimeType, rotation
         )
     }
 
@@ -107,63 +126,70 @@ class ImageViewerAdapter(
         path: Path,
         imageInfo: ImageInfo
     ) {
-        if (!imageInfo.shouldUseLargeImageView) {
-            binding.image.apply {
-                isVisible = true
-                load(path to imageInfo.attributes) {
-                    size(Size.ORIGINAL)
-                    fadeIn(context.shortAnimTime)
-                    listener(
-                        onSuccess = { _, _ -> binding.progress.fadeOutUnsafe() },
-                        onError = { _, result -> showError(binding, result.throwable) }
-                    )
-                }
-            }
+        val metrics = binding.root.resources.displayMetrics
+        val mode = ImageDisplayPlan.mode(
+            imageInfo.width, imageInfo.height, imageInfo.mimeType.value,
+            metrics.widthPixels, metrics.heightPixels
+        )
+        Log.i(
+            TAG, "${imageInfo.width}x${imageInfo.height} ${imageInfo.mimeType.value} " +
+                "rotation=${imageInfo.rotation} mode=$mode"
+        )
+        if (mode == Mode.BITMAP) {
+            loadAsBitmap(binding, path, imageInfo)
         } else {
-            binding.largeImage.apply {
-                setDoubleTapZoomDuration(300)
-                orientation = SubsamplingScaleImageView.ORIENTATION_USE_EXIF
-                // Otherwise OnImageEventListener.onReady() is never called.
-                isVisible = true
-                alpha = 0f
-                setOnImageEventListener(object : DefaultOnImageEventListener() {
-                    override fun onReady() {
-                        setDoubleTapZoomScale(binding.largeImage.cropScale)
-                        binding.progress.fadeOutUnsafe()
-                        binding.largeImage.fadeInUnsafe(true)
-                    }
+            loadAsTiles(binding, path, imageInfo)
+        }
+    }
 
-                    override fun onImageLoadError(e: Exception) {
-                        e.printStackTrace()
-                        showError(binding, e)
-                    }
-                })
-                setImageRestoringSavedState(ImageSource.uri(path.fileProviderUri))
+    private fun loadAsBitmap(binding: ImageViewerItemBinding, path: Path, imageInfo: ImageInfo) {
+        val metrics = binding.root.resources.displayMetrics
+        val targetPx = ImageDisplayPlan.bitmapTargetPx(metrics.widthPixels, metrics.heightPixels)
+        binding.largeImage.isVisible = false
+        binding.image.apply {
+            isVisible = true
+            load(path to imageInfo.attributes) {
+                // Never more than twice the screen: sharp when zoomed, never the full original.
+                size(targetPx, targetPx)
+                precision(Precision.INEXACT)
+                fadeIn(context.shortAnimTime)
+                listener(
+                    onSuccess = { _, _ -> binding.progress.fadeOutUnsafe() },
+                    onError = { _, result -> showError(binding, result.throwable) }
+                )
             }
         }
     }
 
-    private val ImageInfo.shouldUseLargeImageView: Boolean
-        get() {
-            // See BitmapFactory.cpp encodedFormatToString()
-            if (mimeType == MimeType.IMAGE_GIF) {
-                return false
-            }
-            if (width <= 0 || height <= 0) {
-                return false
-            }
-            // 4 bytes per pixel for ARGB_8888.
-            if (width.toLong() * height.toLong() * 4L > MAX_BITMAP_SIZE) {
-                return true
-            }
-            if (width > 2048 || height > 2048) {
-                val ratio = width.toFloat() / height
-                if (ratio < 0.5 || ratio > 2) {
-                    return true
+    private fun loadAsTiles(binding: ImageViewerItemBinding, path: Path, imageInfo: ImageInfo) {
+        binding.largeImage.apply {
+            setDoubleTapZoomDuration(300)
+            orientation = imageInfo.rotation
+            // Otherwise OnImageEventListener.onReady() is never called.
+            isVisible = true
+            alpha = 0f
+            setOnImageEventListener(object : DefaultOnImageEventListener() {
+                override fun onReady() {
+                    setDoubleTapZoomScale(binding.largeImage.cropScale)
+                    binding.progress.fadeOutUnsafe()
+                    binding.largeImage.fadeInUnsafe(true)
+                    Log.i(TAG, "tiles ready ${sWidth}x$sHeight orientation=$appliedOrientation")
                 }
-            }
-            return false
+
+                override fun onImageLoadError(e: Exception) {
+                    Log.w(TAG, "tile decoder failed, falling back to a bitmap", e)
+                    binding.largeImage.recycle()
+                    if (imageInfo.width.toLong() * imageInfo.height * 4L <=
+                        ImageDisplayPlan.MAX_BITMAP_BYTES) {
+                        loadAsBitmap(binding, path, imageInfo)
+                    } else {
+                        showError(binding, e)
+                    }
+                }
+            })
+            setImageRestoringSavedState(ImageSource.uri(path.fileProviderUri))
         }
+    }
 
     private val SubsamplingScaleImageView.cropScale: Float
         get() {
@@ -186,8 +212,7 @@ class ImageViewerAdapter(
     }
 
     companion object {
-        // @see android.graphics.RecordingCanvas#MAX_BITMAP_SIZE
-        private const val MAX_BITMAP_SIZE = 100 * 1024 * 1024
+        private const val TAG = "OMImageViewer"
     }
 
     class ViewHolder(val binding: ImageViewerItemBinding) : RecyclerView.ViewHolder(binding.root) {
@@ -198,6 +223,8 @@ class ImageViewerAdapter(
         val attributes: BasicFileAttributes,
         val width: Int,
         val height: Int,
-        val mimeType: MimeType
+        val mimeType: MimeType,
+        /** Clockwise degrees from EXIF, as [SubsamplingScaleImageView] orientation. */
+        val rotation: Int
     )
 }
