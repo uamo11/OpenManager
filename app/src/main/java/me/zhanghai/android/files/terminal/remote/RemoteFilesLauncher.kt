@@ -84,5 +84,7 @@ object RemoteFilesLauncher {
             }
         }
 
+    /** Explorer at [dir]; back from there returns to the terminal instead of climbing the VPS. */
     fun explorerIntent(dir: Path): Intent = FileListActivity.createViewIntent(dir)
+        .putExtra(FileListActivity.EXTRA_RETURN_ON_BACK_AT, dir.toUri().toString())
 }

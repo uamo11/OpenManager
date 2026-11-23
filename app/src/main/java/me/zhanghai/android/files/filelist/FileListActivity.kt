@@ -1759,6 +1759,12 @@ class FileListActivity : AppActivity() {
 
     private var lastBackPressTime = 0L
 
+    private fun isBackAtReturnPath(): Boolean {
+        val start = intent?.getStringExtra(EXTRA_RETURN_ON_BACK_AT)?.takeIf { it.isNotEmpty() } ?: return false
+        val current = runCatching { activeFragment.currentPath.toUri().toString() }.getOrNull() ?: return false
+        return start == current || start.startsWith(current.trimEnd('/') + "/")
+    }
+
     private fun setupBackPressedHandler() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -1768,6 +1774,12 @@ class FileListActivity : AppActivity() {
                 }
                 if (activeFragment.selectedFiles.isNotEmpty()) {
                     activeFragment.clearSelectedFiles()
+                    return
+                }
+                if (isBackAtReturnPath()) {
+                    // Opened from the VPS terminal: back from its start folder (or above) goes
+                    // back to the session instead of climbing the server's folders.
+                    finish()
                     return
                 }
                 if (activeFragment.canNavigateUp) {
@@ -2611,6 +2623,8 @@ class FileListActivity : AppActivity() {
         const val EXTRA_SHOW_APKTOOL_PROGRESS = "me.zhanghai.android.files.filelist.extra.SHOW_APKTOOL_PROGRESS"
         const val EXTRA_NAVIGATE_TO_PATH = "me.zhanghai.android.files.filelist.extra.NAVIGATE_TO_PATH"
         const val EXTRA_HIGHLIGHT_FILE_PATH = "me.zhanghai.android.files.filelist.extra.HIGHLIGHT_FILE_PATH"
+        /** Path URI: back on it (or a parent of it) closes this explorer and returns to the caller. */
+        const val EXTRA_RETURN_ON_BACK_AT = "me.zhanghai.android.files.filelist.extra.RETURN_ON_BACK_AT"
         private const val EXTRA_HANDLED_ON_CREATE = "me.zhanghai.android.files.filelist.extra.HANDLED_ON_CREATE"
         private const val TAG_PANEL_A = "panel_a"
         private const val TAG_PANEL_B = "panel_b"
