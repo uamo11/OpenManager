@@ -628,6 +628,14 @@ class FileListAdapter(
                 }
                 isVisible = false
             }
+            if (viewType == FileViewType.GALLERY) {
+                // A clean square with the "up" folder, like the other tiles (no empty frame).
+                holder.thumbnailIconImage?.apply {
+                    setImageResource(R.drawable.file_parent_directory_icon)
+                    isVisible = true
+                }
+                holder.nameBar?.isVisible = false
+            }
             holder.thumbnailImage.apply {
                 if (holder.hasActiveThumbnail) {
                     dispose()
@@ -741,6 +749,12 @@ class FileListAdapter(
         // Ultra RAM: 16-bit thumbnails when there is no transparency (half the memory).
         val lightBitmaps = visualPerformanceMode
         val supportsThumbnail = file.supportsThumbnail && canDecodeBitmaps
+        if (me.zhanghai.android.files.BuildConfig.DEBUG && (file.mimeType.isImage || file.mimeType.isVideo)) {
+            android.util.Log.d(
+                "OMThumb", "bind ${file.name} mode=$thumbnailLoadMode ultra=$visualPerformanceMode " +
+                    "flinging=$isFlinging canDecode=$canDecodeBitmaps supports=${file.supportsThumbnail}"
+            )
+        }
         val shouldLoadThumbnailIcon = supportsThumbnail && holder.thumbnailIconImage != null &&
             file.mimeType.isApk
         val allowCrossfade = !visualPerformanceMode

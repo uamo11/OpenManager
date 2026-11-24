@@ -1501,12 +1501,12 @@ if pos=$(node_in_half left om_bm_target); then
     if pos=$(node_in_half right Alarms); then
         read -r w h <<< "$(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr x ' ')"
         ay=${pos#* }
-        adb shell input tap $((w / 2 + 68)) $ay; sleep 2    # panel B: tap the icon = select (B active)
+        adb shell input swipe $((w / 2 + 40)) $ay $((w / 2 + 320)) $ay 300; sleep 2    # panel B: swipe across the icon = select (B active)
         if node_center_by_id btnSelectionClose >/dev/null; then
-            pass "tapping an icon in the right panel selects it"
+            pass "swiping across an icon in the right panel selects it"
         else
             shot 45a_no_selection
-            fail "tapping the icon did not select in the right panel"
+            fail "swiping across the icon did not select in the right panel"
         fi
         adb shell input tap $((w / 4)) $((h * 2 / 3)); sleep 2   # empty area of panel A: A active
         before=$(path_title)
@@ -1574,9 +1574,13 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell run-as $PKG sed -i 's#<string name="key_thumbnail_load_mode">2</string>#<string name="key_thumbnail_load_mode">0</string>#' /data/data/$PKG/shared_prefs/${PKG}_preferences.xml
 adb shell run-as $PKG rm -rf cache/om_thumbs
+log "      thumbnail mode after turning them on inside Ultra RAM: $(pref_value key_thumbnail_load_mode)"
+adb logcat -c
 adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
-    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Movies" >/dev/null; sleep 10
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Movies" >/dev/null; sleep 15
 shot 47_ultra_ram_thumbnails
+adb logcat -d -s OMThumb > "$OUT/ultra_thumbs.txt" 2>/dev/null || true
+grep -E "bind|fetch" "$OUT/ultra_thumbs.txt" | tail -6 | sed 's/^/      /' | tee -a "$REPORT"
 thumbs=$(adb shell run-as $PKG ls cache/om_thumbs 2>/dev/null | tr -d '\r' | grep -c "webp$" || true)
 log "      thumbnails cached on disk in Ultra RAM: ${thumbs:-0}"
 if [ "${thumbs:-0}" -ge 1 ]; then

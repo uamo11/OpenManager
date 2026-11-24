@@ -92,6 +92,9 @@ class PathAttributesFetcher(
         if (result is DrawableResult) {
             ThumbnailDiskCache.put(context, key, result.drawable, px)
         }
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            android.util.Log.d("OMThumb", "fetch ${path.fileName} px=$px -> ${result?.javaClass?.simpleName}")
+        }
         return result
     }
 
