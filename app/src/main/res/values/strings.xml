@@ -1198,11 +1198,11 @@
 
     <!-- MT Manager Bookmarks & Bottom Bar Preferences -->
     <string name="settings_show_bookmarks_sidebar_title">Show bookmarks in the sidebar</string>
-    <string name="settings_show_bookmarks_sidebar_summary">Only show bookmarks in the default group, to view all bookmarks, swipe up from the bottom toolbar.</string>
+    <string name="settings_show_bookmarks_sidebar_summary">Also list your bookmarks in the side menu. Swipe up on the bottom bar to open all of them.</string>
     <string name="settings_add_bookmarks_top_title">Add new bookmarks to top</string>
     <string name="settings_add_bookmarks_top_summary">New bookmarks are added to the top of the selected group.</string>
-    <string name="settings_bookmark_swipe_aware_title">Bookmark swipe gesture position-aware</string>
-    <string name="settings_bookmark_swipe_aware_summary">When clicking a bookmark to jump, jump from the currently active window.</string>
+    <string name="settings_bookmark_swipe_aware_title">Bookmarks open on the side you swipe</string>
+    <string name="settings_bookmark_swipe_aware_summary">Swiping up on the left or right half of the bottom bar opens the bookmark in that panel. Off: always in the active panel.</string>
     <string name="settings_add_bottom_margin_title">Add bottom margin to bottom-toolbar</string>
     <string name="settings_add_bottom_margin_summary">You can pull out the bookmarks by sliding up from the bottom-toolbar. If you often conflict with the full screen gestures when sliding up, you can increase the bottom margin appropriately.</string>
     <string name="settings_bottom_margin_size_title">Bottom margin size of bottom-toolbar</string>
@@ -3199,4 +3199,14 @@
         <item quantity="one">%1$d hidden file here. Tap to show it</item>
         <item quantity="other">%1$d hidden files here. Tap to show them</item>
     </plurals>
+    <string name="om_bookmarks_title">Bookmarks</string>
+    <string name="om_bookmarks_hint">Tap to open · hold and drag to reorder</string>
+    <string name="om_bookmarks_add_current">Bookmark this folder</string>
+    <string name="om_bookmarks_remove_current">Remove this folder from bookmarks</string>
+    <string name="om_bookmarks_empty">No bookmarks yet. Bookmark the folder you are in from here, or use “Add bookmark” in the ⋮ menu.</string>
+    <string name="om_bookmark_options">Bookmark options</string>
+    <string name="om_bookmark_open_other_panel">Open in the other panel</string>
+    <string name="om_bookmark_removed">Bookmark removed</string>
+    <string name="om_bookmark_exists">This folder is already in your bookmarks</string>
+    <string name="om_bookmark_added_hint">Bookmark added. Swipe up on the bottom bar to see your bookmarks.</string>
 </resources>

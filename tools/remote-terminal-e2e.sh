@@ -1237,6 +1237,71 @@ else
 fi
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
+log "=== Bookmarks: add one, swipe up on the bottom bar, open it, see it in the drawer ==="
+# node_with <id suffix> <text>: center of the node with that id and exactly that text.
+node_with() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" "$2" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
+        t = re.search(r' text="([^"]*)"', node)
+        if t and html.unescape(t.group(1)) == sys.argv[3]:
+            x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+            print((x1 + x2) // 2, (y1 + y2) // 2)
+            sys.exit(0)
+sys.exit(1)
+PY
+}
+adb shell mkdir -p /sdcard/om_bm_target
+adb shell "echo bm > /sdcard/om_bm_target/bm_marker.txt"
+adb logcat -c
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_bm_target" >/dev/null; sleep 4
+if wait_text 20 "bm_marker.txt" >/dev/null; then
+    demo more_menu; sleep 2
+    if pos=$(find_text "Add bookmark" "Añadir a marcadores"); then
+        adb shell input tap $pos; sleep 2
+        adb shell input tap $(node_center_by_id btnBottomHome); sleep 3
+        # Swipe up on the bottom bar (starting on a button: it must not be pressed).
+        read -r sx sy <<< "$(node_center_by_id btnBottomSwap)"
+        adb shell input swipe $sx $sy $sx $((sy - 500)) 300; sleep 2
+        shot 40_bookmarks_sheet
+        if pos=$(node_with tvBookmarkName om_bm_target); then
+            pass "swiping up on the bottom bar opens the bookmarks with the new one"
+            adb shell input tap $pos
+            if wait_text 20 "bm_marker.txt" >/dev/null; then
+                pass "tapping a bookmark opens its folder"
+            else
+                shot 40b_bookmark_open_failed
+                fail "tapping the bookmark did not open its folder"
+            fi
+        else
+            fail "swiping up on the bottom bar did not show the bookmark"
+        fi
+        demo drawer; sleep 2
+        if node_with tvStorageTitle om_bm_target >/dev/null; then
+            shot 41_bookmarks_drawer
+            pass "the side menu lists the bookmark"
+        else
+            shot 41_bookmarks_drawer_missing
+            fail "the side menu does not list the bookmark"
+        fi
+        demo close_drawer; sleep 1
+    else
+        fail "no 'Add bookmark' in the ⋮ menu"
+        adb shell input keyevent KEYCODE_BACK
+    fi
+else
+    shot 40_bookmarks_folder_missing
+    fail "could not open /sdcard/om_bm_target for the bookmark test"
+fi
+adb logcat -d > "$OUT/logcat_bookmarks.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_bookmarks.txt"; then fail "crash while using bookmarks"; fi
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

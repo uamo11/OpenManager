@@ -2975,8 +2975,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun addBookmark(path: Path) {
+        if (BookmarkDirectories.contains(path)) {
+            showToast(R.string.om_bookmark_exists)
+            return
+        }
         BookmarkDirectories.add(BookmarkDirectory(null, path))
-        showToast(R.string.file_add_bookmark_success)
+        // Say where to find them: the panel used to be impossible to discover.
+        showToast(R.string.om_bookmark_added_hint)
     }
 
     override fun createShortcut(file: FileItem) {

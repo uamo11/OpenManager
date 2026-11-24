@@ -57,8 +57,13 @@
         android:title="@string/om_menu_swap_panels" />
 
     <item
-        android:id="@+id/mt_menu_add_bookmark"
+        android:id="@+id/mt_menu_bookmarks"
         android:icon="@drawable/bookmark_icon_white_24dp"
+        android:title="@string/om_bookmarks_title" />
+
+    <item
+        android:id="@+id/mt_menu_add_bookmark"
+        android:icon="@drawable/add_icon_white_24dp"
         android:title="@string/om_menu_add_bookmark" />
 
     <item

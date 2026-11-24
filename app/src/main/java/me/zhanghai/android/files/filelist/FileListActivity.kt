@@ -1424,12 +1424,45 @@ class FileListActivity : AppActivity() {
             }
             layoutCustomStorages.addView(itemView)
         }
+        refreshDrawerBookmarks()
         applyDrawerPalette(OpenManagerPalette.from(this))
+    }
+
+    /** Bookmarks in the side menu: tap opens in the active panel, long press opens the panel. */
+    private fun refreshDrawerBookmarks() {
+        val container = findViewById<LinearLayout>(R.id.layoutDrawerBookmarks) ?: return
+        val header = findViewById<View>(R.id.tvDrawerBookmarksHeader)
+        container.removeAllViews()
+        val bookmarks = if (Settings.SHOW_BOOKMARKS_SIDEBAR.valueCompat) {
+            Settings.BOOKMARK_DIRECTORIES.valueCompat
+        } else {
+            emptyList()
+        }
+        header?.isVisible = bookmarks.isNotEmpty()
+        for (bookmark in bookmarks) {
+            val itemView = layoutInflater.inflate(R.layout.drawer_custom_storage_item, container, false)
+            itemView.findViewById<ImageView>(R.id.ivStorageIcon).setImageResource(R.drawable.bookmark_icon_white_24dp)
+            itemView.findViewById<TextView>(R.id.tvStorageTitle).text = bookmark.name
+            itemView.findViewById<ProgressBar>(R.id.progressCustomStorage)?.isVisible = false
+            itemView.findViewById<TextView>(R.id.tvStorageSubtitle).text = bookmark.path.toUserFriendlyString()
+            itemView.setOnClickListener {
+                drawerLayout.closeDrawer(GravityCompat.START)
+                openBookmark(bookmark.path, activePanelIndex)
+            }
+            itemView.setOnLongClickListener {
+                drawerLayout.closeDrawer(GravityCompat.START)
+                showBookmarks()
+                true
+            }
+            container.addView(itemView)
+        }
     }
 
     private fun observeCustomStorages() {
         Settings.STORAGES.observe(this) { refreshCustomStoragesList() }
         StorageVolumeListLiveData.observe(this) { refreshCustomStoragesList() }
+        Settings.BOOKMARK_DIRECTORIES.observe(this) { refreshCustomStoragesList() }
+        Settings.SHOW_BOOKMARKS_SIDEBAR.observe(this) { refreshCustomStoragesList() }
     }
 
     private fun showCustomStorageOptions(storage: Storage) {
@@ -1534,8 +1567,11 @@ class FileListActivity : AppActivity() {
             e.printStackTrace()
         }
         val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
-        popup.menu.findItem(R.id.mt_menu_hidden_files)?.title =
-            if (showHidden) "Ocultar archivos y directorios ocultos" else "Mostrar archivos y directorios ocultos"
+        // Translated title with a check mark (it used to be a fixed Spanish text).
+        popup.menu.findItem(R.id.mt_menu_hidden_files)?.apply {
+            isCheckable = true
+            isChecked = showHidden
+        }
         popup.menu.findItem(R.id.mt_menu_empty_recycle_bin)?.isVisible =
             activeFragment.currentPath.isInsideRecycleBin
         popup.setOnMenuItemClickListener { item ->
@@ -1576,12 +1612,14 @@ class FileListActivity : AppActivity() {
                     val current = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
                     val newSetting = !current
                     Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(newSetting)
-                    val msg = if (newSetting) "Mostrando archivos y directorios ocultos" else "Ocultando archivos y directorios ocultos"
-                    showToast(msg)
                     true
                 }
                 R.id.mt_menu_add_bookmark -> {
                     activeFragment.addBookmarkCurrentPath()
+                    true
+                }
+                R.id.mt_menu_bookmarks -> {
+                    showBookmarks()
                     true
                 }
                 R.id.mt_menu_set_as_home -> {
@@ -1724,6 +1762,11 @@ class FileListActivity : AppActivity() {
             if (home != null && home != activeFragment.currentPath) {
                 activeFragment.navigateTo(home)
             }
+        }
+        // Long press on home: the bookmarks, the other places worth jumping to.
+        btnBottomHome.setOnLongClickListener {
+            showBookmarks()
+            true
         }
 
         // Selection Mode: 5 Icon Buttons (MT Manager Style matching bottomBarNormal)
@@ -1931,6 +1974,89 @@ class FileListActivity : AppActivity() {
 
     private val panelHitRect = android.graphics.Rect()
 
+    // Swipe up on the bottom bar opens the bookmarks (MT Manager gesture).
+    private var bookmarkSwipeDownY = Float.NaN
+    private var bookmarkSwipeDownX = 0f
+    private var bookmarkSwipeConsumed = false
+
+    /**
+     * Watches touches that start on the bottom bar: a swipe up opens the bookmarks and cancels the
+     * button under the finger, a tap still goes to the button as usual.
+     */
+    private fun handleBookmarkSwipe(ev: android.view.MotionEvent): Boolean {
+        if (!this::bottomBarNormal.isInitialized) return false
+        when (ev.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                bookmarkSwipeConsumed = false
+                bookmarkSwipeDownY = if (bottomBarNormal.isShown &&
+                    bottomBarNormal.getGlobalVisibleRect(panelHitRect) &&
+                    panelHitRect.contains(ev.rawX.toInt(), ev.rawY.toInt())
+                ) ev.rawY else Float.NaN
+                bookmarkSwipeDownX = ev.rawX
+            }
+            android.view.MotionEvent.ACTION_MOVE -> {
+                if (bookmarkSwipeConsumed) return true
+                if (!bookmarkSwipeDownY.isNaN()) {
+                    val threshold = 32 * resources.displayMetrics.density
+                    if (bookmarkSwipeDownY - ev.rawY > threshold) {
+                        bookmarkSwipeConsumed = true
+                        bookmarkSwipeDownY = Float.NaN
+                        val cancel = android.view.MotionEvent.obtain(ev).apply {
+                            action = android.view.MotionEvent.ACTION_CANCEL
+                        }
+                        super.dispatchTouchEvent(cancel)
+                        cancel.recycle()
+                        showBookmarks(bookmarkPanelForSwipe(bookmarkSwipeDownX))
+                        return true
+                    }
+                }
+            }
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                bookmarkSwipeDownY = Float.NaN
+                if (bookmarkSwipeConsumed) {
+                    bookmarkSwipeConsumed = false
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private val isSecondPanelShown: Boolean
+        get() = this::containerB.isInitialized && containerB.isShown
+
+    /** Panel a bottom-bar swipe at [rawX] opens bookmarks for (see [BookmarkSwipe]). */
+    private fun bookmarkPanelForSwipe(rawX: Float): Int =
+        BookmarkSwipe.targetPanel(
+            positionAware = Settings.BOOKMARK_SWIPE_AWARE.valueCompat,
+            bothPanelsShown = isSecondPanelShown,
+            activePanel = activePanelIndex,
+            touchX = rawX,
+            screenWidth = window.decorView.width.toFloat(),
+            isRtl = window.decorView.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        )
+
+    /** Opens the bookmarks panel; a bookmark tapped there opens in panel [panelIndex]. */
+    fun showBookmarks(panelIndex: Int = activePanelIndex) {
+        if (supportFragmentManager.isStateSaved) return
+        if (supportFragmentManager.findFragmentByTag(BookmarksSheetFragment.TAG) != null) return
+        BookmarksSheetFragment.newInstance(panelIndex)
+            .show(supportFragmentManager, BookmarksSheetFragment.TAG)
+    }
+
+    internal fun panelFragment(panelIndex: Int): FileListFragment =
+        if (panelIndex == 1) fragmentB else fragmentA
+
+    internal val canOpenInOtherPanel: Boolean
+        get() = isSecondPanelShown
+
+    /** Opens [path] in panel [panelIndex] and makes that panel the active one. */
+    internal fun openBookmark(path: Path, panelIndex: Int) {
+        val fragment = panelFragment(panelIndex)
+        onPanelFocused(fragment)
+        if (fragment.currentPath != path) fragment.navigateTo(path)
+    }
+
     /**
      * Any touch inside a panel makes it the active one before the touch is handled, whatever was
      * touched (file list, breadcrumb, empty or error view and its buttons, fast scroller...).
@@ -1938,6 +2064,7 @@ class FileListActivity : AppActivity() {
      * error view left the other panel active and the back button acted on the wrong side.
      */
     override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (handleBookmarkSwipe(ev)) return true
         if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN &&
             this::containerA.isInitialized && this::fragmentA.isInitialized && this::fragmentB.isInitialized &&
             this::drawerLayout.isInitialized && !drawerLayout.isDrawerOpen(GravityCompat.START)

@@ -369,11 +369,11 @@
     <string name="settings_installation_priority_title">Thứ tự ưu tiên cài đặt</string>
     <string name="settings_installation_priority_summary">Cài bằng Shizuku &gt; Cài bằng Root &gt; Gọi trình cài đặt hệ thống</string>
     <string name="settings_show_bookmarks_sidebar_title">Hiện dấu trang ở thanh bên</string>
-    <string name="settings_show_bookmarks_sidebar_summary">Chỉ hiện dấu trang trong nhóm mặc định; để xem tất cả, vuốt lên từ thanh công cụ dưới.</string>
+    <string name="settings_show_bookmarks_sidebar_summary">Hiển thị cả dấu trang trong menu bên. Vuốt lên trên thanh dưới cùng để xem tất cả.</string>
     <string name="settings_add_bookmarks_top_title">Thêm dấu trang mới lên đầu</string>
     <string name="settings_add_bookmarks_top_summary">Dấu trang mới được thêm vào đầu nhóm đang chọn.</string>
-    <string name="settings_bookmark_swipe_aware_title">Cử chỉ dấu trang theo vị trí</string>
-    <string name="settings_bookmark_swipe_aware_summary">Khi chạm dấu trang, mở trong cửa sổ đang hoạt động.</string>
+    <string name="settings_bookmark_swipe_aware_title">Mở dấu trang ở phía vuốt</string>
+    <string name="settings_bookmark_swipe_aware_summary">Vuốt lên ở nửa trái hoặc nửa phải của thanh dưới cùng sẽ mở dấu trang ở bảng đó. Tắt: luôn mở ở bảng đang hoạt động.</string>
     <string name="settings_add_bottom_margin_title">Lề dưới cho thanh công cụ dưới</string>
     <string name="settings_add_bottom_margin_summary">Vuốt lên từ thanh công cụ dưới để mở dấu trang. Nếu thường xung đột với cử chỉ toàn màn hình, hãy tăng lề dưới.</string>
     <string name="settings_bottom_margin_size_title">Cỡ lề dưới của thanh công cụ dưới</string>
@@ -2378,4 +2378,14 @@
     <plurals name="om_hidden_only_hint">
         <item quantity="other">Có %1$d tệp ẩn ở đây. Chạm để hiện</item>
     </plurals>
+    <string name="om_bookmarks_title">Dấu trang</string>
+    <string name="om_bookmarks_hint">Chạm để mở · giữ và kéo để sắp xếp</string>
+    <string name="om_bookmarks_add_current">Đánh dấu thư mục này</string>
+    <string name="om_bookmarks_remove_current">Bỏ thư mục này khỏi dấu trang</string>
+    <string name="om_bookmarks_empty">Chưa có dấu trang. Đánh dấu thư mục hiện tại từ đây, hoặc dùng “Thêm dấu trang” trong menu ⋮.</string>
+    <string name="om_bookmark_options">Tùy chọn dấu trang</string>
+    <string name="om_bookmark_open_other_panel">Mở ở bảng còn lại</string>
+    <string name="om_bookmark_removed">Đã xóa dấu trang</string>
+    <string name="om_bookmark_exists">Thư mục này đã có trong dấu trang</string>
+    <string name="om_bookmark_added_hint">Đã thêm dấu trang. Vuốt lên trên thanh dưới cùng để xem các dấu trang.</string>
 </resources>

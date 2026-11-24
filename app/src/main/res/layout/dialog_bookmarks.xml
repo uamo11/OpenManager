@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026 OpenManager
+  ~ All Rights Reserved.
+  -->
+<!-- MT-style bookmarks panel: swipe up on the bottom bar, or ⋮ > Bookmarks. -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/bookmarksRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#202020"
+    android:orientation="vertical"
+    android:paddingBottom="12dp">
+
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="8dp"
+        android:background="@drawable/bg_drag_handle_bar" />
+
+    <TextView
+        android:id="@+id/tvBookmarksTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:text="@string/om_bookmarks_title"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/tvBookmarksHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="8dp"
+        android:text="@string/om_bookmarks_hint"
+        android:textColor="#888888"
+        android:textSize="12sp" />
+
+    <!-- Add (or remove) the folder the panel is in. -->
+    <LinearLayout
+        android:id="@+id/btnBookmarkCurrent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?selectableItemBackground"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp">
+
+        <ImageView
+            android:id="@+id/ivBookmarkCurrent"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/add_icon_white_24dp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvBookmarkCurrent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/om_bookmarks_add_current"
+                android:textSize="15sp" />
+
+            <TextView
+                android:id="@+id/tvBookmarkCurrentPath"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:singleLine="true"
+                android:textColor="#888888"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/bookmarksDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="4dp"
+        android:background="#333333" />
+
+    <TextView
+        android:id="@+id/tvBookmarksEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:paddingStart="32dp"
+        android:paddingTop="24dp"
+        android:paddingEnd="32dp"
+        android:paddingBottom="24dp"
+        android:text="@string/om_bookmarks_empty"
+        android:textColor="#888888"
+        android:textSize="13sp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvBookmarks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:overScrollMode="ifContentScrolls" />
+</LinearLayout>

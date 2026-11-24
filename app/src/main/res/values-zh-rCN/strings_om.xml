@@ -370,11 +370,11 @@
     <string name="settings_installation_priority_title">安装优先级说明</string>
     <string name="settings_installation_priority_summary">使用 Shizuku 安装 &gt; 使用 Root 安装 &gt; 调用系统安装程序</string>
     <string name="settings_show_bookmarks_sidebar_title">在侧边栏中显示书签</string>
-    <string name="settings_show_bookmarks_sidebar_summary">仅显示默认分组中的书签；要查看全部书签，请从底部工具栏向上滑动。</string>
+    <string name="settings_show_bookmarks_sidebar_summary">同时在侧边栏中列出书签。在底部工具栏上向上滑动可查看全部书签。</string>
     <string name="settings_add_bookmarks_top_title">将新书签添加到顶部</string>
     <string name="settings_add_bookmarks_top_summary">新书签会添加到所选分组的顶部。</string>
-    <string name="settings_bookmark_swipe_aware_title">书签滑动手势感知位置</string>
-    <string name="settings_bookmark_swipe_aware_summary">点击书签跳转时，从当前活动窗口跳转。</string>
+    <string name="settings_bookmark_swipe_aware_title">书签在滑动所在一侧打开</string>
+    <string name="settings_bookmark_swipe_aware_summary">在底部工具栏的左半边或右半边向上滑动，书签会在对应的窗口中打开。关闭时始终在当前活动窗口中打开。</string>
     <string name="settings_add_bottom_margin_title">为底部工具栏添加底部边距</string>
     <string name="settings_add_bottom_margin_summary">从底部工具栏向上滑动可以拉出书签。如果向上滑动时经常与全面屏手势冲突，可以适当增大底部边距。</string>
     <string name="settings_bottom_margin_size_title">底部工具栏的底部边距大小</string>
@@ -2283,4 +2283,14 @@
     <plurals name="om_hidden_only_hint">
         <item quantity="other">这里有 %1$d 个隐藏文件，点按即可显示</item>
     </plurals>
+    <string name="om_bookmarks_title">书签</string>
+    <string name="om_bookmarks_hint">点按打开 · 长按并拖动以排序</string>
+    <string name="om_bookmarks_add_current">将此文件夹加入书签</string>
+    <string name="om_bookmarks_remove_current">从书签中移除此文件夹</string>
+    <string name="om_bookmarks_empty">还没有书签。可在此处添加当前文件夹，或使用 ⋮ 菜单中的“添加书签”。</string>
+    <string name="om_bookmark_options">书签选项</string>
+    <string name="om_bookmark_open_other_panel">在另一个窗口中打开</string>
+    <string name="om_bookmark_removed">已移除书签</string>
+    <string name="om_bookmark_exists">此文件夹已在书签中</string>
+    <string name="om_bookmark_added_hint">已添加书签。在底部工具栏上向上滑动即可查看书签。</string>
 </resources>

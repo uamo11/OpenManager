@@ -1,3 +1,26 @@
+# OpenManager v2.0.17: Panel de Marcadores
+
+### 🔖 Marcadores (issue #3)
+- **Los marcadores ya se pueden ver y abrir.** Antes se podían añadir, pero no aparecían en ningún sitio: el panel que prometía Ajustes no existía.
+- **Panel de marcadores al estilo MT Manager**, con tres formas de abrirlo:
+  - deslizando hacia arriba sobre la barra inferior;
+  - desde ⋮ → **Marcadores**;
+  - manteniendo pulsado el botón de inicio.
+- En el panel:
+  - toca un marcador para abrirlo;
+  - mantén pulsado y arrastra para ordenarlos;
+  - con ⋮ puedes **abrirlo en el otro panel**, editarlo (nombre y carpeta) o quitarlo, con opción de **deshacer**.
+  - La primera fila añade o quita la carpeta en la que estás.
+- **Menú lateral:** nueva sección **Marcadores**. Toca para abrir; mantén pulsado para gestionarlos.
+- Con **«Abrir marcadores en el lado del gesto»** (activado por defecto), deslizar sobre la mitad izquierda o derecha de la barra abre el marcador en ese panel.
+- **«Añadir nuevos marcadores arriba»** ahora funciona. Antes el ajuste existía, pero no hacía nada.
+- Una carpeta ya guardada no se duplica. Al añadir un marcador, el aviso explica dónde encontrarlo.
+- Los textos de Ajustes ya no hablan de «grupos» de marcadores que no existen.
+
+### 🌐 Idiomas
+- La opción de archivos ocultos del menú ⋮ salía siempre en español. Ahora usa tu idioma y muestra una casilla con su estado.
+
+
 # OpenManager v2.0.16: La VPS Aguanta los Cortes de Red
 
 ### 🖥️ Archivos de la VPS tras un corte de red

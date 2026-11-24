@@ -369,11 +369,11 @@
     <string name="settings_installation_priority_title">Ordem de instalação</string>
     <string name="settings_installation_priority_summary">Instalar com Shizuku &gt; Instalar com Root &gt; Instalador do sistema</string>
     <string name="settings_show_bookmarks_sidebar_title">Mostrar favoritos na barra lateral</string>
-    <string name="settings_show_bookmarks_sidebar_summary">Mostra só os favoritos do grupo padrão; para ver todos, deslize para cima a partir da barra inferior.</string>
+    <string name="settings_show_bookmarks_sidebar_summary">Também lista os favoritos no menu lateral. Deslize para cima na barra inferior para ver todos.</string>
     <string name="settings_add_bookmarks_top_title">Adicionar novos favoritos no topo</string>
     <string name="settings_add_bookmarks_top_summary">Novos favoritos entram no topo do grupo selecionado.</string>
-    <string name="settings_bookmark_swipe_aware_title">Gesto dos favoritos respeita a janela</string>
-    <string name="settings_bookmark_swipe_aware_summary">Ao tocar em um favorito, abrir na janela ativa.</string>
+    <string name="settings_bookmark_swipe_aware_title">Abrir favoritos no lado do gesto</string>
+    <string name="settings_bookmark_swipe_aware_summary">Deslizar para cima na metade esquerda ou direita da barra inferior abre o favorito nesse painel. Desativado: sempre no painel ativo.</string>
     <string name="settings_add_bottom_margin_title">Margem inferior da barra inferior</string>
     <string name="settings_add_bottom_margin_summary">Deslize para cima a partir da barra inferior para abrir os favoritos. Se isso conflita com os gestos de tela cheia, aumente a margem inferior.</string>
     <string name="settings_bottom_margin_size_title">Tamanho da margem inferior da barra inferior</string>
@@ -2289,4 +2289,14 @@
         <item quantity="one">%1$d arquivo oculto aqui. Toque para mostrar</item>
         <item quantity="other">%1$d arquivos ocultos aqui. Toque para mostrar</item>
     </plurals>
+    <string name="om_bookmarks_title">Favoritos</string>
+    <string name="om_bookmarks_hint">Toque para abrir · segure e arraste para reordenar</string>
+    <string name="om_bookmarks_add_current">Adicionar esta pasta aos favoritos</string>
+    <string name="om_bookmarks_remove_current">Remover esta pasta dos favoritos</string>
+    <string name="om_bookmarks_empty">Nenhum favorito ainda. Adicione daqui a pasta em que você está ou use “Adicionar favorito” no menu ⋮.</string>
+    <string name="om_bookmark_options">Opções do favorito</string>
+    <string name="om_bookmark_open_other_panel">Abrir no outro painel</string>
+    <string name="om_bookmark_removed">Favorito removido</string>
+    <string name="om_bookmark_exists">Esta pasta já está nos seus favoritos</string>
+    <string name="om_bookmark_added_hint">Favorito adicionado. Deslize para cima na barra inferior para ver seus favoritos.</string>
 </resources>

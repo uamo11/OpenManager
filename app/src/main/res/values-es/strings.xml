@@ -286,7 +286,7 @@
     <string name="file_create_archive_type_tar_xz">.tar.xz</string>
     <string name="file_create_archive_type_7z">.7z</string>
     <string name="file_create_archive_password">Contraseña (opcional)</string>
-    <string name="file_add_bookmark_success">Carpeta añadida a favoritos</string>
+    <string name="file_add_bookmark_success">Marcador añadido</string>
     <string name="file_create_file_title">Nuevo archivo</string>
     <string name="file_create_directory_title">Nueva carpeta</string>
 
@@ -814,7 +814,7 @@
     <string name="settings_standard_directories_title">Carpetas estándar</string>
     <string name="settings_standard_directories_summary_empty">Ninguna carpeta estándar habilitada</string>
     <string name="settings_bookmark_directory_screenshots">Capturas de pantalla</string>
-    <string name="settings_bookmark_directories_title">Carpetas favoritas</string>
+    <string name="settings_bookmark_directories_title">Marcadores</string>
     <string name="settings_bookmark_directories_summary_empty">Sin carpetas favoritas</string>
     <string name="settings_root_strategy_title">Modo de acceso administrativo</string>
     <plurals name="settings_root_strategy_message_format">
@@ -1094,11 +1094,11 @@
 
     <!-- MT Manager Bookmarks & Bottom Bar Preferences -->
     <string name="settings_show_bookmarks_sidebar_title">Mostrar marcadores en la barra lateral</string>
-    <string name="settings_show_bookmarks_sidebar_summary">Solo mostrar marcadores en el grupo predeterminado; para ver todos los marcadores, deslice hacia arriba desde la barra de herramientas inferior.</string>
+    <string name="settings_show_bookmarks_sidebar_summary">Muestra también tus marcadores en el menú lateral. Desliza hacia arriba en la barra inferior para verlos todos.</string>
     <string name="settings_add_bookmarks_top_title">Agregar nuevos marcadores arriba</string>
     <string name="settings_add_bookmarks_top_summary">Los nuevos marcadores se agregan en la parte superior del grupo seleccionado.</string>
-    <string name="settings_bookmark_swipe_aware_title">Gesto de deslizamiento consciente de la posición</string>
-    <string name="settings_bookmark_swipe_aware_summary">Al hacer clic en un marcador para saltar, saltar desde la ventana activa actual.</string>
+    <string name="settings_bookmark_swipe_aware_title">Abrir marcadores en el lado del gesto</string>
+    <string name="settings_bookmark_swipe_aware_summary">Al deslizar hacia arriba en la mitad izquierda o derecha de la barra inferior, el marcador se abre en ese panel. Desactivado: siempre en el panel activo.</string>
     <string name="settings_add_bottom_margin_title">Agregar margen inferior a la barra de herramientas</string>
     <string name="settings_add_bottom_margin_summary">Puede desplegar los marcadores deslizando hacia arriba desde la barra de herramientas inferior. Si entra en conflicto con gestos a pantalla completa, aumente el margen.</string>
     <string name="settings_bottom_margin_size_title">Tamaño del margen inferior de la barra de herramientas</string>
@@ -3096,4 +3096,14 @@
         <item quantity="one">Hay %1$d archivo oculto. Toca para mostrarlo</item>
         <item quantity="other">Hay %1$d archivos ocultos. Toca para mostrarlos</item>
     </plurals>
+    <string name="om_bookmarks_title">Marcadores</string>
+    <string name="om_bookmarks_hint">Toca para abrir · mantén pulsado y arrastra para ordenar</string>
+    <string name="om_bookmarks_add_current">Añadir esta carpeta a marcadores</string>
+    <string name="om_bookmarks_remove_current">Quitar esta carpeta de marcadores</string>
+    <string name="om_bookmarks_empty">Aún no tienes marcadores. Añade desde aquí la carpeta en la que estás, o usa «Añadir a marcadores» en el menú ⋮.</string>
+    <string name="om_bookmark_options">Opciones del marcador</string>
+    <string name="om_bookmark_open_other_panel">Abrir en el otro panel</string>
+    <string name="om_bookmark_removed">Marcador eliminado</string>
+    <string name="om_bookmark_exists">Esta carpeta ya está en tus marcadores</string>
+    <string name="om_bookmark_added_hint">Marcador añadido. Desliza hacia arriba en la barra inferior para ver tus marcadores.</string>
 </resources>

@@ -314,6 +314,18 @@ object Settings {
             R.bool.pref_default_value_show_bookmarks_sidebar
         )
 
+    val ADD_BOOKMARKS_TOP: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_add_bookmarks_top,
+            R.bool.pref_default_value_add_bookmarks_top
+        )
+
+    val BOOKMARK_SWIPE_AWARE: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(
+            R.string.pref_key_bookmark_swipe_aware,
+            R.bool.pref_default_value_bookmark_swipe_aware
+        )
+
     val ADD_BOTTOM_MARGIN: SettingLiveData<Boolean> =
         BooleanSettingLiveData(
             R.string.pref_key_add_bottom_margin,

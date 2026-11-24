@@ -595,6 +595,27 @@
                         android:textSize="13.5sp" />
                 </LinearLayout>
 
+                <!-- Section: Bookmarks (Settings > show bookmarks in the sidebar) -->
+                <TextView
+                    android:id="@+id/tvDrawerBookmarksHeader"
+                    android:layout_width="match_parent"
+                    android:layout_height="32dp"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/om_bookmarks_title"
+                    android:textColor="#888888"
+                    android:textSize="11.5sp"
+                    android:textStyle="bold"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/layoutDrawerBookmarks"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
                 <!-- Section: Tools -->
                 <TextView
                     android:layout_width="match_parent"

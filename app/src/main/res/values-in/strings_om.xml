@@ -369,11 +369,11 @@
     <string name="settings_installation_priority_title">Urutan prioritas pemasangan</string>
     <string name="settings_installation_priority_summary">Pasang dengan Shizuku &gt; Pasang dengan Root &gt; Panggil penginstal sistem</string>
     <string name="settings_show_bookmarks_sidebar_title">Tampilkan bookmark di sidebar</string>
-    <string name="settings_show_bookmarks_sidebar_summary">Hanya bookmark di grup default yang ditampilkan; untuk melihat semua, geser ke atas dari bilah alat bawah.</string>
+    <string name="settings_show_bookmarks_sidebar_summary">Tampilkan juga penanda di menu samping. Geser ke atas pada bilah bawah untuk melihat semuanya.</string>
     <string name="settings_add_bookmarks_top_title">Tambahkan bookmark baru di atas</string>
     <string name="settings_add_bookmarks_top_summary">Bookmark baru ditambahkan di bagian atas grup yang dipilih.</string>
-    <string name="settings_bookmark_swipe_aware_title">Gestur bookmark sadar posisi</string>
-    <string name="settings_bookmark_swipe_aware_summary">Saat mengetuk bookmark, buka di jendela yang sedang aktif.</string>
+    <string name="settings_bookmark_swipe_aware_title">Buka penanda di sisi tempat menggeser</string>
+    <string name="settings_bookmark_swipe_aware_summary">Menggeser ke atas di separuh kiri atau kanan bilah bawah membuka penanda di panel itu. Nonaktif: selalu di panel yang aktif.</string>
     <string name="settings_add_bottom_margin_title">Margin bawah bilah alat bawah</string>
     <string name="settings_add_bottom_margin_summary">Bookmark bisa ditarik dengan menggeser ke atas dari bilah alat bawah. Jika sering bentrok dengan gestur layar penuh, tambah margin bawahnya.</string>
     <string name="settings_bottom_margin_size_title">Ukuran margin bawah bilah alat bawah</string>
@@ -962,7 +962,7 @@
     <string name="om_menu_select_all">Pilih semua</string>
     <string name="om_menu_show_hidden">File dan folder tersembunyi</string>
     <string name="om_menu_swap_panels">Tukar panel</string>
-    <string name="om_menu_add_bookmark">Tambah bookmark</string>
+    <string name="om_menu_add_bookmark">Tambah penanda</string>
     <string name="om_menu_set_home">Jadikan beranda</string>
     <string name="om_menu_exit">Keluar</string>
     <string name="om_create_new_title">Buat baru</string>
@@ -2284,4 +2284,14 @@
     <plurals name="om_hidden_only_hint">
         <item quantity="other">Ada %1$d file tersembunyi. Ketuk untuk menampilkan</item>
     </plurals>
+    <string name="om_bookmarks_title">Penanda</string>
+    <string name="om_bookmarks_hint">Ketuk untuk membuka · tahan lalu seret untuk mengurutkan</string>
+    <string name="om_bookmarks_add_current">Tandai folder ini</string>
+    <string name="om_bookmarks_remove_current">Hapus folder ini dari penanda</string>
+    <string name="om_bookmarks_empty">Belum ada penanda. Tandai folder yang sedang dibuka dari sini, atau gunakan “Tambah penanda” di menu ⋮.</string>
+    <string name="om_bookmark_options">Opsi penanda</string>
+    <string name="om_bookmark_open_other_panel">Buka di panel lain</string>
+    <string name="om_bookmark_removed">Penanda dihapus</string>
+    <string name="om_bookmark_exists">Folder ini sudah ada di penanda</string>
+    <string name="om_bookmark_added_hint">Penanda ditambahkan. Geser ke atas pada bilah bawah untuk melihat penanda Anda.</string>
 </resources>

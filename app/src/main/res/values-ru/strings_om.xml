@@ -369,11 +369,11 @@
     <string name="settings_installation_priority_title">Порядок установки</string>
     <string name="settings_installation_priority_summary">Установка через Shizuku &gt; установка через Root &gt; системный установщик</string>
     <string name="settings_show_bookmarks_sidebar_title">Закладки в боковой панели</string>
-    <string name="settings_show_bookmarks_sidebar_summary">Показываются только закладки группы по умолчанию; чтобы увидеть все, проведите вверх от нижней панели.</string>
+    <string name="settings_show_bookmarks_sidebar_summary">Также показывать закладки в боковом меню. Проведите вверх по нижней панели, чтобы открыть все.</string>
     <string name="settings_add_bookmarks_top_title">Добавлять новые закладки наверх</string>
     <string name="settings_add_bookmarks_top_summary">Новые закладки добавляются в начало выбранной группы.</string>
-    <string name="settings_bookmark_swipe_aware_title">Жест закладок учитывает окно</string>
-    <string name="settings_bookmark_swipe_aware_summary">При переходе по закладке открывать её в активном окне.</string>
+    <string name="settings_bookmark_swipe_aware_title">Открывать закладку на стороне жеста</string>
+    <string name="settings_bookmark_swipe_aware_summary">Свайп вверх по левой или правой половине нижней панели открывает закладку в этой панели. Выключено: всегда в активной панели.</string>
     <string name="settings_add_bottom_margin_title">Нижний отступ нижней панели</string>
     <string name="settings_add_bottom_margin_summary">Закладки вызываются свайпом вверх от нижней панели. Если он часто конфликтует с жестами полноэкранной навигации, увеличьте нижний отступ.</string>
     <string name="settings_bottom_margin_size_title">Размер нижнего отступа нижней панели</string>
@@ -2303,4 +2303,14 @@
         <item quantity="many">Здесь %1$d скрытых файлов. Нажмите, чтобы показать</item>
         <item quantity="other">Здесь %1$d скрытого файла. Нажмите, чтобы показать</item>
     </plurals>
+    <string name="om_bookmarks_title">Закладки</string>
+    <string name="om_bookmarks_hint">Нажмите, чтобы открыть · удерживайте и перетаскивайте для сортировки</string>
+    <string name="om_bookmarks_add_current">Добавить эту папку в закладки</string>
+    <string name="om_bookmarks_remove_current">Убрать эту папку из закладок</string>
+    <string name="om_bookmarks_empty">Закладок пока нет. Добавьте отсюда текущую папку или используйте «Добавить закладку» в меню ⋮.</string>
+    <string name="om_bookmark_options">Действия с закладкой</string>
+    <string name="om_bookmark_open_other_panel">Открыть в другой панели</string>
+    <string name="om_bookmark_removed">Закладка удалена</string>
+    <string name="om_bookmark_exists">Эта папка уже есть в закладках</string>
+    <string name="om_bookmark_added_hint">Закладка добавлена. Проведите вверх по нижней панели, чтобы увидеть закладки.</string>
 </resources>
