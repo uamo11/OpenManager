@@ -1,0 +1,70 @@
+name: Website screenshots
+
+# Takes the screenshots of the website on an emulator with demo files (themes, Material 3
+# colors, zones of the app, settings, languages) and uploads them as small WebP files.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/web**' ]
+    paths:
+      - 'tools/web-screenshots.sh'
+      - '.github/workflows/web-screenshots.yml'
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'gradle'
+    - name: Build Debug APK
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug --stacktrace
+        mkdir -p apk-to-test && cp app/build/outputs/apk/debug/app-debug.apk apk-to-test/
+    - name: Tools
+      run: |
+        sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+        python3 -m pip install --quiet pillow
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Take screenshots
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 29
+        target: default
+        arch: x86_64
+        profile: pixel_6
+        disable-animations: true
+        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
+        script: bash tools/web-screenshots.sh
+    - name: Convert to WebP
+      run: |
+        python3 - <<'PY'
+        import glob, os
+        from PIL import Image
+        os.makedirs("web-shots/webp", exist_ok=True)
+        for png in sorted(glob.glob("web-shots/*.png")):
+            img = Image.open(png).convert("RGB")
+            w = 540
+            img = img.resize((w, round(img.height * w / img.width)), Image.LANCZOS)
+            out = "web-shots/webp/" + os.path.basename(png)[:-4] + ".webp"
+            img.save(out, "WEBP", quality=80, method=6)
+            print(out, os.path.getsize(out))
+        PY
+    - name: Upload screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-shots
+        path: web-shots/
+        retention-days: 7
