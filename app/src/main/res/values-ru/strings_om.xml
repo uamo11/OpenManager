@@ -2450,4 +2450,21 @@
     <string name="om_md3_locked_by_ultra_ram">Выключено, пока включён режим Ultra RAM (требует больше памяти)</string>
     <string name="om_apk_checking_signature">Проверка…</string>
     <string name="om_menu_gallery_view">Галерея (эта папка)</string>
+    <string name="om_proc_state_running">РАБОТАЕТ</string>
+    <string name="om_proc_state_active">АКТИВНО</string>
+    <string name="om_proc_state_sleep">ОЖИДАНИЕ</string>
+    <string name="om_proc_state_disk">ОЖИДАНИЕ ДИСКА</string>
+    <string name="om_proc_state_zombie">ЗОМБИ</string>
+    <string name="om_heat_level_cool">Прохладно</string>
+    <string name="om_heat_level_warm">Тепло</string>
+    <string name="om_heat_level_hot">Горячо</string>
+    <string name="om_heat_cpu">ЦП %1$d °C</string>
+    <string name="om_heat_battery">Батарея %1$d °C</string>
+    <string name="om_heat_cause_app">%1$s загружает ЦП на %2$d%%</string>
+    <string name="om_heat_cause_brightness">Яркость экрана %1$d%%</string>
+    <string name="om_heat_cause_charging">Зарядка током %1$d мА</string>
+    <string name="om_heat_cause_charging_plain">Заряжается</string>
+    <string name="om_heat_cause_gpu">ГП загружен на %1$d%%</string>
+    <string name="om_heat_nothing">Сейчас ничто не нагревает телефон</string>
+    <string name="om_self_usage_format">OpenManager: %1$s реальной ОЗУ · приложение %2$s · скрипты (%3$d) %4$s</string>
 </resources>

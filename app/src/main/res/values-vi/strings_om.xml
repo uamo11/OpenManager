@@ -2525,4 +2525,21 @@
     <string name="om_md3_locked_by_ultra_ram">Tắt khi chế độ Ultra RAM đang bật (tốn nhiều bộ nhớ hơn)</string>
     <string name="om_apk_checking_signature">Đang kiểm tra…</string>
     <string name="om_menu_gallery_view">Chế độ thư viện (thư mục này)</string>
+    <string name="om_proc_state_running">ĐANG CHẠY</string>
+    <string name="om_proc_state_active">HOẠT ĐỘNG</string>
+    <string name="om_proc_state_sleep">CHỜ</string>
+    <string name="om_proc_state_disk">CHỜ ĐĨA</string>
+    <string name="om_proc_state_zombie">ZOMBIE</string>
+    <string name="om_heat_level_cool">Mát</string>
+    <string name="om_heat_level_warm">Ấm</string>
+    <string name="om_heat_level_hot">Nóng</string>
+    <string name="om_heat_cpu">CPU %1$d °C</string>
+    <string name="om_heat_battery">Pin %1$d °C</string>
+    <string name="om_heat_cause_app">%1$s đang dùng %2$d%% CPU</string>
+    <string name="om_heat_cause_brightness">Độ sáng màn hình %1$d%%</string>
+    <string name="om_heat_cause_charging">Đang sạc %1$d mA</string>
+    <string name="om_heat_cause_charging_plain">Đang sạc</string>
+    <string name="om_heat_cause_gpu">GPU %1$d%%</string>
+    <string name="om_heat_nothing">Hiện không có gì làm máy nóng lên</string>
+    <string name="om_self_usage_format">OpenManager: RAM thực %1$s · ứng dụng %2$s · script (%3$d) %4$s</string>
 </resources>

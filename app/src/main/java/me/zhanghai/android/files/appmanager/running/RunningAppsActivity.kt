@@ -41,6 +41,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.app.AppActivity
 import me.zhanghai.android.files.appmanager.InstalledAppsActivity
@@ -457,6 +458,8 @@ class RunningAppsActivity : AppActivity() {
             try {
                 val ram = RunningAppsLoader.getRamStats(this@RunningAppsActivity)
                 val list = RunningAppsLoader.loadRunningProcesses(this@RunningAppsActivity)
+                // Root only: one short root command per refresh for "what is heating the phone".
+                val heat = heatSample(list)
 
                 withContext(Dispatchers.Main) {
                     if (!isUiAlive || token != refreshGeneration.get()) return@withContext
@@ -475,6 +478,8 @@ class RunningAppsActivity : AppActivity() {
                     allProcesses.addAll(list)
 
                     updateCounters()
+                    bindSelfUsage()
+                    bindHeat(heat)
                     if (isAutoRefresh && (isUserScrolling || adapter.isPopupMenuOpen)) {
                         hasPendingUiUpdate = true
                     } else {
@@ -504,6 +509,82 @@ class RunningAppsActivity : AppActivity() {
         }
     }
 
+    private fun heatSample(list: List<RunningAppModel>): HeatAnalysis.Sample? {
+        val topCpu = list.asSequence()
+            .filter { it.pid > 0 && it.cpuPercent > 0f }
+            .sortedByDescending { it.cpuPercent }
+            .take(3)
+            .map { it.label to it.cpuPercent }
+            .toList()
+        if (RunningAppsLoader.isRootGranted()) return HeatMonitor.read(this, topCpu)
+        // Debug builds: the emulator checks show the card with a recorded sample (no root there).
+        if (BuildConfig.DEBUG && java.io.File(filesDir, DEMO_HEAT_FLAG).exists()) {
+            return HeatMonitor.sampleFrom(DEMO_HEAT_LINES, this, topCpu + ("Demo game" to 41f))
+        }
+        return null
+    }
+
+    /** Root only: the hotter part, the readings and the few things that heat the phone most. */
+    private fun bindHeat(sample: HeatAnalysis.Sample?) {
+        if (sample == null) {
+            binding.layoutHeat.visibility = View.GONE
+            return
+        }
+        val verdict = HeatAnalysis.analyze(sample)
+        val parts = ArrayList<String>()
+        parts += getString(
+            when (verdict.level) {
+                HeatAnalysis.Level.COOL -> R.string.om_heat_level_cool
+                HeatAnalysis.Level.WARM -> R.string.om_heat_level_warm
+                HeatAnalysis.Level.HOT -> R.string.om_heat_level_hot
+            }
+        )
+        sample.cpuTempC?.let { parts += getString(R.string.om_heat_cpu, kotlin.math.round(it).toInt()) }
+        sample.batteryTempC?.let { parts += getString(R.string.om_heat_battery, kotlin.math.round(it).toInt()) }
+        binding.tvHeatTitle.text = "🌡 " + parts.joinToString(" · ")
+        binding.tvHeatTitle.setTextColor(
+            Color.parseColor(
+                when (verdict.level) {
+                    HeatAnalysis.Level.COOL -> "#00E676"
+                    HeatAnalysis.Level.WARM -> "#FFB300"
+                    HeatAnalysis.Level.HOT -> "#FF5252"
+                }
+            )
+        )
+        val lines = verdict.causes.map { cause ->
+            "• " + when (cause) {
+                is HeatAnalysis.Cause.App ->
+                    getString(R.string.om_heat_cause_app, cause.label, kotlin.math.round(cause.cpuPercent).toInt())
+                is HeatAnalysis.Cause.Brightness -> getString(R.string.om_heat_cause_brightness, cause.percent)
+                is HeatAnalysis.Cause.Charging -> cause.currentMa?.let {
+                    getString(R.string.om_heat_cause_charging, it)
+                } ?: getString(R.string.om_heat_cause_charging_plain)
+                is HeatAnalysis.Cause.Gpu -> getString(R.string.om_heat_cause_gpu, cause.busyPercent)
+            }
+        }
+        binding.tvHeatCauses.text = lines.joinToString("\n").ifEmpty { getString(R.string.om_heat_nothing) }
+        binding.layoutHeat.visibility = View.VISIBLE
+    }
+
+    /**
+     * Without root or Shizuku only OpenManager's own processes can be seen: the header then says
+     * how much real memory the app and the scripts it runs take, and the tabs (which would split
+     * a handful of rows) are hidden.
+     */
+    private fun bindSelfUsage() {
+        val elevated = RunningAppsLoader.hasElevatedAccess()
+        binding.tabLayout.visibility = if (elevated) View.VISIBLE else View.GONE
+        if (elevated) return
+        val usage = RunningAppsLoader.selfUsage(allProcesses, android.os.Process.myUid())
+        binding.tvProcessCounters.text = getString(
+            R.string.om_self_usage_format,
+            Formatter.formatFileSize(this, usage.totalBytes),
+            Formatter.formatFileSize(this, usage.appBytes),
+            usage.scriptCount,
+            Formatter.formatFileSize(this, usage.scriptBytes)
+        )
+    }
+
     private fun updateCounters() {
         val total = allProcesses.size
         var userCount = 0
@@ -525,8 +606,10 @@ class RunningAppsActivity : AppActivity() {
         displayedProcesses.clear()
         val query = searchQuery.trim().lowercase()
 
+        // Without root/Shizuku: every own process (app and scripts) in one list, tabs hidden.
+        val elevated = RunningAppsLoader.hasElevatedAccess()
         for (p in allProcesses) {
-            val matchesTab = when (currentTab) {
+            val matchesTab = !elevated || when (currentTab) {
                 0 -> p.isApp && !p.isSystem
                 1 -> p.isSystem
                 2 -> p.isShellScript
@@ -550,7 +633,7 @@ class RunningAppsActivity : AppActivity() {
 
         // One row per app (with its process count) instead of "OpenManager" twice for
         // com.y.om and com.y.om:root:0. Scripts and the "all" tab keep raw processes.
-        if (groupByApp && (currentTab == 0 || currentTab == 1)) {
+        if (elevated && groupByApp && (currentTab == 0 || currentTab == 1)) {
             val grouped = RunningAppsLoader.groupProcessesByApp(displayedProcesses)
             displayedProcesses.clear()
             displayedProcesses.addAll(grouped)
@@ -992,6 +1075,13 @@ class RunningAppsActivity : AppActivity() {
     }
 
     companion object {
+        /** Debug builds: while this file exists in the app's files folder the card shows a sample. */
+        private const val DEMO_HEAT_FLAG = "om_debug_demo_heat"
+        /** A recorded root reading (Snapdragon-style zones), for the debug-only demo. */
+        private val DEMO_HEAT_LINES = listOf(
+            "Z|cpu-0-0-usr|61000", "Z|cpu-1-0-usr|58000", "Z|battery|36000", "Z|xo-therm|42000",
+            "B|3686|4095", "G|64"
+        )
         private const val AUTO_REFRESH_INTERVAL_MS = 2500L
         private const val MENU_GROUP_BY_APP = 0x6701
         private const val PREFS = "running_apps_prefs"

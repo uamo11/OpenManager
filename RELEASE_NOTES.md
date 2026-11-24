@@ -1,3 +1,23 @@
+# OpenManager v2.0.21: Apps en Ejecución Renovado y «¿Qué Calienta el Móvil?»
+
+### 🌡️ ¿Qué calienta el móvil? (solo root)
+- Nueva tarjeta ligera en **Apps en ejecución** con:
+  - temperatura de la CPU y de la batería, con un nivel de color (fresco, templado o caliente);
+  - las causas principales, como mucho tres: apps que más CPU usan, **brillo de pantalla** (el nivel real del panel), carga y su corriente, y uso de la GPU.
+- Lee todo con **un solo comando root** por refresco, sin procesos extra.
+- Sin root la tarjeta no aparece.
+
+### 📊 Sin root: RAM real de OpenManager y de tus scripts
+- Sin root ni Shizuku, Android solo deja ver los procesos de la propia app. Ahora esa vista es útil:
+  - cada proceso (la app y los scripts que ejecuta) muestra su **memoria real (PSS)** en vez de RSS, que contaba entero cada recurso compartido y la inflaba;
+  - arriba aparece un resumen: «OpenManager: X de RAM real · app Y · scripts (N) Z»;
+  - las pestañas se ocultan, porque solo había unos pocos procesos propios que repartir.
+- **Más ligero:** sin root ya no se lanza un proceso `ps` en cada refresco (cada 2,5 s), porque no aportaba nada.
+
+### 🌐 Idiomas
+- Los estados de los procesos («RUNNING», «ACTIVE», «ZOMBIE»…) salían siempre en inglés. Ahora salen en tu idioma.
+
+
 # OpenManager v2.0.20: Miniaturas en Ultra RAM, Vista Galería y APK Grandes al Instante
 
 ### ⚡ Ultra RAM

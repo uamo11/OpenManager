@@ -2431,4 +2431,21 @@
     <string name="om_md3_locked_by_ultra_ram">Nonaktif selama mode Ultra RAM menyala (memakai lebih banyak memori)</string>
     <string name="om_apk_checking_signature">Memeriksa…</string>
     <string name="om_menu_gallery_view">Tampilan galeri (folder ini)</string>
+    <string name="om_proc_state_running">BERJALAN</string>
+    <string name="om_proc_state_active">AKTIF</string>
+    <string name="om_proc_state_sleep">TIDUR</string>
+    <string name="om_proc_state_disk">TUNGGU DISK</string>
+    <string name="om_proc_state_zombie">ZOMBI</string>
+    <string name="om_heat_level_cool">Sejuk</string>
+    <string name="om_heat_level_warm">Hangat</string>
+    <string name="om_heat_level_hot">Panas</string>
+    <string name="om_heat_cpu">CPU %1$d °C</string>
+    <string name="om_heat_battery">Baterai %1$d °C</string>
+    <string name="om_heat_cause_app">%1$s memakai %2$d%% CPU</string>
+    <string name="om_heat_cause_brightness">Kecerahan layar %1$d%%</string>
+    <string name="om_heat_cause_charging">Mengisi daya %1$d mA</string>
+    <string name="om_heat_cause_charging_plain">Sedang mengisi daya</string>
+    <string name="om_heat_cause_gpu">GPU %1$d%%</string>
+    <string name="om_heat_nothing">Saat ini tidak ada yang membuat ponsel panas</string>
+    <string name="om_self_usage_format">OpenManager: RAM nyata %1$s · aplikasi %2$s · skrip (%3$d) %4$s</string>
 </resources>

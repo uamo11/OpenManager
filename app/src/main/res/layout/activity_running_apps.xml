@@ -118,6 +118,44 @@
                     android:focusable="true"
                     tools:text="ROOT" />
             </LinearLayout>
+
+            <!-- Root only: what is warming the phone up (temperatures, brightness, busiest apps). -->
+            <LinearLayout
+                android:id="@+id/layoutHeat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_category_pill"
+                android:backgroundTint="#22FFFFFF"
+                android:orientation="vertical"
+                android:paddingStart="10dp"
+                android:paddingTop="6dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="6dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvHeatTitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="🌡 Warm · CPU 58 °C · Battery 38 °C" />
+
+                <TextView
+                    android:id="@+id/tvHeatCauses"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:lineSpacingMultiplier="1.1"
+                    android:textColor="#B0B0B0"
+                    android:textSize="11sp"
+                    tools:text="• WhatsApp is using 34% of the CPU\n• Brightness at 90%" />
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Permission Banner when Unprivileged (App Manager Style) -->

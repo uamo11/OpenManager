@@ -1714,6 +1714,69 @@ adb shell rm -rf /sdcard/om_bigapk
 adb logcat -d > "$OUT/logcat_ultra_gallery.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_ultra_gallery.txt"; then fail "crash in Ultra RAM thumbnails, gallery, icon or big APK checks"; fi
 
+log "=== Running apps without root: real RAM of OpenManager and its scripts ==="
+open_running_apps() {
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n "$MAIN" >/dev/null; sleep 4
+    demo drawer; sleep 2
+    for _ in 1 2 3 4; do
+        pos=$(find_text "Running Apps" "Apps en ejecución") && { adb shell input tap $pos; return 0; }
+        adb shell input swipe 300 1800 300 900 300; sleep 1
+    done
+    return 1
+}
+adb logcat -c
+if open_running_apps; then
+    sleep 8
+    shot 51_running_apps_noroot
+    if pos=$(find_contains "real RAM" "RAM real"); then
+        pass "without root the header shows OpenManager's real RAM (app and scripts)"
+    else
+        fail "no real-RAM summary without root"
+    fi
+    if find_contains "User (" "Usuario (" >/dev/null; then
+        fail "the tabs are still shown without root"
+    else
+        pass "without root the tabs are hidden (only own processes are visible)"
+    fi
+    adb logcat -d -s OMRunning > "$OUT/running_self.txt" 2>/dev/null || true
+    line=$(grep -m1 "self pid=" "$OUT/running_self.txt")
+    log "      $line"
+    pss=$(echo "$line" | grep -o "pss=[0-9]*" | cut -d= -f2)
+    rss=$(echo "$line" | grep -o "rss=[0-9]*" | cut -d= -f2)
+    if [ -n "$pss" ] && [ -n "$rss" ] && [ "$pss" -gt 0 ] && [ "$pss" -lt "$rss" ]; then
+        pass "OpenManager's memory is its real PSS ($((pss / 1048576)) MB) instead of RSS ($((rss / 1048576)) MB)"
+    else
+        fail "the memory shown is not the real PSS (pss=$pss rss=$rss)"
+    fi
+    # Without root the heat card does not exist.
+    if node_center_by_id layoutHeat >/dev/null; then
+        fail "the heat card is shown without root"
+    else
+        pass "without root the heat card is not shown"
+    fi
+else
+    fail "could not open Running Apps from the side menu"
+fi
+
+log "=== Running apps with root: what heats the phone (recorded root reading, debug build) ==="
+adb shell run-as $PKG touch files/om_debug_demo_heat
+if open_running_apps; then
+    sleep 8
+    shot 52_running_apps_heat
+    if find_contains "CPU 61" >/dev/null && find_contains "Demo game" >/dev/null; then
+        pass "the heat card shows the CPU temperature and the app heating the phone"
+    else
+        fail "the heat card did not show the reading"
+    fi
+else
+    fail "could not open Running Apps for the heat card"
+fi
+adb shell run-as $PKG rm -f files/om_debug_demo_heat
+adb logcat -d > "$OUT/logcat_running.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_running.txt"; then fail "crash in Running Apps"; fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

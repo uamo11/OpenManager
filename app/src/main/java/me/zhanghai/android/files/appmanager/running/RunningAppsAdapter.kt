@@ -152,15 +152,15 @@ class RunningAppsAdapter(
         // State Badge
         when (item.state) {
             "R" -> {
-                holder.tvState.text = "RUNNING"
+                holder.tvState.text = context.getString(R.string.om_proc_state_running)
                 holder.tvState.setTextColor(if (p.isDark) COLOR_STATE_RUNNING else COLOR_STATE_RUNNING_LIGHT)
             }
             "D" -> {
-                holder.tvState.text = "DISK SLEEP"
+                holder.tvState.text = context.getString(R.string.om_proc_state_disk)
                 holder.tvState.setTextColor(COLOR_STATE_DISK)
             }
             "Z" -> {
-                holder.tvState.text = "ZOMBIE"
+                holder.tvState.text = context.getString(R.string.om_proc_state_zombie)
                 holder.tvState.setTextColor(COLOR_STATE_ZOMBIE)
             }
             RunningAppsLoader.RECENT_STATE -> {
@@ -168,7 +168,7 @@ class RunningAppsAdapter(
                 holder.tvState.setTextColor(if (p.isDark) COLOR_STATE_SLEEP else COLOR_STATE_SLEEP_LIGHT)
             }
             else -> {
-                holder.tvState.text = if (item.isApp) "ACTIVE" else "SLEEP"
+                holder.tvState.text = context.getString(if (item.isApp) R.string.om_proc_state_active else R.string.om_proc_state_sleep)
                 holder.tvState.setTextColor(if (p.isDark) COLOR_STATE_SLEEP else COLOR_STATE_SLEEP_LIGHT)
             }
         }

@@ -2436,4 +2436,21 @@
     <string name="om_md3_locked_by_ultra_ram">Desativado enquanto o modo Ultra RAM estiver ativo (usa mais memória)</string>
     <string name="om_apk_checking_signature">Verificando…</string>
     <string name="om_menu_gallery_view">Visualização em galeria (esta pasta)</string>
+    <string name="om_proc_state_running">EM EXECUÇÃO</string>
+    <string name="om_proc_state_active">ATIVO</string>
+    <string name="om_proc_state_sleep">EM ESPERA</string>
+    <string name="om_proc_state_disk">ESPERA DE DISCO</string>
+    <string name="om_proc_state_zombie">ZUMBI</string>
+    <string name="om_heat_level_cool">Fresco</string>
+    <string name="om_heat_level_warm">Morno</string>
+    <string name="om_heat_level_hot">Quente</string>
+    <string name="om_heat_cpu">CPU %1$d °C</string>
+    <string name="om_heat_battery">Bateria %1$d °C</string>
+    <string name="om_heat_cause_app">%1$s está usando %2$d%% da CPU</string>
+    <string name="om_heat_cause_brightness">Brilho da tela em %1$d%%</string>
+    <string name="om_heat_cause_charging">Carregando a %1$d mA</string>
+    <string name="om_heat_cause_charging_plain">Carregando</string>
+    <string name="om_heat_cause_gpu">GPU em %1$d%%</string>
+    <string name="om_heat_nothing">No momento nada está esquentando o celular</string>
+    <string name="om_self_usage_format">OpenManager: %1$s de RAM real · app %2$s · scripts (%3$d) %4$s</string>
 </resources>

@@ -243,11 +243,15 @@ object RunningAppsLoader {
             } catch (_: Throwable) {}
         }
 
-        // 2. Tier 2: ps -A with full ARGS (falling back if -o ARGS unsupported)
-        try {
-            val psOutput = readPsLines()
-            parsePsOutput(psOutput, installedMap, uidPackageMap, processMap, pm)
-        } catch (_: Throwable) {}
+        // 2. Tier 2: ps -A with full ARGS (falling back if -o ARGS unsupported). Without root or
+        // Shizuku Android only lets us see our own processes, which the /proc scan below already
+        // covers: starting a `ps` process on every refresh there was pure cost.
+        if (hasElevatedAccess()) {
+            try {
+                val psOutput = readPsLines()
+                parsePsOutput(psOutput, installedMap, uidPackageMap, processMap, pm)
+            } catch (_: Throwable) {}
+        }
 
         // 3. Tier 3: ActivityManager.getRunningAppProcesses()
         try {
@@ -406,6 +410,21 @@ object RunningAppsLoader {
                 executableType = execType,
                 elfArch = elfArch
             )
+        }
+
+        // Without root/Shizuku: our own processes (the app and the scripts it runs) show their
+        // real memory, PSS (shared pages split between the processes using them), instead of RSS,
+        // which counts every shared library in full and overstates the use.
+        if (!hasElevatedAccess()) {
+            val myUid = android.os.Process.myUid()
+            for ((pid, model) in processMap) {
+                if (pid <= 0 || model.uid != myUid) continue
+                val pss = readPssBytes(pid) ?: continue
+                if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+                    android.util.Log.d("OMRunning", "self pid=$pid ${model.processName} pss=$pss rss=${model.memoryBytes}")
+                }
+                processMap[pid] = model.copy(memoryBytes = pss)
+            }
         }
 
         // Without root/Shizuku Android only shows our own processes; with usage access we can at
@@ -733,6 +752,55 @@ object RunningAppsLoader {
             user = if (uid == 0) "root" else if (uid == 1000) "system" else "u0_a${uid % 100000}",
             cmdline = cmdline
         )
+    }
+
+    /**
+     * Proportional set size of [pid] (own processes are readable without root), or null.
+     * smaps_rollup (Android 9+ kernels) is a single short total; the full smaps of the app can be
+     * thousands of lines, too heavy for every refresh, so older kernels use Debug.getPss() for
+     * this process and keep RSS for the others.
+     */
+    fun readPssBytes(pid: Int): Long? {
+        try {
+            val file = File("/proc/$pid/smaps_rollup")
+            if (file.canRead()) {
+                BufferedReader(FileReader(file)).use { reader ->
+                    while (true) {
+                        val line = reader.readLine() ?: break
+                        if (line.startsWith("Pss:")) return parseKb(line) * 1024L
+                    }
+                }
+            }
+        } catch (_: Throwable) {
+        }
+        if (pid == android.os.Process.myPid()) {
+            return runCatching { android.os.Debug.getPss() * 1024L }.getOrNull()?.takeIf { it > 0 }
+        }
+        return null
+    }
+
+    internal fun parseKb(line: String): Long =
+        line.substringAfter(':').trim().substringBefore(' ').toLongOrNull() ?: 0L
+
+    /** What OpenManager itself uses: the app's processes and the scripts it runs (pure). */
+    data class SelfUsage(val appBytes: Long, val scriptBytes: Long, val scriptCount: Int) {
+        val totalBytes: Long get() = appBytes + scriptBytes
+    }
+
+    fun selfUsage(processes: List<RunningAppModel>, myUid: Int): SelfUsage {
+        var app = 0L
+        var scripts = 0L
+        var count = 0
+        for (p in processes) {
+            if (p.pid <= 0 || p.uid != myUid) continue
+            if (p.isApp) {
+                app += p.memoryBytes
+            } else {
+                scripts += p.memoryBytes
+                count++
+            }
+        }
+        return SelfUsage(app, scripts, count)
     }
 
     private fun readProcessRssFromProc(pid: Int): Long {

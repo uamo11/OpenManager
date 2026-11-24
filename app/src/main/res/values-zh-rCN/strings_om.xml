@@ -2430,4 +2430,21 @@
     <string name="om_md3_locked_by_ultra_ram">Ultra RAM 模式开启时停用（占用更多内存）</string>
     <string name="om_apk_checking_signature">正在检查…</string>
     <string name="om_menu_gallery_view">图库视图（此文件夹）</string>
+    <string name="om_proc_state_running">运行中</string>
+    <string name="om_proc_state_active">活动</string>
+    <string name="om_proc_state_sleep">休眠</string>
+    <string name="om_proc_state_disk">等待磁盘</string>
+    <string name="om_proc_state_zombie">僵尸</string>
+    <string name="om_heat_level_cool">凉爽</string>
+    <string name="om_heat_level_warm">偏热</string>
+    <string name="om_heat_level_hot">过热</string>
+    <string name="om_heat_cpu">CPU %1$d °C</string>
+    <string name="om_heat_battery">电池 %1$d °C</string>
+    <string name="om_heat_cause_app">%1$s 占用 %2$d%% 的 CPU</string>
+    <string name="om_heat_cause_brightness">屏幕亮度 %1$d%%</string>
+    <string name="om_heat_cause_charging">正在以 %1$d mA 充电</string>
+    <string name="om_heat_cause_charging_plain">正在充电</string>
+    <string name="om_heat_cause_gpu">GPU 负载 %1$d%%</string>
+    <string name="om_heat_nothing">目前没有什么在让手机发热</string>
+    <string name="om_self_usage_format">OpenManager：实际内存 %1$s · 应用 %2$s · 脚本（%3$d）%4$s</string>
 </resources>
