@@ -139,6 +139,7 @@
             android:gravity="center_horizontal"
             android:text="@string/file_list_empty"
             android:textAppearance="?textAppearanceListItem"
+            android:translationZ="1dp"
             android:visibility="gone"
             app:drawableTopCompat="@drawable/file_icon_240dp" />
 

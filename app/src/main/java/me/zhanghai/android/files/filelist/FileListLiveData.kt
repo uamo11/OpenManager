@@ -269,7 +269,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
         private val ITEM_LOADER_EXECUTOR: ExecutorService =
             Executors.newFixedThreadPool(PARALLEL_WORKER_COUNT)
         private const val REMOTE_PARALLEL_LOAD_THRESHOLD = 24
-        private const val REMOTE_WORKER_COUNT = 12
+        private const val REMOTE_WORKER_COUNT = 24
         private val REMOTE_ITEM_LOADER_EXECUTOR: ExecutorService =
             Executors.newFixedThreadPool(REMOTE_WORKER_COUNT)
     }
