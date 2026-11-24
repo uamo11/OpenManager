@@ -22,8 +22,8 @@ android {
         //noinspection OldTargetApi
         targetSdk 36
         // -PomVersionCode / -PomVersionName let CI build an "older" app to test self-updates.
-        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 128
-        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.14'
+        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 129
+        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.15'
         resValue 'string', 'app_version', versionName + ' (' + versionCode + ')'
         buildConfigField 'String', 'FILE_PROVIDIER_AUTHORITY', 'APPLICATION_ID + ".file_provider"'
         resValue 'string', 'app_provider_authority', applicationId + '.app_provider'
@@ -42,6 +42,11 @@ android {
     }
     androidResources {
         generateLocaleConfig true
+        // Only the languages OpenManager itself is translated into. Libraries ship ~85 locales of
+        // their own strings; the extra ~50 only grew resources.arsc (the app is English there).
+        localeFilters += ['en', 'ar', 'bg', 'ca', 'cs', 'da', 'de', 'el', 'es', 'eu', 'fa', 'fi',
+                          'fr', 'gl', 'hu', 'in', 'is', 'it', 'iw', 'ja', 'ko', 'lt', 'nb', 'nl',
+                          'pl', 'pt-rBR', 'pt-rPT', 'ro', 'ru', 'tr', 'uk', 'vi', 'zh-rCN', 'zh-rTW']
     }
     compileOptions {
         coreLibraryDesugaringEnabled true

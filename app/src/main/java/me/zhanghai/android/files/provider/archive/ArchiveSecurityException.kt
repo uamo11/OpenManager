@@ -12,4 +12,4 @@ class ArchiveSecurityException(
     file: Path,
     message: String,
     val cveIdentifier: String
-) : FileSystemException(file.toString(), null, "[$cveIdentifier] $message")
+) : FileSystemException(file.toString(), null, message)

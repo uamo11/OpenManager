@@ -871,18 +871,6 @@
     <string name="script_audit_static_category_root">Perintah superuser / Root</string>
     <string name="script_audit_static_category_network">Koneksi jaringan eksternal</string>
     <string name="script_audit_static_category_system">Partisi sistem penting</string>
-    <string name="settings_category_archive_security_title">Keamanan arsip &amp; pelindung CVE</string>
-    <string name="settings_category_archive_security_summary">Perlindungan dari kerentanan libarchive (CVE-2026-15028 dan CVE-2026-14164)</string>
-    <string name="settings_archive_security_tar_title">Pembersih TAR PAX (CVE-2026-15028)</string>
-    <string name="settings_archive_security_tar_summary">Menetralkan atribut sparse SUN.holesdata yang rusak untuk mencegah heap buffer overflow</string>
-    <string name="settings_archive_security_rar5_title">Aktifkan format RAR5 (CVE-2026-14164)</string>
-    <string name="settings_archive_security_rar5_summary">Pembaca RAR5 yang rentan nonaktif secara default untuk mencegah double-free</string>
-    <string name="archive_security_rar5_blocked">Format RAR5 diblokir oleh pelindung keamanan (CVE-2026-14164)</string>
-    <string name="archive_security_tar_neutralized">Atribut PAX SUN.holesdata yang rusak dinetralkan (CVE-2026-15028)</string>
-    <string name="archive_security_rar5_corrupt_blocked">Arsip RAR5 diblokir: header blok rusak atau checksum tidak cocok. Double-free CVE-2026-14164 di memori native dicegah.</string>
-    <string name="settings_archive_security_rar5_dialog_title">Peringatan keamanan: dukungan RAR5 eksperimental</string>
-    <string name="settings_archive_security_rar5_dialog_message">Peringatan: mesin dekompresi RAR5 native di libarchive punya kerentanan memori yang diketahui (termasuk double-free CVE-2026-14164 di buffer filter unpacking).\n\nDukungan RAR5 masih eksperimental dan berisiko saat membuka arsip yang diunduh atau tidak tepercaya.\n\nOpenManager melakukan validasi struktur yang ketat, tetapi kami sangat menyarankan hanya membuka arsip dari sumber tepercaya.\n\nTetap aktifkan dukungan RAR5?</string>
-    <string name="settings_archive_security_rar5_dialog_confirm">Tetap aktifkan</string>
     <string name="pdf_viewer_title">Pembaca PDF</string>
     <string name="open_as_pdf_viewer">Pembaca PDF</string>
     <string name="pdf_menu_theme">Tema baca</string>
@@ -2292,4 +2280,5 @@
     <string name="om_su_status_working">Berfungsi</string>
     <string name="file_properties_permission_set_mode_uppercase_x">Jangan tambahkan “Eksekusi” untuk file di dalamnya</string>
     <string name="file_properties_permission_recursive">Terapkan ke file di dalamnya</string>
+    <string name="om_archive_rar_damaged">Arsip RAR ini rusak, jadi tidak dibuka demi keamanan ponsel Anda.</string>
 </resources>

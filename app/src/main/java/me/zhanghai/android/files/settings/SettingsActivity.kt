@@ -45,13 +45,26 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
             intent.removeExtra("DEMO_PERF_MODE")
             if (demoPerfMode == "on" || demoPerfMode == "off") {
                 val enabled = demoPerfMode == "on"
+                val changed = Settings.VISUAL_PERFORMANCE_MODE.valueCompat != enabled
                 Settings.VISUAL_PERFORMANCE_MODE.putValue(enabled)
+                if (changed) UltraRamVisualDefaults.onUltraRamChanged(applicationContext, enabled)
                 androidx.preference.PreferenceManager.getDefaultSharedPreferences(applicationContext)
                     .edit()
                     .putBoolean(getString(me.zhanghai.android.files.R.string.pref_key_visual_performance_mode), enabled)
                     .commit()
                 PerformanceModeManager.applyMode(applicationContext, enabled, triggerTrim = true)
             }
+        }
+
+        if (BuildConfig.DEBUG) {
+            intent.getStringExtra("DEMO_MD3")?.let { Settings.MATERIAL_DESIGN_3.putValue(it == "on") }
+            intent.getStringExtra("DEMO_THEME_COLOR")?.let { name ->
+                me.zhanghai.android.files.theme.custom.ThemeColor.entries
+                    .firstOrNull { it.name.equals(name, ignoreCase = true) }
+                    ?.let { Settings.THEME_COLOR.putValue(it) }
+            }
+            intent.removeExtra("DEMO_MD3")
+            intent.removeExtra("DEMO_THEME_COLOR")
         }
 
         // Calls ensureSubDecor().
@@ -72,6 +85,7 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
                             "dark" -> NightMode.ON to false
                             "amoled" -> NightMode.ON to true
                             "light" -> NightMode.OFF to false
+                            "system_black" -> NightMode.FOLLOW_SYSTEM to true
                             else -> null
                         }
                         if (target != null) {

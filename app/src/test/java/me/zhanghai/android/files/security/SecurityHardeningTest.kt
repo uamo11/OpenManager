@@ -296,17 +296,16 @@ class SecurityHardeningTest {
             readerCode.contains("ArchiveSecurityPreferences.recordCve2026_14164Blocked()")
         )
 
-        val settingsFragmentFile = File("src/main/java/me/zhanghai/android/files/settings/SettingsPreferenceFragment.kt")
-        assertTrue("SettingsPreferenceFragment.kt must exist", settingsFragmentFile.exists())
-        val fragmentCode = settingsFragmentFile.readText()
-
+        // Protections are always on: no scary CVE switches in Settings, nothing to turn off.
+        val settingsXml = File("src/main/res/xml/settings.xml").readText()
+        assertFalse("Settings must not offer archive CVE switches", settingsXml.contains("archive_security"))
         assertTrue(
-            "SettingsPreferenceFragment must attach listener to RAR5 toggle",
-            fragmentCode.contains("pref_key_archive_security_enable_rar5")
+            "TAR PAX sanitizer must always run (CVE-2026-15028 is unfixed in libarchive 3.8.8)",
+            me.zhanghai.android.files.provider.archive.archiver.ArchiveSecurityPreferences.isTarPaxSanitizationEnabled()
         )
         assertTrue(
-            "SettingsPreferenceFragment must show warning dialog when enabling RAR5",
-            fragmentCode.contains("showEnableRar5WarningDialog")
+            "RAR5 opens normally (CVE-2026-14164 is fixed in the bundled libarchive 3.8.8)",
+            me.zhanghai.android.files.provider.archive.archiver.ArchiveSecurityPreferences.isRar5Enabled()
         )
     }
 

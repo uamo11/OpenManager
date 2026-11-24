@@ -871,18 +871,6 @@
     <string name="script_audit_static_category_root">Команды суперпользователя / Root</string>
     <string name="script_audit_static_category_network">Внешние сетевые подключения</string>
     <string name="script_audit_static_category_system">Критичные системные разделы</string>
-    <string name="settings_category_archive_security_title">Безопасность архивов и защита от CVE</string>
-    <string name="settings_category_archive_security_summary">Защита от уязвимостей libarchive (CVE-2026-15028 и CVE-2026-14164)</string>
-    <string name="settings_archive_security_tar_title">Очистка TAR PAX (CVE-2026-15028)</string>
-    <string name="settings_archive_security_tar_summary">Нейтрализует некорректные разреженные атрибуты SUN.holesdata, предотвращая переполнение буфера в куче</string>
-    <string name="settings_archive_security_rar5_title">Включить формат RAR5 (CVE-2026-14164)</string>
-    <string name="settings_archive_security_rar5_summary">Уязвимое чтение RAR5 по умолчанию отключено, чтобы избежать двойного освобождения памяти</string>
-    <string name="archive_security_rar5_blocked">Формат RAR5 заблокирован защитой (CVE-2026-14164)</string>
-    <string name="archive_security_tar_neutralized">Некорректный PAX-атрибут SUN.holesdata нейтрализован (CVE-2026-15028)</string>
-    <string name="archive_security_rar5_corrupt_blocked">Архив RAR5 заблокирован: обнаружен некорректный заголовок блока или несовпадение контрольной суммы. Предотвращено двойное освобождение CVE-2026-14164 в нативной памяти.</string>
-    <string name="settings_archive_security_rar5_dialog_title">Предупреждение: экспериментальная поддержка RAR5</string>
-    <string name="settings_archive_security_rar5_dialog_message">Внимание: у нативного движка распаковки RAR5 в libarchive есть известные уязвимости памяти (включая двойное освобождение CVE-2026-14164 в буферах фильтров распаковки).\n\nПоддержка RAR5 экспериментальная и несёт риски при открытии непроверенных или скачанных архивов.\n\nOpenManager выполняет строгую предварительную проверку структуры, но мы настоятельно советуем открывать только архивы из надёжных источников.\n\nВсё равно включить поддержку RAR5?</string>
-    <string name="settings_archive_security_rar5_dialog_confirm">Всё равно включить</string>
     <string name="pdf_viewer_title">Просмотр PDF</string>
     <string name="open_as_pdf_viewer">Просмотр PDF</string>
     <string name="pdf_menu_theme">Тема чтения</string>
@@ -2308,4 +2296,5 @@
     <string name="arsc_empty_list">Ничего не найдено</string>
     <string name="open_as_arsc_editor">Редактор ARSC</string>
     <string name="om_su_status_working">Работает</string>
+    <string name="om_archive_rar_damaged">Этот архив RAR повреждён, поэтому он не открыт ради безопасности телефона.</string>
 </resources>

@@ -872,18 +872,6 @@
     <string name="script_audit_static_category_root">超级用户 / Root 命令</string>
     <string name="script_audit_static_category_network">外部网络连接</string>
     <string name="script_audit_static_category_system">关键系统分区</string>
-    <string name="settings_category_archive_security_title">压缩包安全与 CVE 防护</string>
-    <string name="settings_category_archive_security_summary">防护 libarchive 漏洞（CVE-2026-15028 和 CVE-2026-14164）</string>
-    <string name="settings_archive_security_tar_title">TAR PAX 清理器 (CVE-2026-15028)</string>
-    <string name="settings_archive_security_tar_summary">清除畸形的 SUN.holesdata 稀疏属性，防止堆缓冲区溢出</string>
-    <string name="settings_archive_security_rar5_title">启用 RAR5 格式 (CVE-2026-14164)</string>
-    <string name="settings_archive_security_rar5_summary">默认保持存在漏洞的 RAR5 读取器停用，防止双重释放漏洞</string>
-    <string name="archive_security_rar5_blocked">RAR5 格式已被安全防护阻止 (CVE-2026-14164)</string>
-    <string name="archive_security_tar_neutralized">已清除畸形的 SUN.holesdata PAX 属性 (CVE-2026-15028)</string>
-    <string name="archive_security_rar5_corrupt_blocked">已阻止 RAR5 压缩包：检测到畸形的块头或校验和不匹配。已防止原生内存中的 CVE-2026-14164 双重释放。</string>
-    <string name="settings_archive_security_rar5_dialog_title">安全警告：实验性 RAR5 支持</string>
-    <string name="settings_archive_security_rar5_dialog_message">警告：libarchive 中的原生 RAR5 解压引擎存在已知的内存安全漏洞（包括解包状态过滤缓冲区中的 CVE-2026-14164 双重释放）。\n\n启用 RAR5 支持属于实验功能，打开不受信任或下载的压缩包时存在安全风险。\n\nOpenManager 会进行严格的结构预校验，但我们强烈建议只打开来源可信的压缩包。\n\n仍要启用 RAR5 支持吗？</string>
-    <string name="settings_archive_security_rar5_dialog_confirm">仍然启用</string>
     <string name="pdf_viewer_title">PDF 阅读器</string>
     <string name="open_as_pdf_viewer">PDF 阅读器</string>
     <string name="pdf_menu_theme">阅读主题</string>
@@ -2291,4 +2279,5 @@
     <string name="arsc_unsaved_changes">资源表中有未保存的更改。退出前是否保存？</string>
     <string name="arsc_empty_list">未找到结果</string>
     <string name="open_as_arsc_editor">ARSC 编辑器</string>
+    <string name="om_archive_rar_damaged">此 RAR 压缩包已损坏，为保护你的手机安全未打开。</string>
 </resources>

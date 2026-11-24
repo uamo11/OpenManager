@@ -871,18 +871,6 @@
     <string name="script_audit_static_category_root">Comandos de superusuário / Root</string>
     <string name="script_audit_static_category_network">Conexões de rede externas</string>
     <string name="script_audit_static_category_system">Partições críticas do sistema</string>
-    <string name="settings_category_archive_security_title">Segurança de arquivos compactados e proteção CVE</string>
-    <string name="settings_category_archive_security_summary">Proteção contra vulnerabilidades da libarchive (CVE-2026-15028 e CVE-2026-14164)</string>
-    <string name="settings_archive_security_tar_title">Sanitizador TAR PAX (CVE-2026-15028)</string>
-    <string name="settings_archive_security_tar_summary">Neutraliza atributos esparsos SUN.holesdata malformados para evitar estouro de buffer no heap</string>
-    <string name="settings_archive_security_rar5_title">Ativar formato RAR5 (CVE-2026-14164)</string>
-    <string name="settings_archive_security_rar5_summary">Mantém o leitor RAR5 vulnerável desativado por padrão para evitar double-free</string>
-    <string name="archive_security_rar5_blocked">Formato RAR5 bloqueado pela proteção (CVE-2026-14164)</string>
-    <string name="archive_security_tar_neutralized">Atributo PAX SUN.holesdata malformado neutralizado (CVE-2026-15028)</string>
-    <string name="archive_security_rar5_corrupt_blocked">Arquivo RAR5 bloqueado: cabeçalho de bloco malformado ou checksum divergente. Double-free CVE-2026-14164 evitado na memória nativa.</string>
-    <string name="settings_archive_security_rar5_dialog_title">Aviso de segurança: suporte experimental a RAR5</string>
-    <string name="settings_archive_security_rar5_dialog_message">Aviso: o motor nativo de descompressão RAR5 da libarchive tem vulnerabilidades de memória conhecidas (incluindo o double-free CVE-2026-14164 nos buffers de filtro de descompactação).\n\nO suporte a RAR5 é experimental e traz riscos ao abrir arquivos baixados ou não confiáveis.\n\nO OpenManager faz uma validação estrutural rigorosa, mas recomendamos abrir só arquivos de fontes confiáveis.\n\nAtivar o suporte a RAR5 mesmo assim?</string>
-    <string name="settings_archive_security_rar5_dialog_confirm">Ativar mesmo assim</string>
     <string name="pdf_viewer_title">Leitor de PDF</string>
     <string name="open_as_pdf_viewer">Leitor de PDF</string>
     <string name="pdf_menu_theme">Tema de leitura</string>
@@ -2296,4 +2284,5 @@
     <string name="arsc_empty_list">Nenhum resultado encontrado</string>
     <string name="open_as_arsc_editor">Editor ARSC</string>
     <string name="om_su_status_working">Funcionando</string>
+    <string name="om_archive_rar_damaged">Este arquivo RAR está danificado e não foi aberto para manter seu celular seguro.</string>
 </resources>

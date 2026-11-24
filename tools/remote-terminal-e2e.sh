@@ -762,6 +762,100 @@ adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivit
 sleep 4
 adb shell am force-stop $PKG; sleep 1
 
+log "=== Appearance: AMOLED tile, Material 3 theme color, Ultra RAM look ==="
+SETTINGS=$PKG/me.zhanghai.android.files.settings.SettingsActivity
+prefs_xml() { adb shell run-as $PKG cat /data/data/$PKG/shared_prefs/${PKG}_preferences.xml 2>/dev/null; }
+# pref_value <key>: value of a boolean or string preference ("" when unset).
+pref_value() {
+    prefs_xml | python3 -c '
+import re, sys
+xml = sys.stdin.read(); key = sys.argv[1]
+m = re.search(r"<boolean name=\"%s\" value=\"(\w+)\"" % re.escape(key), xml) or \
+    re.search(r"<string name=\"%s\">([^<]*)</string>" % re.escape(key), xml)
+print(m.group(1) if m else "")' "$1"
+}
+# node_attr <resource-id suffix> <attr>: prints "x y attrValue" of the first matching node.
+node_attr() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_appearance.xml" 2>/dev/null
+    python3 - "$OUT/ui_appearance.xml" "$1" "$2" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
+        v = re.search(r' %s="([^"]*)"' % re.escape(sys.argv[3]), node)
+        x1, y1, x2, y2 = map(int, b.groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2, v.group(1) if v else "")
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+
+# 1. "System" while the system is dark, with the black background switch on: the screen already
+#    looks AMOLED, so tapping the AMOLED tile used to change nothing visible ("does not click").
+adb shell cmd uimode night yes >/dev/null 2>&1 || true
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_THEME system_black >/dev/null 2>&1; sleep 5
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_CATEGORY key_category_appearance >/dev/null 2>&1; sleep 5
+if tile=$(node_attr tileThemeAmoled selected); then
+    log "      AMOLED tile before tap: selected=$(echo "$tile" | cut -d' ' -f3)"
+    adb shell input tap $(echo "$tile" | cut -d' ' -f1-2); sleep 4
+    after=$(node_attr tileThemeAmoled selected | cut -d' ' -f3)
+    shot 42_amoled_tile_after_tap
+    if [ "$after" = "true" ]; then
+        pass "tapping AMOLED with the black background already on marks it at once"
+    else
+        fail "AMOLED tile not marked after tapping it (selected=$after)"
+    fi
+else
+    fail "AMOLED tile not found in Appearance"
+fi
+adb shell cmd uimode night no >/dev/null 2>&1 || true
+
+# 2. Material 3 + a theme color: the color used to be ignored (Material 3 took the wallpaper's).
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_MD3 on --es DEMO_THEME_COLOR material_red --es DEMO_THEME light >/dev/null 2>&1; sleep 5
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $SETTINGS --es DEMO_CATEGORY key_category_appearance >/dev/null 2>&1; sleep 5
+shot 43_md3_red_theme
+theme_line=$(adb logcat -d -s OMTheme | grep "SettingsActivity" | tail -n1 | sed 's/.*OMTheme: //')
+log "      $theme_line"
+if echo "$theme_line" | grep -q "md3=true color=MATERIAL_RED" && echo "$theme_line" | grep -qi "colorPrimary=#FFD32F2F"; then
+    pass "Material 3 uses the chosen theme color (red 700 in light mode)"
+else
+    fail "Material 3 ignored the theme color: $theme_line"
+fi
+
+# 3. Ultra RAM turns Material 3 off and panels uniform, and puts both back when turned off.
+md3_before=$(pref_value key_material_design_3); contrast_before=$(pref_value key_dual_panel_contrast)
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_PERF_MODE on >/dev/null 2>&1; sleep 5
+md3_on=$(pref_value key_material_design_3); contrast_on=$(pref_value key_dual_panel_contrast)
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_PERF_MODE off >/dev/null 2>&1; sleep 5
+md3_off=$(pref_value key_material_design_3); contrast_off=$(pref_value key_dual_panel_contrast)
+log "      before md3=$md3_before contrast=${contrast_before:-0} · Ultra RAM on md3=$md3_on contrast=$contrast_on · off md3=$md3_off contrast=${contrast_off:-0}"
+if [ "$md3_on" = "false" ] && [ "$contrast_on" = "2" ]; then
+    pass "Ultra RAM switches to the classic theme and the uniform panel background"
+else
+    fail "Ultra RAM did not set the light look (md3=$md3_on contrast=$contrast_on)"
+fi
+if [ "$md3_off" = "$md3_before" ] && [ "${contrast_off:-0}" = "${contrast_before:-0}" ]; then
+    pass "turning Ultra RAM off restores the previous theme and panels"
+else
+    fail "Ultra RAM off did not restore the look (md3=$md3_off contrast=$contrast_off)"
+fi
+
+# Back to the defaults used by the rest of the run.
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME dark >/dev/null 2>&1; sleep 4
+adb logcat -d > "$OUT/logcat_appearance.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_appearance.txt"; then fail "crash while changing the appearance"; fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Start-up cost (debug OMStartup log) ==="
 grep -h "OMStartup" "$OUT"/logcat*.txt 2>/dev/null | sed -E 's/^.*OMStartup: //' | sort | uniq -c | sort -rn | head -20 >> "$REPORT" || true
 

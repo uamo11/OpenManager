@@ -871,18 +871,6 @@
     <string name="script_audit_static_category_root">Lệnh siêu người dùng / Root</string>
     <string name="script_audit_static_category_network">Kết nối mạng bên ngoài</string>
     <string name="script_audit_static_category_system">Phân vùng hệ thống quan trọng</string>
-    <string name="settings_category_archive_security_title">Bảo mật tệp nén &amp; chống CVE</string>
-    <string name="settings_category_archive_security_summary">Bảo vệ khỏi lỗ hổng libarchive (CVE-2026-15028 và CVE-2026-14164)</string>
-    <string name="settings_archive_security_tar_title">Làm sạch TAR PAX (CVE-2026-15028)</string>
-    <string name="settings_archive_security_tar_summary">Vô hiệu hóa thuộc tính thưa SUN.holesdata bị lỗi để tránh tràn bộ đệm heap</string>
-    <string name="settings_archive_security_rar5_title">Bật định dạng RAR5 (CVE-2026-14164)</string>
-    <string name="settings_archive_security_rar5_summary">Mặc định tắt bộ đọc RAR5 có lỗ hổng để tránh lỗi double-free</string>
-    <string name="archive_security_rar5_blocked">Định dạng RAR5 bị bảo vệ chặn (CVE-2026-14164)</string>
-    <string name="archive_security_tar_neutralized">Đã vô hiệu hóa thuộc tính PAX SUN.holesdata bị lỗi (CVE-2026-15028)</string>
-    <string name="archive_security_rar5_corrupt_blocked">Đã chặn tệp RAR5: header khối lỗi hoặc checksum không khớp. Đã ngăn double-free CVE-2026-14164 trong bộ nhớ native.</string>
-    <string name="settings_archive_security_rar5_dialog_title">Cảnh báo bảo mật: hỗ trợ RAR5 thử nghiệm</string>
-    <string name="settings_archive_security_rar5_dialog_message">Cảnh báo: bộ giải nén RAR5 native trong libarchive có lỗ hổng bộ nhớ đã biết (gồm double-free CVE-2026-14164 trong bộ đệm bộ lọc giải nén).\n\nHỗ trợ RAR5 đang thử nghiệm và có rủi ro khi mở tệp nén tải về hoặc không đáng tin.\n\nOpenManager sẽ kiểm tra cấu trúc nghiêm ngặt trước, nhưng chúng tôi khuyên chỉ mở tệp nén từ nguồn tin cậy.\n\nVẫn bật hỗ trợ RAR5?</string>
-    <string name="settings_archive_security_rar5_dialog_confirm">Vẫn bật</string>
     <string name="pdf_viewer_title">Trình đọc PDF</string>
     <string name="open_as_pdf_viewer">Trình đọc PDF</string>
     <string name="pdf_menu_theme">Chủ đề đọc</string>
@@ -2386,4 +2374,5 @@
     <string name="ftp_server_add_tile_result_error">Lỗi khi thêm “Máy chủ FTP” vào Cài đặt nhanh</string>
     <string name="settings_locale_title">Ngôn ngữ</string>
     <string name="settings_show_pdf_thumbnail_pre_28_title">Hiện hình thu nhỏ cho tài liệu PDF</string>
+    <string name="om_archive_rar_damaged">Tệp RAR này bị hỏng nên không được mở để giữ an toàn cho điện thoại.</string>
 </resources>

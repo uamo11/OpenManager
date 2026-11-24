@@ -29,7 +29,7 @@ object ArchiveSecurityManager {
         Archive.readSupportFormatRaw(archive)
         Archive.readSupportFormatWarc(archive)
 
-        // Only register RAR5 if explicitly enabled by user preference
+        // RAR5: the bundled libarchive has the CVE-2026-14164 fix; headers are pre-validated.
         if (ArchiveSecurityPreferences.isRar5Enabled()) {
             Archive.readSupportFormatRar5(archive)
         }

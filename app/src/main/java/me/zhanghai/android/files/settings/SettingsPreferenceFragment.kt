@@ -16,7 +16,6 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.SimpleItemAnimator
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
-import me.zhanghai.android.files.provider.archive.archiver.ArchiveSecurityPreferences
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.provider.root.DeadManProtectedRulesDialogFragment
 import me.zhanghai.android.files.provider.root.DfrootProtectedFilesDialogFragment
@@ -34,6 +33,8 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     private lateinit var localePreference: LocalePreference
     private val defaultVisibilityMap = LinkedHashMap<Preference, Boolean>()
     private var isUpdatingThemePreset = false
+    /** Last seen Ultra RAM state; null until the first (initial) value arrives. */
+    private var lastVisualPerf: Boolean? = null
 
     override fun onCreatePreferencesFix(savedInstanceState: Bundle?, rootKey: String?) {
         addPreferencesFromResource(R.xml.settings)
@@ -207,20 +208,6 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             DeadManProtectedRulesDialogFragment.show(this)
             true
         }
-
-        val rar5Pref = findPreference<SwitchPreferenceCompat>(
-            getString(R.string.pref_key_archive_security_enable_rar5)
-        )
-        rar5Pref?.setOnPreferenceChangeListener { preference, newValue ->
-            val willEnable = newValue as Boolean
-            if (willEnable) {
-                showEnableRar5WarningDialog(preference as SwitchPreferenceCompat)
-                false
-            } else {
-                ArchiveSecurityPreferences.setRar5Enabled(requireContext(), false)
-                true
-            }
-        }
     }
 
     private fun captureDefaultVisibility(group: PreferenceGroup) {
@@ -264,6 +251,13 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
         NightModeHelper.sync()
         CustomThemeHelper.sync()
+        // The look may already match (e.g. "System" while the system is dark and the black
+        // background is on): the screen is not recreated, so mark the new choice right away.
+        refreshHub()
+    }
+
+    private fun refreshHub() {
+        findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
     }
 
     fun filterPreferences(rawQuery: String) {
@@ -425,26 +419,6 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             .show()
     }
 
-    private fun showEnableRar5WarningDialog(pref: SwitchPreferenceCompat) {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setIcon(R.drawable.ic_crash_alert_24dp)
-            .setTitle(R.string.settings_archive_security_rar5_dialog_title)
-            .setMessage(R.string.settings_archive_security_rar5_dialog_message)
-            .setPositiveButton(R.string.settings_archive_security_rar5_dialog_confirm) { dialog, _ ->
-                dialog.dismiss()
-                ArchiveSecurityPreferences.setRar5Enabled(requireContext(), true)
-                pref.isChecked = true
-            }
-            .setNegativeButton(android.R.string.cancel) { dialog, _ ->
-                dialog.dismiss()
-                pref.isChecked = false
-            }
-            .setOnCancelListener {
-                pref.isChecked = false
-            }
-            .show()
-    }
-
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
 
@@ -488,6 +462,11 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
     private fun onVisualPerfChanged(enabled: Boolean) {
         val ctx = context ?: return
+        val previous = lastVisualPerf
+        lastVisualPerf = enabled
+        if (previous != null && previous != enabled) {
+            applyUltraRamVisuals(enabled)
+        }
         PerformanceModeManager.applyMode(ctx, enabled, triggerTrim = enabled)
         listView?.apply {
             (layoutManager as? LinearLayoutManager)?.isItemPrefetchEnabled = !enabled
@@ -498,6 +477,18 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         }
         updateVisualPerfSummary(enabled)
         findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
+    }
+
+    /** Ultra RAM: classic theme and uniform panels; turning it off puts the user's choice back. */
+    private fun applyUltraRamVisuals(enabled: Boolean) {
+        val ctx = context ?: return
+        val applied = UltraRamVisualDefaults.onUltraRamChanged(ctx, enabled)
+        findPreference<ListPreference>(getString(R.string.pref_key_dual_panel_contrast))
+            ?.takeIf { it.value != applied.dualPanelContrast }
+            ?.value = applied.dualPanelContrast
+        findPreference<SwitchPreferenceCompat>(getString(R.string.pref_key_material_design_3))
+            ?.takeIf { it.isChecked != applied.materialDesign3 }
+            ?.isChecked = applied.materialDesign3
     }
 
     private fun onRequestRootPermissionChanged(enabled: Boolean) {
@@ -516,22 +507,26 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
     }
 
     private fun onThemeColorChanged(themeColor: ThemeColor) {
+        refreshHub()
         if (isUpdatingThemePreset) return
         CustomThemeHelper.sync()
     }
 
     private fun onMaterialDesign3Changed(isMaterialDesign3: Boolean) {
+        refreshHub()
         if (isUpdatingThemePreset) return
         CustomThemeHelper.sync()
     }
 
     private fun onNightModeChanged(nightMode: NightMode) {
+        refreshHub()
         if (isUpdatingThemePreset) return
         NightModeHelper.sync()
         CustomThemeHelper.sync()
     }
 
     private fun onBlackNightModeChanged(blackNightMode: Boolean) {
+        refreshHub()
         if (isUpdatingThemePreset) return
         val isCurrentlyLight = (activity as? androidx.appcompat.app.AppCompatActivity)
             ?.let { !NightModeHelper.isInNightMode(it) }

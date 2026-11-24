@@ -140,6 +140,8 @@ class AppearancePerformanceHubPreference : Preference {
             @ColorInt activeColor: Int = palette.accentColor
         ) {
             if (tileView == null) return
+            // Also exposed to accessibility services (and the emulator checks).
+            tileView.isSelected = selected
             tileView.background = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
                 cornerRadius = 11f * density

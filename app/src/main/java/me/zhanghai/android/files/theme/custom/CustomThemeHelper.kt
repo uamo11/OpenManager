@@ -22,6 +22,8 @@ import me.zhanghai.android.files.util.valueCompat
 
 object CustomThemeHelper {
     private val activityBaseThemes = mutableMapOf<Activity, Int>()
+    /** Theme color overlay applied on top of Material 3 (0 = wallpaper colors). */
+    private val activityAccentOverlays = mutableMapOf<Activity, Int>()
 
     fun initialize(application: Application) {
         application.registerActivityLifecycleCallbacks(object : SimpleActivityLifecycleCallbacks {
@@ -33,6 +35,7 @@ object CustomThemeHelper {
 
             override fun onActivityDestroyed(activity: Activity) {
                 activityBaseThemes.remove(activity)
+                activityAccentOverlays.remove(activity)
             }
         })
     }
@@ -42,6 +45,20 @@ object CustomThemeHelper {
         activityBaseThemes[activity] = baseThemeRes
         val customThemeRes = getCustomThemeRes(baseThemeRes, activity)
         activity.setThemeCompat(customThemeRes)
+        val accentOverlay = getAccentOverlayRes(activity)
+        if (accentOverlay != 0) {
+            activity.theme.applyStyle(accentOverlay, true)
+        }
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            val primary = android.util.TypedValue()
+            activity.theme.resolveAttribute(androidx.appcompat.R.attr.colorPrimary, primary, true)
+            android.util.Log.i(
+                "OMTheme", "${activity.javaClass.simpleName} md3=${Settings.MATERIAL_DESIGN_3.valueCompat} " +
+                    "color=${Settings.THEME_COLOR.valueCompat} overlay=$accentOverlay " +
+                    "colorPrimary=#%08X".format(primary.data)
+            )
+        }
+        activityAccentOverlays[activity] = accentOverlay
     }
 
     fun sync() {
@@ -59,8 +76,32 @@ object CustomThemeHelper {
                 } else {
                     activity.recreateCompat()
                 }
+            } else if (activityAccentOverlays[activity] != getAccentOverlayRes(activity)) {
+                // Same base theme, different color on top of Material 3.
+                if (activity is OnThemeChangedListener) {
+                    (activity as OnThemeChangedListener).onThemeChanged(customThemeRes)
+                } else {
+                    activity.recreateCompat()
+                }
             }
         }
+    }
+
+    /**
+     * Material 3 normally takes its colors from the wallpaper; a theme color other than the
+     * default one is laid on top, so picking a color works in both styles.
+     */
+    @StyleRes
+    private fun getAccentOverlayRes(context: Context): Int {
+        if (!Settings.MATERIAL_DESIGN_3.valueCompat) return 0
+        val themeColor = Settings.THEME_COLOR.valueCompat
+        if (themeColor == ThemeColor.COLOR_PRIMARY) return 0
+        val resources = context.resources
+        val packagePrefix = resources.getResourceName(R.style.Theme_MaterialFiles).substringBefore(':')
+        val colorName = resources.getResourceEntryName(themeColor.resourceId)
+        return resources.getIdentifier(
+            "$packagePrefix:style/ThemeOverlay.MaterialFiles.Material3Accent.$colorName", null, null
+        )
     }
 
     private fun getCustomThemeRes(@StyleRes baseThemeRes: Int, context: Context): Int {

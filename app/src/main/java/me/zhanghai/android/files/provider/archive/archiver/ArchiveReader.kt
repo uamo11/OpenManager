@@ -317,28 +317,19 @@ object ArchiveReader {
         file: Path,
         passwords: List<String>
     ): Pair<ReadArchive, ArchiveCloseable> {
-        // Guard against CVE-2026-14164 (RAR5 Double-Free in unpacking state reinitialization)
+        // RAR5: reject damaged or tampered headers before the native reader sees them (defense in
+        // depth for CVE-2026-14164, already fixed in the bundled libarchive).
         try {
             val headerBytes = ByteArray(8)
             val bytesRead = file.newInputStream().use { it.read(headerBytes) }
             if (bytesRead >= 8 && ArchiveSecuritySanitizer.isRar5Header(headerBytes)) {
-                if (!ArchiveSecurityPreferences.isRar5Enabled()) {
-                    ArchiveSecurityPreferences.recordCve2026_14164Blocked()
-                    throw me.zhanghai.android.files.provider.archive.ArchiveSecurityException(
-                        file,
-                        "RAR5 format blocked by active protection against critical vulnerability CVE-2026-14164 (double-free in libarchive). You can enable it at your own risk in Settings.",
-                        "CVE-2026-14164"
-                    )
-                }
-
-                // Even if RAR5 is explicitly enabled by user, validate the header structure and CRC32
-                // to prevent CVE-2026-14164 double-free crashes in native libarchive memory.
                 val validation = file.newInputStream().use { ArchiveSecuritySanitizer.validateRar5(it) }
                 if (validation is ArchiveSecuritySanitizer.Rar5ValidationResult.Corrupt) {
                     ArchiveSecurityPreferences.recordCve2026_14164Blocked()
+                    android.util.Log.w("OMArchive", "RAR5 rejected: ${validation.reason}")
                     throw me.zhanghai.android.files.provider.archive.ArchiveSecurityException(
                         file,
-                        "RAR5 file blocked by security validation: ${validation.reason}. Prevented critical vulnerability CVE-2026-14164 (Double-Free in native memory).",
+                        damagedRarMessage(),
                         "CVE-2026-14164"
                     )
                 }
@@ -448,4 +439,13 @@ object ArchiveReader {
             closeable.close()
         }
     }
+
+    private fun damagedRarMessage(): String =
+        try {
+            me.zhanghai.android.files.app.application.getString(
+                me.zhanghai.android.files.R.string.om_archive_rar_damaged
+            )
+        } catch (_: Throwable) {
+            "This RAR archive is damaged, so it was not opened to keep your phone safe."
+        }
 }

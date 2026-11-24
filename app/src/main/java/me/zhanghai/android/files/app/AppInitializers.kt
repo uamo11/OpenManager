@@ -172,6 +172,7 @@ private fun initializeTerminalBinTools() {
         try {
             me.zhanghai.android.files.update.UpdateChecker.cleanupInstalledUpdateApks(application)
         } catch (_: Throwable) {}
+        ExitReasonLogger.logNewExits(application)
     }
 }
 

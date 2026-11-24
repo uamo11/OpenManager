@@ -207,8 +207,6 @@ object SettingsIconHelper {
             "key_dead_man_dfroot_protected_files" -> IconSpec(R.drawable.ic_root_dfroot, COLOR_ORANGE, preserveOriginalColors = true)
             "key_dead_man_root_protection" -> IconSpec(R.drawable.ic_dead_man_skull, COLOR_RED, preserveOriginalColors = true)
             "key_dead_man_root_rules" -> IconSpec(R.drawable.ic_dead_man_skull, COLOR_RED, preserveOriginalColors = true)
-            "pref_key_archive_security_sanitize_tar_pax" -> IconSpec(R.drawable.shield_icon_white_24dp, COLOR_EMERALD)
-            "pref_key_archive_security_enable_rar5" -> IconSpec(R.drawable.ic_crash_alert_24dp, COLOR_AMBER)
 
             // Appearance
             "key_launcher_icon" -> IconSpec(R.drawable.ic_vector_shapes_24dp, COLOR_CYAN)
