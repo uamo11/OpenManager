@@ -121,6 +121,9 @@ class SshTransport(
             keepAliveProvider = KeepAliveProvider.KEEP_ALIVE
         }
         val sshClient = SSHClient(config)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            sshClient.setSocketFactory(DebugNetworkFault.socketFactory(appContext))
+        }
         client = sshClient
         if (closed) throw IOException(appContext.getString(R.string.om_remote_error_cancelled))
         sshClient.connectTimeout = CONNECT_TIMEOUT_MS

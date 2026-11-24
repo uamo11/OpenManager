@@ -254,7 +254,10 @@ public final class TerminalSession extends TerminalOutput {
                                 out.flush();
                             }
                         } catch (IOException e) {
-                            // Connection closed.
+                            // The link is gone (network change...): end the session now so it
+                            // shows as disconnected with its reconnect option, instead of
+                            // silently dropping every key until the server times out.
+                            remote.close();
                         }
                     }
                 }.start();

@@ -552,6 +552,46 @@ if pos=$(wait_contains 60 "vpsroot@vps"); then
         else
             fail "no 'om_ui_folder' to open in the VPS home"
         fi
+        # The link drops while the files are open on the terminal's connection (Wi-Fi/mobile
+        # switch): the next SSH write fails. sshj leaves that SFTP channel broken; reusing it gave
+        # "src.length=1 srcPos=0 dst.length=256 dstPos=-4" forever, and closing it killed the
+        # whole connection. The explorer must recover by itself and keep working.
+        log "=== VPS files: the link drops under the open explorer ==="
+        adb logcat -c
+        adb shell run-as $PKG touch files/om_debug_fail_next_ssh_write
+        adb shell input keyevent KEYCODE_BACK; sleep 2
+        if pos=$(wait_contains 30 ".ssh"); then
+            adb shell input tap $pos
+        fi
+        recovered=no
+        if wait_contains 45 "authorized_keys" >/dev/null; then recovered=yes; fi
+        adb logcat -d > "$OUT/logcat_vps_drop.txt" 2>/dev/null || true
+        grep -E "OMNetFault|OMSftp" "$OUT/logcat_vps_drop.txt" | tail -20 > "$OUT/vps_drop.log" || true
+        cat "$OUT/vps_drop.log" | sed 's/^/      /'
+        if ! grep -q "Injected network failure" "$OUT/logcat_vps_drop.txt"; then
+            fail "the simulated network drop did not fire (no SSH write after it)"
+        elif find_contains "dstPos" "src.length" >/dev/null; then
+            shot 09d_vps_drop_internal_error
+            fail "after a network drop the explorer shows sshj's internal error (dstPos=-4)"
+        elif [ "$recovered" = yes ]; then
+            shot 09d_vps_drop_recovered
+            pass "after a network drop the VPS explorer recovers by itself (.ssh listed)"
+        else
+            shot 09d_vps_drop_stuck
+            fail "after a network drop the VPS explorer did not recover"
+        fi
+        if app_crashed "$OUT/logcat_vps_drop.txt"; then fail "crash after the network drop"; fi
+        # Next action on the same server still works (no broken channel left behind).
+        adb shell input keyevent KEYCODE_BACK; sleep 2
+        if pos=$(wait_contains 20 "om_ui_folder"); then
+            adb shell input tap $pos
+            if wait_contains 40 "600" >/dev/null; then
+                pass "the next folder after the drop lists normally (600 entries)"
+            else
+                shot 09d_vps_drop_next
+                fail "the next folder after the drop did not list"
+            fi
+        fi
     else
         shot 09a_vps_root_files_missing
         fail "VPS files did not open for the root-like account"

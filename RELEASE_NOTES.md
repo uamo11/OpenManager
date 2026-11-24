@@ -1,3 +1,14 @@
+# OpenManager v2.0.16: La VPS Aguanta los Cortes de Red
+
+### 🖥️ Archivos de la VPS tras un corte de red
+- **Corregido el error `src.length=1 srcPos=0 dst.length=256 dstPos=-4`.** Venía de un fallo de la librería SSH (sshj): si un envío fallaba a mitad (cambio de Wi-Fi a datos, red caída), el canal de archivos quedaba roto por dentro y la app lo seguía usando, así que cada operación devolvía ese error.
+- **Por qué se cerraba también la terminal:** al cerrar ese canal roto, la librería fallaba en su hilo de lectura y tumbaba la conexión SSH entera. Ahora el canal roto se cierra de forma segura, en segundo plano y sin bloquear la lista.
+- **Recuperación automática:** un canal que falla no se vuelve a usar. Las lecturas (listar, ver propiedades, abrir) se repiten una vez en un canal nuevo, y si la conexión de la terminal murió, en una propia. Los cambios (crear, borrar, renombrar) no se repiten si pudieron llegar al servidor, para no hacerlos dos veces.
+- Si no se puede recuperar, el mensaje es claro y en tu idioma ("Se perdió la conexión con Mi VPS…") en vez del error interno.
+- Salir de una carpeta mientras carga ya no se confunde con un corte y no provoca reconexiones.
+- **Terminal:** si la conexión muere al enviar una tecla, la sesión se marca como terminada (con su opción de reconectar) en vez de quedarse congelada sin responder.
+
+
 # OpenManager v2.0.15: Archivos de la VPS Arreglados, Apariencia sin Fallos y APK más Ligero
 
 ### 🖥️ Archivos de la VPS: ver, crear y sin lag

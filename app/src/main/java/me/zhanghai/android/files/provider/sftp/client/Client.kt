@@ -13,7 +13,6 @@ import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.sftp.FileAttributes
 import net.schmizz.sshj.sftp.FileMode
 import net.schmizz.sshj.sftp.OpenMode
-import net.schmizz.sshj.sftp.RemoteFile
 import net.schmizz.sshj.sftp.Response
 import net.schmizz.sshj.sftp.SFTPClient
 import net.schmizz.sshj.sftp.SFTPException
@@ -44,8 +43,7 @@ object Client {
             if (sharedSshClients[authority] === ssh && clients[authority]?.let { isAlive(authority, it) } == true) {
                 return
             }
-            clients.remove(authority)?.closeSafe()
-            sshClients.remove(authority)?.closeSafe()
+            closeLater(clients.remove(authority), sshClients.remove(authority))
             sharedSshClients[authority] = ssh
         }
     }
@@ -57,8 +55,7 @@ object Client {
      */
     fun disconnect(authority: Authority) {
         synchronized(clients) {
-            clients.remove(authority)?.closeSafe()
-            sshClients.remove(authority)?.closeSafe()
+            closeLater(clients.remove(authority), sshClients.remove(authority))
             sharedSshClients[authority]?.let { if (!isUsable(it)) sharedSshClients -= authority }
         }
     }
@@ -71,54 +68,117 @@ object Client {
         return client.sftpEngine.subsystem.isOpen && (ssh == null || isUsable(ssh))
     }
 
+    /** Closing over a dead link can wait for the server's reply: never on a caller's thread. */
+    private val closer = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "SftpCloser").apply { isDaemon = true }
+    }
+
+    private fun closeLater(client: SFTPClient?, ssh: SSHClient?) {
+        if (client == null && ssh == null) return
+        closer.execute {
+            client?.let { SftpFailure.closeBroken(it) }
+            ssh?.closeSafe()
+        }
+    }
+
+    /**
+     * [client] failed with [failure]: it is never handed out again. A connection whose link failed
+     * is not reused either (the terminal's own one is only forgotten here, the terminal finds out
+     * by itself), so the next call starts clean instead of failing with sshj's internal errors.
+     */
+    private fun dropBroken(authority: Authority, client: SFTPClient, failure: SftpFailure, error: Throwable) {
+        var ownSsh: SSHClient? = null
+        synchronized(clients) {
+            if (clients[authority] === client) {
+                clients -= authority
+                ownSsh = sshClients.remove(authority)
+                if (failure.dropsConnection) {
+                    sharedSshClients -= authority
+                } else {
+                    // Only the channel is gone: a new one on the same connection is cheap.
+                    ownSsh?.let { if (isUsable(it)) { sshClients[authority] = it; ownSsh = null } }
+                }
+            }
+        }
+        android.util.Log.w(TAG, "Dropping broken SFTP channel to ${authority.host} ($failure): $error")
+        closeLater(client, ownSsh)
+    }
+
+    /**
+     * Runs [block] on the client for [authority]. When the channel turns out broken it is replaced,
+     * and the call is repeated once if that is safe: always for reads, and for changes only when
+     * the request never left the phone.
+     */
+    private inline fun <T> call(authority: Authority, idempotent: Boolean, block: (SFTPClient) -> T): T {
+        val first = getClient(authority)
+        val failure = try {
+            return block(first)
+        } catch (e: Exception) {
+            if (e !is IOException && e !is RuntimeException) throw e
+            val kind = SftpFailure.of(e)
+            if (!kind.dropsChannel) throw ClientException(e)
+            dropBroken(authority, first, kind, e)
+            // A change that may have reached the server is not sent twice.
+            if (!idempotent && kind != SftpFailure.CORRUPT_CHANNEL) throw connectionLost(authority, e)
+            kind
+        }
+        val second = getClient(authority)
+        try {
+            return block(second).also {
+                android.util.Log.i(TAG, "Recovered from $failure on a fresh channel")
+            }
+        } catch (e: Exception) {
+            if (e !is IOException && e !is RuntimeException) throw e
+            val again = SftpFailure.of(e)
+            if (!again.dropsChannel) throw ClientException(e)
+            dropBroken(authority, second, again, e)
+            throw connectionLost(authority, e)
+        }
+    }
+
+    /** What the user reads (in their language) instead of sshj's internal error. */
+    private fun connectionLost(authority: Authority, cause: Throwable): ClientException {
+        val message = runCatching {
+            val name = me.zhanghai.android.files.storage.SftpServerAuthenticator.displayName(authority)
+                ?: authority.host
+            me.zhanghai.android.files.app.application.getString(
+                me.zhanghai.android.files.R.string.om_remote_files_error_lost, name
+            )
+        }.getOrNull() ?: "Connection to ${authority.host} lost"
+        return ClientException(message, cause)
+    }
+
+    private const val TAG = "OMSftp"
+
     private val directoryFileAttributesCache =
         Collections.synchronizedMap(WeakHashMap<Path, FileAttributes>())
 
     @Throws(ClientException::class)
     fun access(path: Path, flags: Set<OpenMode>) {
-        val file = open(path, flags, FileAttributes.EMPTY)
-        try {
-            file.close()
-        } catch (e: IOException) {
-            throw ClientException(e)
+        call(path.authority, isSideEffectFree(flags)) { client ->
+            client.open(path.remotePath, flags, FileAttributes.EMPTY).close()
         }
     }
 
     @Throws(ClientException::class)
     fun lstat(path: Path): FileAttributes {
-        val client = getClient(path.authority)
         synchronized(directoryFileAttributesCache) {
             directoryFileAttributesCache[path]?.let {
                 return it.also { directoryFileAttributesCache -= path }
             }
         }
-        return try {
-            client.lstat(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        return call(path.authority, idempotent = true) { it.lstat(path.remotePath) }
     }
 
     @Throws(ClientException::class)
     fun mkdir(path: Path, attributes: FileAttributes) {
-        val client = getClient(path.authority)
-        try {
-            client.sftpEngine.makeDir(path.remotePath, attributes)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        call(path.authority, idempotent = false) { it.sftpEngine.makeDir(path.remotePath, attributes) }
         LocalWatchService.onEntryCreated(path as Java8Path)
     }
 
-    @Throws(ClientException::class)
-    private fun open(path: Path, flags: Set<OpenMode>, attributes: FileAttributes): RemoteFile {
-        val client = getClient(path.authority)
-        return try {
-            client.open(path.remotePath, flags, attributes)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
-    }
+    /** Opening without CREAT/TRUNC/EXCL changes nothing on the server, so it can be retried. */
+    private fun isSideEffectFree(flags: Set<OpenMode>): Boolean =
+        OpenMode.CREAT !in flags && OpenMode.TRUNC !in flags && OpenMode.EXCL !in flags
 
     @Throws(ClientException::class)
     fun openByteChannel(
@@ -126,30 +186,31 @@ object Client {
         flags: Set<OpenMode>,
         attributes: FileAttributes
     ): SeekableByteChannel {
-        val file = open(path, flags, attributes)
+        val authority = path.authority
+        val (client, file) = call(authority, isSideEffectFree(flags)) {
+            it to it.open(path.remotePath, flags, attributes)
+        }
+        // A read or write that breaks the link also breaks the channel the file is on.
+        val onBroken = { error: Throwable ->
+            val failure = SftpFailure.of(error)
+            if (failure.dropsChannel) dropBroken(authority, client, failure, error)
+        }
         return NotifyEntryModifiedSeekableByteChannel(
-            FileByteChannel(file, flags.contains(OpenMode.APPEND)), path as Java8Path
+            FileByteChannel(file, flags.contains(OpenMode.APPEND), onBroken) {
+                connectionLost(authority, IOException()).message.orEmpty()
+            },
+            path as Java8Path
         )
     }
 
     @Throws(ClientException::class)
     fun readlink(path: Path): String {
-        val client = getClient(path.authority)
-        return try {
-            client.readlink(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        return call(path.authority, idempotent = true) { it.readlink(path.remotePath) }
     }
 
     @Throws(ClientException::class)
     fun realpath(path: Path): Path {
-        val client = getClient(path.authority)
-        val realPath = try {
-            client.canonicalize(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        val realPath = call(path.authority, idempotent = true) { it.canonicalize(path.remotePath) }
         return path.resolve(realPath)
     }
 
@@ -172,12 +233,7 @@ object Client {
                 SFTPException(Response.StatusCode.FAILURE, "Paths aren't on the same authority")
             )
         }
-        val client = getClient(path.authority)
-        try {
-            client.rename(path.remotePath, newPath.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        call(path.authority, idempotent = false) { it.rename(path.remotePath, newPath.remotePath) }
         directoryFileAttributesCache -= path
         directoryFileAttributesCache -= newPath
         LocalWatchService.onEntryDeleted(path as Java8Path)
@@ -186,24 +242,14 @@ object Client {
 
     @Throws(ClientException::class)
     fun rmdir(path: Path) {
-        val client = getClient(path.authority)
-        try {
-            client.rmdir(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        call(path.authority, idempotent = false) { it.rmdir(path.remotePath) }
         directoryFileAttributesCache -= path
         LocalWatchService.onEntryDeleted(path as Java8Path)
     }
 
     @Throws(ClientException::class)
     fun scandir(path: Path): List<Path> {
-        val client = getClient(path.authority)
-        val files = try {
-            client.ls(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        val files = call(path.authority, idempotent = true) { it.ls(path.remotePath) }
         return files.map { file ->
             // The attributes here are from lstat().
             // https://github.com/openssh/openssh-portable/blob/71241fc05db4bbb11bb29340b44b92e2575373d8/sftp-server.c#L1110
@@ -213,19 +259,13 @@ object Client {
 
     @Throws(ClientException::class)
     fun setstat(path: Path, attributes: FileAttributes) {
-        val client = getClient(path.authority)
-        try {
-            client.setattr(path.remotePath, attributes)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        call(path.authority, idempotent = true) { it.setattr(path.remotePath, attributes) }
         directoryFileAttributesCache -= path
         LocalWatchService.onEntryModified(path as Java8Path)
     }
 
     @Throws(ClientException::class)
     fun stat(path: Path): FileAttributes {
-        val client = getClient(path.authority)
         synchronized(directoryFileAttributesCache) {
             directoryFileAttributesCache[path]?.let {
                 if (it.type != FileMode.Type.SYMLINK) {
@@ -233,32 +273,18 @@ object Client {
                 }
             }
         }
-        return try {
-            client.stat(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        return call(path.authority, idempotent = true) { it.stat(path.remotePath) }
     }
 
     @Throws(ClientException::class)
     fun symlink(link: Path, target: String) {
-        val client = getClient(link.authority)
-        try {
-            client.symlink(link.remotePath, target)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        call(link.authority, idempotent = false) { it.symlink(link.remotePath, target) }
         LocalWatchService.onEntryCreated(link as Java8Path)
     }
 
     @Throws(ClientException::class)
     fun unlink(path: Path) {
-        val client = getClient(path.authority)
-        try {
-            client.rm(path.remotePath)
-        } catch (e: IOException) {
-            throw ClientException(e)
-        }
+        call(path.authority, idempotent = false) { it.rm(path.remotePath) }
         directoryFileAttributesCache -= path
         LocalWatchService.onEntryDeleted(path as Java8Path)
     }
@@ -271,9 +297,8 @@ object Client {
                 if (isAlive(authority, client)) {
                     return client
                 } else {
-                    client.closeSafe()
                     clients -= authority
-                    sshClients.remove(authority)?.closeSafe()
+                    closeLater(client, sshClients.remove(authority))
                 }
             }
             // A terminal connection to this server: open the SFTP channel on it.
