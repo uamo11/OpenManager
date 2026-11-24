@@ -15,6 +15,7 @@ import android.os.Bundle
 import android.os.Process
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AppCompatActivity
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.ActivityCrashReportBinding
@@ -22,7 +23,12 @@ import me.zhanghai.android.files.ui.applyEdgeToEdgeInsets
 import java.io.File
 import kotlin.system.exitProcess
 
-class CrashReportActivity : AppActivity() {
+/**
+ * Runs in its own ":crash" process, where the app is not initialized (AppProvider only starts in
+ * the main process): it must not touch Settings, themes or anything else that needs it, or the
+ * crash screen itself crashes. Hence a plain AppCompatActivity with the manifest theme.
+ */
+class CrashReportActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityCrashReportBinding
 

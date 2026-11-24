@@ -38,6 +38,21 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
     override fun onCreate(savedInstanceState: Bundle?) {
         val args = intent.extras?.getArgsOrNull<Args>()
         val savedInstanceState = savedInstanceState ?: args?.savedInstanceState
+        if (BuildConfig.DEBUG) {
+            // Written before the theme is applied (in super.onCreate), so this launch uses them.
+            intent.getStringExtra("DEMO_MD3")?.let { Settings.MATERIAL_DESIGN_3.putValue(it == "on") }
+            intent.getStringExtra("DEMO_THEME_COLOR")?.let { name ->
+                me.zhanghai.android.files.theme.custom.ThemeColor.entries
+                    .firstOrNull { it.name.equals(name, ignoreCase = true) }
+                    ?.let { Settings.THEME_COLOR.putValue(it) }
+            }
+            demoThemeTarget(intent.getStringExtra("DEMO_THEME"))?.let { (night, black) ->
+                Settings.BLACK_NIGHT_MODE.putValue(black)
+                Settings.NIGHT_MODE.putValue(night)
+            }
+            intent.removeExtra("DEMO_MD3")
+            intent.removeExtra("DEMO_THEME_COLOR")
+        }
         super.onCreate(savedInstanceState)
 
         if (BuildConfig.DEBUG) {
@@ -56,17 +71,6 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
             }
         }
 
-        if (BuildConfig.DEBUG) {
-            intent.getStringExtra("DEMO_MD3")?.let { Settings.MATERIAL_DESIGN_3.putValue(it == "on") }
-            intent.getStringExtra("DEMO_THEME_COLOR")?.let { name ->
-                me.zhanghai.android.files.theme.custom.ThemeColor.entries
-                    .firstOrNull { it.name.equals(name, ignoreCase = true) }
-                    ?.let { Settings.THEME_COLOR.putValue(it) }
-            }
-            intent.removeExtra("DEMO_MD3")
-            intent.removeExtra("DEMO_THEME_COLOR")
-        }
-
         // Calls ensureSubDecor().
         findViewById<View>(android.R.id.content)
         if (savedInstanceState == null) {
@@ -80,26 +84,12 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
             if (!demoLocale.isNullOrEmpty() || !demoTheme.isNullOrEmpty()) {
                 window.decorView.post {
                     if (isFinishing || isDestroyed) return@post
-                    if (!demoTheme.isNullOrEmpty()) {
-                        val target: Pair<NightMode, Boolean>? = when (demoTheme) {
-                            "dark" -> NightMode.ON to false
-                            "amoled" -> NightMode.ON to true
-                            "light" -> NightMode.OFF to false
-                            "system_black" -> NightMode.FOLLOW_SYSTEM to true
-                            else -> null
-                        }
-                        if (target != null) {
-                            val (targetNight, targetBlack) = target
-                            if (Settings.NIGHT_MODE.valueCompat != targetNight ||
-                                Settings.BLACK_NIGHT_MODE.valueCompat != targetBlack
-                            ) {
-                                Settings.BLACK_NIGHT_MODE.putValue(targetBlack)
-                                Settings.NIGHT_MODE.putValue(targetNight)
-                                NightModeHelper.sync()
-                                CustomThemeHelper.sync()
-                                if (isRestarting) return@post
-                            }
-                        }
+                    if (demoThemeTarget(demoTheme) != null) {
+                        // The settings were written before onCreate; bring this screen in line
+                        // if it was already created with the old ones.
+                        NightModeHelper.sync()
+                        CustomThemeHelper.sync()
+                        if (isRestarting) return@post
                     }
                     if (!demoLocale.isNullOrEmpty()) {
                         val targetLocales = when (demoLocale) {
@@ -132,15 +122,24 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
     override fun onThemeChanged(@StyleRes theme: Int) {
         // ActivityCompat.recreate() may call ActivityRecreator.recreate() without calling
         // Activity.recreate(), so we cannot simply override it. To work around this, we just
-        // manually call restart().
-        restart()
+        // manually call restart(). Posted: a theme setting can change while fragments are being
+        // started, and saving state in the middle of that crashes.
+        window.decorView.post { if (!isFinishing && !isDestroyed) restart() }
+    }
+
+    private fun demoThemeTarget(demoTheme: String?): Pair<NightMode, Boolean>? = when (demoTheme) {
+        "dark" -> NightMode.ON to false
+        "amoled" -> NightMode.ON to true
+        "light" -> NightMode.OFF to false
+        "system_black" -> NightMode.FOLLOW_SYSTEM to true
+        else -> null
     }
 
     override fun onNightModeChangedFromHelper(nightMode: Int) {
         // ActivityCompat.recreate() may call ActivityRecreator.recreate() without calling
         // Activity.recreate(), so we cannot simply override it. To work around this, we just
         // manually call restart().
-        restart()
+        window.decorView.post { if (!isFinishing && !isDestroyed) restart() }
     }
 
     private fun restart() {
