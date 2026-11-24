@@ -1,3 +1,19 @@
+# OpenManager v2.0.14: Ruso, Portugués, Indonesio y Vietnamita
+
+### 🌍 Cuatro idiomas nuevos completos
+- **Ruso**, **portugués (Brasil)**, **indonesio** y **vietnamita**: los ~2.200 textos propios de OpenManager (ajustes, herramientas, terminal, conexiones, visores, Dead Man…) ya están traducidos, igual que el chino simplificado en la v2.0.13.
+- El vietnamita recibe además ~75 textos de Material Files que tenía sin traducir.
+- Idiomas completos: inglés, español, chino simplificado, ruso, portugués (Brasil), indonesio y vietnamita.
+
+### 🐞 Arreglo
+- En español, el número de permisos de un APK con **un** permiso decía «No se requieren permisos».
+
+### ✅ Verificado
+- Un test impide que falte cualquier texto visible en alguno de esos idiomas o que tenga marcadores distintos.
+- En el emulador se pone la app en cada idioma y se comprueba la pantalla de Ajustes.
+
+---
+
 # OpenManager v2.0.13: App en Chino Simplificado
 
 ### 🇨🇳 Chino simplificado completo (issue #2)
