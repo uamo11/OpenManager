@@ -1481,7 +1481,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun getSubtitle(files: List<FileItem>): String {
         val (directoryCount, fileCount) = FileListEngine.countDirectoriesAndFiles(files)
-        return "Carpetas: $directoryCount  Archivos: $fileCount"
+        return getString(R.string.om_stats_folders_files, directoryCount, fileCount)
     }
 
     private fun onViewTypeChanged(viewType: FileViewType) {

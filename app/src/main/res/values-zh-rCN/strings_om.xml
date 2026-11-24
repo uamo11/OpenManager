@@ -2293,4 +2293,7 @@
     <string name="om_bookmark_removed">已移除书签</string>
     <string name="om_bookmark_exists">此文件夹已在书签中</string>
     <string name="om_bookmark_added_hint">已添加书签。在底部工具栏上向上滑动即可查看书签。</string>
+    <string name="om_stats_folders_files">文件夹：%1$d  文件：%2$d</string>
+    <string name="om_stats_disk">磁盘：%1$s/%2$s</string>
+    <string name="om_props_folders_files_size">文件夹：%1$d · 文件：%2$d（%3$s）</string>
 </resources>

@@ -3209,4 +3209,7 @@
     <string name="om_bookmark_removed">Bookmark removed</string>
     <string name="om_bookmark_exists">This folder is already in your bookmarks</string>
     <string name="om_bookmark_added_hint">Bookmark added. Swipe up on the bottom bar to see your bookmarks.</string>
+    <string name="om_stats_folders_files">Folders: %1$d  Files: %2$d</string>
+    <string name="om_stats_disk">Disk: %1$s/%2$s</string>
+    <string name="om_props_folders_files_size">Folders: %1$d · Files: %2$d (%3$s)</string>
 </resources>

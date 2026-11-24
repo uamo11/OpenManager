@@ -19,6 +19,10 @@
 
 ### 🌐 Idiomas
 - La opción de archivos ocultos del menú ⋮ salía siempre en español. Ahora usa tu idioma y muestra una casilla con su estado.
+- Tres textos salían siempre en español o en inglés, fuera cual fuera tu idioma; ahora salen en el tuyo:
+  - el subtítulo de la lista («Carpetas: 14  Archivos: 0  Disk: …»);
+  - el espacio en disco;
+  - el contenido de una carpeta en Propiedades.
 
 
 # OpenManager v2.0.16: La VPS Aguanta los Cortes de Red

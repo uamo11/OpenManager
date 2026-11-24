@@ -2313,4 +2313,7 @@
     <string name="om_bookmark_removed">Закладка удалена</string>
     <string name="om_bookmark_exists">Эта папка уже есть в закладках</string>
     <string name="om_bookmark_added_hint">Закладка добавлена. Проведите вверх по нижней панели, чтобы увидеть закладки.</string>
+    <string name="om_stats_folders_files">Папки: %1$d  Файлы: %2$d</string>
+    <string name="om_stats_disk">Диск: %1$s/%2$s</string>
+    <string name="om_props_folders_files_size">Папки: %1$d · Файлы: %2$d (%3$s)</string>
 </resources>

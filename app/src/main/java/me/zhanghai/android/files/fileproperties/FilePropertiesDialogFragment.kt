@@ -282,7 +282,9 @@ class FilePropertiesDialogFragment : AppCompatDialogFragment() {
                 withContext(Dispatchers.Main) {
                     if (!isAdded) return@withContext
                     val humanSize = totalBytes.asFileSize().formatHumanReadable(context)
-                    tvContents.text = "Carpetas: $folderCount · Archivos: $fileCount ($humanSize)"
+                    tvContents.text = getString(
+                        R.string.om_props_folders_files_size, folderCount, fileCount, humanSize
+                    )
                 }
             }
         } else {

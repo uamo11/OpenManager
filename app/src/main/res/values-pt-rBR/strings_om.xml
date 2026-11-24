@@ -2299,4 +2299,7 @@
     <string name="om_bookmark_removed">Favorito removido</string>
     <string name="om_bookmark_exists">Esta pasta já está nos seus favoritos</string>
     <string name="om_bookmark_added_hint">Favorito adicionado. Deslize para cima na barra inferior para ver seus favoritos.</string>
+    <string name="om_stats_folders_files">Pastas: %1$d  Arquivos: %2$d</string>
+    <string name="om_stats_disk">Disco: %1$s/%2$s</string>
+    <string name="om_props_folders_files_size">Pastas: %1$d · Arquivos: %2$d (%3$s)</string>
 </resources>

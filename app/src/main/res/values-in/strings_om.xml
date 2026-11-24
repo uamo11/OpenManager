@@ -2294,4 +2294,7 @@
     <string name="om_bookmark_removed">Penanda dihapus</string>
     <string name="om_bookmark_exists">Folder ini sudah ada di penanda</string>
     <string name="om_bookmark_added_hint">Penanda ditambahkan. Geser ke atas pada bilah bawah untuk melihat penanda Anda.</string>
+    <string name="om_stats_folders_files">Folder: %1$d  Berkas: %2$d</string>
+    <string name="om_stats_disk">Disk: %1$s/%2$s</string>
+    <string name="om_props_folders_files_size">Folder: %1$d · Berkas: %2$d (%3$s)</string>
 </resources>

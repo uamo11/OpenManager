@@ -2388,4 +2388,7 @@
     <string name="om_bookmark_removed">Đã xóa dấu trang</string>
     <string name="om_bookmark_exists">Thư mục này đã có trong dấu trang</string>
     <string name="om_bookmark_added_hint">Đã thêm dấu trang. Vuốt lên trên thanh dưới cùng để xem các dấu trang.</string>
+    <string name="om_stats_folders_files">Thư mục: %1$d  Tệp: %2$d</string>
+    <string name="om_stats_disk">Bộ nhớ: %1$s/%2$s</string>
+    <string name="om_props_folders_files_size">Thư mục: %1$d · Tệp: %2$d (%3$s)</string>
 </resources>

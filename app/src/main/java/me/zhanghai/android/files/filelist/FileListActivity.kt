@@ -2229,7 +2229,7 @@ class FileListActivity : AppActivity() {
                     val stat = StatFs(android.os.Environment.getExternalStorageDirectory().path)
                     val available = Formatter.formatShortFileSize(this@FileListActivity, stat.availableBytes).replace(" ", "")
                     val total = Formatter.formatShortFileSize(this@FileListActivity, stat.totalBytes).replace(" ", "")
-                    "Disk: $available/$total"
+                    getString(R.string.om_stats_disk, available, total)
                 } catch (_: Exception) {
                     cachedDiskStats
                 }
