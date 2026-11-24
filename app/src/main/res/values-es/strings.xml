@@ -467,7 +467,7 @@
     <string name="file_properties_apk_requested_permissions">Permisos</string>
     <string name="file_properties_apk_requested_permissions_zero">No se requieren permisos</string>
     <plurals name="file_properties_apk_requested_permissions_positive_format">
-        <item quantity="one">No se requieren permisos</item>
+        <item quantity="one">%1$,d permiso requerido</item>
         <item quantity="many">%1$,d permisos requeridos</item>
         <item quantity="other">%1$,d permisos requeridos</item>
     </plurals>

@@ -701,35 +701,53 @@ adb logcat -d > "$OUT/logcat_photo.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_photo.txt"; then fail "crash while viewing photos"; fi
 adb shell am force-stop $PKG; sleep 1
 
-log "=== Issue #2: Simplified Chinese settings and drawer ==="
-# Share of visible texts that contain Chinese characters, and the texts left in Latin letters.
-cjk_report() {
+log "=== Translations: settings and drawer in zh-CN, ru, pt-BR, id, vi ==="
+# Share of visible texts written in the expected script/language, and the texts that are not.
+# $1 = tag, $2 = regex of characters only that language uses (or "" to compare with English).
+lang_report() {
     adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
     adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_$1.xml" 2>/dev/null
-    python3 - "$OUT/ui_$1.xml" <<'PY'
+    python3 - "$OUT/ui_$1.xml" "$1" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+tag = sys.argv[2]
 texts = [html.unescape(t) for t in re.findall(r' text="([^"]+)"', xml)]
-words = [t for t in texts if re.search(r"[A-Za-z一-鿿]", t)]
-zh = [t for t in words if re.search(r"[一-鿿]", t)]
-latin = [t for t in words if t not in zh]
-print(len(zh), len(words), " | ".join(latin[:12]))
+words = [t for t in texts if re.search(r"[^\W\d_]", t)]
+# English words that only appear in untranslated text (technical names like APK/Root/Shizuku are fine).
+english = re.compile(r"\b(the|and|with|from|settings?|permissions?|tap|show|startup|path|window|services?|appearance|recycle|disabled|enabled)\b", re.I)
+if tag.startswith("zh"):
+    ok = [t for t in words if re.search(r"[一-鿿]", t)]
+elif tag.startswith("ru"):
+    ok = [t for t in words if re.search(r"[Ѐ-ӿ]", t)]
+else:
+    ok = [t for t in words if not english.search(t)]
+bad = [t for t in words if t not in ok]
+print(len(ok), len(words), " | ".join(bad[:10]))
 PY
 }
+for spec in "zh-CN:zh" "ru:ru" "pt-BR:pt" "in:id" "vi:vi"; do
+    locale=${spec%%:*}; tag=${spec#*:}
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE "$locale" >/dev/null 2>&1
+    sleep 5
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity >/dev/null 2>&1
+    sleep 4
+    shot "40_settings_$tag"
+    report=$(lang_report "settings_$tag")
+    ok_n=$(echo "$report" | cut -d' ' -f1); all_n=$(echo "$report" | cut -d' ' -f2)
+    log "      $locale settings: $ok_n of $all_n texts translated; left: $(echo "$report" | cut -d' ' -f3-)"
+    if [ "${all_n:-0}" -gt 5 ] && [ $((ok_n * 100)) -ge $((all_n * 80)) ]; then
+        pass "settings page is in $locale ($ok_n/$all_n texts)"
+    else
+        fail "settings page is not in $locale ($ok_n/$all_n texts)"
+    fi
+done
+# The drawer in Chinese, as in the screenshot of issue #2.
 adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE zh-CN >/dev/null 2>&1
 sleep 5
 adb shell am force-stop $PKG; sleep 1
-adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity >/dev/null 2>&1
-sleep 4
-shot 40_settings_zh_CN
-read zh_n all_n latin_left <<< "$(cjk_report settings_zh)"
-log "      settings: $zh_n of $all_n texts in Chinese; still Latin: $(cjk_report settings_zh | cut -d' ' -f3-)"
-if [ "${all_n:-0}" -gt 5 ] && [ $((zh_n * 100)) -ge $((all_n * 80)) ]; then
-    pass "settings page is in Simplified Chinese ($zh_n/$all_n texts)"
-else
-    fail "settings page is not in Chinese ($zh_n/$all_n texts)"
-fi
 adb shell am start -W -n "$MAIN" >/dev/null 2>&1
 sleep 5
 demo drawer; sleep 2
@@ -737,7 +755,7 @@ shot 41_drawer_zh_CN
 if find_text "根目录" >/dev/null && find_text "工具" >/dev/null && find_text "设置" >/dev/null; then
     pass "drawer shows 根目录 / 工具 / 设置 in Chinese"
 else
-    fail "drawer is not in Chinese: $(cjk_report drawer_zh | cut -d' ' -f3-)"
+    fail "drawer is not in Chinese: $(lang_report drawer_zh | cut -d' ' -f3-)"
 fi
 adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset >/dev/null 2>&1

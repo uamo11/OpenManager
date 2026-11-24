@@ -89,10 +89,8 @@ class SettingsActivity : AppActivity(), OnThemeChangedListener, OnNightModeChang
                     }
                     if (!demoLocale.isNullOrEmpty()) {
                         val targetLocales = when (demoLocale) {
-                            "es" -> LocaleListCompat.forLanguageTags("es")
-                            "zh-CN" -> LocaleListCompat.forLanguageTags("zh-CN")
                             "reset" -> LocaleListCompat.getEmptyLocaleList()
-                            else -> null
+                            else -> LocaleListCompat.forLanguageTags(demoLocale)
                         }
                         if (targetLocales != null) {
                             val currentTags = AppCompatDelegate.getApplicationLocales().toLanguageTags()

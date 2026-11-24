@@ -14,9 +14,12 @@ import javax.xml.parsers.DocumentBuilderFactory
 /**
  * Issue #2: with the app in Simplified Chinese most screens stayed in English because
  * OpenManager's own strings only existed in English and Spanish. Every user-visible string must
- * have a Simplified Chinese version, with the same placeholders.
+ * exist in each fully supported language, with the same placeholders.
  */
-class SimplifiedChineseCoverageTest {
+class TranslationCoverageTest {
+
+    /** Fully translated languages: a new string must be added to all of them. */
+    private val languages = listOf("values-es", "values-zh-rCN", "values-ru", "values-pt-rBR", "values-in", "values-vi")
 
     private val res: File = (File("src/main/res").takeIf { it.isDirectory } ?: File("app/src/main/res"))
 
@@ -58,18 +61,27 @@ class SimplifiedChineseCoverageTest {
     private fun placeholders(text: String) = placeholder.findAll(text).map { it.value }.sorted().toList()
 
     @Test
-    fun everyVisibleStringHasAChineseVersion() {
+    fun everyVisibleStringIsTranslated() {
         val base = load("values")
-        val zh = load("values-zh-rCN")
-        val missing = base.filter { (name, entry) -> name !in zh && needsTranslation(entry) }.keys.sorted()
-        assertTrue("Missing Simplified Chinese strings (${missing.size}): ${missing.take(30)}", missing.isEmpty())
+        val problems = languages.mapNotNull { dir ->
+            val translated = load(dir)
+            val missing = base.filter { (name, entry) -> name !in translated && needsTranslation(entry) }.keys.sorted()
+            missing.takeIf { it.isNotEmpty() }?.let { "$dir is missing ${it.size}: ${it.take(20)}" }
+        }
+        assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }
 
     @Test
-    fun chinesePlaceholdersMatchTheOriginal() {
+    fun placeholdersMatchTheOriginal() {
         val base = load("values")
-        val zh = load("values-zh-rCN")
-        val wrong = zh.mapNotNull { (name, entry) ->
+        val problems = languages.mapNotNull { dir ->
+            wrongPlaceholders(base, load(dir)).takeIf { it.isNotEmpty() }?.let { "$dir: $it" }
+        }
+        assertTrue(problems.joinToString("\n"), problems.isEmpty())
+    }
+
+    private fun wrongPlaceholders(base: Map<String, Entry>, translated: Map<String, Entry>): List<String> =
+        translated.mapNotNull { (name, entry) ->
             val original = base[name] ?: return@mapNotNull null
             val expected = placeholders(original.texts.last())
             val bad = when (entry.type) {
@@ -78,6 +90,4 @@ class SimplifiedChineseCoverageTest {
             }
             name.takeIf { bad }
         }
-        assertTrue("Placeholders differ in: $wrong", wrong.isEmpty())
-    }
 }
