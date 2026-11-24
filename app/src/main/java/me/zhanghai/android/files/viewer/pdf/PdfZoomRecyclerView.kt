@@ -175,9 +175,11 @@ class PdfZoomRecyclerView @JvmOverloads constructor(
         toParentMatrix.postTranslate(translationX, translationY)
         val parentEvent = MotionEvent.obtain(ev)
         parentEvent.transform(toParentMatrix)
-        tapDetector.onTouchEvent(parentEvent)
-        scaleDetector.onTouchEvent(parentEvent)
+        // Pan first: its ACTION_DOWN stops a running animation, and must not stop the zoom a
+        // double tap starts on that same ACTION_DOWN.
         trackPan(parentEvent)
+        scaleDetector.onTouchEvent(parentEvent)
+        tapDetector.onTouchEvent(parentEvent)
         parentEvent.recycle()
         if (isScaling || ev.pointerCount > 1) {
             // Two fingers zoom: the list must not scroll or fling meanwhile.

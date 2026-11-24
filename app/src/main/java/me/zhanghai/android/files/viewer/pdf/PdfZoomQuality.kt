@@ -15,8 +15,8 @@ object PdfZoomQuality {
      * screen), then the zoom rounded up, never above [maxTier].
      */
     fun tierFor(zoom: Float, maxTier: Int): Int {
-        if (zoom <= 1.3f) return 1
-        return ceil(zoom.toDouble()).toInt().coerceIn(2, maxTier.coerceAtLeast(1))
+        if (zoom <= 1.3f || maxTier <= 1) return 1
+        return ceil(zoom.toDouble()).toInt().coerceIn(2, maxTier)
     }
 
     /**

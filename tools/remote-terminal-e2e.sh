@@ -1185,10 +1185,13 @@ adb shell input keyevent KEYCODE_BACK; sleep 3
 adb shell am force-stop $PKG; sleep 1
 open_pages_pdf; sleep 6
 shot 18d_pdf_resumed
-if find_contains "Continuing from page" "Continúas en la página" >/dev/null; then
-    pass "PDF: reopening continues at the last page read"
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+pdf_sub=$(adb shell cat /data/local/tmp/ui.xml 2>/dev/null | tr -d '\r' | grep -oE '(Page|Página) [0-9]+ (of|de) 6' | head -1)
+log "      reopened at: ${pdf_sub:-?}"
+if echo "$pdf_sub" | grep -qE ' [2-6] (of|de) 6'; then
+    pass "PDF: reopening continues at the last page read ($pdf_sub)"
 else
-    fail "PDF: reopening did not continue at the last page"
+    fail "PDF: reopening did not continue at the last page (${pdf_sub:-no page shown})"
 fi
 # Turn 'Keep screen on' back off for the rest of the run.
 if pos=$(find_text "More options" "Más opciones"); then
@@ -1480,7 +1483,16 @@ PY
 }
 path_title() {
     adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
-    adb shell cat /data/local/tmp/ui.xml | tr -d '\r' | grep -o 'resource-id="[^"]*:id/tvPathTitle"[^>]*' | grep -o ' text="[^"]*"' | head -1 | cut -d'"' -f2
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/tvPathTitle"', node):
+        t = re.search(r' text="([^"]*)"', node)
+        print(html.unescape(t.group(1)) if t else "")
+        break
+PY
 }
 adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n "$MAIN" >/dev/null; sleep 5

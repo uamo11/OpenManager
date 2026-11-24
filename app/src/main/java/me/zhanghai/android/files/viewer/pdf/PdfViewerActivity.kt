@@ -381,15 +381,16 @@ class PdfViewerActivity : AppActivity() {
         val oy = cy - rootLocation[1]
         val down = android.os.SystemClock.uptimeMillis()
         var time = down
-        fun send(action: Int, xs: FloatArray) {
-            val props = Array(xs.size) { i ->
+        // Offsets from the center along the vertical axis (room for a wide pinch).
+        fun send(action: Int, ys: FloatArray) {
+            val props = Array(ys.size) { i ->
                 MotionEvent.PointerProperties().apply { id = i; toolType = MotionEvent.TOOL_TYPE_FINGER }
             }
-            val coords = Array(xs.size) { i ->
-                MotionEvent.PointerCoords().apply { x = ox + xs[i]; y = oy; pressure = 1f; size = 1f }
+            val coords = Array(ys.size) { i ->
+                MotionEvent.PointerCoords().apply { x = ox; y = oy + ys[i]; pressure = 1f; size = 1f }
             }
             val event = MotionEvent.obtain(
-                down, time, action, xs.size, props, coords, 0, 0, 1f, 1f, 0, 0,
+                down, time, action, ys.size, props, coords, 0, 0, 1f, 1f, 0, 0,
                 android.view.InputDevice.SOURCE_TOUCHSCREEN, 0
             )
             root.dispatchTouchEvent(event)
@@ -397,8 +398,9 @@ class PdfViewerActivity : AppActivity() {
         }
         when (gesture) {
             "pinch" -> {
-                val start = 60f
-                val end = 60f * 3.2f
+                val density = resources.displayMetrics.density
+                val start = 120f * density
+                val end = minOf(start * 2.8f, list.height * 0.45f)
                 send(MotionEvent.ACTION_DOWN, floatArrayOf(-start))
                 time += 10
                 send(MotionEvent.ACTION_POINTER_DOWN or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), floatArrayOf(-start, start))
