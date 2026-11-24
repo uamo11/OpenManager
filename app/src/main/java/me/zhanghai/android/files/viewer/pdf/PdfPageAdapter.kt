@@ -10,6 +10,7 @@ import android.util.LruCache
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.CoroutineScope
@@ -71,17 +72,28 @@ class PdfPageAdapter(
      */
     private fun applyInteraction(holder: PageViewHolder) {
         val photoView = holder.binding.photoView
-        photoView.isZoomable = isPagedMode
         if (isPagedMode) {
+            photoView.isZoomable = true
             photoView.setOnClickListener { onPageTapListener() }
             holder.binding.pageContainer.setOnClickListener { onPageTapListener() }
+            holder.binding.pageImage.visibility = View.GONE
+            holder.binding.pageImage.setImageDrawable(null)
         } else {
+            // PhotoView with its own zoom turned off stops fitting the picture to the page frame
+            // and draws the (larger than the screen) render at full size: half a page. Continuous
+            // mode uses a plain picture that always fills its frame; the list does the zoom.
             photoView.setOnClickListener(null)
             photoView.isClickable = false
+            photoView.visibility = View.GONE
+            photoView.setImageDrawable(null)
             holder.binding.pageContainer.setOnClickListener(null)
             holder.binding.pageContainer.isClickable = false
         }
     }
+
+    /** The view that shows the page in the current mode. */
+    private fun pageView(holder: PageViewHolder): ImageView =
+        if (isPagedMode) holder.binding.photoView else holder.binding.pageImage
 
     override fun onBindViewHolder(holder: PageViewHolder, position: Int, payloads: MutableList<Any>) {
         if (payloads.isNotEmpty() && payloads.all { it == PAYLOAD_THEME || it == PAYLOAD_QUALITY }) {
@@ -162,8 +174,8 @@ class PdfPageAdapter(
             if (fallback != null) {
                 showBitmap(holder, fallback)
             } else {
-                holder.binding.photoView.setImageDrawable(null)
-                holder.binding.photoView.visibility = View.INVISIBLE
+                pageView(holder).setImageDrawable(null)
+                pageView(holder).visibility = View.INVISIBLE
                 holder.binding.pageLoading.visibility = View.VISIBLE
                 holder.binding.pageErrorText.visibility = View.GONE
             }
@@ -195,9 +207,20 @@ class PdfPageAdapter(
     }
 
     private fun showBitmap(holder: PageViewHolder, bitmap: Bitmap) {
-        holder.binding.photoView.setImageBitmap(bitmap)
+        pageView(holder).setImageBitmap(bitmap)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            // Emulator check: the page must be drawn across its whole frame, not at render size.
+            val view = pageView(holder)
+            view.post {
+                val drawn = view.drawable?.bounds?.width() ?: -1
+                android.util.Log.i(
+                    "OMPdf", "shown page=${holder.bindingAdapterPosition} frame=${view.width} drawn=$drawn " +
+                        "bitmap=${bitmap.width} paged=$isPagedMode"
+                )
+            }
+        }
         applyThemeToHolder(holder)
-        holder.binding.photoView.visibility = View.VISIBLE
+        pageView(holder).visibility = View.VISIBLE
         holder.binding.pageLoading.visibility = View.GONE
         holder.binding.pageErrorText.visibility = View.GONE
     }
@@ -239,12 +262,15 @@ class PdfPageAdapter(
         holder.renderJob?.cancel()
         holder.renderJob = null
         holder.binding.photoView.setImageDrawable(null)
+        holder.binding.pageImage.setImageDrawable(null)
     }
 
     private fun applyThemeToHolder(holder: PageViewHolder) {
         val filter = currentTheme.colorFilter
-        holder.binding.photoView.colorFilter = filter
-        holder.binding.photoView.drawable?.colorFilter = filter
+        for (view in arrayOf<ImageView>(holder.binding.photoView, holder.binding.pageImage)) {
+            view.colorFilter = filter
+            view.drawable?.colorFilter = filter
+        }
         holder.binding.pageContainer.setBackgroundColor(currentTheme.pageContainerBackgroundColor)
     }
 

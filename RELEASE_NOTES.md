@@ -1,3 +1,10 @@
+# OpenManager v2.0.22: PDF Completo y Contador de Páginas Visible
+
+### 📄 Lector de PDF (aviso de un usuario)
+- **Corregido: el PDF solo se veía a medias y no se podía ampliar ni desplazar** (v2.0.19–v2.0.21). Desde la v2.0.19 se amplía el documento entero en lugar de cada página. Para eso se quitó el zoom propio de cada página, y desde entonces la imagen ya no se ajustaba a su marco: la página, que se dibuja más grande que la pantalla para que el texto sea nítido, salía a tamaño real desde la esquina. Ahora cada página llena su marco y el zoom y el desplazamiento vuelven a funcionar. En modo paginado cada página sigue teniendo su propio zoom.
+- **Corregido: el contador «Página X de Y» salía cortado por la mitad.** La barra superior medía 44 dp y no cabían el título y el número de página. Ahora mide 56 dp.
+
+
 # OpenManager v2.0.21: Apps en Ejecución Renovado y «¿Qué Calienta el Móvil?»
 
 ### 🌡️ ¿Qué calienta el móvil? (solo root)

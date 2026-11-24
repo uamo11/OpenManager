@@ -161,7 +161,8 @@ class PdfViewerActivity : AppActivity() {
 
             binding.appBarLayout.setPadding(leftInset, statusBarHeight, rightInset, 0)
 
-            val actionBarHeight = (44 * resources.displayMetrics.density).toInt()
+            // Tall enough for the title and the page subtitle (44 dp cut the subtitle in half).
+            val actionBarHeight = (56 * resources.displayMetrics.density).toInt()
             binding.recyclerView.setPadding(leftInset, statusBarHeight + actionBarHeight, rightInset, navBarHeight)
 
             val badgeMargin = (16 * resources.displayMetrics.density).toInt() + navBarHeight

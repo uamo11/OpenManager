@@ -18,6 +18,16 @@
         android:adjustViewBounds="true"
         android:visibility="invisible" />
 
+    <!-- Continuous mode: the whole list zooms, so the page is a plain picture that always
+         fills its frame (PhotoView with its own zoom off drew the large render unscaled). -->
+    <ImageView
+        android:id="@+id/pageImage"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:visibility="invisible" />
+
     <ProgressBar
         android:id="@+id/pageLoading"
         android:layout_width="wrap_content"

@@ -1146,6 +1146,38 @@ if pos=$(find_text "More options" "Más opciones"); then
 else
     fail "PDF: menu button not found"
 fi
+# The page fills its frame (v2.0.19/20 drew the large render unscaled: half a page) and the
+# page subtitle is not cut by the bar.
+adb logcat -d -s OMPdf > "$OUT/pdf_shown.txt" 2>/dev/null || true
+shown=$(grep -m1 "shown page=0" "$OUT/pdf_shown.txt")
+log "      $shown"
+frame=$(echo "$shown" | grep -o "frame=[0-9]*" | cut -d= -f2)
+drawn=$(echo "$shown" | grep -o "drawn=[0-9-]*" | cut -d= -f2)
+if [ -n "$frame" ] && [ -n "$drawn" ] && [ "$frame" -gt 0 ] && [ $((drawn - frame)) -le 2 ] && [ $((frame - drawn)) -le 2 ]; then
+    pass "PDF: the whole page width is shown (drawn $drawn px in a $frame px frame)"
+else
+    fail "PDF: the page is not drawn across its frame (drawn=$drawn frame=$frame)"
+fi
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_pdf.xml" 2>/dev/null
+sub_ok=$(python3 - "$OUT/ui_pdf.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+bar = None; sub = None
+for node in re.findall(r"<node [^>]*>", xml):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node)
+    if not b: continue
+    if re.search(r'resource-id="[^"]*:id/toolbar"', node): bar = tuple(map(int, b.groups()))
+    t = re.search(r' text="([^"]*)"', node)
+    if t and re.search(r"(Page|Página) \d+ (of|de) \d+", t.group(1)): sub = tuple(map(int, b.groups()))
+print("yes" if bar and sub and sub[3] <= bar[3] and sub[1] >= bar[1] else "no %s %s" % (bar, sub))
+PY
+)
+if [ "$sub_ok" = "yes" ]; then
+    pass "PDF: the page subtitle fits inside the bar"
+else
+    fail "PDF: the page subtitle is cut by the bar ($sub_ok)"
+fi
 # Pinch with two fingers: the whole document zooms, not one page.
 pdf_gesture pinch; sleep 4
 shot 18b_pdf_zoomed
