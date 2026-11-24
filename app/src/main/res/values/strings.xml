@@ -3195,4 +3195,8 @@
     <string name="om_web_access_how">On a computer, tablet or other phone on the same Wi-Fi, open the address in a browser and type the code. You can browse, preview photos and videos, download, upload (also by dragging files onto the page), create folders, rename and delete in the phone storage.</string>
     <string name="om_web_access_safety">Anyone on your network with the code can see and change your files. The code changes every time you start, and 10 wrong attempts lock access. Stop it when you are done.</string>
     <string name="om_archive_rar_damaged">This RAR archive is damaged, so it was not opened to keep your phone safe.</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="one">%1$d hidden file here. Tap to show it</item>
+        <item quantity="other">%1$d hidden files here. Tap to show them</item>
+    </plurals>
 </resources>

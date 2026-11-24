@@ -447,6 +447,9 @@ object DeadManProtectionManager {
     }
 
     fun isProtectedFromModification(path: Path): Boolean {
+        // Only the phone's own files can brick it: folders on a server (SFTP/VPS, SMB, FTP,
+        // WebDAV) or inside an archive are someone else's /system or /data.
+        if (path !is me.zhanghai.android.files.provider.linux.LinuxPath) return false
         val name = path.fileName?.toString() ?: ""
         val fullPath = try {
             path.toFile().absolutePath

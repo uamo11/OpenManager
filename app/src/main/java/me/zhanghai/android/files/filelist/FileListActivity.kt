@@ -502,13 +502,27 @@ class FileListActivity : AppActivity() {
             password = "omtest-Pass1",
             startupCommands = "echo OM_TELNET_OK_\$((6*7)) > /tmp/om_telnet_probe"
         )
+        // Like a typical VPS: root (uid 0), a home with only hidden files, and a server that
+        // takes the password only through keyboard-interactive (stock Ubuntu cloud images).
+        val vpsRoot = me.zhanghai.android.files.terminal.remote.RemoteProfile(
+            id = "ci-vps-root",
+            name = "My VPS",
+            protocol = me.zhanghai.android.files.terminal.remote.RemoteProtocol.SSH,
+            host = "10.0.2.2",
+            port = 2222,
+            username = "vpsroot",
+            password = "Root-Pass1",
+            startupCommands = "printf '\\033]0;vpsroot@vps: ~\\007'"
+        )
         if (store.get(this, ssh.id) == null) store.save(this, ssh)
         if (store.get(this, telnet.id) == null) store.save(this, telnet)
+        if (store.get(this, vpsRoot.id) == null) store.save(this, vpsRoot)
         when (action) {
             "remote_profiles" -> startActivity(profiles.createIntent(this))
             "remote_add_sheet" -> profiles.showAddSheet(this)
             "remote_ssh" -> profiles.connect(this, store.get(this, ssh.id)!!)
             "remote_telnet" -> profiles.connect(this, store.get(this, telnet.id)!!)
+            "remote_vps_root" -> profiles.connect(this, store.get(this, vpsRoot.id)!!)
             "remote_chooser" -> me.zhanghai.android.files.terminal.remote.TerminalLaunchChooser.show(this) {
                 activeFragment.openTerminal()
             }
@@ -766,7 +780,8 @@ class FileListActivity : AppActivity() {
                     }
                     "guard_script", "guard_deadman", "guard_dfroot", "guard_mass", "seatbelt_export",
                     "multi_sessions" -> handleGuardDemo(action)
-                    "remote_profiles", "remote_add_sheet", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit" ->
+                    "remote_profiles", "remote_add_sheet", "remote_ssh", "remote_telnet", "remote_chooser", "remote_edit",
+                    "remote_vps_root" ->
                         handleRemoteTerminalDemo(action)
                     "terminal" -> {
                         startActivity(
@@ -2073,6 +2088,12 @@ class FileListActivity : AppActivity() {
     private var lastDiskStatsTime: Long = 0L
 
     private fun getDiskStats(): String {
+        // The phone's free space means nothing next to a folder on a server (the VPS panel).
+        if (::fragmentA.isInitialized && ::fragmentB.isInitialized && activeFragment.isAdded &&
+            isServerPath(activeFragment.currentPath)
+        ) {
+            return ""
+        }
         val now = android.os.SystemClock.uptimeMillis()
         if ((cachedDiskStats.isEmpty() || now - lastDiskStatsTime >= 4000L) && !isDiskStatsRefreshing) {
             isDiskStatsRefreshing = true
@@ -2091,10 +2112,12 @@ class FileListActivity : AppActivity() {
                     lastDiskStatsTime = android.os.SystemClock.uptimeMillis()
                     if (!isDestroyed && !isFinishing && ::tvStatsSubtitle.isInitialized && ::fragmentA.isInitialized && ::fragmentB.isInitialized && activeFragment.isAdded) {
                         val stats = activeFragment.currentStatsSubtitle
+                        // The phone's free space means nothing next to a folder on a server.
+                        val disk = if (isServerPath(activeFragment.currentPath)) "" else res
                         tvStatsSubtitle.text = when {
-                            stats.isNotEmpty() && res.isNotEmpty() -> "$stats  $res"
+                            stats.isNotEmpty() && disk.isNotEmpty() -> "$stats  $disk"
                             stats.isNotEmpty() -> stats
-                            res.isNotEmpty() -> res
+                            disk.isNotEmpty() -> disk
                             else -> "Listo"
                         }
                     }

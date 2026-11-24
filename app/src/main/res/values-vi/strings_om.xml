@@ -2375,4 +2375,7 @@
     <string name="settings_locale_title">Ngôn ngữ</string>
     <string name="settings_show_pdf_thumbnail_pre_28_title">Hiện hình thu nhỏ cho tài liệu PDF</string>
     <string name="om_archive_rar_damaged">Tệp RAR này bị hỏng nên không được mở để giữ an toàn cho điện thoại.</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="other">Có %1$d tệp ẩn ở đây. Chạm để hiện</item>
+    </plurals>
 </resources>

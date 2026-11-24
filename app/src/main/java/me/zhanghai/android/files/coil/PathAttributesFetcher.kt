@@ -99,6 +99,7 @@ class PathAttributesFetcher(
                 // FTP doesn't support random access and requires one connection per parallel read.
                 val shouldReadRemotePath = !path.isFtpPath
                     && Settings.READ_REMOTE_FILES_FOR_THUMBNAIL.valueCompat
+                    && me.zhanghai.android.files.filelist.RemoteThumbnailPolicy.allows(attributes.size())
                 if (!shouldReadRemotePath) {
                     error("Cannot read $path for thumbnail")
                 }

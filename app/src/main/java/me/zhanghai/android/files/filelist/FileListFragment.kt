@@ -1281,6 +1281,28 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                             showSafPermissionPromptDialog(currentPath)
                         }
                     }
+                    isServerPath(currentPath) && !isNotFound && !isNotDir -> {
+                        // A folder on a server (VPS over SFTP, SMB, FTP, WebDAV): root, Shizuku or
+                        // SAF on the phone cannot help; say what happened and offer a retry, which
+                        // reconnects if the link dropped.
+                        binding.ivErrorIcon.setImageResource(R.drawable.shield_icon_white_24dp)
+                        binding.ivErrorIcon.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F44336"))
+                        binding.tvErrorTitle.setText(R.string.om_remote_files_error_title)
+                        binding.errorText.text = if (isAccessDenied || isServerPermissionError(throwable)) {
+                            getString(R.string.om_remote_files_error_denied)
+                        } else {
+                            getString(
+                                R.string.om_remote_files_error_lost,
+                                currentPath.sftpServerLabel ?: currentPath.toDisplayPath(trailingSlash = false)
+                            )
+                        }
+                        binding.btnGrantSafPermission.visibility = View.GONE
+                        binding.btnGrantShizukuPermission.visibility = View.GONE
+                        binding.btnErrorAction.visibility = View.VISIBLE
+                        binding.btnErrorAction.setText(R.string.retry)
+                        binding.btnErrorAction.setIconResource(R.drawable.ic_redo_24dp)
+                        binding.btnErrorAction.setOnClickListener { viewModel.reload() }
+                    }
                     isAccessDenied -> {
                         binding.ivErrorIcon.setImageResource(R.drawable.shield_icon_white_24dp)
                         binding.ivErrorIcon.imageTintList = android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#F44336"))
@@ -1360,7 +1382,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 showToast(getString(R.string.om_error_format, cleanErrorMessage(throwable)))
             }
         }
-        binding.emptyView.fadeToVisibilityUnsafe(stateful is Success && !hasFiles)
+        val hiddenOnly = stateful is Success && isHiddenOnly(files)
+        binding.emptyView.fadeToVisibilityUnsafe(stateful is Success && (!hasFiles || hiddenOnly))
         if (files != null) {
             updateAdapterFileList(restoreStateAndHighlight = stateful is Success)
         } else {
@@ -1737,6 +1760,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 computeDiff = true
             )
             adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
+            updateHiddenOnlyHint(files, showHidden, isSearching)
             if (restoreStateAndHighlight) {
                 viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
                 applyPendingHighlightIfReady()
@@ -1759,11 +1783,36 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     return@withContext
                 }
                 adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
+                updateHiddenOnlyHint(files, showHidden, isSearching)
                 if (restoreStateAndHighlight) {
                     viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
                     applyPendingHighlightIfReady()
                 }
             }
+        }
+    }
+
+    /**
+     * A folder whose only entries are hidden (a VPS's /root: .bashrc, .ssh, .cache...) looked
+     * empty without saying why. Say how many are hidden and show them with one tap.
+     */
+    private fun isHiddenOnly(files: List<FileItem>?): Boolean =
+        files != null && files.isNotEmpty() && !Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat &&
+            !viewModel.searchState.isSearching && files.all { it.isHidden }
+
+    private fun updateHiddenOnlyHint(files: List<FileItem>, showHidden: Boolean, isSearching: Boolean) {
+        val hiddenCount = if (!showHidden && !isSearching && isHiddenOnly(files)) files.size else 0
+        val emptyView = binding.emptyView as? android.widget.TextView ?: return
+        if (hiddenCount > 0) {
+            emptyView.text = resources.getQuantityString(R.plurals.om_hidden_only_hint, hiddenCount, hiddenCount)
+            emptyView.isClickable = true
+            emptyView.setOnClickListener { Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(true) }
+        } else if (emptyView.isClickable) {
+            emptyView.setText(R.string.file_list_empty)
+            emptyView.isClickable = false
+            emptyView.setOnClickListener(null)
+            // Hidden files are shown now (or the folder changed): the hint goes away.
+            emptyView.fadeToVisibilityUnsafe(files.isEmpty())
         }
     }
 
@@ -3004,24 +3053,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         CreateFileDialogFragment.show(this)
     }
 
-    fun canWriteTo(path: Path): Boolean {
-        if (path.isArchivePath || path.fileSystem.isReadOnly) {
-            return false
-        }
-        if (LibSuFileServiceLauncher.isSuAvailable() || ShizukuManager.ready()) {
-            return true
-        }
-        return try {
-            val file = (path as? LinuxPath)?.toFile() ?: java.io.File(path.toString())
-            file.canWrite()
-        } catch (_: Exception) {
-            try {
-                path.isWritable
-            } catch (_: Exception) {
-                false
-            }
-        }
-    }
+    fun canWriteTo(path: Path): Boolean = canWriteToPath(path)
 
     override fun createFile(name: String) {
         if (currentPath.toString().startsWith("/dev/block") || currentPath.toString().startsWith("/dev/")) {
@@ -3612,3 +3644,48 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
     }
 }
+
+/**
+ * Whether file operations in [path] are worth trying. Only local folders can be checked from the
+ * phone: on a server (SFTP/VPS, SMB, FTP, WebDAV) the permissions belong to the remote user, so
+ * the operation is attempted and the server's own error is shown if it refuses. Checking them as
+ * local files ("/root" on the phone) used to block creating, pasting, renaming and deleting there.
+ */
+fun canWriteToPath(path: Path): Boolean {
+    if (path.isArchivePath || path.fileSystem.isReadOnly) {
+        return false
+    }
+    if (path.isDocumentPath) {
+        return try {
+            path.isWritable
+        } catch (_: Exception) {
+            true
+        }
+    }
+    if (path !is LinuxPath) {
+        return true
+    }
+    if (LibSuFileServiceLauncher.isSuAvailable() || ShizukuManager.ready()) {
+        return true
+    }
+    return try {
+        path.toFile().canWrite()
+    } catch (_: Exception) {
+        try {
+            path.isWritable
+        } catch (_: Exception) {
+            false
+        }
+    }
+}
+
+/** A folder on another machine (SFTP/VPS, SMB, FTP, WebDAV), not on the phone. */
+fun isServerPath(path: Path): Boolean =
+    path !is LinuxPath && !path.isArchivePath && !path.isDocumentPath
+
+/** sshj reports an SFTP "permission denied" status as an SFTPException with that text. */
+private fun isServerPermissionError(throwable: Throwable): Boolean =
+    generateSequence(throwable) { it.cause }.any {
+        it.message?.contains("PERMISSION_DENIED", ignoreCase = true) == true ||
+            it.message?.contains("Permission denied", ignoreCase = true) == true
+    }

@@ -2281,4 +2281,7 @@
     <string name="file_properties_permission_set_mode_uppercase_x">Jangan tambahkan “Eksekusi” untuk file di dalamnya</string>
     <string name="file_properties_permission_recursive">Terapkan ke file di dalamnya</string>
     <string name="om_archive_rar_damaged">Arsip RAR ini rusak, jadi tidak dibuka demi keamanan ponsel Anda.</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="other">Ada %1$d file tersembunyi. Ketuk untuk menampilkan</item>
+    </plurals>
 </resources>

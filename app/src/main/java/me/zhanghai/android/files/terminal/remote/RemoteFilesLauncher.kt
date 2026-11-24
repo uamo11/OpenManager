@@ -26,6 +26,7 @@ import me.zhanghai.android.files.provider.sftp.createSftpRootPath
 import me.zhanghai.android.files.provider.sftp.SftpPath
 import me.zhanghai.android.files.storage.SftpServer
 import me.zhanghai.android.files.storage.SftpServerAuthenticator
+import net.schmizz.sshj.SSHClient
 import net.schmizz.sshj.userauth.UserAuthException
 
 /**
@@ -72,13 +73,25 @@ object RemoteFilesLauncher {
      * Connects (verifying the host key like the terminal), resolves the start folder and returns it,
      * or throws with the reason (wrong password, unreachable host...).
      */
-    suspend fun resolveStartDirectory(profile: RemoteProfile, auth: Authentication, title: String?): Path =
+    suspend fun resolveStartDirectory(
+        profile: RemoteProfile,
+        auth: Authentication?,
+        title: String?,
+        sharedConnection: SSHClient? = null
+    ): Path =
         withContext(Dispatchers.IO) {
             val authority = authority(profile)
-            // Kept in memory for this run only: nothing is added to the saved storages.
-            SftpServerAuthenticator.addTransientServer(
-                SftpServer(null, profile.displayName, authority, auth, "")
-            )
+            SftpServerAuthenticator.setTransientName(authority, profile.displayName)
+            // Best path: an SFTP channel on the terminal's own connection (already logged in,
+            // host key already checked, kept alive by the terminal).
+            sharedConnection?.let { Client.shareConnection(authority, it) }
+            // Fallback credentials, kept in memory for this run only: nothing is added to the
+            // saved storages.
+            if (auth != null) {
+                SftpServerAuthenticator.addTransientServer(
+                    SftpServer(null, profile.displayName, authority, auth, "")
+                )
+            }
             try {
                 openAndRead(authority, title)
             } catch (e: Exception) {

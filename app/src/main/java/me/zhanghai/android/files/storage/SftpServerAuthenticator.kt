@@ -13,6 +13,12 @@ import me.zhanghai.android.files.util.valueCompat
 
 object SftpServerAuthenticator : Authenticator {
     private val transientServers = mutableSetOf<SftpServer>()
+    /** Names of servers opened over a terminal connection, which need no stored credentials. */
+    private val transientNames = java.util.concurrent.ConcurrentHashMap<Authority, String>()
+
+    fun setTransientName(authority: Authority, name: String) {
+        transientNames[authority] = name
+    }
 
     override fun getAuthentication(authority: Authority): Authentication? {
         val server = synchronized(transientServers) {
@@ -33,6 +39,7 @@ object SftpServerAuthenticator : Authenticator {
 
     /** Name the user gave this server (the VPS profile or the saved storage), if any. */
     fun displayName(authority: Authority): String? {
+        transientNames[authority]?.takeIf { it.isNotBlank() }?.let { return it }
         val server = synchronized(transientServers) {
             transientServers.find { it.authority == authority }
         } ?: Settings.STORAGES.valueCompat.find {

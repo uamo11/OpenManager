@@ -68,6 +68,14 @@ jobs:
           | sudo tee /home/omtest/.bashrc >/dev/null
         echo '[ -f ~/.bashrc ] && . ~/.bashrc' | sudo tee /home/omtest/.profile >/dev/null
         sudo chown omtest:omtest /home/omtest/.bashrc /home/omtest/.profile
+        # A VPS-like root account: uid 0, a 0700 home with only hidden files.
+        sudo useradd -o -u 0 -g 0 -M -d /home/vpsroot -s /bin/bash vpsroot
+        echo 'vpsroot:Root-Pass1' | sudo chpasswd
+        sudo mkdir -p /home/vpsroot/.ssh /home/vpsroot/.cache
+        echo '# vps bashrc' | sudo tee /home/vpsroot/.bashrc >/dev/null
+        echo '[ -f ~/.bashrc ] && . ~/.bashrc' | sudo tee /home/vpsroot/.profile >/dev/null
+        sudo touch /home/vpsroot/.ssh/authorized_keys
+        sudo chown -R 0:0 /home/vpsroot && sudo chmod 700 /home/vpsroot
         sudo mkdir -p /tmp/sshd_om /run/sshd
         sudo ssh-keygen -q -t ed25519 -N '' -f /tmp/sshd_om/ssh_host_ed25519_key
         sudo tee /tmp/sshd_om/sshd_config >/dev/null <<'EOF'
@@ -78,9 +86,14 @@ jobs:
         PasswordAuthentication yes
         KbdInteractiveAuthentication yes
         UsePAM yes
-        AllowUsers omtest
+        AllowUsers omtest vpsroot
+        PermitRootLogin yes
         PrintMotd no
         Subsystem sftp internal-sftp
+        # Like stock Ubuntu cloud images for this account: the password only works through
+        # keyboard-interactive (PAM), never through the plain "password" method.
+        Match User vpsroot
+            PasswordAuthentication no
         EOF
         sudo /usr/sbin/sshd -t -f /tmp/sshd_om/sshd_config
         sudo /usr/sbin/sshd -f /tmp/sshd_om/sshd_config -E /tmp/sshd_om.log

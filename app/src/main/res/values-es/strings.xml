@@ -3092,4 +3092,8 @@
     <string name="om_web_access_how">En un ordenador, tablet u otro móvil conectado a la misma Wi-Fi, abre la dirección en el navegador y escribe el código. Podrás navegar, ver fotos y vídeos, descargar, subir (también arrastrando archivos a la página), crear carpetas, renombrar y borrar en el almacenamiento del móvil.</string>
     <string name="om_web_access_safety">Cualquiera en tu red que tenga el código puede ver y cambiar tus archivos. El código cambia cada vez que lo inicias y 10 intentos fallidos bloquean el acceso. Detenlo cuando termines.</string>
     <string name="om_archive_rar_damaged">Este archivo RAR está dañado, así que no se abrió para mantener tu móvil seguro.</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="one">Hay %1$d archivo oculto. Toca para mostrarlo</item>
+        <item quantity="other">Hay %1$d archivos ocultos. Toca para mostrarlos</item>
+    </plurals>
 </resources>

@@ -72,6 +72,7 @@ val FileItem.supportsThumbnail: Boolean
         if (path.isRemotePath) {
             val shouldReadRemotePath = !path.isFtpPath
                 && Settings.READ_REMOTE_FILES_FOR_THUMBNAIL.valueCompat
+                && RemoteThumbnailPolicy.allows(attributes.size())
             if (!shouldReadRemotePath) {
                 return false
             }

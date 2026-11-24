@@ -54,6 +54,22 @@ sys.exit(1)
 EOF
 }
 
+# node_center_by_id <resource-id suffix>: center of the first node with that id.
+node_center_by_id() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+
 # wait_text <seconds> <label>... : waits until a label is on screen, prints its center.
 wait_text() {
     local timeout=$1; shift
@@ -427,6 +443,130 @@ if pos=$(find_text "Disconnect" "Desconectar"); then
 else
     fail "no close button on the VPS toolbar"
 fi
+
+log "=== VPS as root: keyboard-interactive only, hidden-only home, create files, big folder ==="
+# find_contains <label>...: center of the first node whose text contains a label (case-insensitive).
+find_contains() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$@" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for label in sys.argv[2:]:
+    for node in re.findall(r"<node [^>]*>", xml):
+        t = re.search(r' text="([^"]*)"', node)
+        if t and label.lower() in html.unescape(t.group(1)).lower():
+            x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+            print((x1 + x2) // 2, (y1 + y2) // 2)
+            sys.exit(0)
+sys.exit(1)
+PY
+}
+wait_contains() {
+    local timeout=$1; shift
+    local end=$((SECONDS + timeout))
+    while [ $SECONDS -lt $end ]; do pos=$(find_contains "$@") && { echo "$pos"; return 0; }; sleep 1; done
+    return 1
+}
+logins_before=$(sudo grep -c "Accepted .* for vpsroot" /tmp/sshd_om.log 2>/dev/null || echo 0)
+# A big folder: 400 files and 200 symlinks, like /usr/bin.
+sudo bash -c 'mkdir -p /home/vpsroot/big && cd /home/vpsroot/big &&
+    for i in $(seq -w 0 399); do echo "$i" > "f$i.txt"; done &&
+    for i in $(seq -w 0 199); do ln -sf /usr/bin/env "l$i"; done'
+# A real VPS is far away: +150 ms on every packet of the SSH server.
+sudo tc qdisc add dev lo root handle 1: prio
+sudo tc qdisc add dev lo parent 1:3 handle 30: netem delay 150ms
+sudo tc filter add dev lo protocol ip parent 1:0 prio 3 u32 match ip sport 2222 0xffff flowid 1:3
+adb logcat -c
+demo remote_vps_root
+if pos=$(wait_contains 60 "vpsroot@vps"); then
+    pass "root-like VPS (keyboard-interactive only) connects in the terminal"
+    adb shell input tap $pos
+    if wait_contains 60 "My VPS:/home/vpsroot" >/dev/null; then
+        shot 09a_vps_root_files
+        pass "VPS files open in the root home (My VPS:/home/vpsroot/)"
+        logins_after=$(sudo grep -c "Accepted .* for vpsroot" /tmp/sshd_om.log 2>/dev/null || echo 0)
+        if [ $((logins_after - logins_before)) -eq 1 ]; then
+            pass "the files use the terminal's own connection (1 login, no second password/host-key)"
+        else
+            fail "the files logged in again: $((logins_after - logins_before)) logins for one session"
+        fi
+        if pos=$(find_contains "hidden file" "archivos ocultos" "archivo oculto"); then
+            pass "a home with only hidden files says so instead of looking empty"
+            adb shell input tap $pos
+            if wait_contains 15 ".bashrc" >/dev/null; then
+                pass "one tap shows the hidden files (.bashrc, .ssh...)"
+            else
+                fail "tapping the hint did not show the hidden files"
+            fi
+        else
+            shot 09a_vps_root_no_hint
+            fail "the hidden-only home showed no hint"
+        fi
+        # Create a folder and a file from the UI: the server must get them.
+        for spec in "folder:om_ui_folder:New folder:Nueva carpeta" "file:om_ui_file.txt:New file:Nuevo archivo"; do
+            kind=$(echo "$spec" | cut -d: -f1); name=$(echo "$spec" | cut -d: -f2)
+            en=$(echo "$spec" | cut -d: -f3); es=$(echo "$spec" | cut -d: -f4)
+            adb shell input tap $(node_center_by_id btnBottomAdd); sleep 2
+            if pos=$(find_text "$en" "$es"); then
+                adb shell input tap $pos; sleep 2
+                adb shell input text "$name"; sleep 1
+                pos=$(find_text "OK" "Aceptar") && adb shell input tap $pos
+                if [ "$kind" = folder ]; then
+                    ok() { sudo test -d "/home/vpsroot/$name"; }
+                else
+                    ok() { sudo test -f "/home/vpsroot/$name"; }
+                fi
+                created=no
+                for _ in $(seq 1 20); do ok && { created=yes; break; }; sleep 1; done
+                if [ "$created" = yes ] && wait_contains 15 "$name" >/dev/null; then
+                    pass "creating a $kind on the VPS works and it appears in the list ($name)"
+                else
+                    shot "09b_vps_create_${kind}_failed"
+                    fail "creating a $kind on the VPS failed (on server: $created)"
+                fi
+            else
+                fail "no '$en' in the create menu"
+                adb shell input keyevent KEYCODE_BACK; sleep 1
+            fi
+        done
+        # Big folder over a 150 ms link: time until it is listed with every entry.
+        if pos=$(find_text "big"); then
+            t0=$(date +%s%N)
+            adb shell input tap $pos
+            if wait_contains 60 "600" >/dev/null; then
+                t1=$(date +%s%N)
+                ms=$(( (t1 - t0) / 1000000 ))
+                shot 09c_vps_big_folder
+                log "      600 entries (200 symlinks) over +150 ms: listed in $ms ms (incl. adb)"
+                if [ $ms -lt 20000 ]; then
+                    pass "a 600-entry folder with 200 symlinks lists in ${ms} ms over a 150 ms link"
+                else
+                    fail "a 600-entry folder took ${ms} ms over a 150 ms link"
+                fi
+            else
+                shot 09c_vps_big_folder_slow
+                fail "the 600-entry folder did not finish listing in 60 s"
+            fi
+        else
+            fail "no 'big' folder in the VPS home"
+        fi
+    else
+        shot 09a_vps_root_files_missing
+        fail "VPS files did not open for the root-like account"
+    fi
+else
+    shot 09_vps_root_terminal_missing
+    fail "root-like VPS did not connect (keyboard-interactive only)"
+fi
+sudo tc qdisc del dev lo root || true
+adb logcat -d > "$OUT/logcat_vps_root.txt" 2>/dev/null || true
+grep -E "OMRemoteFiles|SFTP|sshj" "$OUT/logcat_vps_root.txt" | tail -20 > "$OUT/vps_root.log" || true
+if app_crashed "$OUT/logcat_vps_root.txt"; then fail "crash while using the root VPS files"; fi
+adb shell am force-stop $PKG; sleep 1
+# The rest of the run expects hidden files off again.
+adb shell run-as $PKG sed -i 's/name="key_file_list_show_hidden_files" value="true"/name="key_file_list_show_hidden_files" value="false"/' /data/data/$PKG/shared_prefs/${PKG}_preferences.xml 2>/dev/null || true
+adb shell am start -W -n "$MAIN" >/dev/null; sleep 4
 
 log "=== SSH: a changed host key must be blocked ==="
 sudo pkill -f "sshd -f /tmp/sshd_om/sshd_config" || true

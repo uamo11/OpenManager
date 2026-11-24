@@ -1,4 +1,17 @@
-# OpenManager v2.0.15: Apariencia sin Fallos, Archivos Seguros sin Avisos y APK más Ligero
+# OpenManager v2.0.15: Archivos de la VPS Arreglados, Apariencia sin Fallos y APK más Ligero
+
+### 🖥️ Archivos de la VPS: ver, crear y sin lag
+- **Corregido: no se podía crear, pegar, mover, renombrar ni borrar en la VPS** (ni en SMB, FTP o WebDAV). La app comprobaba los permisos mirando la carpeta con ese nombre **en el móvil** (por ejemplo `/root`), que nunca es escribible, y bloqueaba la operación. Ahora en un servidor se intenta la operación y, si el servidor la rechaza, se muestra su motivo real.
+- **Misma conexión que la terminal**: los archivos se abren como un canal SFTP sobre la sesión SSH ya iniciada. No hay un segundo inicio de sesión, la app no vuelve a pedir la contraseña ni la clave del servidor, y funciona también en servidores que solo aceptan la contraseña por *keyboard-interactive* (como Ubuntu en la nube), donde antes fallaba.
+- Si esa conexión cae, se abre una propia que ahora también prueba *keyboard-interactive*.
+- **`/root` ya no parece vacía**: si una carpeta solo tiene archivos ocultos (`.bashrc`, `.ssh`…), lo indica y con un toque los muestra.
+- **Menos lag**:
+  - Las carpetas grandes con enlaces (como `/usr/bin`) se resuelven con muchas peticiones en paralelo.
+  - Las miniaturas respetan el límite de tamaño y "Solo Wi-Fi" de Ajustes; antes descargaban imágenes enteras de cualquier tamaño.
+- Los errores en la VPS explican lo ocurrido (sin permiso en el servidor o conexión perdida) y tienen un botón **Reintentar** que reconecta, en vez de ofrecer Root o Shizuku del móvil, que allí no sirven.
+- La protección DFRoot del móvil ya no bloquea carpetas de la VPS como `/system` o `/data`.
+- El panel de la VPS ya no muestra el espacio libre del móvil.
+
 
 ### 🎨 Apariencia
 - **AMOLED (y los demás temas rápidos) siempre responde**: si la pantalla ya se veía así (por ejemplo "Sistema" con el móvil en oscuro y el fondo negro activado), al tocar AMOLED no se marcaba y parecía que no hacía nada.

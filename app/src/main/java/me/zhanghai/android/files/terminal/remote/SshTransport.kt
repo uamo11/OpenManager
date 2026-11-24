@@ -224,6 +224,13 @@ class SshTransport(
         return (currentShell as? SessionChannel)?.exitStatus ?: 0
     }
 
+    /**
+     * The live, authenticated connection, for opening the VPS files over it (an SFTP channel next
+     * to the shell): no second login, no second host-key prompt, same keepalive.
+     */
+    fun sharedClient(): SSHClient? =
+        client?.takeIf { !closed && it.isConnected && it.isAuthenticated && it.transport.isRunning }
+
     override fun close() {
         closed = true
         runCatching { shell?.close() }

@@ -2285,4 +2285,8 @@
     <string name="open_as_arsc_editor">Editor ARSC</string>
     <string name="om_su_status_working">Funcionando</string>
     <string name="om_archive_rar_damaged">Este arquivo RAR está danificado e não foi aberto para manter seu celular seguro.</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="one">%1$d arquivo oculto aqui. Toque para mostrar</item>
+        <item quantity="other">%1$d arquivos ocultos aqui. Toque para mostrar</item>
+    </plurals>
 </resources>

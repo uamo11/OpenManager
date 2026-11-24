@@ -132,13 +132,18 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     }
                 }
                 val fileList = ArrayList<FileItem>(childPaths.size.coerceAtLeast(16))
-                if (childPaths.size < PARALLEL_LOAD_THRESHOLD) {
+                // On a server each symlink costs two round trips (readlink + stat); with the
+                // network as the bottleneck, many requests in flight beat a few CPU threads.
+                val onServer = isServerPath(path)
+                val threshold = if (onServer) REMOTE_PARALLEL_LOAD_THRESHOLD else PARALLEL_LOAD_THRESHOLD
+                val executor = if (onServer) REMOTE_ITEM_LOADER_EXECUTOR else ITEM_LOADER_EXECUTOR
+                if (childPaths.size < threshold) {
                     for (i in 0 until childPaths.size) {
                         if (Thread.currentThread().isInterrupted) return@submit
                         loadChildPathItem(childPaths[i])?.let { fileList.add(it) }
                     }
                 } else {
-                    val workerCount = PARALLEL_WORKER_COUNT
+                    val workerCount = if (onServer) REMOTE_WORKER_COUNT else PARALLEL_WORKER_COUNT
                     val total = childPaths.size
                     val chunkSize = (total + workerCount - 1) / workerCount
                     val cancelled = AtomicBoolean(false)
@@ -147,7 +152,7 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
                     while (start < total) {
                         val from = start
                         val to = minOf(start + chunkSize, total)
-                        chunkFutures.add(ITEM_LOADER_EXECUTOR.submit<ArrayList<FileItem>> {
+                        chunkFutures.add(executor.submit<ArrayList<FileItem>> {
                             val chunkResult = ArrayList<FileItem>(to - from)
                             for (i in from until to) {
                                 if (cancelled.get() || Thread.currentThread().isInterrupted) {
@@ -263,5 +268,9 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
         private val DIRECTORY_LOAD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(4)
         private val ITEM_LOADER_EXECUTOR: ExecutorService =
             Executors.newFixedThreadPool(PARALLEL_WORKER_COUNT)
+        private const val REMOTE_PARALLEL_LOAD_THRESHOLD = 24
+        private const val REMOTE_WORKER_COUNT = 12
+        private val REMOTE_ITEM_LOADER_EXECUTOR: ExecutorService =
+            Executors.newFixedThreadPool(REMOTE_WORKER_COUNT)
     }
 }

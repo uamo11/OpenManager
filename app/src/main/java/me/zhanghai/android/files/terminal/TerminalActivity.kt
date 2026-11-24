@@ -56,6 +56,7 @@ import me.zhanghai.android.files.terminal.remote.RemoteProfileStore
 import me.zhanghai.android.files.terminal.remote.ConnectionsActivity
 import me.zhanghai.android.files.terminal.remote.RemotePrompter
 import me.zhanghai.android.files.terminal.remote.RemoteProtocol
+import me.zhanghai.android.files.terminal.remote.SshTransport
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.ui.isUiAlive
 import java.io.File
@@ -1534,8 +1535,12 @@ class TerminalActivity : AppActivity() {
 
     /** Opens the VPS over SFTP in the dual-panel explorer, starting where the shell is. */
     private fun openRemoteFiles(profile: RemoteProfile, typedPassword: String? = null) {
+        // The files open as an SFTP channel on this session's own SSH connection when it is up:
+        // no second login (which some servers only allow by keyboard-interactive or count against
+        // fail2ban), no second host-key prompt.
+        val shared = (terminalSession?.takeIf { it.isRemote }?.remoteTransport as? SshTransport)?.sharedClient()
         val auth = RemoteFilesLauncher.authentication(profile, typedPassword)
-        if (auth == null) {
+        if (auth == null && shared == null) {
             askPasswordForRemoteFiles(profile)
             return
         }
@@ -1556,7 +1561,7 @@ class TerminalActivity : AppActivity() {
         Toast.makeText(this, getString(R.string.om_remote_files_opening, profile.displayName), Toast.LENGTH_SHORT).show()
         lifecycleScope.launch {
             val title = terminalSession?.takeIf { it.isRemote }?.title
-            val result = runCatching { RemoteFilesLauncher.resolveStartDirectory(profile, auth, title) }
+            val result = runCatching { RemoteFilesLauncher.resolveStartDirectory(profile, auth, title, shared) }
             openingRemoteFiles = false
             if (isFinishing || isDestroyed) return@launch
             result.onSuccess { dir ->

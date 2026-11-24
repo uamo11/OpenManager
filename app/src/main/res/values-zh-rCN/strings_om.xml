@@ -2280,4 +2280,7 @@
     <string name="arsc_empty_list">未找到结果</string>
     <string name="open_as_arsc_editor">ARSC 编辑器</string>
     <string name="om_archive_rar_damaged">此 RAR 压缩包已损坏，为保护你的手机安全未打开。</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="other">这里有 %1$d 个隐藏文件，点按即可显示</item>
+    </plurals>
 </resources>

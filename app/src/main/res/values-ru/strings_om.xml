@@ -2297,4 +2297,10 @@
     <string name="open_as_arsc_editor">Редактор ARSC</string>
     <string name="om_su_status_working">Работает</string>
     <string name="om_archive_rar_damaged">Этот архив RAR повреждён, поэтому он не открыт ради безопасности телефона.</string>
+    <plurals name="om_hidden_only_hint">
+        <item quantity="one">Здесь %1$d скрытый файл. Нажмите, чтобы показать</item>
+        <item quantity="few">Здесь %1$d скрытых файла. Нажмите, чтобы показать</item>
+        <item quantity="many">Здесь %1$d скрытых файлов. Нажмите, чтобы показать</item>
+        <item quantity="other">Здесь %1$d скрытого файла. Нажмите, чтобы показать</item>
+    </plurals>
 </resources>

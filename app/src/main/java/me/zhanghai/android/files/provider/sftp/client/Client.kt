@@ -29,17 +29,46 @@ object Client {
     lateinit var authenticator: Authenticator
 
     private val clients = mutableMapOf<Authority, SFTPClient>()
+    /** SSH connections opened here (closed with their SFTP client). */
     private val sshClients = mutableMapOf<Authority, SSHClient>()
+    /** Connections owned by a terminal session: SFTP runs as a channel on them, never closed here. */
+    private val sharedSshClients = mutableMapOf<Authority, SSHClient>()
+
+    /**
+     * Uses [ssh] (an open, authenticated terminal connection) for the files of [authority]:
+     * an SFTP channel next to the shell instead of a second login. When it goes away, the next
+     * operation falls back to a connection of its own.
+     */
+    fun shareConnection(authority: Authority, ssh: SSHClient) {
+        synchronized(clients) {
+            if (sharedSshClients[authority] === ssh && clients[authority]?.let { isAlive(authority, it) } == true) {
+                return
+            }
+            clients.remove(authority)?.closeSafe()
+            sshClients.remove(authority)?.closeSafe()
+            sharedSshClients[authority] = ssh
+        }
+    }
 
     /**
      * Drops the connection to [authority], so the next operation connects again. Used when the
      * link died (network change, server restart): a dead connection fails with odd internal errors.
+     * A shared terminal connection is left alone; only its SFTP channel is closed.
      */
     fun disconnect(authority: Authority) {
         synchronized(clients) {
             clients.remove(authority)?.closeSafe()
             sshClients.remove(authority)?.closeSafe()
+            sharedSshClients[authority]?.let { if (!isUsable(it)) sharedSshClients -= authority }
         }
+    }
+
+    private fun isUsable(ssh: SSHClient): Boolean =
+        ssh.isConnected && ssh.isAuthenticated && ssh.transport.isRunning
+
+    private fun isAlive(authority: Authority, client: SFTPClient): Boolean {
+        val ssh = sharedSshClients[authority] ?: sshClients[authority]
+        return client.sftpEngine.subsystem.isOpen && (ssh == null || isUsable(ssh))
     }
 
     private val directoryFileAttributesCache =
@@ -239,16 +268,28 @@ object Client {
         synchronized(clients) {
             var client = clients[authority]
             if (client != null) {
-                val ssh = sshClients[authority]
-                val alive = client.sftpEngine.subsystem.isOpen &&
-                    (ssh == null || (ssh.isConnected && ssh.transport.isRunning))
-                if (alive) {
+                if (isAlive(authority, client)) {
                     return client
                 } else {
                     client.closeSafe()
                     clients -= authority
                     sshClients.remove(authority)?.closeSafe()
                 }
+            }
+            // A terminal connection to this server: open the SFTP channel on it.
+            sharedSshClients[authority]?.let { shared ->
+                if (isUsable(shared)) {
+                    val sftp = try {
+                        shared.newSFTPClient()
+                    } catch (e: IOException) {
+                        null
+                    }
+                    if (sftp != null) {
+                        clients[authority] = sftp
+                        return sftp
+                    }
+                }
+                sharedSshClients -= authority
             }
             val authentication = authenticator.getAuthentication(authority)
                 ?: throw ClientException("No authentication found for $authority")
@@ -270,7 +311,7 @@ object Client {
                 throw ClientException(e)
             }
             try {
-                sshClient.auth(authority.username, authentication.toAuthMethod())
+                sshClient.auth(authority.username, authentication.toAuthMethods())
             } catch (e: UserAuthException) {
                 sshClient.closeSafe()
                 throw ClientException(e)

@@ -11,14 +11,19 @@ import net.schmizz.sshj.DefaultConfig
 import net.schmizz.sshj.common.Factory
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider
 import net.schmizz.sshj.userauth.keyprovider.KeyProviderUtil
+import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive
 import net.schmizz.sshj.userauth.method.AuthMethod
 import net.schmizz.sshj.userauth.method.AuthPassword
 import net.schmizz.sshj.userauth.method.AuthPublickey
+import net.schmizz.sshj.userauth.method.PasswordResponseProvider
 import net.schmizz.sshj.userauth.password.PasswordUtils
 import java.io.IOException
 
 sealed class Authentication : Parcelable {
     abstract fun toAuthMethod(): AuthMethod
+
+    /** Every way to log in with these credentials, tried in order. */
+    open fun toAuthMethods(): List<AuthMethod> = listOf(toAuthMethod())
 }
 
 @Parcelize
@@ -27,6 +32,13 @@ data class PasswordAuthentication(
 ) : Authentication() {
     override fun toAuthMethod(): AuthMethod =
         AuthPassword(PasswordUtils.createOneOff(password.toCharArray()))
+
+    // Many servers (stock Ubuntu cloud images among them) only take the password through
+    // keyboard-interactive, like the terminal does. Each method gets its own one-off copy.
+    override fun toAuthMethods(): List<AuthMethod> = listOf(
+        toAuthMethod(),
+        AuthKeyboardInteractive(PasswordResponseProvider(PasswordUtils.createOneOff(password.toCharArray())))
+    )
 }
 
 @Parcelize
