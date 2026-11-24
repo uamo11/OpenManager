@@ -11,7 +11,7 @@
     android:layout_height="match_parent"
     android:background="#181818">
 
-    <androidx.recyclerview.widget.RecyclerView
+    <me.zhanghai.android.files.viewer.pdf.PdfZoomRecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

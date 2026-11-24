@@ -3340,4 +3340,7 @@
     <string name="om_user_agreement_message">OpenManager\n\nFree and open source software (GPLv3).\n\nOpenManager does not collect, send or share any personal data, analytics or telemetry. All file operations stay on your device.</string>
     <string name="om_bookmark_add_to_home">Add to home screen</string>
     <string name="om_shortcut_unsupported">Your launcher does not support home screen shortcuts</string>
+    <string name="om_pdf_keep_screen_on">Keep screen on</string>
+    <string name="om_pdf_resumed_at">Continuing from page %1$d</string>
+    <string name="om_pdf_from_start">From the start</string>
 </resources>

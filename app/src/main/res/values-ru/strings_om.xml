@@ -2444,4 +2444,7 @@
     <string name="om_user_agreement_message">OpenManager\n\nБесплатное программное обеспечение с открытым исходным кодом (GPLv3).\n\nOpenManager не собирает, не отправляет и не передаёт персональные данные, аналитику или телеметрию. Все операции с файлами выполняются только на вашем устройстве.</string>
     <string name="om_bookmark_add_to_home">Добавить на главный экран</string>
     <string name="om_shortcut_unsupported">Ваш лаунчер не поддерживает ярлыки на главном экране</string>
+    <string name="om_pdf_keep_screen_on">Не выключать экран</string>
+    <string name="om_pdf_resumed_at">Продолжение со страницы %1$d</string>
+    <string name="om_pdf_from_start">С начала</string>
 </resources>

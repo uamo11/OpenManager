@@ -2519,4 +2519,7 @@
     <string name="om_user_agreement_message">OpenManager\n\nPhần mềm miễn phí và mã nguồn mở (GPLv3).\n\nOpenManager không thu thập, gửi hay chia sẻ dữ liệu cá nhân, phân tích hoặc dữ liệu đo từ xa. Mọi thao tác với tệp đều diễn ra trên thiết bị của bạn.</string>
     <string name="om_bookmark_add_to_home">Thêm vào màn hình chính</string>
     <string name="om_shortcut_unsupported">Trình khởi chạy của bạn không hỗ trợ lối tắt trên màn hình chính</string>
+    <string name="om_pdf_keep_screen_on">Giữ màn hình luôn bật</string>
+    <string name="om_pdf_resumed_at">Tiếp tục từ trang %1$d</string>
+    <string name="om_pdf_from_start">Từ đầu</string>
 </resources>

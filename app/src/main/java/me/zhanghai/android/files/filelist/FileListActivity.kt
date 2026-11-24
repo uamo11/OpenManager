@@ -1950,6 +1950,10 @@ class FileListActivity : AppActivity() {
                     drawerLayout.closeDrawer(GravityCompat.START)
                     return
                 }
+                // Only the active panel: its search, selection, paste bar or folder.
+                if (activeFragment.handleBackInPanel()) {
+                    return
+                }
                 if (activeFragment.selectedFiles.isNotEmpty()) {
                     activeFragment.clearSelectedFiles()
                     return

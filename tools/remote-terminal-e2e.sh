@@ -1092,6 +1092,114 @@ else
     fail "back did not show the PDF in the explorer"
 fi
 
+log "=== PDF reader: whole-document zoom, keep screen on, last page remembered ==="
+python3 - "$OUT/om_pages.pdf" <<'PY'
+import sys
+pages = 6
+objs = ["<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [%s] /Count %d >>" % (" ".join("%d 0 R" % (4 + 2 * i) for i in range(pages)), pages),
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+streams = {}
+for i in range(pages):
+    page_id, content_id = 4 + 2 * i, 5 + 2 * i
+    objs.append("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents %d 0 R /Resources << /Font << /F1 3 0 R >> >> >>" % content_id)
+    objs.append(None)
+    lines = " ".join("BT /F1 14 Tf 40 %d Td (Page %d line %d - the quick brown fox jumps) Tj ET" % (800 - 22 * l, i + 1, l) for l in range(34))
+    streams[content_id] = ("BT /F1 48 Tf 200 420 Td (Page %d) Tj ET " % (i + 1) + lines).encode()
+out = bytearray(b"%PDF-1.4\n"); offsets = []
+for n, body in enumerate(objs, 1):
+    offsets.append(len(out))
+    if body is None:
+        st = streams[n]
+        out += b"%d 0 obj << /Length %d >> stream\n" % (n, len(st)) + st + b"\nendstream endobj\n"
+    else:
+        out += b"%d 0 obj " % n + body.encode() + b" endobj\n"
+xref = len(out)
+out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+for o in offsets: out += b"%010d 00000 n \n" % o
+out += b"trailer << /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
+open(sys.argv[1], "wb").write(out)
+PY
+adb push "$OUT/om_pages.pdf" /sdcard/Download/om_pdf_test/om_pages.pdf >/dev/null
+open_pages_pdf() {
+    adb shell am start -a android.intent.action.VIEW -t application/pdf \
+        -d file:///sdcard/Download/om_pdf_test/om_pages.pdf -n $PKG/me.zhanghai.android.files.filelist.SmartOpenActivity >/dev/null
+}
+pdf_gesture() { adb shell am broadcast -a me.zhanghai.android.files.action.PDF_DEMO --es gesture "$1" >/dev/null; }
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+open_pages_pdf; sleep 6
+# Keep screen on from the menu.
+if pos=$(find_text "More options" "Más opciones"); then
+    adb shell input tap $pos; sleep 1
+    if pos=$(find_text "Keep screen on" "Mantener pantalla encendida"); then
+        adb shell input tap $pos; sleep 1
+        if adb shell dumpsys window windows 2>/dev/null | grep -A8 "PdfViewerActivity" | grep -q "KEEP_SCREEN_ON"; then
+            pass "PDF: 'Keep screen on' keeps the screen awake"
+        else
+            fail "PDF: 'Keep screen on' did not set the window flag"
+        fi
+    else
+        fail "PDF: no 'Keep screen on' in the menu"
+        adb shell input keyevent KEYCODE_BACK
+    fi
+else
+    fail "PDF: menu button not found"
+fi
+# Pinch with two fingers: the whole document zooms, not one page.
+pdf_gesture pinch; sleep 4
+shot 18b_pdf_zoomed
+adb logcat -d -s OMPdf > "$OUT/pdf_zoom.txt" 2>/dev/null || true
+cat "$OUT/pdf_zoom.txt" | grep -E "zoom=|render" | tail -6 | sed 's/^/      /'
+zoom=$(grep -o "zoom=[0-9.]*" "$OUT/pdf_zoom.txt" | tail -n1 | cut -d= -f2)
+if [ -n "$zoom" ] && python3 -c "import sys; sys.exit(0 if float('$zoom') >= 2.0 else 1)"; then
+    pass "PDF: a pinch zooms the document (zoom=$zoom)"
+else
+    fail "PDF: the pinch did not zoom the document (zoom=${zoom:-none})"
+fi
+if grep -q "render page=0 tier=[23]" "$OUT/pdf_zoom.txt"; then
+    pass "PDF: the zoomed page is rendered again sharp for the zoom"
+else
+    fail "PDF: the zoomed page was not rendered sharper"
+fi
+# Scroll on while zoomed: the next pages must come zoomed (and sharp) too.
+for _ in 1 2 3 4 5 6; do adb shell input swipe 540 1700 540 500 300; sleep 1; done
+sleep 3
+adb logcat -d -s OMPdf > "$OUT/pdf_zoom2.txt" 2>/dev/null || true
+if grep -qE "render page=[2-5] tier=[23]" "$OUT/pdf_zoom2.txt"; then
+    pass "PDF: later pages stay zoomed and sharp while scrolling (whole document zoom)"
+else
+    shot 18c_pdf_scroll_zoomed
+    fail "PDF: later pages were not shown at the document zoom"
+fi
+# Double tap goes back to normal size.
+pdf_gesture double_tap; sleep 3
+adb logcat -d -s OMPdf > "$OUT/pdf_zoom3.txt" 2>/dev/null || true
+if grep -o "zoom=[0-9.]*" "$OUT/pdf_zoom3.txt" | tail -n1 | grep -q "zoom=1.00"; then
+    pass "PDF: double tap returns to normal size"
+else
+    fail "PDF: double tap did not return to normal size"
+fi
+# Leave on a later page and reopen: it continues there.
+adb shell input keyevent KEYCODE_BACK; sleep 3
+adb shell am force-stop $PKG; sleep 1
+open_pages_pdf; sleep 6
+shot 18d_pdf_resumed
+if find_contains "Continuing from page" "Continúas en la página" >/dev/null; then
+    pass "PDF: reopening continues at the last page read"
+else
+    fail "PDF: reopening did not continue at the last page"
+fi
+# Turn 'Keep screen on' back off for the rest of the run.
+if pos=$(find_text "More options" "Más opciones"); then
+    adb shell input tap $pos; sleep 1
+    pos=$(find_text "Keep screen on" "Mantener pantalla encendida") && adb shell input tap $pos
+    sleep 1
+fi
+adb logcat -d > "$OUT/logcat_pdf_reader.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_pdf_reader.txt"; then fail "crash in the PDF reader"; fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Other file types received from another app ==="
 python3 - "$OUT/om_received.png" <<'PY'
 import struct, sys, zlib
@@ -1348,6 +1456,71 @@ else
 fi
 adb logcat -d > "$OUT/logcat_bookmarks.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_bookmarks.txt"; then fail "crash while using bookmarks"; fi
+
+log "=== Back acts only on the active panel ==="
+# node_in_half <left|right> <exact text>: center of that text in the left or right panel.
+node_in_half() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" "$2" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+width = max(int(b) for b in re.findall(r'bounds="\[\d+,\d+\]\[(\d+),\d+\]"', xml))
+for node in re.findall(r"<node [^>]*>", xml):
+    t = re.search(r' text="([^"]*)"', node)
+    if not t or html.unescape(t.group(1)) != sys.argv[3]:
+        continue
+    x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+    cx = (x1 + x2) // 2
+    if (sys.argv[2] == "left") == (cx < width // 2):
+        print(cx, (y1 + y2) // 2)
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+path_title() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml | tr -d '\r' | grep -o 'resource-id="[^"]*:id/tvPathTitle"[^>]*' | grep -o ' text="[^"]*"' | head -1 | cut -d'"' -f2
+}
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" >/dev/null; sleep 5
+if pos=$(node_in_half left om_bm_target); then
+    adb shell input tap $pos; sleep 3                       # panel A: into a subfolder
+    if pos=$(node_in_half right Alarms); then
+        read -r w h <<< "$(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr x ' ')"
+        ay=${pos#* }
+        adb shell input tap $((w / 2 + 68)) $ay; sleep 2    # panel B: tap the icon = select (B active)
+        if node_center_by_id btnSelectionClose >/dev/null; then
+            pass "tapping an icon in the right panel selects it"
+        else
+            shot 45a_no_selection
+            fail "tapping the icon did not select in the right panel"
+        fi
+        adb shell input tap $((w / 4)) $((h * 2 / 3)); sleep 2   # empty area of panel A: A active
+        before=$(path_title)
+        adb shell input keyevent KEYCODE_BACK; sleep 3
+        after=$(path_title)
+        shot 45_back_active_panel
+        log "      panel A before back: $before  after: $after"
+        if [ "$before" != "$after" ] && echo "$after" | grep -q "/storage/emulated/0/$"; then
+            pass "back with a selection in the other panel goes up in the active panel"
+        else
+            fail "back did not act on the active panel ($before -> $after)"
+        fi
+        # Panel B kept its selection.
+        adb shell input tap $((w * 3 / 4)) $((h * 2 / 3)); sleep 2
+        if node_center_by_id btnSelectionClose >/dev/null; then
+            pass "the other panel kept its selection"
+        else
+            fail "the other panel lost its selection"
+        fi
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+    else
+        fail "no 'Alarms' in the right panel"
+    fi
+else
+    fail "no 'om_bm_target' in the left panel"
+fi
 
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true

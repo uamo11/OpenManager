@@ -1,3 +1,22 @@
+# OpenManager v2.0.19: Lector de PDF Mejorado y «Atrás» Siempre en el Panel Correcto
+
+### 📄 Lector de PDF
+- **Zoom de todo el documento.** Al pellizcar se ampliaba solo una página. Ahora se amplía el documento entero, como en un lector de verdad:
+  - el zoom sigue a los dedos;
+  - te puedes mover a los lados y seguir bajando con todas las páginas ampliadas;
+  - doble toque amplía o vuelve al tamaño normal.
+- **Texto nítido al ampliar.** Cuando el zoom se detiene, las páginas que ves se renderizan de nuevo a esa resolución, en lugar de estirar la imagen. Al volver al tamaño normal se libera esa memoria. En móviles con poca memoria o Android 6–7 el detalle máximo es menor, para no cerrarse nunca.
+- **Mantener la pantalla encendida**: nueva opción en el menú ⋮ del lector. Se recuerda para la próxima vez.
+- **Recuerda la última página de cada PDF** (hasta 300 documentos). Al reabrirlo continúas donde lo dejaste, con un botón «Desde el principio». Si el archivo cambia, empieza desde la página 1.
+- En modo paginado cada página sigue teniendo su propio zoom.
+
+### ↩️ «Atrás» en el panel correcto
+- A veces el botón Atrás actuaba sobre el **otro** panel: por ejemplo, quitaba la selección o la búsqueda del panel de al lado en vez de subir de carpeta en el que estabas usando. Ahora Atrás actúa **solo** sobre el panel activo.
+
+### 🌐 Idioma en Android 12 y anteriores
+- Se comprueba en un emulador Android 12 que elegir el chino desde Ajustes → Idioma cambia toda la app (ajustes, pantalla principal y menú lateral), también tras cerrarla y volver a abrirla.
+
+
 # OpenManager v2.0.18: Marcadores en la Pantalla de Inicio, Botón Adelante y Todo en tu Idioma
 
 ### 🔖 Marcadores

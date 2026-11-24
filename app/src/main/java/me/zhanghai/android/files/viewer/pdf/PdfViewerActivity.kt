@@ -8,6 +8,8 @@ package me.zhanghai.android.files.viewer.pdf
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
+import me.zhanghai.android.files.BuildConfig
+import android.view.MotionEvent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
@@ -34,6 +36,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import java8.nio.file.Path
@@ -81,6 +84,7 @@ class PdfViewerActivity : AppActivity() {
     private var filePathString: String = ""
 
     private var currentPage: Int = 1
+    private var resumeKey: String? = null
     private var totalPages: Int = 0
 
     private var isPagedMode: Boolean = false
@@ -105,6 +109,9 @@ class PdfViewerActivity : AppActivity() {
         setupSystemUi()
         setupWindowInsets()
         loadThemePreference()
+        applyKeepScreenOn(
+            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(KEY_KEEP_SCREEN_ON, false)
+        )
 
         currentPath = intent.extraPath
         externalUri = intent.data
@@ -116,6 +123,13 @@ class PdfViewerActivity : AppActivity() {
         }
 
         binding.btnOpenExternal.setOnClickListener { openExternal() }
+        if (BuildConfig.DEBUG) {
+            androidx.core.content.ContextCompat.registerReceiver(
+                this, demoGestureReceiver,
+                android.content.IntentFilter("me.zhanghai.android.files.action.PDF_DEMO"),
+                androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+            )
+        }
 
         initPdfDocument()
     }
@@ -275,6 +289,7 @@ class PdfViewerActivity : AppActivity() {
 
         binding.toolbar.title = fileName
         updatePageIndicator(1)
+        resumeKey = PdfResumeStore.keyFor(filePathString, fileSize)
 
         val density = resources.displayMetrics.density
         val renderScale = density.coerceIn(1.5f, 3.2f)
@@ -290,6 +305,11 @@ class PdfViewerActivity : AppActivity() {
 
         binding.recyclerView.apply {
             visibility = View.VISIBLE
+            // The whole document zooms (pinch / double tap); pages are rendered again for the
+            // zoom once it settles so the text stays sharp.
+            zoomEnabled = !isPagedMode
+            onSingleTap = { systemUiHelper.toggle() }
+            onZoomSettled = { zoom -> onDocumentZoomChanged(zoom) }
             layoutManager = LinearLayoutManager(this@PdfViewerActivity, RecyclerView.VERTICAL, false)
             adapter = this@PdfViewerActivity.adapter
             addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -308,6 +328,137 @@ class PdfViewerActivity : AppActivity() {
                 this@PdfViewerActivity.adapter?.containerWidth = width
             }
         }
+        restoreLastPage()
+    }
+
+    /**
+     * Pages really on screen. Zoomed in, the list still lays out pages for its whole height but
+     * shows only part of it: only those under the zoomed window get the sharp (large) render.
+     */
+    private fun visibleRange(): IntRange? {
+        val list = binding.recyclerView
+        val scale = list.scale
+        val top = -list.translationY / scale
+        val bottom = top + list.height / scale
+        var first = Int.MAX_VALUE
+        var last = -1
+        for (i in 0 until list.childCount) {
+            val child = list.getChildAt(i)
+            if (child.bottom > top && child.top < bottom) {
+                val position = list.getChildAdapterPosition(child)
+                if (position == RecyclerView.NO_POSITION) continue
+                first = minOf(first, position)
+                last = maxOf(last, position)
+            }
+        }
+        return if (last < 0) null else first..last
+    }
+
+    private fun onDocumentZoomChanged(zoom: Float) {
+        val range = visibleRange() ?: return
+        adapter?.onZoomChanged(zoom, range.first, range.last)
+        if (BuildConfig.DEBUG) {
+            android.util.Log.i(
+                "OMPdf", "zoom=" + String.format(java.util.Locale.ROOT, "%.2f", zoom) +
+                    " tier=" + (adapter?.qualityTier ?: 0) + " visible=" + range
+            )
+        }
+    }
+
+    /**
+     * Debug builds only, for the emulator checks (adb cannot pinch): plays a real two-finger
+     * pinch or a double tap through the window, so the same gesture code as on a phone runs.
+     */
+    private fun runDemoGesture(gesture: String) {
+        if (!BuildConfig.DEBUG) return
+        val list = binding.recyclerView
+        val location = IntArray(2).also { list.getLocationOnScreen(it) }
+        val cx = location[0] + list.width / 2f
+        val cy = location[1] + list.height / 2f
+        val root = window.decorView
+        val rootLocation = IntArray(2).also { root.getLocationOnScreen(it) }
+        val ox = cx - rootLocation[0]
+        val oy = cy - rootLocation[1]
+        val down = android.os.SystemClock.uptimeMillis()
+        var time = down
+        fun send(action: Int, xs: FloatArray) {
+            val props = Array(xs.size) { i ->
+                MotionEvent.PointerProperties().apply { id = i; toolType = MotionEvent.TOOL_TYPE_FINGER }
+            }
+            val coords = Array(xs.size) { i ->
+                MotionEvent.PointerCoords().apply { x = ox + xs[i]; y = oy; pressure = 1f; size = 1f }
+            }
+            val event = MotionEvent.obtain(
+                down, time, action, xs.size, props, coords, 0, 0, 1f, 1f, 0, 0,
+                android.view.InputDevice.SOURCE_TOUCHSCREEN, 0
+            )
+            root.dispatchTouchEvent(event)
+            event.recycle()
+        }
+        when (gesture) {
+            "pinch" -> {
+                val start = 60f
+                val end = 60f * 3.2f
+                send(MotionEvent.ACTION_DOWN, floatArrayOf(-start))
+                time += 10
+                send(MotionEvent.ACTION_POINTER_DOWN or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), floatArrayOf(-start, start))
+                for (step in 1..12) {
+                    time += 16
+                    val d = start + (end - start) * step / 12
+                    send(MotionEvent.ACTION_MOVE, floatArrayOf(-d, d))
+                }
+                time += 16
+                send(MotionEvent.ACTION_POINTER_UP or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT), floatArrayOf(-end, end))
+                time += 10
+                send(MotionEvent.ACTION_UP, floatArrayOf(-end))
+            }
+            "double_tap" -> {
+                send(MotionEvent.ACTION_DOWN, floatArrayOf(0f)); time += 50
+                send(MotionEvent.ACTION_UP, floatArrayOf(0f)); time += 120
+                send(MotionEvent.ACTION_DOWN, floatArrayOf(0f)); time += 50
+                send(MotionEvent.ACTION_UP, floatArrayOf(0f))
+            }
+        }
+    }
+
+    // Debug builds only (test hook; any app could send it).
+    private val demoGestureReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val gesture = intent.getStringExtra("gesture") ?: return
+            binding.recyclerView.postDelayed({ if (isUiAlive) runDemoGesture(gesture) }, 300)
+        }
+    }
+
+    /** Reopens each PDF at the page it was left, with a way back to page 1. */
+    private fun restoreLastPage() {
+        val key = resumeKey ?: return
+        val page = PdfResumeStore(this).get(key) ?: return
+        if (page < 2 || page > totalPages) return
+        currentPage = page
+        updatePageIndicator(page)
+        (binding.recyclerView.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(page - 1, 0)
+        Snackbar.make(binding.root, getString(R.string.om_pdf_resumed_at, page), Snackbar.LENGTH_LONG)
+            .setAction(R.string.om_pdf_from_start) { jumpToPage(1) }
+            .show()
+    }
+
+    private fun saveLastPage() {
+        val key = resumeKey ?: return
+        if (totalPages <= 0) return
+        PdfResumeStore(this).put(key, currentPage, totalPages)
+    }
+
+    private fun applyKeepScreenOn(on: Boolean) {
+        if (on) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        saveLastPage()
     }
 
     private fun showError(error: Throwable) {
@@ -361,6 +512,8 @@ class PdfViewerActivity : AppActivity() {
             }
         }
         updateMenuThemeIcon(menu.findItem(R.id.action_theme))
+        menu.findItem(R.id.action_keep_screen_on)?.isChecked =
+            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).getBoolean(KEY_KEEP_SCREEN_ON, false)
         return super.onPrepareOptionsMenu(menu)
     }
 
@@ -384,6 +537,14 @@ class PdfViewerActivity : AppActivity() {
             }
             R.id.action_view_mode -> {
                 toggleViewMode()
+                return true
+            }
+            R.id.action_keep_screen_on -> {
+                val on = !item.isChecked
+                item.isChecked = on
+                getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                    .putBoolean(KEY_KEEP_SCREEN_ON, on).apply()
+                applyKeepScreenOn(on)
                 return true
             }
             R.id.action_info -> {
@@ -472,6 +633,9 @@ class PdfViewerActivity : AppActivity() {
         if (totalPages <= 0) return
         isPagedMode = !isPagedMode
         val targetPos = (currentPage - 1).coerceIn(0, (totalPages - 1).coerceAtLeast(0))
+        // Paged mode zooms each page by itself; the document zoom goes back to normal.
+        binding.recyclerView.zoomEnabled = !isPagedMode
+        adapter?.onZoomChanged(1f, -1, -1)
 
         if (isPagedMode) {
             binding.recyclerView.layoutManager = LinearLayoutManager(
@@ -671,6 +835,7 @@ class PdfViewerActivity : AppActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (BuildConfig.DEBUG) runCatching { unregisterReceiver(demoGestureReceiver) }
         hideBadgeRunnable?.let { badgeHandler.removeCallbacks(it) }
         try {
             pdfEngine?.close()
@@ -687,6 +852,7 @@ class PdfViewerActivity : AppActivity() {
     companion object {
         private const val PREFS_NAME = "pdf_viewer_prefs"
         private const val KEY_THEME = "reading_theme"
+        private const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
 
         fun start(context: Context, path: Path) {
             val intent = Intent(context, PdfViewerActivity::class.java).apply {

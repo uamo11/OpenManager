@@ -2425,4 +2425,7 @@
     <string name="om_user_agreement_message">OpenManager\n\nPerangkat lunak gratis dan sumber terbuka (GPLv3).\n\nOpenManager tidak mengumpulkan, mengirim, atau membagikan data pribadi, analitik, maupun telemetri. Semua operasi berkas tetap berada di perangkat Anda.</string>
     <string name="om_bookmark_add_to_home">Tambahkan ke layar utama</string>
     <string name="om_shortcut_unsupported">Peluncur Anda tidak mendukung pintasan layar utama</string>
+    <string name="om_pdf_keep_screen_on">Layar tetap menyala</string>
+    <string name="om_pdf_resumed_at">Melanjutkan dari halaman %1$d</string>
+    <string name="om_pdf_from_start">Dari awal</string>
 </resources>

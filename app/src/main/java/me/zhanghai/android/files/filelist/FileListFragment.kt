@@ -708,6 +708,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
 
         val viewLifecycleOwner = viewLifecycleOwner
+        panelBackCallbacks.clear()
         val callback = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
                 // Opened for a caller (e.g. the VPS terminal): back from its folder returns there.
@@ -727,13 +728,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             }
             viewModel.currentPathLiveData.observe(viewLifecycleOwner) { updateCb() }
             viewModel.breadcrumbLiveData.observe(viewLifecycleOwner) { updateCb() }
-            addOnBackPressedCallback(cb)
+            addPanelBackCallback(cb)
         }
         navigateUpCallback = callback
-        addOnBackPressedCallback(overlayActionMode.onBackPressedCallback)
-        addOnBackPressedCallback(SpeedDialViewOnBackPressedCallback(binding.speedDialView))
+        addPanelBackCallback(overlayActionMode.onBackPressedCallback)
+        addPanelBackCallback(SpeedDialViewOnBackPressedCallback(binding.speedDialView))
         binding.drawerLayout?.let {
-            addOnBackPressedCallback(DrawerLayoutOnBackPressedCallback(it))
+            addPanelBackCallback(DrawerLayoutOnBackPressedCallback(it))
         }
 
         if (!viewModel.hasTrail) {
@@ -3255,6 +3256,35 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     override fun observeCurrentPath(owner: LifecycleOwner, observer: (Path) -> Unit) {
         viewModel.currentPathLiveData.observe(owner, observer)
+    }
+
+    /**
+     * In the dual-panel screen, back must only ever act on the active panel. Registering each
+     * panel's callbacks (search, selection, paste bar, speed dial...) with the activity made the
+     * other panel's ones win now and then (they are re-added on every start, so their order
+     * changes): back closed or navigated the opposite panel. There the activity routes back to
+     * [handleBackInPanel] of the active panel instead; other hosts keep the usual registration.
+     */
+    private val panelBackCallbacks = mutableListOf<OnBackPressedCallback>()
+
+    private fun addPanelBackCallback(callback: OnBackPressedCallback) {
+        if (activity is FileListActivity) {
+            panelBackCallbacks += callback
+        } else {
+            addOnBackPressedCallback(callback)
+        }
+    }
+
+    /** Handles back for this panel (newest callback first, like the dispatcher); false if idle. */
+    fun handleBackInPanel(): Boolean {
+        if (!isAdded || view == null) return false
+        for (callback in panelBackCallbacks.asReversed()) {
+            if (callback.isEnabled) {
+                callback.handleOnBackPressed()
+                return true
+            }
+        }
+        return false
     }
 
     fun updateBackCallbackState() {

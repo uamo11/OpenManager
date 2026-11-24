@@ -27,6 +27,13 @@
         app:showAsAction="never" />
 
     <item
+        android:id="@+id/action_keep_screen_on"
+        android:checkable="true"
+        android:orderInCategory="35"
+        android:title="@string/om_pdf_keep_screen_on"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_info"
         android:icon="@drawable/information_icon_white_24dp"
         android:orderInCategory="40"

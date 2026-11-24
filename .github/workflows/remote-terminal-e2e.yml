@@ -161,6 +161,47 @@ jobs:
         path: remote-e2e/
         retention-days: 7
 
+  locale-e2e:
+    name: Language switch on Android 12
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: true
+    - uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '21'
+        cache: 'gradle'
+    - name: Build Debug APK
+      run: |
+        chmod +x gradlew
+        ./gradlew assembleDebug --stacktrace
+        mkdir -p apk-to-test && cp app/build/outputs/apk/debug/app-debug.apk apk-to-test/
+    - name: Enable KVM
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+    - name: Pick Chinese in the app on Android 12
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 31
+        target: default
+        arch: x86_64
+        profile: pixel_6
+        disable-animations: true
+        emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
+        script: bash tools/locale-e2e.sh
+    - name: Upload Language Results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: locale-e2e
+        path: locale-e2e/
+        retention-days: 7
+
   update-e2e:
     name: Self-update from an older release
     runs-on: ubuntu-latest

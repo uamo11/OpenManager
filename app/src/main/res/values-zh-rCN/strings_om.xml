@@ -2424,4 +2424,7 @@
     <string name="om_user_agreement_message">OpenManager\n\n免费的开源软件（GPLv3）。\n\nOpenManager 不会收集、发送或共享任何个人数据、分析数据或遥测数据。所有文件操作都只在你的设备上进行。</string>
     <string name="om_bookmark_add_to_home">添加到主屏幕</string>
     <string name="om_shortcut_unsupported">你的启动器不支持主屏幕快捷方式</string>
+    <string name="om_pdf_keep_screen_on">保持屏幕常亮</string>
+    <string name="om_pdf_resumed_at">从第 %1$d 页继续</string>
+    <string name="om_pdf_from_start">从头开始</string>
 </resources>

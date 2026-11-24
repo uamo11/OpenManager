@@ -2430,4 +2430,7 @@
     <string name="om_user_agreement_message">OpenManager\n\nSoftware gratuito e de código aberto (GPLv3).\n\nO OpenManager não coleta, envia nem compartilha dados pessoais, análises ou telemetria. Todas as operações com arquivos ficam no seu dispositivo.</string>
     <string name="om_bookmark_add_to_home">Adicionar à tela inicial</string>
     <string name="om_shortcut_unsupported">Seu launcher não suporta atalhos na tela inicial</string>
+    <string name="om_pdf_keep_screen_on">Manter a tela ligada</string>
+    <string name="om_pdf_resumed_at">Continuando da página %1$d</string>
+    <string name="om_pdf_from_start">Do início</string>
 </resources>

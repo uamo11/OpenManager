@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Changing the app language from the app's own list, like a user, on Android 12 (API 31):
+# Settings > Language > Chinese, then the settings, the main screen and a cold start must all be
+# in Chinese. (Android 13+ uses the system's per-app language screen instead.)
+set -u
+PKG=com.y.om
+MAIN=$PKG/me.zhanghai.android.files.filelist.FileListActivity
+SETTINGS=$PKG/me.zhanghai.android.files.settings.SettingsActivity
+OUT=locale-e2e
+mkdir -p "$OUT"
+REPORT="$OUT/report.txt"
+: > "$REPORT"
+FAILED=0
+log() { echo "$*" | tee -a "$REPORT"; }
+pass() { log "PASS  $*"; }
+fail() { log "FAIL  $*"; FAILED=1; }
+shot() { adb shell screencap -p "/data/local/tmp/$1.png" >/dev/null 2>&1; adb pull "/data/local/tmp/$1.png" "$OUT/$1.png" >/dev/null 2>&1 || true; }
+
+# find_contains <label>...: center of the first node whose text contains a label.
+find_contains() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$@" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for label in sys.argv[2:]:
+    for node in re.findall(r"<node [^>]*>", xml):
+        t = re.search(r' text="([^"]*)"', node)
+        if t and label.lower() in html.unescape(t.group(1)).lower():
+            x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+            print((x1 + x2) // 2, (y1 + y2) // 2)
+            sys.exit(0)
+sys.exit(1)
+PY
+}
+wait_contains() {
+    local timeout=$1; shift
+    local end=$((SECONDS + timeout))
+    while [ $SECONDS -lt $end ]; do pos=$(find_contains "$@") && { echo "$pos"; return 0; }; sleep 1; done
+    return 1
+}
+# scroll_to <max swipes> <label>...: swipes up until a label is on screen.
+scroll_to() {
+    local max=$1; shift
+    for _ in $(seq 1 "$max"); do
+        pos=$(find_contains "$@") && { echo "$pos"; return 0; }
+        adb shell input swipe 540 1800 540 700 250; sleep 1
+    done
+    find_contains "$@"
+}
+
+log "Android $(adb shell getprop ro.build.version.release | tr -d '\r') (API $(adb shell getprop ro.build.version.sdk | tr -d '\r'))"
+adb install -r -d -t apk-to-test/app-debug.apk
+adb shell pm grant $PKG android.permission.READ_EXTERNAL_STORAGE 2>/dev/null || true
+adb shell pm grant $PKG android.permission.WRITE_EXTERNAL_STORAGE 2>/dev/null || true
+adb shell appops set $PKG MANAGE_EXTERNAL_STORAGE allow 2>/dev/null || true
+# First start (permission prompts, update check) out of the way.
+adb shell am start -W -n "$MAIN" >/dev/null 2>&1; sleep 5
+adb shell am force-stop $PKG; sleep 1
+
+log "=== Language picked from the app's list (Settings > Language > Chinese) ==="
+adb shell am start -W -n "$SETTINGS" >/dev/null 2>&1; sleep 4
+if pos=$(scroll_to 30 "Language" "Idioma"); then
+    adb shell input tap $pos; sleep 2
+    shot 01_language_list
+    # The list is sorted by language tag: Chinese is near the end.
+    if pos=$(scroll_to 12 "中文"); then
+        adb shell input tap $pos; sleep 6
+        shot 02_settings_after_pick
+        if wait_contains 20 "语言" "设置" >/dev/null; then
+            pass "picking Chinese in Settings switches the settings to Chinese"
+        else
+            fail "the settings did not switch to Chinese after picking it"
+        fi
+    else
+        fail "Chinese is not in the language list"
+    fi
+else
+    fail "no Language entry in Settings"
+fi
+
+log "=== The rest of the app and a cold start ==="
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" >/dev/null 2>&1; sleep 6
+shot 03_main_after_restart
+if wait_contains 15 "文件夹：" >/dev/null; then
+    pass "after a cold start the main screen is in Chinese (文件夹：…)"
+else
+    fail "after a cold start the main screen is not in Chinese"
+fi
+adb shell am broadcast -a me.zhanghai.android.files.action.DEMO --es action drawer >/dev/null; sleep 2
+shot 04_drawer
+if find_contains "根目录" >/dev/null && find_contains "工具" >/dev/null; then
+    pass "the side menu is in Chinese (根目录 / 工具)"
+else
+    fail "the side menu is not in Chinese"
+fi
+
+adb logcat -d > "$OUT/logcat.txt" 2>/dev/null || true
+if grep -A 3 "FATAL EXCEPTION" "$OUT/logcat.txt" | grep -q "Process: $PKG"; then
+    fail "the app crashed"
+fi
+log ""
+if [ "$FAILED" = 0 ]; then log "ALL PASSED"; else log "SOME CHECKS FAILED"; fi
+exit $FAILED
