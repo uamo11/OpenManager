@@ -1,0 +1,53 @@
+name: Website check
+
+# Renders the website in Chrome (phone and desktop sizes) and measures it with Lighthouse, so a
+# change to web/ is seen and timed before it goes live.
+on:
+  workflow_dispatch:
+  push:
+    branches: [ 'feature/web**' ]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-check.yml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+    - name: Serve the site
+      run: |
+        cd web && (python3 -m http.server 8000 >/dev/null 2>&1 &) && sleep 2
+        curl -sf http://localhost:8000/ >/dev/null && echo "served"
+    - name: Screenshots (phone and desktop)
+      run: |
+        mkdir -p web-check
+        CHROME=$(command -v google-chrome || command -v chromium)
+        "$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size=412,4200 --virtual-time-budget=4000 \
+          --screenshot=web-check/phone.png http://localhost:8000/ 2>/dev/null
+        "$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size=1366,4200 --virtual-time-budget=4000 \
+          --screenshot=web-check/desktop.png http://localhost:8000/ 2>/dev/null
+        "$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size=412,900 --virtual-time-budget=4000 \
+          --screenshot=web-check/phone_en.png "http://localhost:8000/?" 2>/dev/null
+        ls -la web-check
+    - name: Lighthouse (mobile)
+      run: |
+        npx -y lighthouse@12 http://localhost:8000/ --quiet --form-factor=mobile --screenEmulation.mobile \
+          --only-categories=performance,accessibility,best-practices,seo \
+          --chrome-flags="--headless=new --no-sandbox" --output=json --output=html --output-path=web-check/lighthouse
+        python3 - <<'PY'
+        import json
+        r = json.load(open("web-check/lighthouse.report.json"))
+        for k, c in r["categories"].items():
+            print(f"{c['title']}: {round(c['score'] * 100)}")
+        a = r["audits"]
+        for key in ["first-contentful-paint", "largest-contentful-paint", "total-blocking-time", "cumulative-layout-shift", "speed-index", "total-byte-weight"]:
+            print(f"{a[key]['title']}: {a[key]['displayValue']}")
+        PY
+    - uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: web-check
+        path: web-check/
+        retention-days: 7
