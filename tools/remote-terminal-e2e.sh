@@ -468,11 +468,8 @@ wait_contains() {
     while [ $SECONDS -lt $end ]; do pos=$(find_contains "$@") && { echo "$pos"; return 0; }; sleep 1; done
     return 1
 }
-logins_before=$(sudo grep -c "Accepted .* for vpsroot" /tmp/sshd_om.log 2>/dev/null || echo 0)
-# A big folder: 400 files and 200 symlinks, like /usr/bin.
-sudo bash -c 'mkdir -p /home/vpsroot/big && cd /home/vpsroot/big &&
-    for i in $(seq -w 0 399); do echo "$i" > "f$i.txt"; done &&
-    for i in $(seq -w 0 199); do ln -sf /usr/bin/env "l$i"; done'
+count_logins() { sudo grep -c "Accepted .* for vpsroot" /tmp/sshd_om.log 2>/dev/null || true; }
+logins_before=$(count_logins); logins_before=${logins_before:-0}
 # A real VPS is far away: +150 ms on every packet of the SSH server.
 sudo tc qdisc add dev lo root handle 1: prio
 sudo tc qdisc add dev lo parent 1:3 handle 30: netem delay 150ms
@@ -485,7 +482,7 @@ if pos=$(wait_contains 60 "vpsroot@vps"); then
     if wait_contains 60 "My VPS:/home/vpsroot" >/dev/null; then
         shot 09a_vps_root_files
         pass "VPS files open in the root home (My VPS:/home/vpsroot/)"
-        logins_after=$(sudo grep -c "Accepted .* for vpsroot" /tmp/sshd_om.log 2>/dev/null || echo 0)
+        logins_after=$(count_logins); logins_after=${logins_after:-0}
         if [ $((logins_after - logins_before)) -eq 1 ]; then
             pass "the files use the terminal's own connection (1 login, no second password/host-key)"
         else
@@ -530,8 +527,12 @@ if pos=$(wait_contains 60 "vpsroot@vps"); then
                 adb shell input keyevent KEYCODE_BACK; sleep 1
             fi
         done
-        # Big folder over a 150 ms link: time until it is listed with every entry.
-        if pos=$(find_text "big"); then
+        # Big folder over a 150 ms link (400 files + 200 symlinks, like /usr/bin) inside the folder
+        # just created from the app: time until it is listed with every entry.
+        sudo bash -c 'cd /home/vpsroot/om_ui_folder &&
+            for i in $(seq -w 0 399); do echo "$i" > "f$i.txt"; done &&
+            for i in $(seq -w 0 199); do ln -sf /usr/bin/env "l$i"; done'
+        if pos=$(find_text "om_ui_folder"); then
             t0=$(date +%s%N)
             adb shell input tap $pos
             if wait_contains 60 "600" >/dev/null; then
@@ -549,7 +550,7 @@ if pos=$(wait_contains 60 "vpsroot@vps"); then
                 fail "the 600-entry folder did not finish listing in 60 s"
             fi
         else
-            fail "no 'big' folder in the VPS home"
+            fail "no 'om_ui_folder' to open in the VPS home"
         fi
     else
         shot 09a_vps_root_files_missing
