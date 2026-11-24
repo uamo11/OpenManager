@@ -165,8 +165,12 @@ class SshTransport(
             prompt = appContext.getString(R.string.om_remote_password_hint)
         )
         if (profile.authType == RemoteAuthType.PASSWORD || profile.hasSavedPassword) {
-            methods += AuthPassword(passwordFinder)
+            // Keyboard-interactive first: a server that does not offer it refuses at once without
+            // asking for anything, while trying "password" first on a server that only accepts
+            // keyboard-interactive (stock Ubuntu cloud images) used up the saved password and
+            // then asked the user for it again.
             methods += AuthKeyboardInteractive(PasswordResponseProvider(passwordFinder))
+            methods += AuthPassword(passwordFinder)
         }
         authMethodUsed = appContext.getString(
             if (profile.authType == RemoteAuthType.PRIVATE_KEY) R.string.om_remote_auth_key else R.string.om_remote_auth_password
