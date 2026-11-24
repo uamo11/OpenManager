@@ -37,6 +37,28 @@ sys.exit(1)
 PY
 }
 
+# node_id <resource-id suffix>: center of the first node with that id.
+node_id() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+# Settings opened at the Appearance section (not at the root status card).
+settings_appearance() {
+    settings_with "$@"; sleep 3
+    pos=$(find_text "Appearance") && adb shell input tap $pos
+    sleep 2
+}
+
 APK=$(find apk-to-test -name "*.apk" | head -n 1)
 adb install -r -d -t "$APK" >/dev/null
 for p in READ_EXTERNAL_STORAGE WRITE_EXTERNAL_STORAGE POST_NOTIFICATIONS; do
@@ -53,6 +75,8 @@ adb shell am broadcast -a com.android.systemui.demo -e command network -e mobile
 adb shell am broadcast -a com.android.systemui.demo -e command notifications -e visible false >/dev/null
 
 log "=== Demo files ==="
+# adb push into a folder that does not exist fails: create them all first.
+adb shell mkdir -p /sdcard/DCIM/Camera /sdcard/Movies /sdcard/Music /sdcard/Documents/Projects /sdcard/Download
 python3 - "$OUT/fixtures" <<'PY'
 import os, sys, colorsys
 from PIL import Image, ImageDraw
@@ -113,6 +137,9 @@ out += b"trailer << /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(ob
 open(sys.argv[1], "wb").write(out)
 PY
 adb push "$OUT/fixtures/Manual.pdf" /sdcard/Documents/Manual.pdf >/dev/null
+adb push "$OUT/fixtures/Manual.pdf" /sdcard/Download/Invoice-November.pdf >/dev/null
+adb push "$OUT/fixtures/Lo-fi Night.mp3" "/sdcard/Download/Lo-fi Night.mp3" >/dev/null
+adb shell "cd /sdcard/Download && echo backup > photos-backup.zip && echo notes > readme.txt"
 adb shell "cd /sdcard/Documents && for n in invoice-2026 report-q3; do echo data > \$n.txt; done"
 adb shell am broadcast -a android.intent.action.MEDIA_SCANNER_SCAN_FILE -d file:///sdcard/DCIM/Camera >/dev/null 2>&1 || true
 
@@ -134,17 +161,17 @@ panels() { # left folder, right folder
 
 log "=== Themes on the main screen ==="
 theme dark off color_primary
-panels "Download" "DCIM/Camera"; shot 01_home_dark 3
+panels "Documents" "DCIM/Camera"; shot 01_home_dark 4
 theme amoled off color_primary
-panels "Download" "DCIM/Camera"; shot 02_home_amoled 3
+panels "Documents" "DCIM/Camera"; shot 02_home_amoled 4
 theme light off color_primary
-panels "Download" "DCIM/Camera"; shot 03_home_light 3
+panels "Documents" "DCIM/Camera"; shot 03_home_light 4
 
 log "=== Material 3 accent colors (settings) ==="
 for spec in "light:material_blue:04_md3_blue" "dark:material_red:05_md3_red" "light:material_teal:06_md3_teal" "dark:material_deep_purple:07_md3_purple"; do
     IFS=: read -r t c name <<< "$spec"
     theme "$t" on "$c"
-    settings_with; sleep 3; shot "$name" 2
+    settings_appearance; shot "$name" 2
 done
 theme dark off color_primary
 
@@ -153,6 +180,15 @@ open_dir "DCIM/Camera"; sleep 3
 demo more_menu; sleep 2
 pos=$(find_text "Gallery view (this folder)") && adb shell input tap $pos
 shot 10_gallery 6
+add_bookmark() {
+    open_dir "$1"; sleep 3
+    demo more_menu; sleep 2
+    pos=$(find_text "Add bookmark") && adb shell input tap $pos
+    sleep 2
+}
+add_bookmark "DCIM/Camera"
+add_bookmark "Documents/Projects"
+add_bookmark "Download"
 open_dir "Documents"; sleep 3
 adb shell input swipe 540 2180 540 1500 300; shot 11_bookmarks 2
 adb shell input keyevent KEYCODE_BACK; sleep 1
@@ -174,10 +210,12 @@ shot 16_terminal 4
 stop_app
 adb shell run-as $PKG touch files/om_debug_demo_heat
 adb shell am start -W -n "$MAIN" >/dev/null; sleep 3
-demo running; shot 17_running_apps 9
+demo running; sleep 6
+pos=$(node_id btnDismissBanner) && adb shell input tap $pos
+shot 17_running_apps 4
 adb shell run-as $PKG rm -f files/om_debug_demo_heat
 stop_app
-demo settings; shot 18_settings 4
+settings_appearance; shot 18_settings 2
 stop_app
 
 log "=== Languages ==="
@@ -185,7 +223,7 @@ for spec in "zh-CN:20_lang_zh" "ru:21_lang_ru" "pt-BR:22_lang_pt" "es:23_lang_es
     loc=${spec%%:*}; name=${spec#*:}
     stop_app
     settings_with --es DEMO_LOCALE "$loc"; sleep 5; stop_app
-    panels "Download" "DCIM/Camera"
+    panels "Documents" "DCIM/Camera"
     demo drawer; shot "$name" 3
 done
 stop_app
