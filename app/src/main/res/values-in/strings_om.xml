@@ -262,8 +262,8 @@
         <item>Latar seragam (ramah GPU)</item>
     </string-array>
     <string name="settings_visual_performance_mode_title">Mode performa tinggi (UI / Ultra RAM)</string>
-    <string name="settings_visual_performance_mode_summary">Mematikan animasi berat, thumbnail, dan cache latar di seluruh aplikasi agar tetap ngebut dengan RAM sangat kecil</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM aktif · Aplikasi %1$s · Tanpa bitmap, transisi 0 md, pembersihan native &amp; cache minimal di semua layar</string>
+    <string name="settings_visual_performance_mode_summary">Mematikan animasi berat, Material 3, dan cache latar di seluruh aplikasi. Thumbnail awalnya mati dan bisa dinyalakan dalam mode ringan (kecil dan disimpan di cache)</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM aktif · Aplikasi %1$s · Transisi 0 md, pembersihan native, cache minimal; thumbnail hanya jika Anda menyalakannya (mode ringan)</string>
     <string name="settings_thumbnail_load_mode_title">Render thumbnail &amp; ikon</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Penuh (default)</item>
@@ -2428,4 +2428,7 @@
     <string name="om_pdf_keep_screen_on">Layar tetap menyala</string>
     <string name="om_pdf_resumed_at">Melanjutkan dari halaman %1$d</string>
     <string name="om_pdf_from_start">Dari awal</string>
+    <string name="om_md3_locked_by_ultra_ram">Nonaktif selama mode Ultra RAM menyala (memakai lebih banyak memori)</string>
+    <string name="om_apk_checking_signature">Memeriksa…</string>
+    <string name="om_menu_gallery_view">Tampilan galeri (folder ini)</string>
 </resources>

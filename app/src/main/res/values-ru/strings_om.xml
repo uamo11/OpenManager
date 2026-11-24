@@ -262,8 +262,8 @@
         <item>Одинаковый фон (бережёт GPU)</item>
     </string-array>
     <string name="settings_visual_performance_mode_title">Режим высокой производительности (UI / Ultra RAM)</string>
-    <string name="settings_visual_performance_mode_summary">Отключает тяжёлые анимации, миниатюры и фоновые кэши во всём приложении, чтобы оно летало при минимуме RAM</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM активен · Приложение %1$s · Без битмапов, переходы 0 мс, нативная очистка и минимум кэшей на всех экранах</string>
+    <string name="settings_visual_performance_mode_summary">Отключает тяжёлые анимации, Material 3 и фоновые кэши во всём приложении. Миниатюры сначала выключены, их можно включить в лёгком режиме (маленькие и в кэше)</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM активен · Приложение %1$s · Переходы 0 мс, нативная очистка, минимум кэшей; миниатюры — только если включить (лёгкий режим)</string>
     <string name="settings_thumbnail_load_mode_title">Отрисовка миниатюр и значков</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Полная (по умолчанию)</item>
@@ -2447,4 +2447,7 @@
     <string name="om_pdf_keep_screen_on">Не выключать экран</string>
     <string name="om_pdf_resumed_at">Продолжение со страницы %1$d</string>
     <string name="om_pdf_from_start">С начала</string>
+    <string name="om_md3_locked_by_ultra_ram">Выключено, пока включён режим Ultra RAM (требует больше памяти)</string>
+    <string name="om_apk_checking_signature">Проверка…</string>
+    <string name="om_menu_gallery_view">Галерея (эта папка)</string>
 </resources>

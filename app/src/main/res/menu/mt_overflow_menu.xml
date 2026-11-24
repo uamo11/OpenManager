@@ -42,6 +42,12 @@
         android:title="@string/om_menu_sort" />
 
     <item
+        android:id="@+id/mt_menu_gallery_view"
+        android:checkable="true"
+        android:icon="@drawable/image_icon_white_24dp"
+        android:title="@string/om_menu_gallery_view" />
+
+    <item
         android:id="@+id/mt_menu_select_all"
         android:icon="@drawable/select_all_icon_white_24dp"
         android:title="@string/om_menu_select_all" />

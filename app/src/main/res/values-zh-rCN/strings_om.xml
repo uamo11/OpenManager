@@ -263,8 +263,8 @@
         <item>统一背景（对 GPU 友好）</item>
     </string-array>
     <string name="settings_visual_performance_mode_title">高性能模式（界面 / Ultra RAM）</string>
-    <string name="settings_visual_performance_mode_summary">在整个应用中停用繁重的动画、缩略图和后台缓存，以极低的内存流畅运行</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM 已启用 · 应用 %1$s · 零位图、0ms 过渡、原生清理，全部界面最小缓存</string>
+    <string name="settings_visual_performance_mode_summary">在整个应用中停用繁重动画、Material 3 和后台缓存。缩略图默认关闭，可开启轻量模式（小尺寸并缓存）</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM 已启用 · 应用 %1$s · 0 ms 过渡、原生清理、最小缓存；仅在你开启时显示缩略图（轻量模式）</string>
     <string name="settings_thumbnail_load_mode_title">缩略图与图标渲染</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>完整（默认）</item>
@@ -2427,4 +2427,7 @@
     <string name="om_pdf_keep_screen_on">保持屏幕常亮</string>
     <string name="om_pdf_resumed_at">从第 %1$d 页继续</string>
     <string name="om_pdf_from_start">从头开始</string>
+    <string name="om_md3_locked_by_ultra_ram">Ultra RAM 模式开启时停用（占用更多内存）</string>
+    <string name="om_apk_checking_signature">正在检查…</string>
+    <string name="om_menu_gallery_view">图库视图（此文件夹）</string>
 </resources>

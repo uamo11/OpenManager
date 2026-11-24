@@ -155,141 +155,21 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         var parsedPackageName: String? = null
         var hasSignatureMismatch = false
 
-        try {
-            var packageInfoFlags = PackageManager.GET_PERMISSIONS or PackageManager.GET_SIGNATURES
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfoFlags = packageInfoFlags or PackageManager.GET_SIGNING_CERTIFICATES
-            }
-            val (packageInfo, closeable) = packageManager.getPackageArchiveInfoCompat(file.path, packageInfoFlags)
-            closeable.use {
-                if (packageInfo != null) {
-                    parsedPackageName = packageInfo.packageName
-                    val appInfo = packageInfo.applicationInfo
-                    if (appInfo != null) {
-                        try {
-                            appInfo.sourceDir = file.path.toUserFriendlyString()
-                            appInfo.publicSourceDir = file.path.toUserFriendlyString()
-                        } catch (e: Exception) {
-                            // Ignored
-                        }
-                        val label = try {
-                            appInfo.loadLabel(packageManager).toString()
-                        } catch (e: Exception) {
-                            file.name
-                        }
-                        tvLabel.text = label
+        fun showInstalledRows(visible: Boolean) {
+            rowDataDir?.isVisible = visible
+            rowApkPath?.isVisible = visible
+            rowFirstInstall?.isVisible = visible
+            rowLastUpdate?.isVisible = visible
+            rowUid?.isVisible = visible
+        }
 
-                        val icon = try {
-                            appInfo.loadIcon(packageManager)
-                        } catch (e: Exception) {
-                            null
-                        }
-                        if (icon != null) {
-                            ivIcon.setImageDrawable(icon)
-                        } else {
-                            ivIcon.setImageResource(R.drawable.file_apk_icon)
-                        }
+        fun showNotInstalled() {
+            tvInstalled.text = context.getString(R.string.om_apk_not_installed)
+            tvInstalled.setTextColor(Color.parseColor("#E57373"))
+            showInstalledRows(false)
+        }
 
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                            tvMinSdk.text = "Android ${getSdkName(appInfo.minSdkVersion)} (API ${appInfo.minSdkVersion})"
-                        } else {
-                            tvMinSdk.text = "API ?"
-                        }
-                        tvTargetSdk.text = "Android ${getSdkName(appInfo.targetSdkVersion)} (API ${appInfo.targetSdkVersion})"
-                    } else {
-                        tvLabel.text = file.name
-                        ivIcon.setImageResource(R.drawable.file_apk_icon)
-                        tvMinSdk.text = "-"
-                        tvTargetSdk.text = "-"
-                    }
-
-                    tvPackage.text = packageInfo.packageName ?: file.name
-                    tvVersion.text = "v${packageInfo.versionName ?: "1.0"}"
-                    tvVersionCode.text = packageInfo.longVersionCodeCompat.toString()
-
-                    val sigCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        packageInfo.signingInfo?.apkContentsSigners?.size ?: 0
-                    } else {
-                        @Suppress("DEPRECATION")
-                        packageInfo.signatures?.size ?: 0
-                    }
-                    tvSignature.text = getString(if (sigCount > 0) R.string.om_apk_sig_valid else R.string.om_apk_sig_unsigned)
-
-                    // Check if installed
-                    val pkgName = packageInfo.packageName
-                    if (pkgName != null) {
-                        try {
-                            val installedSigFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                PackageManager.GET_SIGNING_CERTIFICATES
-                            } else {
-                                @Suppress("DEPRECATION")
-                                PackageManager.GET_SIGNATURES
-                            }
-                            val installedInfo = packageManager.getPackageInfo(pkgName, installedSigFlags)
-                            val apkSigSha = getSigningCertSha256(packageInfo)
-                            val installedSigSha = getSigningCertSha256(installedInfo)
-                            hasSignatureMismatch = apkSigSha != null && installedSigSha != null && apkSigSha != installedSigSha
-                            if (hasSignatureMismatch) {
-                                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat}) • " + context.getString(R.string.om_apk_other_signature)
-                                tvInstalled.setTextColor(Color.parseColor("#FFB74D"))
-                            } else {
-                                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat})"
-                                tvInstalled.setTextColor(Color.parseColor("#81C784"))
-                            }
-
-                            val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                            val installedAppInfo = installedInfo.applicationInfo
-                            if (installedAppInfo != null) {
-                                tvDataDir?.text = installedAppInfo.dataDir ?: "-"
-                                tvApkPath?.text = installedAppInfo.sourceDir ?: "-"
-                                tvUid?.text = installedAppInfo.uid.toString()
-                            }
-                            tvFirstInstall?.text = dateFormat.format(Date(installedInfo.firstInstallTime))
-                            tvLastUpdate?.text = dateFormat.format(Date(installedInfo.lastUpdateTime))
-
-                            rowDataDir?.isVisible = true
-                            rowApkPath?.isVisible = true
-                            rowFirstInstall?.isVisible = true
-                            rowLastUpdate?.isVisible = true
-                            rowUid?.isVisible = true
-                        } catch (e: Exception) {
-                            tvInstalled.text = context.getString(R.string.om_apk_not_installed)
-                            tvInstalled.setTextColor(Color.parseColor("#E57373"))
-                            rowDataDir?.isVisible = false
-                            rowApkPath?.isVisible = false
-                            rowFirstInstall?.isVisible = false
-                            rowLastUpdate?.isVisible = false
-                            rowUid?.isVisible = false
-                        }
-                    } else {
-                        tvInstalled.text = context.getString(R.string.om_apk_not_installed)
-                        tvInstalled.setTextColor(Color.parseColor("#E57373"))
-                        rowDataDir?.isVisible = false
-                        rowApkPath?.isVisible = false
-                        rowFirstInstall?.isVisible = false
-                        rowLastUpdate?.isVisible = false
-                        rowUid?.isVisible = false
-                    }
-                } else {
-                    tvLabel.text = file.name
-                    ivIcon.setImageResource(R.drawable.file_apk_icon)
-                    tvPackage.text = file.name
-                    tvVersion.text = "-"
-                    tvVersionCode.text = "-"
-                    tvSignature.text = "-"
-                    tvMinSdk.text = "-"
-                    tvTargetSdk.text = "-"
-                    tvInstalled.text = context.getString(R.string.om_apk_not_installed)
-                    tvInstalled.setTextColor(Color.parseColor("#E57373"))
-                    rowDataDir?.isVisible = false
-                    rowApkPath?.isVisible = false
-                    rowFirstInstall?.isVisible = false
-                    rowLastUpdate?.isVisible = false
-                    rowUid?.isVisible = false
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        fun showUnreadable() {
             tvLabel.text = file.name
             ivIcon.setImageResource(R.drawable.file_apk_icon)
             tvPackage.text = file.name
@@ -298,13 +178,76 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             tvSignature.text = "-"
             tvMinSdk.text = "-"
             tvTargetSdk.text = "-"
-            tvInstalled.text = context.getString(R.string.om_apk_not_installed)
-            tvInstalled.setTextColor(Color.parseColor("#E57373"))
-            rowDataDir?.isVisible = false
-            rowApkPath?.isVisible = false
-            rowFirstInstall?.isVisible = false
-            rowLastUpdate?.isVisible = false
-            rowUid?.isVisible = false
+            showNotInstalled()
+        }
+
+        // The dialog opens at once with the name and size; the rest is read in the background.
+        // Checking the signature reads the whole APK (seconds for a 1 GB one): it comes last and
+        // fills in its row when done, instead of freezing the screen before the dialog appears.
+        tvLabel.text = file.name
+        ivIcon.setImageResource(R.drawable.file_apk_icon)
+        for (textView in listOf(tvPackage, tvVersion, tvVersionCode, tvMinSdk, tvTargetSdk, tvInstalled)) {
+            textView.text = "…"
+        }
+        tvSignature.text = getString(R.string.om_apk_checking_signature)
+        showInstalledRows(false)
+
+        lifecycleScope.launch {
+            val basic = withContext(Dispatchers.IO) { readBasicApkInfo(file) }
+            if (!isAdded) return@launch
+            val packageInfo = basic?.packageInfo
+            if (basic == null || packageInfo == null) {
+                showUnreadable()
+                return@launch
+            }
+            parsedPackageName = packageInfo.packageName
+            tvLabel.text = basic.label ?: file.name
+            if (basic.icon != null) ivIcon.setImageDrawable(basic.icon) else ivIcon.setImageResource(R.drawable.file_apk_icon)
+            val appInfo = packageInfo.applicationInfo
+            if (appInfo != null) {
+                tvMinSdk.text = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    "Android ${getSdkName(appInfo.minSdkVersion)} (API ${appInfo.minSdkVersion})"
+                } else {
+                    "API ?"
+                }
+                tvTargetSdk.text = "Android ${getSdkName(appInfo.targetSdkVersion)} (API ${appInfo.targetSdkVersion})"
+            } else {
+                tvMinSdk.text = "-"
+                tvTargetSdk.text = "-"
+            }
+            tvPackage.text = packageInfo.packageName ?: file.name
+            tvVersion.text = "v${packageInfo.versionName ?: "1.0"}"
+            tvVersionCode.text = packageInfo.longVersionCodeCompat.toString()
+
+            val installedInfo = basic.installed
+            if (installedInfo != null) {
+                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat})"
+                tvInstalled.setTextColor(Color.parseColor("#81C784"))
+                val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                installedInfo.applicationInfo?.let { installedAppInfo ->
+                    tvDataDir?.text = installedAppInfo.dataDir ?: "-"
+                    tvApkPath?.text = installedAppInfo.sourceDir ?: "-"
+                    tvUid?.text = installedAppInfo.uid.toString()
+                }
+                tvFirstInstall?.text = dateFormat.format(Date(installedInfo.firstInstallTime))
+                tvLastUpdate?.text = dateFormat.format(Date(installedInfo.lastUpdateTime))
+                showInstalledRows(true)
+            } else {
+                showNotInstalled()
+            }
+
+            val signature = withContext(Dispatchers.IO) { readSignatureInfo(file, packageInfo.packageName) }
+            if (!isAdded) return@launch
+            tvSignature.text = getString(
+                if (signature.signerCount > 0) R.string.om_apk_sig_valid else R.string.om_apk_sig_unsigned
+            )
+            hasSignatureMismatch = signature.apkSha256 != null && signature.installedSha256 != null &&
+                signature.apkSha256 != signature.installedSha256
+            if (hasSignatureMismatch && installedInfo != null) {
+                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat}) • " +
+                    context.getString(R.string.om_apk_other_signature)
+                tvInstalled.setTextColor(Color.parseColor("#FFB74D"))
+            }
         }
 
         val isRootAvailable = ApkInstallHelper.isRootAvailable()
@@ -628,6 +571,77 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             if (targetDir != null) {
                 (activity as? FileListActivity)?.activeFragment?.reload()
             }
+        }
+    }
+
+    private class BasicApkInfo(
+        val packageInfo: PackageInfo?,
+        val label: String?,
+        val icon: android.graphics.drawable.Drawable?,
+        val installed: PackageInfo?
+    )
+
+    private class SignatureInfo(
+        val signerCount: Int,
+        val apkSha256: String?,
+        val installedSha256: String?
+    )
+
+    /** Manifest, label and icon only (fast: no signature check), plus the installed version. */
+    private fun readBasicApkInfo(file: FileItem): BasicApkInfo? = try {
+        val packageManager = requireContext().packageManager
+        val (packageInfo, closeable) = packageManager.getPackageArchiveInfoCompat(file.path, 0)
+        closeable.use {
+            if (packageInfo == null) {
+                BasicApkInfo(null, null, null, null)
+            } else {
+                val appInfo = packageInfo.applicationInfo
+                appInfo?.let {
+                    try {
+                        it.sourceDir = file.path.toUserFriendlyString()
+                        it.publicSourceDir = file.path.toUserFriendlyString()
+                    } catch (_: Exception) {
+                    }
+                }
+                val label = appInfo?.let { runCatching { it.loadLabel(packageManager).toString() }.getOrNull() }
+                val icon = appInfo?.let { runCatching { it.loadIcon(packageManager) }.getOrNull() }
+                val installed = packageInfo.packageName?.let {
+                    runCatching { packageManager.getPackageInfo(it, 0) }.getOrNull()
+                }
+                BasicApkInfo(packageInfo, label, icon, installed)
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
+
+    /** The slow part: reads and verifies the whole APK to get its signer. */
+    private fun readSignatureInfo(file: FileItem, packageName: String?): SignatureInfo {
+        val packageManager = context?.packageManager ?: return SignatureInfo(0, null, null)
+        @Suppress("DEPRECATION")
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            PackageManager.GET_SIGNATURES
+        }
+        return try {
+            val (packageInfo, closeable) = packageManager.getPackageArchiveInfoCompat(file.path, flags)
+            closeable.use {
+                val signerCount = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    packageInfo?.signingInfo?.apkContentsSigners?.size ?: 0
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageInfo?.signatures?.size ?: 0
+                }
+                val installedSha = packageName?.let {
+                    runCatching { getSigningCertSha256(packageManager.getPackageInfo(it, flags)) }.getOrNull()
+                }
+                SignatureInfo(signerCount, getSigningCertSha256(packageInfo), installedSha)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            SignatureInfo(0, null, null)
         }
     }
 

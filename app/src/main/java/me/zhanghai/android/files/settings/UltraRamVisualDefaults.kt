@@ -10,17 +10,27 @@ import me.zhanghai.android.files.theme.custom.OpenManagerPalette
 import me.zhanghai.android.files.util.valueCompat
 
 /**
- * Ultra RAM mode also picks the lightest look: classic (non Material 3) theme and the same
- * background on both panels (less overdraw). The user's own choices are remembered and put back
- * when the mode is turned off, unless they changed them while it was on.
+ * Ultra RAM mode also picks the lightest look: classic (non Material 3) theme, the same
+ * background on both panels (less overdraw) and file icons instead of thumbnails. The user's own
+ * choices are remembered and put back when the mode is turned off. While it is on, Material 3
+ * stays locked; thumbnails can be turned back on and then load in a light way (small, cached on
+ * disk, one at a time, only when the list stops).
  */
 object UltraRamVisualDefaults {
 
-    data class Visual(val materialDesign3: Boolean, val dualPanelContrast: String)
+    data class Visual(
+        val materialDesign3: Boolean,
+        val dualPanelContrast: String,
+        val thumbnailLoadMode: String = THUMBNAILS_FULL
+    )
+
+    const val THUMBNAILS_FULL = "0"
+    const val THUMBNAILS_ICONS_ONLY = "2"
 
     val ULTRA = Visual(
         materialDesign3 = false,
-        dualPanelContrast = OpenManagerPalette.PANEL_CONTRAST_UNIFORM.toString()
+        dualPanelContrast = OpenManagerPalette.PANEL_CONTRAST_UNIFORM.toString(),
+        thumbnailLoadMode = THUMBNAILS_ICONS_ONLY
     )
 
     /** What to apply now, and what to keep remembered for later. */
@@ -44,6 +54,11 @@ object UltraRamVisualDefaults {
                         remembered.dualPanelContrast
                     } else {
                         current.dualPanelContrast
+                    },
+                    thumbnailLoadMode = if (current.thumbnailLoadMode == ULTRA.thumbnailLoadMode) {
+                        remembered.thumbnailLoadMode
+                    } else {
+                        current.thumbnailLoadMode
                     }
                 ),
                 remember = null
@@ -56,12 +71,17 @@ object UltraRamVisualDefaults {
         val remembered = if (prefs.getBoolean(KEY_SAVED, false)) {
             Visual(
                 prefs.getBoolean(KEY_MD3, false),
-                prefs.getString(KEY_CONTRAST, null) ?: OpenManagerPalette.PANEL_CONTRAST_STANDARD.toString()
+                prefs.getString(KEY_CONTRAST, null) ?: OpenManagerPalette.PANEL_CONTRAST_STANDARD.toString(),
+                prefs.getString(KEY_THUMBNAILS, null) ?: THUMBNAILS_FULL
             )
         } else {
             null
         }
-        val current = Visual(Settings.MATERIAL_DESIGN_3.valueCompat, Settings.DUAL_PANEL_CONTRAST.valueCompat)
+        val current = Visual(
+            Settings.MATERIAL_DESIGN_3.valueCompat,
+            Settings.DUAL_PANEL_CONTRAST.valueCompat,
+            Settings.THUMBNAIL_LOAD_MODE.valueCompat
+        )
         val plan = plan(enabled, current, remembered)
         prefs.edit().apply {
             val keep = plan.remember
@@ -71,10 +91,14 @@ object UltraRamVisualDefaults {
                 putBoolean(KEY_SAVED, true)
                 putBoolean(KEY_MD3, keep.materialDesign3)
                 putString(KEY_CONTRAST, keep.dualPanelContrast)
+                putString(KEY_THUMBNAILS, keep.thumbnailLoadMode)
             }
         }.apply()
         if (plan.apply.dualPanelContrast != current.dualPanelContrast) {
             Settings.DUAL_PANEL_CONTRAST.putValue(plan.apply.dualPanelContrast)
+        }
+        if (plan.apply.thumbnailLoadMode != current.thumbnailLoadMode) {
+            Settings.THUMBNAIL_LOAD_MODE.putValue(plan.apply.thumbnailLoadMode)
         }
         if (plan.apply.materialDesign3 != current.materialDesign3) {
             Settings.MATERIAL_DESIGN_3.putValue(plan.apply.materialDesign3)
@@ -86,4 +110,5 @@ object UltraRamVisualDefaults {
     private const val KEY_SAVED = "saved"
     private const val KEY_MD3 = "material_design_3"
     private const val KEY_CONTRAST = "dual_panel_contrast"
+    private const val KEY_THUMBNAILS = "thumbnail_load_mode"
 }

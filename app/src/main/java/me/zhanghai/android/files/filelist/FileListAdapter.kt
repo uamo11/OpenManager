@@ -33,6 +33,8 @@ import me.zhanghai.android.files.databinding.FileItemListBinding
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.formatMtDateWithOptions
 import me.zhanghai.android.files.file.isApk
+import me.zhanghai.android.files.file.isImage
+import me.zhanghai.android.files.file.isVideo
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.common.PosixFileAttributes
 import me.zhanghai.android.files.provider.common.isEncrypted
@@ -241,7 +243,10 @@ class FileListAdapter(
         if (_isFlinging == flinging) return
         val stoppedFlinging = _isFlinging && !flinging
         _isFlinging = flinging
-        if (stoppedFlinging && FileListEngine.shouldDeferThumbnailsDuringFling(thumbnailLoadMode, itemCount)) {
+        if (stoppedFlinging && FileListEngine.shouldDeferThumbnailsDuringFling(
+                thumbnailLoadMode, itemCount, visualPerformanceMode
+            ) && thumbnailLoadMode != 2
+        ) {
             val range = SettingsUiLogic.computeVisibleRefreshRange(firstVisible, lastVisible, itemCount)
             if (range != null) {
                 notifyItemRangeChanged(
@@ -374,6 +379,60 @@ class FileListAdapter(
             return count
         }
 
+    /**
+     * Gallery view: photos and videos become large squares without the name bar, with a small
+     * resolution label (4K, 2K, 1080p...) read in the background. Folders and other files keep
+     * their name so they can still be told apart.
+     */
+    private fun applyGalleryLayout(holder: ViewHolder, file: FileItem, isParent: Boolean) {
+        val frame = holder.thumbnailFrame ?: return
+        val gallery = viewType == FileViewType.GALLERY
+        val mediaTile = gallery && !isParent && (file.mimeType.isImage || file.mimeType.isVideo)
+        frame.ratio = if (gallery) 1f else GRID_THUMBNAIL_RATIO
+        holder.nameBar?.isVisible = !mediaTile
+        val badge = holder.resolutionBadge ?: return
+        badge.isVisible = false
+        if (!mediaTile) return
+        val path = file.path
+        val modified = file.attributes.lastModifiedTime().toMillis()
+        val known = MediaResolution.cached(path, modified)
+        if (known != null) {
+            badge.text = known
+            badge.isVisible = known.isNotEmpty()
+            return
+        }
+        MediaResolution.request(path, modified, file.mimeType.isVideo) { label ->
+            if (label != null && holder.boundFile?.path == path) {
+                badge.text = label
+                badge.isVisible = true
+            }
+        }
+    }
+
+    /** Whether ([x], [y]) in [recyclerView] falls on the icon of [holder] (a bit wider). */
+    fun isOnIcon(recyclerView: RecyclerView, holder: RecyclerView.ViewHolder, x: Float, y: Float): Boolean {
+        val row = holder as? ViewHolder ?: return false
+        if (row.isParentItem || row.boundFile == null) return false
+        // Gallery tiles have no name bar: the picture itself is the handle.
+        val icon = if (row.nameBar?.isVisible == false) row.thumbnailFrame ?: row.iconLayout else row.iconLayout
+        if (!icon.isShown) return false
+        val rect = android.graphics.Rect()
+        icon.getDrawingRect(rect)
+        recyclerView.offsetDescendantRectToMyCoords(icon, rect)
+        val slack = (12 * recyclerView.resources.displayMetrics.density).toInt()
+        rect.inset(-slack, 0)
+        return rect.contains(x.toInt(), y.toInt())
+    }
+
+    /** Adds the item at [position] to the selection (swipe selection); false if not selectable. */
+    fun selectAt(position: Int): Boolean {
+        if (position !in 0 until itemCount) return false
+        val file = getItem(position)
+        if (file.isParentDirectoryItem || !isFileSelectable(file)) return false
+        if (file !in selectedFiles) listener.selectFile(file, true)
+        return true
+    }
+
     fun isFileSelectable(file: FileItem): Boolean {
         if (file.isParentDirectoryItem) {
             return false
@@ -443,17 +502,24 @@ class FileListAdapter(
         val inflater = parent.context.layoutInflater
         val holder = when (viewType) {
             FileViewType.LIST -> ViewHolder(FileItemListBinding.inflate(inflater, parent, false))
-            FileViewType.GRID -> ViewHolder(FileItemGridBinding.inflate(inflater, parent, false))
+            FileViewType.GRID, FileViewType.GALLERY -> {
+                val binding = FileItemGridBinding.inflate(inflater, parent, false)
+                ViewHolder(binding).also {
+                    it.thumbnailFrame = binding.thumbnailFrame
+                    it.nameBar = binding.nameBar
+                    it.resolutionBadge = binding.resolutionBadge
+                }
+            }
         }
         return holder.apply {
             itemLayout.apply {
                 val context = context
                 val isMaterial3Theme = context.isMaterial3Theme
-                if (viewType == FileViewType.GRID && isMaterial3Theme) {
+                if (viewType != FileViewType.LIST && isMaterial3Theme) {
                     foregroundCompat =
                         context.getDrawableCompat(R.drawable.file_item_grid_foreground_material3)
                 }
-                background = if (viewType == FileViewType.GRID && isMaterial3Theme) {
+                background = if (viewType != FileViewType.LIST && isMaterial3Theme) {
                     CheckableItemBackground.create(4f, 12f, context)
                 } else {
                     CheckableItemBackground.create(0f, 0f, context)
@@ -467,38 +533,48 @@ class FileListAdapter(
                     )
                 }
             }
+            // Both panels share one pool of recycled rows: a row made by the other panel's
+            // adapter can be shown here. The listeners therefore act through the adapter the row
+            // is bound to now, never the one that created it (that made ".." and taps act on the
+            // opposite panel after rows were recycled, e.g. following a delete).
             itemLayout.setOnClickListener {
+                val owner = bindingAdapter as? FileListAdapter ?: return@setOnClickListener
                 if (isParentItem) {
-                    listener.navigateUp()
+                    owner.listener.navigateUp()
                 } else {
                     val bound = boundFile ?: return@setOnClickListener
-                    if (selectedFiles.isEmpty()) {
-                        listener.openFile(bound)
+                    if (owner.selectedFiles.isEmpty()) {
+                        owner.listener.openFile(bound)
                     } else {
-                        selectFile(bound)
+                        owner.selectFile(bound)
                     }
                 }
             }
             itemLayout.setOnLongClickListener {
+                val owner = bindingAdapter as? FileListAdapter ?: return@setOnLongClickListener false
                 if (isParentItem) {
                     false
                 } else {
                     val bound = boundFile ?: return@setOnLongClickListener false
-                    listener.showMtMenu(bound)
+                    owner.listener.showMtMenu(bound)
                     true
                 }
             }
-            iconLayout.setOnClickListener {
-                if (isParentItem) {
-                    listener.navigateUp()
-                } else {
-                    val bound = boundFile ?: return@setOnClickListener
-                    selectFile(bound)
-                }
+            // A tap on the icon is a tap on the row (open, or toggle while selecting): selecting
+            // by a mere touch of the icon was too easy to do by accident. Selection is a swipe
+            // across the icon (see IconSwipeSelectHelper) or holding the icon.
+            iconLayout.setOnClickListener { itemLayout.performClick() }
+            iconLayout.setOnLongClickListener {
+                val owner = bindingAdapter as? FileListAdapter ?: return@setOnLongClickListener false
+                if (isParentItem) return@setOnLongClickListener false
+                val bound = boundFile ?: return@setOnLongClickListener false
+                owner.selectFile(bound)
+                true
             }
             menuButton.setOnClickListener {
+                val owner = bindingAdapter as? FileListAdapter ?: return@setOnClickListener
                 val bound = boundFile ?: return@setOnClickListener
-                showItemPopupMenu(this, bound)
+                owner.showItemPopupMenu(this, bound)
             }
         }
     }
@@ -523,6 +599,7 @@ class FileListAdapter(
             holder.itemLayout.isChecked = checked
         }
         applySizeAndTheme(holder, isParent)
+        applyGalleryLayout(holder, file, isParent)
         if (isParent) {
             holder.isParentItem = true
             holder.boundFile = null
@@ -658,9 +735,11 @@ class FileListAdapter(
         }
         holder.directoryThumbnailImage?.isVisible = isDirectory
         holder.thumbnailOutlineView?.isVisible = !isDirectory
-        val deferForFling = isFlinging &&
-            FileListEngine.shouldDeferThumbnailsDuringFling(thumbnailLoadMode, itemCount)
-        val canDecodeBitmaps = !visualPerformanceMode && thumbnailLoadMode != 2 && !deferForFling
+        val canDecodeBitmaps = FileListEngine.canDecodeThumbnails(
+            thumbnailLoadMode, visualPerformanceMode, isFlinging, itemCount
+        )
+        // Ultra RAM: 16-bit thumbnails when there is no transparency (half the memory).
+        val lightBitmaps = visualPerformanceMode
         val supportsThumbnail = file.supportsThumbnail && canDecodeBitmaps
         val shouldLoadThumbnailIcon = supportsThumbnail && holder.thumbnailIconImage != null &&
             file.mimeType.isApk
@@ -681,6 +760,7 @@ class FileListAdapter(
                 load(path to attributes) {
                     size(iconTargetPx, iconTargetPx)
                     crossfade(allowCrossfade)
+                    allowRgb565(lightBitmaps)
                 }
             }
         }
@@ -696,6 +776,7 @@ class FileListAdapter(
                 load(AppIconPackageName(appDirectoryPackageName)) {
                     size(iconTargetPx, iconTargetPx)
                     crossfade(allowCrossfade)
+                    allowRgb565(lightBitmaps)
                     listener(
                         onSuccess = { _, _ -> holder.iconImage.isVisible = false },
                         onError = { _, _ ->
@@ -715,6 +796,7 @@ class FileListAdapter(
                     load(path to attributes) {
                         size(thumbTargetPx, thumbTargetPx)
                         crossfade(allowCrossfade)
+                        allowRgb565(lightBitmaps)
                         listener { _, _ ->
                             val targetIcon = holder.thumbnailIconImage ?: holder.iconImage
                             targetIcon.isVisible = false
@@ -1038,6 +1120,9 @@ class FileListAdapter(
         get() = Settings.FILE_LIST_ANIMATION.valueCompat && !visualPerformanceMode && itemCount <= 150
 
     companion object {
+        /** Thumbnail shape of the normal grid (from file_item_grid.xml). */
+        private const val GRID_THUMBNAIL_RATIO = 1.78f
+
         private val PAYLOAD_STATE_CHANGED = Any()
         private val PAYLOAD_CONTENT_REFRESH = Any()
 
@@ -1098,6 +1183,10 @@ class FileListAdapter(
         )
 
         var popupMenu: PopupMenu? = null
+        // Grid and gallery only.
+        var thumbnailFrame: me.zhanghai.android.files.ui.AspectRatioFrameLayout? = null
+        var nameBar: View? = null
+        var resolutionBadge: TextView? = null
         var boundFile: FileItem? = null
         var isParentItem: Boolean = false
         var appliedStyleVersion: Int = -1

@@ -262,8 +262,8 @@
         <item>Fundo uniforme (leve para a GPU)</item>
     </string-array>
     <string name="settings_visual_performance_mode_title">Modo de alto desempenho (UI / Ultra RAM)</string>
-    <string name="settings_visual_performance_mode_summary">Desativa animações pesadas, miniaturas e caches em segundo plano em todo o app para ele voar com pouquíssima RAM</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM ativo · App %1$s · Zero bitmaps, transições de 0 ms, limpeza nativa e caches mínimos em todas as telas</string>
+    <string name="settings_visual_performance_mode_summary">Desativa animações pesadas, Material 3 e caches em segundo plano em todo o app. As miniaturas começam desligadas e podem ser ativadas no modo leve (pequenas e em cache)</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM ativo · App %1$s · Transições de 0 ms, limpeza nativa e caches mínimos; miniaturas só se você ativar (modo leve)</string>
     <string name="settings_thumbnail_load_mode_title">Renderização de miniaturas e ícones</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Completa (padrão)</item>
@@ -2433,4 +2433,7 @@
     <string name="om_pdf_keep_screen_on">Manter a tela ligada</string>
     <string name="om_pdf_resumed_at">Continuando da página %1$d</string>
     <string name="om_pdf_from_start">Do início</string>
+    <string name="om_md3_locked_by_ultra_ram">Desativado enquanto o modo Ultra RAM estiver ativo (usa mais memória)</string>
+    <string name="om_apk_checking_signature">Verificando…</string>
+    <string name="om_menu_gallery_view">Visualização em galeria (esta pasta)</string>
 </resources>

@@ -1081,8 +1081,8 @@
         <item>Uniform background (GPU friendly)</item>
     </string-array>
     <string name="settings_visual_performance_mode_title">High performance mode (UI / Ultra RAM)</string>
-    <string name="settings_visual_performance_mode_summary">Disables heavy animations, thumbnails &amp; background caches across the entire app so it flies with ultra-low RAM</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM active · App %1$s · Zero bitmaps, 0ms transitions, native purge &amp; minimal caches across all screens</string>
+    <string name="settings_visual_performance_mode_summary">Turns off heavy animations, Material 3 and background caches across the app. Thumbnails start off and can be turned on in a light way (small and cached)</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM active · App %1$s · 0 ms transitions, native purge, minimal caches; thumbnails only if you turn them on (light mode)</string>
     <string name="settings_thumbnail_load_mode_title">Thumbnail &amp; icon rendering</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Full (Default)</item>
@@ -3343,4 +3343,7 @@
     <string name="om_pdf_keep_screen_on">Keep screen on</string>
     <string name="om_pdf_resumed_at">Continuing from page %1$d</string>
     <string name="om_pdf_from_start">From the start</string>
+    <string name="om_md3_locked_by_ultra_ram">Off while Ultra RAM mode is on (it uses more memory)</string>
+    <string name="om_apk_checking_signature">Checking…</string>
+    <string name="om_menu_gallery_view">Gallery view (this folder)</string>
 </resources>

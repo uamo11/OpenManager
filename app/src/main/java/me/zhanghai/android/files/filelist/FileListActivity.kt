@@ -147,12 +147,14 @@ class FileListActivity : AppActivity() {
         val budget = PerformanceModeManager.currentBudget
         setMaxRecycledViews(0, budget.fileListPoolList)
         setMaxRecycledViews(1, budget.fileListPoolGrid)
+        setMaxRecycledViews(2, budget.fileListPoolGrid)
     }
 
     private fun applyPerformanceModePoolSizing(enabled: Boolean) {
         val budget = PerformanceModeManager.budgetFor(enabled)
         sharedRecycledViewPool.setMaxRecycledViews(0, budget.fileListPoolList)
         sharedRecycledViewPool.setMaxRecycledViews(1, budget.fileListPoolGrid)
+        sharedRecycledViewPool.setMaxRecycledViews(2, budget.fileListPoolGrid) // gallery
         if (enabled) {
             sharedRecycledViewPool.clear()
         }
@@ -1574,6 +1576,7 @@ class FileListActivity : AppActivity() {
             isCheckable = true
             isChecked = showHidden
         }
+        popup.menu.findItem(R.id.mt_menu_gallery_view)?.isChecked = activeFragment.isGalleryView
         popup.menu.findItem(R.id.mt_menu_empty_recycle_bin)?.isVisible =
             activeFragment.currentPath.isInsideRecycleBin
         popup.setOnMenuItemClickListener { item ->
@@ -1608,6 +1611,10 @@ class FileListActivity : AppActivity() {
                 }
                 R.id.mt_menu_sort -> {
                     activeFragment.showSortOptionsDialog()
+                    true
+                }
+                R.id.mt_menu_gallery_view -> {
+                    activeFragment.toggleGalleryView()
                     true
                 }
                 R.id.mt_menu_hidden_files -> {

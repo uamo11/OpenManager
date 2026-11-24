@@ -262,8 +262,8 @@
         <item>Nền đồng nhất (nhẹ cho GPU)</item>
     </string-array>
     <string name="settings_visual_performance_mode_title">Chế độ hiệu năng cao (UI / Ultra RAM)</string>
-    <string name="settings_visual_performance_mode_summary">Tắt hiệu ứng nặng, hình thu nhỏ và bộ nhớ đệm nền trên toàn ứng dụng để chạy mượt với rất ít RAM</string>
-    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM đang bật · Ứng dụng %1$s · Không bitmap, chuyển cảnh 0 ms, dọn native &amp; bộ nhớ đệm tối thiểu ở mọi màn hình</string>
+    <string name="settings_visual_performance_mode_summary">Tắt hiệu ứng nặng, Material 3 và bộ nhớ đệm nền trên toàn ứng dụng. Hình thu nhỏ tắt sẵn và có thể bật ở chế độ nhẹ (nhỏ và được lưu đệm)</string>
+    <string name="settings_visual_performance_mode_active_summary_format">⚡ Ultra RAM đang bật · Ứng dụng %1$s · Chuyển cảnh 0 ms, dọn native, bộ nhớ đệm tối thiểu; hình thu nhỏ chỉ khi bạn bật (chế độ nhẹ)</string>
     <string name="settings_thumbnail_load_mode_title">Hiển thị hình thu nhỏ &amp; biểu tượng</string>
     <string-array name="settings_thumbnail_load_mode_entries">
         <item>Đầy đủ (mặc định)</item>
@@ -2522,4 +2522,7 @@
     <string name="om_pdf_keep_screen_on">Giữ màn hình luôn bật</string>
     <string name="om_pdf_resumed_at">Tiếp tục từ trang %1$d</string>
     <string name="om_pdf_from_start">Từ đầu</string>
+    <string name="om_md3_locked_by_ultra_ram">Tắt khi chế độ Ultra RAM đang bật (tốn nhiều bộ nhớ hơn)</string>
+    <string name="om_apk_checking_signature">Đang kiểm tra…</string>
+    <string name="om_menu_gallery_view">Chế độ thư viện (thư mục này)</string>
 </resources>

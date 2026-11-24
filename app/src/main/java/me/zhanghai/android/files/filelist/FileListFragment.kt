@@ -47,6 +47,7 @@ import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
 import androidx.core.view.GravityCompat
+import androidx.core.view.doOnNextLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updatePaddingRelative
 import androidx.drawerlayout.widget.DrawerLayout
@@ -120,6 +121,7 @@ import me.zhanghai.android.files.provider.archive.createArchiveRootPath
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
+import me.zhanghai.android.files.settings.PathSettings
 import me.zhanghai.android.files.settings.PerformanceModeManager
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.terminal.Terminal
@@ -513,6 +515,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             binding.recyclerView.setRecycledViewPool(it)
         }
         adapter = FileListAdapter(this)
+        // Select by swiping across a file's icon (a tap on it opens the file).
+        binding.recyclerView.addOnItemTouchListener(
+            IconSwipeSelectHelper { if (::adapter.isInitialized) adapter else null }
+        )
         adapter.palette = OpenManagerPalette.from(requireContext())
         adapter.initDateTimeOptions(
             Settings.FILE_LIST_TIME_PREFERENCE.valueCompat,
@@ -1503,7 +1509,32 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 }
                 (widthDp / 180).coerceAtLeast(2)
             }
+            FileViewType.GALLERY -> {
+                // The panel's own width (half the screen in the dual-panel view).
+                val panelWidthPx = binding.recyclerView.width
+                if (panelWidthPx == 0) {
+                    // Not laid out yet: once, when it is (never a retry loop for a hidden panel).
+                    binding.recyclerView.doOnNextLayout { if (isAdded) updateSpanCount() }
+                }
+                val density = resources.displayMetrics.density
+                val panelWidthDp = if (panelWidthPx > 0) {
+                    (panelWidthPx / density).roundToInt()
+                } else {
+                    resources.configuration.screenWidthDp / 2
+                }
+                FileListEngine.galleryColumns(panelWidthDp)
+            }
         }
+    }
+
+    /** Gallery view for this folder only (⋮ menu). */
+    val isGalleryView: Boolean
+        get() = isAdded && viewModel.viewType == FileViewType.GALLERY
+
+    fun toggleGalleryView() {
+        if (!isAdded) return
+        PathSettings.getFileListViewType(currentPath)
+            .putValue(if (isGalleryView) null else FileViewType.GALLERY)
     }
 
     private fun onSortOptionsChanged(sortOptions: FileSortOptions) {
@@ -1530,7 +1561,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val viewType = viewModel.viewType
         val checkedViewTypeItem = when (viewType) {
             FileViewType.LIST -> menuBinding.viewListItem
-            FileViewType.GRID -> menuBinding.viewGridItem
+            FileViewType.GRID, FileViewType.GALLERY -> menuBinding.viewGridItem
         }
         checkedViewTypeItem.isChecked = true
         val sortOptions = viewModel.sortOptions

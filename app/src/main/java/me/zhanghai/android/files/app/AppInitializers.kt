@@ -122,6 +122,10 @@ private fun initializeLiveDataObjects() {
 private fun initializePerformanceMode() {
     val enabled = Settings.VISUAL_PERFORMANCE_MODE.valueCompat
     PerformanceModeManager.initialize(enabled)
+    // Ultra RAM keeps Material 3 off; older versions let it be switched on inside the mode.
+    if (enabled && Settings.MATERIAL_DESIGN_3.valueCompat) {
+        Settings.MATERIAL_DESIGN_3.putValue(false)
+    }
     if (!enabled) {
         // Still registered eagerly (Ultra RAM mode does it lazily), but off the main thread:
         // building the provider and its ~1,500 algorithm entries delayed the first frame.

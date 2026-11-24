@@ -1,3 +1,33 @@
+# OpenManager v2.0.20: Miniaturas en Ultra RAM, Vista Galería y APK Grandes al Instante
+
+### ⚡ Ultra RAM
+- **Miniaturas en modo ligero.** Antes el modo Ultra RAM las apagaba aunque eligieras verlas. Ahora:
+  - al activar Ultra RAM empiezan apagadas (solo iconos);
+  - si las activas, se cargan en modo ligero: al tamaño del icono, en 16 bits, solo cuando la lista se detiene y con una pequeña caché en disco (16 MB máx.) para no volver a extraer fotogramas de vídeo, iconos de APK o páginas de PDF.
+  - Al desactivar Ultra RAM vuelve tu elección anterior.
+- **Material 3 queda bloqueado** mientras Ultra RAM está activo, con una nota que explica por qué. Antes se podía activar dentro del modo y deshacía parte del ahorro. Si lo tenías activado así, se apaga al actualizar.
+
+### 🖼️ Vista galería (por carpeta)
+- Nueva opción en ⋮: **«Vista galería (esta carpeta)»**. Muestra fotos y vídeos en cuadrados grandes, sin nombres, para apreciar las miniaturas.
+- Una etiqueta pequeña indica la resolución (**8K, 4K, 2K, 1080p, 720p**) sin tapar la imagen. Se lee solo la cabecera del archivo, en segundo plano.
+- Solo afecta a esa carpeta. Las carpetas y otros archivos conservan su nombre.
+
+### 📦 APK grandes
+- Al tocar un APK pesado (1 GB) el diálogo se abre **al instante**. Antes la app comprobaba la firma leyendo el APK entero antes de mostrar nada.
+- Nombre, icono, versión y SDK salen enseguida; la firma muestra «Comprobando…» y se completa cuando termina en segundo plano.
+
+### 👆 Seleccionar archivos
+- **Tocar el icono ya no selecciona**: abre el archivo, como tocar su nombre.
+- Para seleccionar:
+  - **desliza el dedo de lado sobre el icono**;
+  - sigue arrastrando arriba o abajo para seleccionar varios, y la lista avanza sola en los bordes;
+  - o **mantén pulsado el icono**.
+- Mantener pulsado el resto de la fila sigue abriendo el menú.
+
+### ↩️ El «..» actuaba en el otro panel
+- Tras borrar archivos, el «..», abrir o seleccionar podía actuar en el panel contrario. Los dos paneles comparten las filas recicladas para ahorrar memoria, y cada fila recordaba el panel que la creó. Ahora cada toque actúa siempre en el panel donde está la fila.
+
+
 # OpenManager v2.0.19: Lector de PDF Mejorado y «Atrás» Siempre en el Panel Correcto
 
 ### 📄 Lector de PDF

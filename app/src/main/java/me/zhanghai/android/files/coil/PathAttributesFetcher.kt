@@ -11,8 +11,10 @@ import android.media.MediaMetadataRetriever
 import android.os.ParcelFileDescriptor
 import androidx.core.graphics.drawable.toDrawable
 import coil.ImageLoader
+import coil.decode.DataSource
 import coil.decode.ImageSource
 import coil.fetch.DrawableResult
+import me.zhanghai.android.files.settings.PerformanceModeManager
 import coil.fetch.FetchResult
 import coil.fetch.Fetcher
 import coil.fetch.SourceResult
@@ -70,6 +72,30 @@ class PathAttributesFetcher(
     private val pdfPageFetcherFactory: PdfPageFetcher.Factory<Path>
 ) : Fetcher {
     override suspend fun fetch(): FetchResult? {
+        val (path, attributes) = data
+        val (width, height) = options.size
+        val px = maxOf((width as? Dimension.Pixels)?.px ?: 0, (height as? Dimension.Pixels)?.px ?: 0)
+        // Ultra RAM: the memory cache is tiny, so expensive thumbnails (video frame, APK icon,
+        // PDF page) are kept as small files instead of being made again on every scroll back.
+        if (!PerformanceModeManager.isEnabled || px !in 1..512) return fetchUncached()
+        val context = options.context
+        val key = ThumbnailDiskCache.key(
+            path.toString(), attributes.lastModifiedInstant.toEpochMilli(), attributes.size(), px
+        )
+        ThumbnailDiskCache.get(context, key)?.let { file ->
+            val bitmap = android.graphics.BitmapFactory.decodeFile(file.path)
+            if (bitmap != null) {
+                return DrawableResult(bitmap.toDrawable(context.resources), true, DataSource.DISK)
+            }
+        }
+        val result = fetchUncached()
+        if (result is DrawableResult) {
+            ThumbnailDiskCache.put(context, key, result.drawable, px)
+        }
+        return result
+    }
+
+    private suspend fun fetchUncached(): FetchResult? {
         val (path, attributes) = data
         val (width, height) = options.size
         // @see android.provider.MediaStore.ThumbnailConstants.MINI_SIZE

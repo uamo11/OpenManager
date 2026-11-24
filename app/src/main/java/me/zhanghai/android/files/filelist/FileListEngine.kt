@@ -152,6 +152,32 @@ object FileListEngine {
         }
     }
 
-    fun shouldDeferThumbnailsDuringFling(thumbnailLoadMode: Int, itemCount: Int): Boolean =
-        thumbnailLoadMode == 1 || (thumbnailLoadMode == 0 && itemCount >= LARGE_LIST_FLING_THRESHOLD)
+    fun shouldDeferThumbnailsDuringFling(
+        thumbnailLoadMode: Int,
+        itemCount: Int,
+        ultraRam: Boolean = false
+    ): Boolean =
+        ultraRam || thumbnailLoadMode == 1 ||
+            (thumbnailLoadMode == 0 && itemCount >= LARGE_LIST_FLING_THRESHOLD)
+
+    /**
+     * Whether the list decodes thumbnails now. "Icons only" never does. Ultra RAM used to turn
+     * them off whatever was chosen; now they follow the choice there too, in a light way: never
+     * while the list flings, at icon size and 16-bit, with a small disk cache.
+     */
+    fun canDecodeThumbnails(
+        thumbnailLoadMode: Int,
+        ultraRam: Boolean,
+        flinging: Boolean,
+        itemCount: Int
+    ): Boolean {
+        if (thumbnailLoadMode == 2) return false
+        return !(flinging && shouldDeferThumbnailsDuringFling(thumbnailLoadMode, itemCount, ultraRam))
+    }
+
+    /**
+     * Gallery columns for a panel [panelWidthDp] wide: squares of about 110 dp, at least two.
+     * (Half a phone screen gives two tiles of ~100 dp, far larger than the grid's pictures.)
+     */
+    fun galleryColumns(panelWidthDp: Int): Int = (panelWidthDp / 110).coerceIn(2, 8)
 }

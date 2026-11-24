@@ -1534,6 +1534,177 @@ else
     fail "no 'om_bm_target' in the left panel"
 fi
 
+log "=== Ultra RAM: thumbnails can be turned on (light, cached); Material 3 locked ==="
+adb shell am force-stop $PKG; sleep 1
+thumb_before=$(pref_value key_thumbnail_load_mode)
+adb shell am start -W -n $SETTINGS --es DEMO_PERF_MODE on >/dev/null 2>&1; sleep 5
+thumb_on=$(pref_value key_thumbnail_load_mode)
+if [ "$thumb_on" = "2" ]; then
+    pass "Ultra RAM starts with file icons instead of thumbnails"
+else
+    fail "Ultra RAM did not start with icons only (thumbnail mode=$thumb_on)"
+fi
+# Material 3 cannot be switched on while Ultra RAM is on.
+md3_state=""
+for _ in $(seq 1 25); do
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    md3_state=$(adb shell cat /data/local/tmp/ui.xml | tr -d '\r' | python3 -c '
+import re, sys, html
+xml = sys.stdin.read()
+nodes = re.findall(r"<node [^>]*>", xml)
+for i, n in enumerate(nodes):
+    t = re.search(r" text=\"([^\"]*)\"", n)
+    if t and html.unescape(t.group(1)) == "Material Design 3":
+        # The row (an ancestor listed before) carries the enabled state of the preference.
+        for m in reversed(nodes[max(0, i - 6):i + 1]):
+            if " clickable=\"true\"" in m or "android.widget.Switch" in m:
+                print("enabled" if " enabled=\"true\"" in m else "disabled"); sys.exit(0)
+        print("enabled" if " enabled=\"true\"" in n else "disabled"); sys.exit(0)
+')
+    [ -n "$md3_state" ] && break
+    adb shell input swipe 540 1800 540 700 250; sleep 1
+done
+shot 46_settings_md3_locked
+if [ "$md3_state" = "disabled" ]; then
+    pass "Material 3 is locked while Ultra RAM is on"
+else
+    fail "Material 3 can still be switched on in Ultra RAM (${md3_state:-not found})"
+fi
+# The user turns thumbnails back on inside Ultra RAM: they load, small and cached on disk.
+adb shell am force-stop $PKG; sleep 1
+adb shell run-as $PKG sed -i 's#<string name="key_thumbnail_load_mode">2</string>#<string name="key_thumbnail_load_mode">0</string>#' /data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+adb shell run-as $PKG rm -rf cache/om_thumbs
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Movies" >/dev/null; sleep 10
+shot 47_ultra_ram_thumbnails
+thumbs=$(adb shell run-as $PKG ls cache/om_thumbs 2>/dev/null | tr -d '\r' | grep -c "webp$" || true)
+log "      thumbnails cached on disk in Ultra RAM: ${thumbs:-0}"
+if [ "${thumbs:-0}" -ge 1 ]; then
+    pass "Ultra RAM shows thumbnails when turned on, cached on disk ($thumbs)"
+else
+    fail "Ultra RAM still shows no thumbnails after turning them on"
+fi
+
+log "=== Gallery view for one folder: big tiles, no names, resolution label ==="
+demo more_menu; sleep 2
+if pos=$(find_text "Gallery view (this folder)" "Vista galería (esta carpeta)"); then
+    adb shell input tap $pos; sleep 6
+    shot 48_gallery_view
+    if node_with resolutionBadge 4K >/dev/null; then
+        pass "the gallery view labels the 4K video (4K)"
+    else
+        fail "no 4K label in the gallery view"
+    fi
+    if ! find_contains "om_4k" >/dev/null; then
+        pass "the gallery view shows the videos without their names"
+    else
+        fail "the gallery view still shows the video names"
+    fi
+    # Only this folder: Pictures keeps the normal list.
+    adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+        --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Pictures" >/dev/null; sleep 4
+    if find_contains "om_photo" >/dev/null; then
+        pass "other folders keep their view (names shown in Pictures)"
+    else
+        fail "the gallery view leaked into another folder"
+    fi
+    adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+        --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Movies" >/dev/null; sleep 3
+    demo more_menu; sleep 2
+    pos=$(find_text "Gallery view (this folder)" "Vista galería (esta carpeta)") && adb shell input tap $pos
+    sleep 2
+else
+    fail "no 'Gallery view (this folder)' in the ⋮ menu"
+    adb shell input keyevent KEYCODE_BACK
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_PERF_MODE off >/dev/null 2>&1; sleep 5
+thumb_off=$(pref_value key_thumbnail_load_mode)
+log "      thumbnail mode before=${thumb_before:-0} · Ultra RAM on=$thumb_on · off=$thumb_off"
+if [ "${thumb_off:-0}" = "0" ]; then
+    pass "turning Ultra RAM off keeps the thumbnails the user turned on"
+else
+    fail "turning Ultra RAM off lost the thumbnail choice ($thumb_off)"
+fi
+adb shell am force-stop $PKG; sleep 1
+
+log "=== File icon: a tap opens the file, a swipe across it selects ==="
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_bm_target" >/dev/null; sleep 5
+if pos=$(node_in_half left bm_marker.txt); then
+    ry=${pos#* }
+    adb shell input tap 68 $ry; sleep 4
+    top=$(adb shell dumpsys activity activities | grep -m1 "mResumedActivity" | tr -d '\r')
+    if node_center_by_id btnSelectionClose >/dev/null; then
+        fail "a tap on the icon still selects the file"
+    elif echo "$top" | grep -q "TextEditor"; then
+        pass "a tap on the icon opens the file"
+    else
+        log "      resumed: $top"
+        fail "a tap on the icon did not open the file"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 3
+    if pos=$(node_in_half left bm_marker.txt); then
+        ry=${pos#* }
+        adb shell input swipe 40 $ry 320 $ry 300; sleep 2
+        shot 49_swipe_select
+        if node_center_by_id btnSelectionClose >/dev/null; then
+            pass "a swipe across the icon selects the file"
+            adb shell input keyevent KEYCODE_BACK; sleep 1
+        else
+            fail "a swipe across the icon did not select the file"
+        fi
+    fi
+else
+    fail "no bm_marker.txt in the left panel"
+fi
+
+log "=== A large APK opens its dialog at once (signature checked in the background) ==="
+python3 - "$APK" "$OUT/om_big.apk" <<'PY'
+import os, shutil, sys, zipfile
+shutil.copy(sys.argv[1], sys.argv[2])
+with zipfile.ZipFile(sys.argv[2], "a", compression=zipfile.ZIP_STORED) as z:
+    with z.open("assets/om_big.bin", "w", force_zip64=True) as f:
+        block = os.urandom(1 << 20)
+        for _ in range(400):
+            f.write(block)
+PY
+ls -la "$OUT/om_big.apk" | awk '{print "      big APK: " $5 " bytes"}' | tee -a "$REPORT"
+adb shell mkdir -p /sdcard/om_bigapk
+adb push "$OUT/om_big.apk" /sdcard/om_bigapk/om_big.apk >/dev/null
+rm -f "$OUT/om_big.apk"
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_bigapk" >/dev/null; sleep 5
+if pos=$(node_in_half left om_big.apk); then
+    t0=$(date +%s%N)
+    adb shell input tap $pos
+    if wait_contains 20 "Checking…" "Comprobando…" "Valid" "Válida" "Unsigned" "Sin firmar" >/dev/null; then
+        t1=$(date +%s%N); open_ms=$(( (t1 - t0) / 1000000 ))
+        shot 50_big_apk_dialog
+        sig_ms=0
+        for _ in $(seq 1 60); do
+            find_contains "Checking…" "Comprobando…" >/dev/null || break
+            sleep 1
+        done
+        t2=$(date +%s%N); sig_ms=$(( (t2 - t0) / 1000000 ))
+        log "      400 MB APK: dialog shown after ${open_ms} ms (incl. adb), signature done after ${sig_ms} ms"
+        if [ $open_ms -lt 5000 ]; then
+            pass "a 400 MB APK shows its dialog at once (${open_ms} ms incl. adb)"
+        else
+            fail "the 400 MB APK dialog took ${open_ms} ms to appear"
+        fi
+    else
+        fail "the dialog of the 400 MB APK did not appear"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+else
+    fail "no om_big.apk in the left panel"
+fi
+adb shell rm -rf /sdcard/om_bigapk
+adb logcat -d > "$OUT/logcat_ultra_gallery.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_ultra_gallery.txt"; then fail "crash in Ultra RAM thumbnails, gallery, icon or big APK checks"; fi
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

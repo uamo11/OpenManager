@@ -22,7 +22,7 @@ class AppearanceFixesTest {
     @Test
     fun ultraRamPicksTheLightestLookAndRemembersTheUsersOne() {
         val on = UltraRamVisualDefaults.plan(enabled = true, current = md3Standard, remembered = null)
-        assertEquals(Visual(materialDesign3 = false, dualPanelContrast = "2"), on.apply)
+        assertEquals(Visual(materialDesign3 = false, dualPanelContrast = "2", thumbnailLoadMode = "2"), on.apply)
         assertEquals(md3Standard, on.remember)
         // Turning it off puts everything back.
         val off = UltraRamVisualDefaults.plan(enabled = false, current = on.apply, remembered = on.remember)
@@ -39,6 +39,49 @@ class AppearanceFixesTest {
             remembered = classicHigh
         )
         assertEquals(Visual(materialDesign3 = true, dualPanelContrast = "1"), off.apply)
+    }
+
+    @Test
+    fun thumbnailsTurnedOnInsideUltraRamStayOnAfterwards() {
+        // Ultra RAM starts with icons only; the user asked for thumbnails while it was on.
+        val off = UltraRamVisualDefaults.plan(
+            enabled = false,
+            current = Visual(materialDesign3 = false, dualPanelContrast = "2", thumbnailLoadMode = "1"),
+            remembered = Visual(materialDesign3 = true, dualPanelContrast = "0", thumbnailLoadMode = "0")
+        )
+        assertEquals(Visual(materialDesign3 = true, dualPanelContrast = "0", thumbnailLoadMode = "1"), off.apply)
+    }
+
+    @Test
+    fun ultraRamLoadsThumbnailsLightlyOnlyWhenChosen() {
+        val fle = me.zhanghai.android.files.filelist.FileListEngine
+        // Icons only: never.
+        assertFalse(fle.canDecodeThumbnails(2, ultraRam = true, flinging = false, itemCount = 10))
+        // Chosen inside Ultra RAM: yes, but never while flinging (even a short list).
+        assertTrue(fle.canDecodeThumbnails(0, ultraRam = true, flinging = false, itemCount = 10))
+        assertFalse(fle.canDecodeThumbnails(0, ultraRam = true, flinging = true, itemCount = 10))
+        // Normal mode, short list: also while flinging, as before.
+        assertTrue(fle.canDecodeThumbnails(0, ultraRam = false, flinging = true, itemCount = 10))
+    }
+
+    @Test
+    fun thumbnailDiskCacheDropsTheOldestPastItsBudget() {
+        val dir = java.nio.file.Files.createTempDirectory("om_thumbs_test").toFile()
+        try {
+            for (i in 0 until 10) {
+                java.io.File(dir, "t$i.webp").apply {
+                    writeBytes(ByteArray(1000))
+                    setLastModified(1_000_000L + i * 1000L)
+                }
+            }
+            me.zhanghai.android.files.coil.ThumbnailDiskCache.trim(dir, maxBytes = 5000)
+            val left = dir.listFiles()!!.map { it.name }.sorted()
+            assertTrue(left.size <= 4)
+            assertTrue("newest kept", "t9.webp" in left)
+            assertFalse("oldest dropped", "t0.webp" in left)
+        } finally {
+            dir.deleteRecursively()
+        }
     }
 
     @Test

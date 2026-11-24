@@ -16,6 +16,7 @@
     android:orientation="vertical">
 
     <me.zhanghai.android.files.ui.AspectRatioFrameLayout
+        android:id="@+id/thumbnailFrame"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginStart="@dimen/screen_edge_margin"
@@ -58,9 +59,27 @@
             android:layout_height="match_parent"
             android:background="@drawable/file_item_grid_thumbnail_outline"
             android:duplicateParentState="true" />
+
+        <!-- Gallery view: resolution of photos and videos (4K, 2K, 1080p...), small and out of the way. -->
+        <TextView
+            android:id="@+id/resolutionBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_margin="4dp"
+            android:background="@drawable/bg_resolution_badge"
+            android:paddingStart="4dp"
+            android:paddingTop="1dp"
+            android:paddingEnd="4dp"
+            android:paddingBottom="1dp"
+            android:textColor="#FFFFFF"
+            android:textSize="9sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
     </me.zhanghai.android.files.ui.AspectRatioFrameLayout>
 
     <LinearLayout
+        android:id="@+id/nameBar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/single_line_list_item_height"
         android:layout_marginBottom="@dimen/screen_edge_margin_minus_8dp"

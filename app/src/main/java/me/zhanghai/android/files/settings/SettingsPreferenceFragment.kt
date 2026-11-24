@@ -476,6 +476,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
         }
         updateVisualPerfSummary(enabled)
+        lockMaterial3ForUltraRam(enabled)
         findPreference<AppearancePerformanceHubPreference>("key_appearance_performance_hub")?.refreshState()
     }
 
@@ -489,6 +490,20 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         findPreference<SwitchPreferenceCompat>(getString(R.string.pref_key_material_design_3))
             ?.takeIf { it.isChecked != applied.materialDesign3 }
             ?.isChecked = applied.materialDesign3
+        findPreference<ListPreference>(getString(R.string.pref_key_thumbnail_load_mode))
+            ?.takeIf { it.value != applied.thumbnailLoadMode }
+            ?.value = applied.thumbnailLoadMode
+    }
+
+    /**
+     * Material 3 costs RAM and GPU: while Ultra RAM is on it stays off and cannot be turned on
+     * (it used to be possible, which undid part of the mode); the switch says why.
+     */
+    private fun lockMaterial3ForUltraRam(ultraRam: Boolean) {
+        val pref = findPreference<SwitchPreferenceCompat>(getString(R.string.pref_key_material_design_3))
+            ?: return
+        pref.isEnabled = !ultraRam
+        pref.summary = if (ultraRam) getString(R.string.om_md3_locked_by_ultra_ram) else null
     }
 
     private fun onRequestRootPermissionChanged(enabled: Boolean) {
