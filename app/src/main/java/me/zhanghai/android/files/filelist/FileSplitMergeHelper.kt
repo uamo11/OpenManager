@@ -48,7 +48,7 @@ object FileSplitMergeHelper {
     fun showSplitDialog(activity: Activity, fileItem: FileItem, onComplete: () -> Unit) {
         if (!activity.isUiAlive) return
         if (fileItem.attributes.isDirectory) {
-            Toast.makeText(activity, "Cannot split directories", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_split_no_dirs, Toast.LENGTH_SHORT).show()
             return
         }
         val parentPath = fileItem.path.parent ?: run {
@@ -102,7 +102,7 @@ object FileSplitMergeHelper {
 
         val customId = android.view.View.generateViewId()
         val rbCustom = RadioButton(context).apply {
-            text = "Custom (MB)"
+            text = activity.getString(R.string.om_split_custom_mb)
             id = customId
             setTextColor(palette.textPrimary)
             buttonTintList = tintList
@@ -355,7 +355,7 @@ object FileSplitMergeHelper {
         if (!activity.isUiAlive) return
         val parts = findSplitParts(firstPart, allFiles)
         if (parts.isEmpty()) {
-            Toast.makeText(activity, "No parts found to merge", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_merge_no_parts, Toast.LENGTH_SHORT).show()
             return
         }
         val parentPath = firstPart.path.parent ?: run {

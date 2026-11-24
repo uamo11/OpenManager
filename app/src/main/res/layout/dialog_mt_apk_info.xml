@@ -80,7 +80,7 @@
         <TableRow android:paddingVertical="3dp">
             <TextView
                 android:layout_width="120dp"
-                android:text="Package name"
+                android:text="@string/file_properties_apk_package_name"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -94,7 +94,7 @@
         <!-- Version Code -->
         <TableRow android:paddingVertical="3dp">
             <TextView
-                android:text="Version code"
+                android:text="@string/apk_quick_edit_version_code"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -106,7 +106,7 @@
         <!-- File Size -->
         <TableRow android:paddingVertical="3dp">
             <TextView
-                android:text="File size"
+                android:text="@string/om_apk_info_file_size"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -136,7 +136,7 @@
         <!-- Signature -->
         <TableRow android:paddingVertical="3dp">
             <TextView
-                android:text="Signature"
+                android:text="@string/om_apk_info_signature"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -150,7 +150,7 @@
         <!-- Protection -->
         <TableRow android:paddingVertical="3dp">
             <TextView
-                android:text="Protection"
+                android:text="@string/om_apk_info_protection"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -162,7 +162,7 @@
         <!-- Target SDK -->
         <TableRow android:paddingVertical="3dp">
             <TextView
-                android:text="Target SDK"
+                android:text="@string/apk_quick_edit_target_sdk"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -174,7 +174,7 @@
         <!-- Minimum SDK -->
         <TableRow android:paddingVertical="3dp">
             <TextView
-                android:text="Minimum SDK"
+                android:text="@string/apk_quick_edit_min_sdk"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -188,7 +188,7 @@
             android:id="@+id/rowApkInstalled"
             android:paddingVertical="3dp">
             <TextView
-                android:text="Installed"
+                android:text="@string/om_apk_info_installed"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -203,7 +203,7 @@
             android:paddingVertical="3dp"
             android:visibility="gone">
             <TextView
-                android:text="Data directory"
+                android:text="@string/om_apk_info_data_dir"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -220,7 +220,7 @@
             android:paddingVertical="3dp"
             android:visibility="gone">
             <TextView
-                android:text="APK path"
+                android:text="@string/om_apk_apk_path"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -237,7 +237,7 @@
             android:paddingVertical="3dp"
             android:visibility="gone">
             <TextView
-                android:text="First install"
+                android:text="@string/om_apk_info_first_install"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView
@@ -252,7 +252,7 @@
             android:paddingVertical="3dp"
             android:visibility="gone">
             <TextView
-                android:text="Last update"
+                android:text="@string/om_apk_info_last_update"
                 android:textColor="#9E9E9E"
                 android:textSize="13sp" />
             <TextView

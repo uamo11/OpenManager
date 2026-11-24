@@ -144,7 +144,7 @@ class ArscEditorActivity : AppActivity() {
                         if (success) finish()
                     }
                 }
-                .setNegativeButton("Descartar") { _, _ ->
+                .setNegativeButton(R.string.discard) { _, _ ->
                     finish()
                 }
                 .setNeutralButton(android.R.string.cancel, null)
@@ -184,7 +184,7 @@ class ArscEditorActivity : AppActivity() {
                     binding.tabLayout.getTabAt(2)?.text = "${getString(R.string.arsc_tab_packages)} (${model.packages.size})"
 
                     val encodingStr = if (model.isUtf8) "UTF-8" else "UTF-16"
-                    binding.toolbar.subtitle = "${model.strings.size} cadenas  •  $encodingStr  •  ${model.packages.size} paquetes"
+                    binding.toolbar.subtitle = getString(R.string.om_arsc_subtitle, model.strings.size, encodingStr, model.packages.size)
 
                     binding.progressBar.visibility = View.GONE
                     filterContent()
@@ -267,7 +267,7 @@ class ArscEditorActivity : AppActivity() {
                     item.value = newValue
                     stringsAdapter.notifyDataSetChanged()
                     invalidateOptionsMenu()
-                    Snackbar.make(binding.root, "Cadena #${item.index} actualizada", Snackbar.LENGTH_SHORT).show()
+                    Snackbar.make(binding.root, getString(R.string.om_arsc_string_updated, item.index), Snackbar.LENGTH_SHORT).show()
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -276,7 +276,7 @@ class ArscEditorActivity : AppActivity() {
 
     private fun saveArsc(onComplete: ((Boolean) -> Unit)? = null) {
         val bytes = originalBytes ?: run {
-            Toast.makeText(this, "No hay datos para guardar", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, R.string.om_nothing_to_save, Toast.LENGTH_SHORT).show()
             onComplete?.invoke(false)
             return
         }

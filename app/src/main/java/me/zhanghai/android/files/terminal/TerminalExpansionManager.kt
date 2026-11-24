@@ -5,6 +5,7 @@
 
 package me.zhanghai.android.files.terminal
 
+import me.zhanghai.android.files.util.localizedText
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -878,7 +879,7 @@ object TerminalExpansionManager {
                 }
             }
 
-            onProgress?.invoke("Extrayendo GNU Bash y utilidades Linux…")
+            onProgress?.invoke(localizedText(R.string.om_prog_extracting_bash, "Extracting GNU Bash and Linux tools…"))
             val bashEntry = resolveZipEntry("bin/bash") ?: return false
             val bashRaw = readEntryBytes(bashEntry)
             if (!isElfBytes(bashRaw)) return false
@@ -922,7 +923,7 @@ object TerminalExpansionManager {
 
         if (!apkFiles.containsKey("lib/$apkAbi/libbash.so")) return false
 
-        onProgress?.invoke("Empaquetando y firmando complemento APK…")
+        onProgress?.invoke(localizedText(R.string.om_prog_packaging_addon, "Packaging and signing the add-on APK…"))
         val module = ApkModule()
         val manifest = AndroidManifestBlock.empty()
         manifest.packageName = OM_TERMEX_PACKAGE
@@ -1158,7 +1159,7 @@ object TerminalExpansionManager {
             try {
                 // 1. Try prebuilt OpenManager TermEx release APK if published
                 val prebuiltUrl = String.format(Locale.US, PREBUILT_TERMEX_URL_TEMPLATE, termuxArch)
-                if (downloadToFile(prebuiltUrl, outputApk, "Descargando:")) {
+                if (downloadToFile(prebuiltUrl, outputApk, activity.getString(R.string.om_prog_downloading))) {
                     downloadSuccess = true
                 }
 
@@ -1166,11 +1167,11 @@ object TerminalExpansionManager {
                 if (!downloadSuccess && !isCancelled) {
                     outputApk.delete()
                     val bootstrapUrl = String.format(Locale.US, TERMUX_BOOTSTRAP_URL_TEMPLATE, termuxArch)
-                    if (downloadToFile(bootstrapUrl, bootstrapFile, "Descargando:")) {
+                    if (downloadToFile(bootstrapUrl, bootstrapFile, activity.getString(R.string.om_prog_downloading))) {
                         withContext(Dispatchers.Main) {
                             if (!isCancelled && !activity.isFinishing && !activity.isDestroyed) {
                                 progressBar.isIndeterminate = true
-                                tvStatus.text = "Empaquetando entorno Linux ($apkAbi)…"
+                                tvStatus.text = activity.getString(R.string.om_prog_packaging_linux, apkAbi)
                             }
                         }
                         downloadSuccess = buildTermexApkFromBootstrap(bootstrapFile, outputApk, apkAbi) { step ->
@@ -1181,7 +1182,7 @@ object TerminalExpansionManager {
                             }
                         }
                         if (!downloadSuccess && errorMsg == null) {
-                            errorMsg = "Error al construir el paquete APK ($apkAbi)"
+                            errorMsg = activity.getString(R.string.om_linux_apk_build_failed, apkAbi)
                         }
                     }
                 }

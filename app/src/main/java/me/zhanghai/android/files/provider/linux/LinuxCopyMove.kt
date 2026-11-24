@@ -5,6 +5,8 @@
 
 package me.zhanghai.android.files.provider.linux
 
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.util.localizedText
 import android.system.Os
 import android.system.OsConstants
 import java8.nio.file.FileAlreadyExistsException
@@ -444,11 +446,11 @@ internal object LinuxCopyMove {
     fun move(source: ByteString, target: ByteString, copyOptions: CopyOptions) {
         val sourceStr = source.toString()
         if (sourceStr.startsWith("/dev/block") || sourceStr.startsWith("/dev/")) {
-            throw SecurityException("Por seguridad anti-brick, no se permite mover nodos de particiones del sistema ($sourceStr)")
+            throw SecurityException(localizedText(R.string.om_partition_no_move_from, "To prevent bricking, system partition nodes cannot be moved (%1\$s)", sourceStr))
         }
         val targetStr = target.toString()
         if (targetStr.startsWith("/dev/block") || targetStr.startsWith("/dev/")) {
-            throw SecurityException("Por seguridad anti-brick, no se permite mover archivos hacia directorios de particiones del sistema ($targetStr)")
+            throw SecurityException(localizedText(R.string.om_partition_no_move_into, "To prevent bricking, files cannot be moved into system partition folders (%1\$s)", targetStr))
         }
         val sourceStat = try {
             Syscall.lstat(source)

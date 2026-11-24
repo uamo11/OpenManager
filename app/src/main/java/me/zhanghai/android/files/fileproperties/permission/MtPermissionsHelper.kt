@@ -506,7 +506,7 @@ object MtPermissionsHelper {
             if (path.isArchivePath) {
                 withContext(Dispatchers.Main) {
                     if (context is Activity && !context.isUiAlive) return@withContext
-                    Toast.makeText(context, "No se pueden modificar permisos de un archivo comprimido", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, R.string.om_perm_archive_readonly, Toast.LENGTH_SHORT).show()
                 }
                 return@launch
             }
@@ -578,7 +578,7 @@ object MtPermissionsHelper {
                 )
                 Toast.makeText(
                     context,
-                    "Permisos aplicados: ${updated.displayString}",
+                    context.getString(R.string.om_perm_applied, updated.displayString),
                     Toast.LENGTH_SHORT
                 ).show()
                 onApplied?.invoke(updated)

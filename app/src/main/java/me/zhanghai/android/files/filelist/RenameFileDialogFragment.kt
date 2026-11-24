@@ -31,11 +31,11 @@ class RenameFileDialogFragment : FileNameDialogFragment() {
             if (isDir) {
                 setStartIconDrawable(R.drawable.directory_icon_white_24dp)
                 setStartIconTintList(android.content.res.ColorStateList.valueOf(0xFFFFB300.toInt()))
-                hint = "Nombre de la carpeta"
+                hint = getString(R.string.om_name_folder_hint)
             } else {
                 setStartIconDrawable(R.drawable.file_icon_white_24dp)
                 setStartIconTintList(android.content.res.ColorStateList.valueOf(0xFF42A5F5.toInt()))
-                hint = "Nombre del archivo"
+                hint = getString(R.string.om_name_file_hint)
             }
         }
         binding.extensionsScrollView?.visibility = android.view.View.GONE

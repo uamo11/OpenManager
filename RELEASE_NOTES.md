@@ -1,3 +1,33 @@
+# OpenManager v2.0.18: Marcadores en la Pantalla de Inicio, Botón Adelante y Todo en tu Idioma
+
+### 🔖 Marcadores
+- **Añadir a la pantalla de inicio** (petición de la issue #3, como en MT Manager): mantén pulsado un marcador en el panel de marcadores o en el menú lateral. Aparece su menú con «Añadir a la pantalla de inicio», que crea un icono que abre esa carpeta directamente.
+- En el panel de marcadores:
+  - mantener pulsado sin moverse abre el menú del marcador;
+  - mantener pulsado y arrastrar sigue sirviendo para ordenar.
+- El menú del marcador es igual en el panel y en el menú lateral: abrir en el otro panel, añadir a la pantalla de inicio, editar y quitar (con deshacer).
+
+### ➡️ Botón Adelante
+- El botón **›** de la barra inferior no hacía nada. Ahora vuelve a la carpeta de la que saliste con **‹**, en el mismo punto de la lista.
+- Cuando no hay adonde avanzar, el botón se ve atenuado.
+
+### 🌐 Toda la app en tu idioma
+- Unos 150 textos estaban escritos a mano en español o en inglés y no salían en tu idioma. Ahora están en los 7 idiomas (inglés, español, chino, ruso, portugués, indonesio y vietnamita), entre ellos:
+  - el diálogo de permiso del primer arranque;
+  - los nombres por defecto al crear o renombrar;
+  - los avisos de seguridad de particiones;
+  - el instalador de APK: errores de instalación, firma diferente, targetSdk bajo;
+  - el progreso de Apktool, la edición rápida y el inyector;
+  - la búsqueda de texto y de duplicados;
+  - los editores ARSC, DEX y HEX;
+  - los detalles de apps;
+  - las notificaciones de scripts;
+  - el entorno Linux de la terminal;
+  - las etiquetas de información del APK;
+  - el texto de privacidad.
+- Los motivos de fallo de instalación de APK antes salían solo en español o en inglés. Ahora salen en cualquiera de los 7 idiomas.
+
+
 # OpenManager v2.0.17: Panel de Marcadores
 
 ### 🔖 Marcadores (issue #3)

@@ -5,6 +5,8 @@
 
 package me.zhanghai.android.files.filelist
 
+import me.zhanghai.android.files.util.localizedText
+import me.zhanghai.android.files.R
 import com.android.tools.smali.baksmali.Adaptors.ClassDefinition
 import com.android.tools.smali.baksmali.BaksmaliOptions
 import com.android.tools.smali.baksmali.formatter.BaksmaliWriter
@@ -108,7 +110,7 @@ object ApktoolEngine {
         val canonicalProjectDir = outputDir.canonicalPath + File.separator
 
         listener?.onLog("I: Using Apktool $VERSION on ${inputApk.name}")
-        listener?.onProgress("Contando archivos del APK...", "", -1)
+        listener?.onProgress(localizedText(R.string.om_prog_counting_apk, "Counting APK files…"), "", -1)
 
         // Count total entries for progress calculation
         var totalEntries = 0
@@ -137,7 +139,7 @@ object ApktoolEngine {
                     val name = entry.name
                     val pct = if (totalEntries > 0) (currentEntry * 100) / totalEntries else -1
                     if (currentEntry % 15 == 0 || currentEntry == totalEntries) {
-                        listener?.onProgress("Extrayendo recursos ($pct%)", name, pct)
+                        listener?.onProgress(localizedText(R.string.om_prog_extracting_resources, "Extracting resources (%1\$d%%)", pct), name, pct)
                     }
 
                     if (!entry.isDirectory && !name.startsWith("META-INF/")) {
@@ -239,7 +241,7 @@ object ApktoolEngine {
                 smaliOutDir.mkdirs()
 
                 listener?.onLog("I: Disassembling ${dexFile.name} to $smaliDirName...")
-                listener?.onProgress("Desensamblando ${dexFile.name} a smali...", "", -1)
+                listener?.onProgress(localizedText(R.string.om_prog_disassembling_smali, "Disassembling %1\$s to smali…", dexFile.name), "", -1)
 
                 try {
                     val dexBacked = loadDexSafely(dexFile)
@@ -300,7 +302,7 @@ object ApktoolEngine {
 
         outputApk.parentFile?.mkdirs()
         listener?.onLog("I: Using Apktool $VERSION to recompile ${projectDir.name}")
-        listener?.onProgress("Recompilando proyecto APK...", "", -1)
+        listener?.onProgress(localizedText(R.string.om_prog_rebuilding, "Rebuilding the APK project…"), "", -1)
 
         // 1. Reassemble smali directories into classes*.dex
         val smaliDirs = projectDir.listFiles { f -> f.isDirectory && f.name.startsWith("smali") } ?: emptyArray()
@@ -317,7 +319,7 @@ object ApktoolEngine {
 
             if (smaliFiles.isNotEmpty()) {
                 listener?.onLog("I: Assembling $dexName (${smaliFiles.size} smali files)...")
-                listener?.onProgress("Ensamblando $dexName (${smaliFiles.size} archivos smali)...", "", -1)
+                listener?.onProgress(localizedText(R.string.om_prog_assembling, "Assembling %1\$s (%2\$d smali files)…", dexName, smaliFiles.size), "", -1)
 
                 val apiLevels = intArrayOf(options.apiLevel, 34, 30, 28)
                 var assembleSuccess = false
@@ -390,7 +392,7 @@ object ApktoolEngine {
                             currentFile++
                             val pct = if (totalFiles > 0) (currentFile * 100) / totalFiles else -1
                             if (currentFile % 20 == 0 || currentFile == totalFiles) {
-                                listener?.onProgress("Empaquetando APK ($pct%)", relPath, pct)
+                                listener?.onProgress(localizedText(R.string.om_prog_packaging_pct, "Packaging APK (%1\$d%%)", pct), relPath, pct)
                             }
 
                             var dataBytes: ByteArray

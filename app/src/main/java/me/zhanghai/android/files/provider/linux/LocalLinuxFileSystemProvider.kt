@@ -5,6 +5,8 @@
 
 package me.zhanghai.android.files.provider.linux
 
+import me.zhanghai.android.files.R
+import me.zhanghai.android.files.util.localizedText
 import android.system.OsConstants
 import java8.nio.channels.FileChannel
 import java8.nio.channels.SeekableByteChannel
@@ -133,7 +135,7 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
         directory as? LinuxPath ?: throw ProviderMismatchException(directory.toString())
         val pathStr = directory.toString()
         if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
-            throw AccessDeniedException(pathStr, null, "Por seguridad anti-brick, no se pueden crear directorios en las rutas de particiones del sistema")
+            throw AccessDeniedException(pathStr, null, localizedText(R.string.om_partition_no_mkdir, "To prevent bricking, folders cannot be created in system partition paths"))
         }
         val directoryBytes = directory.toByteString()
         val mode = (PosixFileMode.fromAttributes(attributes)
@@ -178,7 +180,7 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
         existing as? LinuxPath ?: throw ProviderMismatchException(existing.toString())
         val linkStr = link.toString()
         if (linkStr.startsWith("/dev/block") || linkStr.startsWith("/dev/")) {
-            throw AccessDeniedException(linkStr, null, "Por seguridad anti-brick, no se pueden crear enlaces en rutas de particiones del sistema")
+            throw AccessDeniedException(linkStr, null, localizedText(R.string.om_partition_no_link, "To prevent bricking, links cannot be created in system partition paths"))
         }
         val oldPathBytes = existing.toByteString()
         val newPathBytes = link.toByteString()
@@ -196,7 +198,7 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
         path as? LinuxPath ?: throw ProviderMismatchException(path.toString())
         val pathStr = path.toString()
         if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
-            throw AccessDeniedException(pathStr, null, "Por seguridad anti-brick, no se permite eliminar nodos de particiones o dispositivos del sistema")
+            throw AccessDeniedException(pathStr, null, localizedText(R.string.om_partition_no_delete, "To prevent bricking, system partition and device nodes cannot be deleted"))
         }
         val pathBytes = path.toByteString()
         try {

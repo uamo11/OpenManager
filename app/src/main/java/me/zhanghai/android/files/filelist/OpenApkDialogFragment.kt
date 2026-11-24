@@ -110,7 +110,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
         val file = args.file
         val sizeStr = file.attributes.fileSize.formatHumanReadable(context)
         tvSize.text = sizeStr
-        tvProtection.text = "No Detected"
+        tvProtection.text = getString(R.string.om_apk_protection_none)
 
         val rowPermissions = view.findViewById<TableRow>(R.id.rowApkPermissions)
         val tvPermissions = view.findViewById<TextView>(R.id.tvApkPermissions)
@@ -230,7 +230,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             val installedSigSha = getSigningCertSha256(installedInfo)
                             hasSignatureMismatch = apkSigSha != null && installedSigSha != null && apkSigSha != installedSigSha
                             if (hasSignatureMismatch) {
-                                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat}) • ⚠️ Otra firma"
+                                tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat}) • " + context.getString(R.string.om_apk_other_signature)
                                 tvInstalled.setTextColor(Color.parseColor("#FFB74D"))
                             } else {
                                 tvInstalled.text = "v${installedInfo.versionName} (${installedInfo.longVersionCodeCompat})"
@@ -253,7 +253,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             rowLastUpdate?.isVisible = true
                             rowUid?.isVisible = true
                         } catch (e: Exception) {
-                            tvInstalled.text = "No instalado"
+                            tvInstalled.text = context.getString(R.string.om_apk_not_installed)
                             tvInstalled.setTextColor(Color.parseColor("#E57373"))
                             rowDataDir?.isVisible = false
                             rowApkPath?.isVisible = false
@@ -262,7 +262,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                             rowUid?.isVisible = false
                         }
                     } else {
-                        tvInstalled.text = "No instalado"
+                        tvInstalled.text = context.getString(R.string.om_apk_not_installed)
                         tvInstalled.setTextColor(Color.parseColor("#E57373"))
                         rowDataDir?.isVisible = false
                         rowApkPath?.isVisible = false
@@ -279,7 +279,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                     tvSignature.text = "-"
                     tvMinSdk.text = "-"
                     tvTargetSdk.text = "-"
-                    tvInstalled.text = "No instalado"
+                    tvInstalled.text = context.getString(R.string.om_apk_not_installed)
                     tvInstalled.setTextColor(Color.parseColor("#E57373"))
                     rowDataDir?.isVisible = false
                     rowApkPath?.isVisible = false
@@ -298,7 +298,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             tvSignature.text = "-"
             tvMinSdk.text = "-"
             tvTargetSdk.text = "-"
-            tvInstalled.text = "No instalado"
+            tvInstalled.text = context.getString(R.string.om_apk_not_installed)
             tvInstalled.setTextColor(Color.parseColor("#E57373"))
             rowDataDir?.isVisible = false
             rowApkPath?.isVisible = false
@@ -339,23 +339,21 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 dialog.dismissSafely()
                 val dialogContext = hostActivity ?: context
                 MaterialAlertDialogBuilder(dialogContext)
-                    .setTitle("⚠️ Firma diferente detectada")
-                    .setMessage(
-                        "La app \"$targetPkg\" ya está instalada con otra firma digital. Android rechazará la actualización a menos que primero desinstales la app actual o clones el APK con otro nombre de paquete."
-                    )
-                    .setPositiveButton("Clonar paquete") { _, _ ->
+                    .setTitle(R.string.om_apk_sig_mismatch_title)
+                    .setMessage(dialogContext.getString(R.string.om_apk_sig_mismatch_message, targetPkg))
+                    .setPositiveButton(R.string.om_apk_clone_package) { _, _ ->
                         if (hostActivity != null) {
                             ApkQuickEditDialogFragment.show(file, hostActivity)
                         }
                     }
-                    .setNeutralButton("Desinstalar actual") { _, _ ->
+                    .setNeutralButton(R.string.om_apk_uninstall_current) { _, _ ->
                         try {
                             dialogContext.startActivity(
                                 Intent(Intent.ACTION_DELETE, Uri.fromParts("package", targetPkg, null))
                             )
                         } catch (_: Exception) {}
                     }
-                    .setNegativeButton("Intentar instalar") { _, _ ->
+                    .setNegativeButton(R.string.om_apk_try_install) { _, _ ->
                         if (isShizukuAvailable && hostActivity != null) {
                             installApkWithShizuku(hostActivity, file)
                         } else {
@@ -616,7 +614,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
                 Toast.makeText(hostActivity, message, Toast.LENGTH_LONG).show()
             } else {
                 hostActivity.showSafeDialog {
-                    setTitle("Fallo al instalar con Shizuku")
+                    setTitle(R.string.om_apk_shizuku_install_failed)
                     setMessage(message)
                     setPositiveButton(android.R.string.ok, null)
                 }
@@ -697,7 +695,7 @@ class OpenApkDialogFragment : AppCompatDialogFragment() {
             tvDimensions.text = "${bitmap.width} × ${bitmap.height} px"
         } else {
             ivLarge.setImageResource(R.drawable.file_apk_icon)
-            tvDimensions.text = "Vector / Default"
+            tvDimensions.text = tvDimensions.context.getString(R.string.om_apk_icon_vector)
         }
 
         OpenManagerPalette.from(context).applyToDialogSurface(dialogView, cornerRadiusDp = 14f)

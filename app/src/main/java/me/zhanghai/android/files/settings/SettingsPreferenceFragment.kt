@@ -124,7 +124,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
         findPreference<Preference>(getString(R.string.pref_key_user_agreement))?.setOnPreferenceClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.settings_user_agreement_title)
-                .setMessage("OpenManager\n\n100% Free & Open Source Software (GPLv3).\n\nOpenManager does not collect, transmit, or share any personal data, analytics, or telemetry. All file operations remain entirely local to your device.")
+                .setMessage(R.string.om_user_agreement_message)
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
             true

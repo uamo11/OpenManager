@@ -116,7 +116,7 @@ class FileTextSearchDialog : DialogFragment() {
         btnStartSearch.setOnClickListener {
             val query = editSearchQuery.text.toString().trim()
             if (query.isEmpty()) {
-                Toast.makeText(ctx, "Ingresa una palabra o texto a buscar", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, R.string.om_search_enter_text, Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             startSearch(query)
@@ -190,7 +190,7 @@ class FileTextSearchDialog : DialogFragment() {
             ) { scanned, matches ->
                 lifecycleScope.launch {
                     if (isAdded) {
-                        tvScanningProgress.text = "Archivos escaneados: $scanned • Coincidencias encontradas: $matches"
+                        tvScanningProgress.text = getString(R.string.om_search_progress, scanned, matches)
                     }
                 }
             }
@@ -384,7 +384,7 @@ private class TextSearchRecyclerAdapter(
                 val vh = holder as HeaderViewHolder
                 vh.tvFileName.text = item.fileMatch.fileName
                 vh.tvFilePath.text = item.fileMatch.relativePath
-                vh.tvMatchBadge.text = "${item.fileMatch.matchCount} coinc."
+                vh.tvMatchBadge.text = vh.itemView.context.getString(R.string.om_search_match_badge, item.fileMatch.matchCount)
                 
                 vh.cbSelect.setOnCheckedChangeListener(null)
                 vh.cbSelect.isChecked = item.fileMatch.isFileSelected

@@ -127,7 +127,7 @@ object AppDetailsViewerHelper {
             }
             ComponentItem(
                 name = perm,
-                subtitle = if (granted) "Estado: Concedido (Granted)" else "Estado: No concedido / Denegado",
+                subtitle = activity.getString(if (granted) R.string.om_app_perm_granted else R.string.om_app_perm_denied),
                 type = ComponentType.PERMISSION,
                 isGranted = granted
             )
@@ -161,11 +161,11 @@ object AppDetailsViewerHelper {
         }
 
         val tabLayout = view.findViewById<TabLayout>(R.id.tabLayoutComponents)
-        tabLayout.addTab(tabLayout.newTab().setText("Actividades (${activitiesList.size})"))
-        tabLayout.addTab(tabLayout.newTab().setText("Servicios (${servicesList.size})"))
-        tabLayout.addTab(tabLayout.newTab().setText("Receptores (${receiversList.size})"))
-        tabLayout.addTab(tabLayout.newTab().setText("Proveedores (${providersList.size})"))
-        tabLayout.addTab(tabLayout.newTab().setText("Permisos (${permissionsList.size})"))
+        tabLayout.addTab(tabLayout.newTab().setText(activity.getString(R.string.om_app_tab_activities, activitiesList.size)))
+        tabLayout.addTab(tabLayout.newTab().setText(activity.getString(R.string.om_app_tab_services, servicesList.size)))
+        tabLayout.addTab(tabLayout.newTab().setText(activity.getString(R.string.om_app_tab_receivers, receiversList.size)))
+        tabLayout.addTab(tabLayout.newTab().setText(activity.getString(R.string.om_app_tab_providers, providersList.size)))
+        tabLayout.addTab(tabLayout.newTab().setText(activity.getString(R.string.om_app_tab_permissions, permissionsList.size)))
 
         val rv = view.findViewById<RecyclerView>(R.id.rvComponents)
         val emptyText = view.findViewById<TextView>(R.id.tvEmptyComponents)
@@ -218,7 +218,7 @@ object AppDetailsViewerHelper {
                                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                 }
                                 activity.startActivity(launchIntent)
-                                Toast.makeText(activity, "Iniciando: ${item.name.substringAfterLast('.')}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(activity, activity.getString(R.string.om_app_starting_component, item.name.substringAfterLast('.')), Toast.LENGTH_SHORT).show()
                             } catch (se: SecurityException) {
                                 // Try starting with elevated privileges (Root / Shizuku) for private or unexported activities
                                 var startedElevated = false
@@ -341,7 +341,7 @@ object AppDetailsViewerHelper {
                 effectiveApk = cacheCopy
                 tempCopiedFile = cacheCopy
             } else {
-                Toast.makeText(activity, "El archivo APK no es accesible", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, R.string.om_app_apk_unreadable, Toast.LENGTH_SHORT).show()
                 return
             }
         }
@@ -390,7 +390,7 @@ object AppDetailsViewerHelper {
         view.findViewById<Button>(R.id.btnCopyManifest).setOnClickListener {
             val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("AndroidManifest.xml", xmlText))
-            Toast.makeText(activity, "Manifest copiado al portapapeles", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_manifest_copied, Toast.LENGTH_SHORT).show()
         }
 
         view.findViewById<Button>(R.id.btnCloseManifest).setOnClickListener {

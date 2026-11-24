@@ -13,7 +13,6 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.appcompat.widget.PopupMenu
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
@@ -24,19 +23,12 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
-import com.google.android.material.snackbar.Snackbar
 import java8.nio.file.Path
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.navigation.BookmarkDirectories
 import me.zhanghai.android.files.navigation.BookmarkDirectory
-import me.zhanghai.android.files.navigation.EditBookmarkDirectoryDialogActivity
-import me.zhanghai.android.files.navigation.EditBookmarkDirectoryDialogFragment
 import me.zhanghai.android.files.settings.Settings
 import me.zhanghai.android.files.theme.custom.OpenManagerPalette
-import me.zhanghai.android.files.util.createIntent
-import me.zhanghai.android.files.util.putArgs
-import me.zhanghai.android.files.util.startActivitySafe
-import me.zhanghai.android.files.util.valueCompat
 
 /**
  * The bookmarks, MT Manager style: swipe up on the bottom bar (or ⋮ > Bookmarks, or long press
@@ -126,34 +118,9 @@ class BookmarksSheetFragment : BottomSheetDialogFragment() {
     }
 
     private fun showOptions(anchor: View, bookmark: BookmarkDirectory) {
-        val popup = PopupMenu(requireContext(), anchor)
-        val otherPanel = 1 - panelIndex
-        if (host?.canOpenInOtherPanel == true) {
-            popup.menu.add(0, 1, 0, R.string.om_bookmark_open_other_panel)
-        }
-        popup.menu.add(0, 2, 1, R.string.edit)
-        popup.menu.add(0, 3, 2, R.string.remove)
-        popup.setOnMenuItemClickListener { item ->
-            when (item.itemId) {
-                1 -> open(bookmark, otherPanel)
-                2 -> requireContext().startActivitySafe(
-                    EditBookmarkDirectoryDialogActivity::class.createIntent()
-                        .putArgs(EditBookmarkDirectoryDialogFragment.Args(bookmark))
-                )
-                3 -> remove(bookmark)
-            }
-            true
-        }
-        popup.show()
-    }
-
-    private fun remove(bookmark: BookmarkDirectory) {
-        val before = Settings.BOOKMARK_DIRECTORIES.valueCompat
-        BookmarkDirectories.remove(bookmark)
+        val activity = host ?: return
         val root = view ?: return
-        Snackbar.make(root, R.string.om_bookmark_removed, Snackbar.LENGTH_LONG)
-            .setAction(R.string.undo) { BookmarkDirectories.setAll(before) }
-            .show()
+        BookmarkMenu.show(activity, anchor, bookmark, panelIndex, root) { dismissAllowingStateLoss() }
     }
 
     private fun applyColors(root: View) {
@@ -219,7 +186,10 @@ class BookmarksSheetFragment : BottomSheetDialogFragment() {
         }
     }
 
-    /** Long press and drag reorders; the order is saved when the finger lifts. */
+    /**
+     * Long press and drag reorders (saved when the finger lifts); a long press without moving
+     * opens the bookmark's menu.
+     */
     private inner class DragCallback :
         ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
         private var moved = false
@@ -243,6 +213,12 @@ class BookmarksSheetFragment : BottomSheetDialogFragment() {
             if (moved) {
                 moved = false
                 BookmarkDirectories.setAll(adapter.items.toList())
+            } else {
+                // Held without moving: the bookmark's menu, like a long press in MT Manager.
+                val position = viewHolder.bindingAdapterPosition
+                if (position != RecyclerView.NO_POSITION) {
+                    showOptions((viewHolder as Holder).more, adapter.items[position])
+                }
             }
         }
     }

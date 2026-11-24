@@ -82,7 +82,7 @@ object MtFileMenuHelper {
         }
 
         if (tvFileName != null) {
-            tvFileName.text = if (isSingleFile) file.name else "${targetFiles.size} elementos seleccionados"
+            tvFileName.text = if (isSingleFile) file.name else context.getString(R.string.om_items_selected, targetFiles.size)
         }
 
         if (tvFileDetails != null) {
@@ -101,7 +101,7 @@ object MtFileMenuHelper {
             } else {
                 val totalSize = targetFiles.sumOf { it.attributes.size() }
                 val sizeStr = totalSize.asFileSize().formatHumanReadable(context)
-                "$sizeStr • ${targetFiles.size} archivos seleccionados"
+                context.getString(R.string.om_size_items_selected, sizeStr, targetFiles.size)
             }
         }
 
@@ -178,18 +178,18 @@ object MtFileMenuHelper {
         if (isReadOnly || isArchivePath || isOppositeArchive || isOppositeSame || isBlockPartition) {
             btnMove.alpha = 0.4f
             btnMove.isEnabled = false
-            tvMoveLabel.text = "Mover"
+            tvMoveLabel.text = context.getString(R.string.om_mt_action_move)
         } else {
             if (oppositePath != null) {
-                tvMoveLabel.text = if (isPanelA) "Mover >>" else "<< Mover"
+                tvMoveLabel.text = context.getString(if (isPanelA) R.string.om_mt_move_right_short else R.string.om_mt_move_left_short)
             } else {
-                tvMoveLabel.text = "Mover"
+                tvMoveLabel.text = context.getString(R.string.om_mt_action_move)
             }
             btnMove.setOnClickListener {
                 dialog.dismissSafely()
                 if (oppositePath != null) {
                     if (fragment.currentPath == oppositePath) {
-                        Toast.makeText(context, "El origen y el destino son el mismo directorio", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.om_same_source_target, Toast.LENGTH_SHORT).show()
                         return@setOnClickListener
                     }
                     fragment.moveFilesTo(targetFiles, oppositePath)

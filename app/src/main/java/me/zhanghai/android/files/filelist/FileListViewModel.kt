@@ -40,9 +40,17 @@ class FileListViewModel : ViewModel() {
         trailLiveData.resetTo(path)
     }
 
-    fun navigateUp(): Boolean {
+    fun navigateUp(lastState: Parcelable? = null): Boolean {
         clearSelectedFiles()
-        return trailLiveData.navigateUp()
+        return trailLiveData.navigateUp(lastState)
+    }
+
+    val canNavigateForward: Boolean
+        get() = trailLiveData.value?.canNavigateForward == true
+
+    fun navigateForward(lastState: Parcelable?): Boolean {
+        clearSelectedFiles()
+        return trailLiveData.navigateForward(lastState)
     }
 
     val currentPathLiveData = trailLiveData.map { it.currentPath }

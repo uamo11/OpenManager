@@ -249,13 +249,13 @@ class DexEditorActivity : AppActivity() {
         }
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("Modificar cadena #${stringModel.index}")
+            .setTitle(getString(R.string.om_dex_edit_string_title, stringModel.index))
             .setView(editText)
             .setPositiveButton(R.string.save) { _, _ ->
                 val newValue = editText.text.toString()
                 stringModel.value = newValue
                 stringAdapter.notifyDataSetChanged()
-                Toast.makeText(this, "Cadena modificada en memoria", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, R.string.om_dex_string_changed, Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()

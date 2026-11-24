@@ -186,7 +186,7 @@ class ScriptExecutionService : Service() {
 
         val notification = scriptExecutionNotificationTemplate.createBuilder(this)
             .setContentTitle(title)
-            .setContentText("$scriptName • Toca para abrir terminal")
+            .setContentText(getString(R.string.om_script_notif_done_format, scriptName))
             .setOngoing(false)
             .setAutoCancel(true)
             .setContentIntent(openIntent)
@@ -204,9 +204,9 @@ class ScriptExecutionService : Service() {
         val keepIntent = createActionPendingIntent(ACTION_KEEP_BACKGROUND, 2)
 
         val isKept = ScriptExecutionManager.isBackgroundKept
-        val pidStr = if (pid > 0) "PID: $pid" else "Iniciando"
+        val pidStr = if (pid > 0) "PID: $pid" else getString(R.string.om_script_starting)
         val statusText = if (isKept) {
-            "$pidStr • Activo en 2ndo plano (WakeLock) • Toca para abrir terminal"
+            getString(R.string.om_script_notif_kept_format, pidStr)
         } else {
             getString(R.string.om_script_notif_running_format, pidStr)
         }

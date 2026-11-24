@@ -5,6 +5,8 @@
 
 package me.zhanghai.android.files.filelist
 
+import me.zhanghai.android.files.util.localizedText
+import me.zhanghai.android.files.R
 import com.reandroid.apk.ApkModule
 import com.reandroid.archive.ByteInputSource
 import com.reandroid.arsc.chunk.xml.AndroidManifestBlock
@@ -111,7 +113,7 @@ object ApkQuickEditEngine {
         options: QuickEditOptions,
         onProgress: ((String) -> Unit)? = null
     ): File {
-        onProgress?.invoke("Cargando APK...")
+        onProgress?.invoke(localizedText(R.string.om_prog_loading_apk, "Loading APK…"))
         val unsignedFile = if (options.autoSign) {
             File(outputApk.parentFile ?: inputApk.parentFile, "${outputApk.nameWithoutExtension}_unsigned.tmp")
         } else {
@@ -123,7 +125,7 @@ object ApkQuickEditEngine {
                 val manifest = module.androidManifest
                     ?: throw IllegalStateException("AndroidManifest.xml no encontrado en el APK")
 
-                onProgress?.invoke("Actualizando atributos del manifiesto...")
+                onProgress?.invoke(localizedText(R.string.om_prog_updating_manifest, "Updating manifest attributes…"))
                 val oldPackage = try { manifest.packageName?.trim().orEmpty() } catch (_: Exception) { "" }
                 val newPackage = options.packageName?.trim()?.takeIf { it.isNotEmpty() }
 
@@ -184,7 +186,7 @@ object ApkQuickEditEngine {
 
                 // Replace launcher icon if new bytes are provided
                 options.newIconBytes?.let { iconBytes ->
-                    onProgress?.invoke("Updating application icons...")
+                    onProgress?.invoke(localizedText(R.string.om_prog_updating_icons, "Updating app icons…"))
                     val iconResId = try { manifest.iconResourceId } catch (e: Exception) { 0 }
                     if (iconResId != 0) {
                         try {
@@ -213,12 +215,12 @@ object ApkQuickEditEngine {
                     }
                 }
 
-                onProgress?.invoke("Alineando y empaquetando APK...")
+                onProgress?.invoke(localizedText(R.string.om_prog_aligning_packaging, "Aligning and packaging APK…"))
                 AntiSplitEngine.writeAlignedUnsignedApk(module, unsignedFile, options.extractNativeLibs)
             }
 
             if (options.autoSign) {
-                onProgress?.invoke("Firmando y alineando APK...")
+                onProgress?.invoke(localizedText(R.string.om_prog_signing_aligning, "Signing and aligning APK…"))
                 ApkSignerHelper.signFileDirect(unsignedFile, outputApk, options.signingScheme)
                 return outputApk
             } else {

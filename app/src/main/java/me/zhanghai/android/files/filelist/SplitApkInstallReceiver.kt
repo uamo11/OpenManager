@@ -60,8 +60,13 @@ class SplitApkInstallReceiver : BroadcastReceiver() {
             }
             else -> {
                 val rawMessage = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)
-                val isSpanish = Locale.getDefault().language.equals("es", ignoreCase = true)
-                val reason = formatPackageInstallerFailure(status, rawMessage, isSpanish)
+                val reason = formatPackageInstallerFailure(status, rawMessage) { failure ->
+                    if (failure == InstallFailure.OTHER) {
+                        context.getString(failure.text, status)
+                    } else {
+                        context.getString(failure.text)
+                    }
+                }
                 Toast.makeText(
                     context,
                     context.getString(R.string.om_split_install_failed_format, bundleName, reason),
@@ -75,102 +80,53 @@ class SplitApkInstallReceiver : BroadcastReceiver() {
         const val ACTION_SPLIT_INSTALL_STATUS = "me.zhanghai.android.files.action.SPLIT_INSTALL_STATUS"
         const val EXTRA_BUNDLE_NAME = "extra_bundle_name"
 
+        /** Why an install failed, from [PackageInstaller]'s status and message (pure, for tests). */
+        enum class InstallFailure(@androidx.annotation.StringRes val text: Int) {
+            SIGNATURE(R.string.om_install_fail_signature),
+            DOWNGRADE(R.string.om_install_fail_downgrade),
+            NO_MATCHING_ABI(R.string.om_install_fail_abi),
+            OLDER_SDK(R.string.om_install_fail_older_sdk),
+            LOW_TARGET_SDK(R.string.om_install_fail_low_target),
+            CONFLICT(R.string.om_install_fail_conflict),
+            INCOMPATIBLE(R.string.om_install_fail_incompatible),
+            INVALID(R.string.om_install_fail_invalid),
+            STORAGE(R.string.om_install_fail_storage),
+            BLOCKED(R.string.om_install_fail_blocked),
+            OTHER(R.string.om_install_fail_other)
+        }
+
+        fun classifyPackageInstallerFailure(status: Int, rawMessage: String?): InstallFailure {
+            val upper = rawMessage?.uppercase(Locale.ROOT).orEmpty()
+            return when {
+                upper.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") ||
+                    upper.contains("SIGNATURES_DO_NOT_MATCH") ||
+                    upper.contains("INSTALL_FAILED_SHARED_USER_INCOMPATIBLE") -> InstallFailure.SIGNATURE
+                upper.contains("INSTALL_FAILED_VERSION_DOWNGRADE") || upper.contains("DOWNGRADE") ->
+                    InstallFailure.DOWNGRADE
+                upper.contains("INSTALL_FAILED_NO_MATCHING_ABIS") -> InstallFailure.NO_MATCHING_ABI
+                upper.contains("INSTALL_FAILED_OLDER_SDK") -> InstallFailure.OLDER_SDK
+                upper.contains("INSTALL_FAILED_DEPRECATED_SDK_VERSION") || upper.contains("LOW_TARGET_SDK") ->
+                    InstallFailure.LOW_TARGET_SDK
+                status == PackageInstaller.STATUS_FAILURE_CONFLICT -> InstallFailure.CONFLICT
+                status == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> InstallFailure.INCOMPATIBLE
+                status == PackageInstaller.STATUS_FAILURE_INVALID -> InstallFailure.INVALID
+                status == PackageInstaller.STATUS_FAILURE_STORAGE -> InstallFailure.STORAGE
+                status == PackageInstaller.STATUS_FAILURE_BLOCKED -> InstallFailure.BLOCKED
+                else -> InstallFailure.OTHER
+            }
+        }
+
         /**
-         * Pure formatter mapping [PackageInstaller] status codes and installer strings into
-         * clear user diagnostics.
+         * A clear reason in the user's language ([describe] turns the kind into text), followed
+         * by the installer's own message, shortened, for whoever needs the details.
          */
         fun formatPackageInstallerFailure(
             status: Int,
             rawMessage: String?,
-            isSpanish: Boolean = false
+            describe: (InstallFailure) -> String
         ): String {
             val cleanRaw = rawMessage?.trim()?.takeIf { it.isNotEmpty() }
-            val upper = cleanRaw?.uppercase(Locale.ROOT) ?: ""
-
-            val baseReason = when {
-                upper.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") ||
-                    upper.contains("SIGNATURES_DO_NOT_MATCH") ||
-                    upper.contains("INSTALL_FAILED_SHARED_USER_INCOMPATIBLE") -> {
-                    if (isSpanish) {
-                        "Firma diferente a la app ya instalada (desinstala la versión anterior primero)"
-                    } else {
-                        "Signature conflicts with installed app (uninstall previous version first)"
-                    }
-                }
-                upper.contains("INSTALL_FAILED_VERSION_DOWNGRADE") ||
-                    upper.contains("DOWNGRADE") -> {
-                    if (isSpanish) {
-                        "La versión instalada actualmente es más reciente (downgrade bloqueado)"
-                    } else {
-                        "A newer version is already installed (downgrade blocked)"
-                    }
-                }
-                upper.contains("INSTALL_FAILED_NO_MATCHING_ABIS") -> {
-                    if (isSpanish) {
-                        "No contiene splits nativos compatibles con la arquitectura CPU de este dispositivo"
-                    } else {
-                        "No native ABI splits match this device CPU architecture"
-                    }
-                }
-                upper.contains("INSTALL_FAILED_OLDER_SDK") -> {
-                    if (isSpanish) {
-                        "Requiere una versión de Android más reciente (minSdk incompatible)"
-                    } else {
-                        "Requires a newer Android version (minSdk incompatible)"
-                    }
-                }
-                upper.contains("INSTALL_FAILED_DEPRECATED_SDK_VERSION") ||
-                    upper.contains("LOW_TARGET_SDK") -> {
-                    if (isSpanish) {
-                        "Bloqueado por Android por targetSdk antiguo; usa Root, Shizuku o AntiSplit"
-                    } else {
-                        "Blocked by Android due to low targetSdk; try Root, Shizuku, or AntiSplit"
-                    }
-                }
-                status == PackageInstaller.STATUS_FAILURE_CONFLICT -> {
-                    if (isSpanish) {
-                        "Conflicto con una app o autoridad ya instalada (prueba desinstalando la versión previa)"
-                    } else {
-                        "Conflict with an already installed app or authority (try uninstalling existing app)"
-                    }
-                }
-                status == PackageInstaller.STATUS_FAILURE_INCOMPATIBLE -> {
-                    if (isSpanish) {
-                        "Paquete incompatible con este dispositivo o versión de Android"
-                    } else {
-                        "Package is incompatible with this device or Android version"
-                    }
-                }
-                status == PackageInstaller.STATUS_FAILURE_INVALID -> {
-                    if (isSpanish) {
-                        "Uno o más splits APK están dañados o son inválidos"
-                    } else {
-                        "One or more APK splits are corrupted or invalid"
-                    }
-                }
-                status == PackageInstaller.STATUS_FAILURE_STORAGE -> {
-                    if (isSpanish) {
-                        "Espacio de almacenamiento insuficiente"
-                    } else {
-                        "Insufficient storage space"
-                    }
-                }
-                status == PackageInstaller.STATUS_FAILURE_BLOCKED -> {
-                    if (isSpanish) {
-                        "Instalación bloqueada por el sistema o Play Protect"
-                    } else {
-                        "Installation blocked by system or Play Protect"
-                    }
-                }
-                else -> {
-                    if (isSpanish) {
-                        "Error del instalador del sistema (código $status)"
-                    } else {
-                        "System installer error (code $status)"
-                    }
-                }
-            }
-
+            val baseReason = describe(classifyPackageInstallerFailure(status, cleanRaw))
             if (cleanRaw == null) return baseReason
             val compactDetail = if (cleanRaw.length > 140) cleanRaw.take(137) + "..." else cleanRaw
             return "$baseReason ($compactDetail)"

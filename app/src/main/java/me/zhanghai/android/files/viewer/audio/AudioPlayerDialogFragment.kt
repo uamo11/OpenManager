@@ -108,7 +108,7 @@ class AudioPlayerDialogFragment : AppCompatDialogFragment() {
         tvTitle.text = fileName
         tvTitle.isSelected = true
         val ext = fileName.substringAfterLast('.', "AUDIO").uppercase(Locale.ROOT)
-        tvSubtitle.text = "$ext Audio Player"
+        tvSubtitle.text = getString(R.string.om_audio_player_subtitle, ext)
 
         btnClose.setOnClickListener { dismiss() }
 

@@ -946,8 +946,8 @@ class FileListActivity : AppActivity() {
         allFilesDialog = MaterialAlertDialogBuilder(this)
             .setIcon(R.drawable.sd_card_icon_white_24dp)
             .setTitle(R.string.all_files_access_title)
-            .setMessage("OpenManager necesita acceso total a todos los archivos para poder gestionar, copiar, mover, crear y editar archivos en tu dispositivo.")
-            .setPositiveButton("Conceder permiso") { _, _ ->
+            .setMessage(R.string.om_all_files_access_message)
+            .setPositiveButton(R.string.om_grant_permission) { _, _ ->
                 allFilesDialog = null
                 try {
                     val intent = Intent(AndroidSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
@@ -1296,7 +1296,7 @@ class FileListActivity : AppActivity() {
                         result[volPath] = DetectedVolumeInfo(
                             uuid = uuid,
                             pathStr = volPath,
-                            title = "Tarjeta SD ($uuid)"
+                            title = getString(R.string.om_sd_card_named, uuid)
                         )
                     }
                 }
@@ -1316,7 +1316,7 @@ class FileListActivity : AppActivity() {
                             result[volPath] = DetectedVolumeInfo(
                                 uuid = name,
                                 pathStr = volPath,
-                                title = "Tarjeta SD ($name)"
+                                title = getString(R.string.om_sd_card_named, name)
                             )
                         }
                     }
@@ -1428,7 +1428,7 @@ class FileListActivity : AppActivity() {
         applyDrawerPalette(OpenManagerPalette.from(this))
     }
 
-    /** Bookmarks in the side menu: tap opens in the active panel, long press opens the panel. */
+    /** Bookmarks in the side menu: tap opens in the active panel, long press shows its menu. */
     private fun refreshDrawerBookmarks() {
         val container = findViewById<LinearLayout>(R.id.layoutDrawerBookmarks) ?: return
         val header = findViewById<View>(R.id.tvDrawerBookmarksHeader)
@@ -1449,9 +1449,11 @@ class FileListActivity : AppActivity() {
                 drawerLayout.closeDrawer(GravityCompat.START)
                 openBookmark(bookmark.path, activePanelIndex)
             }
-            itemView.setOnLongClickListener {
-                drawerLayout.closeDrawer(GravityCompat.START)
-                showBookmarks()
+            // Long press: the bookmark's menu (add to home screen, other panel, edit, remove).
+            itemView.setOnLongClickListener { anchor ->
+                BookmarkMenu.show(
+                    this, anchor, bookmark, activePanelIndex, findViewById(R.id.activityRoot)
+                ) { drawerLayout.closeDrawer(GravityCompat.START) }
                 true
             }
             container.addView(itemView)
@@ -1736,8 +1738,9 @@ class FileListActivity : AppActivity() {
             }
         }
 
+        // Back down to the folder this panel came up from (">" undoes "<").
         btnBottomForward.setOnClickListener {
-            // Forward navigation placeholder / no-op
+            activeFragment.navigateForward()
         }
 
         btnBottomAdd.setOnClickListener {
@@ -2245,7 +2248,7 @@ class FileListActivity : AppActivity() {
                             stats.isNotEmpty() && disk.isNotEmpty() -> "$stats  $disk"
                             stats.isNotEmpty() -> stats
                             disk.isNotEmpty() -> disk
-                            else -> "Listo"
+                            else -> getString(R.string.om_status_ready)
                         }
                     }
                 }
@@ -2267,12 +2270,20 @@ class FileListActivity : AppActivity() {
                 stats.isNotEmpty() && disk.isNotEmpty() -> "$stats  $disk"
                 stats.isNotEmpty() -> stats
                 disk.isNotEmpty() -> disk
-                else -> "Listo"
+                else -> getString(R.string.om_status_ready)
             }
             updateMainToolbarNavigationIcon()
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    /** ">" is dimmed when the active panel has nothing to go forward to. */
+    private fun updateForwardButton() {
+        if (!::btnBottomForward.isInitialized) return
+        val canForward = try { activeFragment.canNavigateForward } catch (_: Exception) { false }
+        btnBottomForward.isEnabled = canForward
+        btnBottomForward.alpha = if (canForward) 1f else 0.35f
     }
 
     private fun updateMainToolbarNavigationIcon() {
@@ -2286,6 +2297,7 @@ class FileListActivity : AppActivity() {
         if (::btnMainBack.isInitialized) {
             btnMainBack.visibility = if (!isSelection && canNavigateUp) View.VISIBLE else View.GONE
         }
+        updateForwardButton()
 
         val navTint = (lastAppliedPalette ?: OpenManagerPalette.from(this)).iconTint
         if (isSelection == lastNavIconIsSelection && navTint == lastNavIconTint) {
@@ -2477,7 +2489,7 @@ class FileListActivity : AppActivity() {
             }
 
             buttonBar.addView(createChip(
-                "+ Almacenamiento",
+                getString(R.string.om_chip_add_storage),
                 iconRes = R.drawable.add_icon_white_24dp,
                 iconTint = android.graphics.Color.parseColor("#29B6F6"),
                 chipTextColor = android.graphics.Color.parseColor("#81D4FA")

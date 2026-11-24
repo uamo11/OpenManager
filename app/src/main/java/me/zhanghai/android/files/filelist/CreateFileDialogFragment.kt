@@ -28,7 +28,7 @@ class CreateFileDialogFragment : FileNameDialogFragment() {
         binding.nameLayout.apply {
             setStartIconDrawable(R.drawable.file_icon_white_24dp)
             setStartIconTintList(ColorStateList.valueOf(0xFF42A5F5.toInt()))
-            hint = "Nombre del archivo"
+            hint = getString(R.string.om_name_file_hint)
             helperText = getString(R.string.om_create_file_ext_helper)
         }
         setupExtensionChips()
@@ -75,9 +75,9 @@ class CreateFileDialogFragment : FileNameDialogFragment() {
         val edit = binding.nameEdit
         val currentText = edit.text?.toString() ?: ""
         if (currentText.isEmpty()) {
-            val defaultName = "nuevo$ext"
-            edit.setText(defaultName)
-            edit.setSelection(0, "nuevo".length)
+            val baseName = getString(R.string.om_new_file_default_name)
+            edit.setText(baseName + ext)
+            edit.setSelection(0, baseName.length)
         } else {
             val dot = currentText.lastIndexOf('.')
             val base = if (dot > 0) currentText.substring(0, dot) else currentText

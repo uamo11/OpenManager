@@ -78,7 +78,7 @@ object CreateSymlinkHelper {
                 val finalTarget = targetInput.text.toString().trim()
                 val finalLinkName = nameInput.text.toString().trim()
                 if (finalLinkName.isEmpty()) {
-                    Toast.makeText(activity, "Link name cannot be empty", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, R.string.om_link_name_empty, Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
 

@@ -130,7 +130,7 @@ class ToastDialogInjectDialogFragment : AppCompatDialogFragment() {
                 if (isToastMode) {
                     val msg = etToastMessage.text?.toString()?.trim().orEmpty()
                     if (msg.isEmpty()) {
-                        tilToastMessage.error = "Ingresa el texto del Toast"
+                        tilToastMessage.error = getString(R.string.om_toast_inject_enter_text)
                         return@setOnClickListener
                     }
                     tilToastMessage.error = null
@@ -142,7 +142,7 @@ class ToastDialogInjectDialogFragment : AppCompatDialogFragment() {
                         return@setOnClickListener
                     }
                     if (msg.isEmpty()) {
-                        tilDialogMessage.error = "Ingresa el mensaje"
+                        tilDialogMessage.error = getString(R.string.om_toast_inject_enter_message)
                         return@setOnClickListener
                     }
                     tilDialogTitle.error = null

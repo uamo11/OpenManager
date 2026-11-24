@@ -26,8 +26,8 @@ class CreateDirectoryDialogFragment : FileNameDialogFragment() {
         binding.nameLayout.apply {
             setStartIconDrawable(R.drawable.directory_icon_white_24dp)
             setStartIconTintList(ColorStateList.valueOf(0xFFFFB300.toInt()))
-            hint = "Nombre de la carpeta"
-            helperText = "Introduce el nombre del nuevo directorio"
+            hint = getString(R.string.om_name_folder_hint)
+            helperText = getString(R.string.om_new_folder_helper)
         }
         binding.extensionsScrollView?.visibility = View.GONE
         return dialog

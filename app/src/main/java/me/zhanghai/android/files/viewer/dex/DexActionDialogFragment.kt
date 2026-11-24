@@ -109,8 +109,8 @@ class DexActionDialogFragment : AppCompatDialogFragment() {
             val hostActivity = activity as? FragmentActivity ?: return@setOnClickListener
             dialog.dismiss()
             val options = arrayOf(
-                "Explorar y descompilar clases a Java",
-                "Exportar todas las clases a .zip de fuentes Java"
+                hostActivity.getString(R.string.om_dex_browse_java),
+                hostActivity.getString(R.string.om_dex_export_java_zip)
             )
             hostActivity.showSafeDialog {
                 setTitle(R.string.dex_decompile_java)

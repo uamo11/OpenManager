@@ -171,7 +171,7 @@ class DuplicateFinderDialog : DialogFragment() {
             ) { scanned, duplicates ->
                 lifecycleScope.launch {
                     if (isAdded) {
-                        tvScanningProgress.text = "Escaneados: $scanned archivos • $duplicates duplicados encontrados..."
+                        tvScanningProgress.text = getString(R.string.om_dup_progress, scanned, duplicates)
                     }
                 }
             }
@@ -307,8 +307,8 @@ private class DuplicateRecyclerAdapter(
         when (val item = items[position]) {
             is DuplicateRecyclerItem.Header -> {
                 val vh = holder as HeaderViewHolder
-                vh.tvTitle.text = "Grupo #${item.index} • ${item.group.totalCopies} copias (${item.group.formattedWastedBytes} recuperables)"
-                vh.tvWasted.text = "${formatBytes(item.group.sizePerFile)} c/u"
+                vh.tvTitle.text = vh.itemView.context.getString(R.string.om_dup_group_title, item.index, item.group.totalCopies, item.group.formattedWastedBytes)
+                vh.tvWasted.text = vh.itemView.context.getString(R.string.om_dup_size_each, formatBytes(item.group.sizePerFile))
             }
             is DuplicateRecyclerItem.FileRow -> {
                 val vh = holder as FileViewHolder

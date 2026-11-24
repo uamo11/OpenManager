@@ -124,7 +124,7 @@ class HexEditorActivity : AppActivity() {
         binding.cardInt16.tvCardLabel.text = "INT16 (LE)"
         binding.cardInt32.tvCardLabel.text = "INT32 (LE)"
         binding.cardChar.tvCardLabel.text = "ASCII"
-        binding.cardBin.tvCardLabel.text = "BINARIO"
+        binding.cardBin.tvCardLabel.text = getString(R.string.om_hex_card_binary)
         binding.cardFloat.tvCardLabel.text = "FLOAT32"
 
         val copyListener = View.OnClickListener { v ->
@@ -518,7 +518,7 @@ class HexEditorActivity : AppActivity() {
             return
         }
         val input = android.widget.EditText(this).apply {
-            hint = "Cantidad de bytes a eliminar"
+            hint = getString(R.string.om_hex_bytes_to_delete)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
             setText("1")
         }
@@ -655,7 +655,7 @@ class HexEditorActivity : AppActivity() {
                     }
                 }
             }
-            .setNegativeButton("Descartar") { _, _ ->
+            .setNegativeButton(R.string.discard) { _, _ ->
                 finish()
             }
             .setNeutralButton(android.R.string.cancel, null)

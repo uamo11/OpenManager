@@ -495,7 +495,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             viewModel.isCrlf.value = !viewModel.isCrlf.value
             updateSubtitle()
             val newEnding = if (viewModel.isCrlf.value) "CRLF" else "LF"
-            showToast("Line Ending: $newEnding")
+            showToast(getString(R.string.om_line_ending_toast, newEnding))
         }
         // Tapping Syntax opens syntax selector
         binding.statusSyntaxText.setOnClickListener {

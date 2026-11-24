@@ -325,7 +325,7 @@ object ApkSignerHelper {
             if (editKeystorePath.text.isNullOrEmpty()) {
                 editKeystorePath.setText("$defaultPath/my-release-key.jks")
             }
-            Toast.makeText(context, "Ingresa la ruta absoluta de tu archivo .jks o .keystore", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, R.string.om_keystore_path_hint, Toast.LENGTH_SHORT).show()
         }
 
         val btnCreateKeystore = view.findViewById<Button>(R.id.btnCreateKeystore)

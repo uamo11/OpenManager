@@ -151,34 +151,23 @@ class V2075StabilityAndSplitInstallTest {
 
     @Test
     fun testSplitApkFailureDiagnostics() {
-        val conflictMsg = SplitApkInstallReceiver.formatPackageInstallerFailure(
-            status = 5, // STATUS_FAILURE_CONFLICT
-            rawMessage = null,
-            isSpanish = true
+        // The reason comes from the status and the installer message; its text is a resource,
+        // so every language gets it (it used to be Spanish or English only).
+        val failure = SplitApkInstallReceiver.Companion::classifyPackageInstallerFailure
+        assertEquals(SplitApkInstallReceiver.Companion.InstallFailure.CONFLICT, failure(5, null))
+        assertEquals(SplitApkInstallReceiver.Companion.InstallFailure.INCOMPATIBLE, failure(7, null))
+        assertEquals(SplitApkInstallReceiver.Companion.InstallFailure.STORAGE, failure(6, null))
+        assertEquals(
+            SplitApkInstallReceiver.Companion.InstallFailure.NO_MATCHING_ABI,
+            failure(7, "INSTALL_FAILED_NO_MATCHING_ABIS: Failed to extract native libraries")
         )
-        assertTrue(conflictMsg.contains("Conflicto", ignoreCase = true))
-
-        val incompatMsg = SplitApkInstallReceiver.formatPackageInstallerFailure(
-            status = 7, // STATUS_FAILURE_INCOMPATIBLE
-            rawMessage = null,
-            isSpanish = false
-        )
-        assertTrue(incompatMsg.contains("incompatible", ignoreCase = true))
-
-        val storageMsg = SplitApkInstallReceiver.formatPackageInstallerFailure(
-            status = 6, // STATUS_FAILURE_STORAGE
-            rawMessage = null,
-            isSpanish = true
-        )
-        assertTrue(storageMsg.contains("almacenamiento", ignoreCase = true))
-
-        val abiMsg = SplitApkInstallReceiver.formatPackageInstallerFailure(
+        assertEquals(SplitApkInstallReceiver.Companion.InstallFailure.SIGNATURE, failure(5, "INSTALL_FAILED_UPDATE_INCOMPATIBLE"))
+        val text = SplitApkInstallReceiver.formatPackageInstallerFailure(
             status = 7,
-            rawMessage = "INSTALL_FAILED_NO_MATCHING_ABIS: Failed to extract native libraries",
-            isSpanish = true
-        )
-        assertTrue(abiMsg.contains("arquitectura CPU", ignoreCase = true))
-        assertTrue(abiMsg.contains("INSTALL_FAILED_NO_MATCHING_ABIS"))
+            rawMessage = "INSTALL_FAILED_NO_MATCHING_ABIS: Failed to extract native libraries"
+        ) { it.name }
+        assertTrue(text.startsWith("NO_MATCHING_ABI ("))
+        assertTrue(text.contains("INSTALL_FAILED_NO_MATCHING_ABIS"))
     }
 
     @Test
@@ -200,9 +189,9 @@ class V2075StabilityAndSplitInstallTest {
         }
 
         val buildGradle = resolveAppBuildGradle().readText()
-        assertTrue("app/build.gradle must default to versionCode 131", buildGradle.contains(": 131"))
-        assertTrue("app/build.gradle must default to versionName '2.0.17'", buildGradle.contains(": '2.0.17'"))
-        assertTrue(UpdateChecker.isVersionNewer("2.0.17", "2.0.16"))
-        assertTrue(UpdateChecker.isVersionNewer("2.0.17", "1.9.73"))
+        assertTrue("app/build.gradle must default to versionCode 132", buildGradle.contains(": 132"))
+        assertTrue("app/build.gradle must default to versionName '2.0.18'", buildGradle.contains(": '2.0.18'"))
+        assertTrue(UpdateChecker.isVersionNewer("2.0.18", "2.0.17"))
+        assertTrue(UpdateChecker.isVersionNewer("2.0.18", "1.9.73"))
     }
 }

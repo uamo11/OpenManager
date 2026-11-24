@@ -41,12 +41,27 @@ class TrailData private constructor(
         return TrailData(newTrail, newStates, newIndex)
     }
 
-    fun navigateUp(): TrailData? {
+    fun navigateUp(lastState: Parcelable? = null): TrailData? {
         if (currentIndex == 0) {
             return null
         }
+        // Keep where the list was, so going forward again comes back to the same spot.
+        if (lastState != null) states[currentIndex] = lastState
         val newIndex = currentIndex - 1
         return TrailData(trail, states, newIndex)
+    }
+
+    /** True after going up: the folder we came from is still ahead in the trail. */
+    val canNavigateForward: Boolean
+        get() = currentIndex < trail.size - 1
+
+    /** Back down the trail to the folder we came up from (the bottom bar's ">"). */
+    fun navigateForward(lastState: Parcelable?): TrailData? {
+        if (!canNavigateForward) {
+            return null
+        }
+        states[currentIndex] = lastState
+        return TrailData(trail, states, currentIndex + 1)
     }
 
     val pendingState: Parcelable?

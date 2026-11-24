@@ -52,7 +52,7 @@ object ExportFileListHelper {
         }
 
         if (filesToExport.isEmpty()) {
-            Toast.makeText(activity, "No files to export", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_export_no_files, Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -175,7 +175,7 @@ object ExportFileListHelper {
                         onComplete()
                     },
                     onFailure = { e ->
-                        Toast.makeText(activity, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, activity.getString(R.string.om_export_save_failed, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
                     }
                 )
             }
@@ -196,7 +196,7 @@ object ExportFileListHelper {
                         onComplete()
                     },
                     onFailure = { e ->
-                        Toast.makeText(activity, "Failed to save file: ${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(activity, activity.getString(R.string.om_export_save_failed, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
                     }
                 )
             }

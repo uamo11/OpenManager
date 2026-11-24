@@ -261,7 +261,7 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
                 MaterialAlertDialogBuilder(requireContext())
                     .setTitle(R.string.open_as_apks_functions)
                     .setMessage(getString(R.string.om_open_apks_msg_format, path.fileName.toString()))
-                    .setPositiveButton("Convertir APKS") { _, _ -> }
+                    .setPositiveButton(R.string.om_apks_convert) { _, _ -> }
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             },

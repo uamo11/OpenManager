@@ -103,7 +103,7 @@ class BinaryTracerDialog : DialogFragment() {
 
         fun refreshMetricsAndEvents() {
             val stats = BinaryTracerEngine.getStats()
-            tvMetricDeletions.text = "${stats.totalDeletions} (${stats.blockedDeletions} bloq, ${stats.allowedDeletions} perm)"
+            tvMetricDeletions.text = tvMetricDeletions.context.getString(R.string.om_tracer_deletions_format, stats.totalDeletions, stats.blockedDeletions, stats.allowedDeletions)
             tvMetricSyscalls.text = "${stats.totalSyscalls}"
             tvMetricKernel.text = "${stats.totalKernelReads}"
 

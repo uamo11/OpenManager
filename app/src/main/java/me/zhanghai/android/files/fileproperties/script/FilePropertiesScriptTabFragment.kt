@@ -255,7 +255,7 @@ class FilePropertiesScriptTabFragment : FilePropertiesTabFragment() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     if (!isUiAlive) return@withContext
-                    showToast("Error: ${e.message}")
+                    showToast(getString(R.string.om_error_format, e.message.orEmpty()))
                 }
             }
         }

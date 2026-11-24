@@ -237,10 +237,10 @@ class KeystoreGeneratorDialogFragment : AppCompatDialogFragment() {
                 setTitle(R.string.keystore_success_title)
                 setMessage(message)
                 setPositiveButton(android.R.string.ok, null)
-                setNeutralButton("Copiar SHA-256") { _, _ ->
+                setNeutralButton(R.string.om_copy_sha256) { _, _ ->
                     val clipboard = hostActivity.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
                     clipboard?.setPrimaryClip(ClipData.newPlainText("SHA-256", genResult.sha256Fingerprint))
-                    Toast.makeText(hostActivity, "Huella SHA-256 copiada al portapapeles", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(hostActivity, R.string.om_sha256_copied, Toast.LENGTH_SHORT).show()
                 }
             }
         }

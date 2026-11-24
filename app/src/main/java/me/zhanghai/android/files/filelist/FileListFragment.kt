@@ -1566,7 +1566,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 pendingHighlightPath = currentPath.archiveFile.toString()
             } catch (_: Throwable) {}
         }
-        if (!viewModel.navigateUp()) {
+        val state = if (::layoutManager.isInitialized) layoutManager.onSaveInstanceState() else null
+        if (!viewModel.navigateUp(state)) {
             val parent = currentPath.parentOrArchiveParent
             if (parent != null) {
                 navigateTo(parent)
@@ -1586,7 +1587,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 pendingHighlightPath = currentPath.archiveFile.toString()
             } catch (_: Throwable) {}
         }
-        if (!viewModel.navigateUp()) {
+        val state = if (::layoutManager.isInitialized) layoutManager.onSaveInstanceState() else null
+        if (!viewModel.navigateUp(state)) {
             val parent = currentPath.parentOrArchiveParent
             if (parent != null) {
                 navigateTo(parent)
@@ -1839,6 +1841,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         } else {
             // TODO
         }
+    }
+
+    /** The folder this panel came up from, if any (the bottom bar's ">"). */
+    val canNavigateForward: Boolean
+        get() = isAdded && viewModel.canNavigateForward
+
+    fun navigateForward() {
+        if (!canNavigateForward) return
+        collapseSearchView()
+        val state = if (::layoutManager.isInitialized) layoutManager.onSaveInstanceState() else null
+        viewModel.navigateForward(state)
     }
 
     override fun navigateTo(path: Path) {
@@ -2380,11 +2393,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     private fun pasteFiles(targetDirectory: Path) {
         val pasteState = viewModel.pasteState
         if (targetDirectory.toString().startsWith("/dev/block") || targetDirectory.toString().startsWith("/dev/")) {
-            showToast("Por seguridad, no se puede escribir directamente en particiones del sistema")
+            showToast(R.string.om_partition_no_write)
             return
         }
         if (!pasteState.copy && pasteState.files.any { it.path.toString().startsWith("/dev/block") || it.path.toString().startsWith("/dev/") }) {
-            showToast("Por seguridad, las particiones no se pueden mover ni cortar (solo copiar)")
+            showToast(R.string.om_partition_no_move)
             return
         }
         if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {
@@ -2916,7 +2929,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     override fun renameFile(file: FileItem, newName: String) {
         val pathStr = file.path.toString()
         if (pathStr.startsWith("/dev/block") || pathStr.startsWith("/dev/")) {
-            showToast("Por seguridad anti-brick, las particiones y nodos del sistema no se pueden renombrar")
+            showToast(R.string.om_partition_no_rename)
             return
         }
         if (DeadManProtectionManager.isDfrootProtectionActive(requireContext())) {

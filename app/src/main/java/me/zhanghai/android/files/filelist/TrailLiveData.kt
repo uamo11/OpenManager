@@ -23,9 +23,16 @@ class TrailLiveData : LiveData<TrailData>() {
         value = TrailData.of(path)
     }
 
-    fun navigateUp(): Boolean {
+    fun navigateUp(lastState: Parcelable? = null): Boolean {
         val oldTrailData = value ?: return false
-        val trailData = oldTrailData.navigateUp() ?: return false
+        val trailData = oldTrailData.navigateUp(lastState) ?: return false
+        value = trailData
+        return true
+    }
+
+    fun navigateForward(lastState: Parcelable?): Boolean {
+        val oldTrailData = value ?: return false
+        val trailData = oldTrailData.navigateForward(lastState) ?: return false
         value = trailData
         return true
     }

@@ -91,7 +91,7 @@ object FileSwapNamesHelper {
         if (!activity.isUiAlive) return
         val candidates = candidateFiles.filter { it.path != firstFile.path && !it.isParentDirectoryItem }
         if (candidates.isEmpty()) {
-            Toast.makeText(activity, "No other files available in this folder", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, R.string.om_swap_no_other_files, Toast.LENGTH_SHORT).show()
             return
         }
 

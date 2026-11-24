@@ -938,6 +938,14 @@ if find_text "根目录" >/dev/null && find_text "工具" >/dev/null && find_tex
 else
     fail "drawer is not in Chinese: $(lang_report drawer_zh | cut -d' ' -f3-)"
 fi
+# The counts above the panels used to be fixed Spanish/English ("Carpetas: 14  Archivos: 0  Disk:").
+demo close_drawer; sleep 2
+if find_contains "文件夹：" >/dev/null && ! find_contains "Carpetas:" "Disk:" >/dev/null; then
+    pass "the folder/file counts above the panels are in Chinese"
+else
+    shot 41b_counts_zh_CN
+    fail "the folder/file counts above the panels are not in Chinese"
+fi
 adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity --es DEMO_LOCALE reset >/dev/null 2>&1
 sleep 4
@@ -1291,6 +1299,45 @@ if wait_text 20 "bm_marker.txt" >/dev/null; then
             fail "the side menu does not list the bookmark"
         fi
         demo close_drawer; sleep 1
+        # ">" goes back down to the folder the panel came up from.
+        adb shell input tap $(node_center_by_id btnBottomBack); sleep 3
+        if ! find_text "bm_marker.txt" >/dev/null; then
+            adb shell input tap $(node_center_by_id btnBottomForward); sleep 3
+            if wait_text 15 "bm_marker.txt" >/dev/null; then
+                pass "the bottom bar's > returns to the folder left with <"
+            else
+                shot 42_forward_failed
+                fail "the bottom bar's > did not return to the folder"
+            fi
+        else
+            fail "< did not leave the bookmark folder"
+        fi
+        # Long press on a bookmark: its menu, with "Add to home screen" (MT Manager style).
+        read -r sx sy <<< "$(node_center_by_id btnBottomSwap)"
+        adb shell input swipe $sx $sy $sx $((sy - 500)) 300; sleep 2
+        if pos=$(node_with tvBookmarkName om_bm_target); then
+            adb shell input swipe $pos $pos 1200; sleep 2
+            shot 43_bookmark_menu
+            if pos=$(find_text "Add to home screen" "Añadir a la pantalla de inicio"); then
+                pass "holding a bookmark opens its menu with 'Add to home screen'"
+                adb shell input tap $pos; sleep 3
+                shot 44_pin_shortcut_dialog
+                # Launcher3 asks first; accept it if it does.
+                if pos=$(find_text "Add automatically" "ADD AUTOMATICALLY" "Add" "ADD" "Añadir automáticamente" "AÑADIR"); then
+                    adb shell input tap $pos; sleep 2
+                fi
+                if adb shell dumpsys shortcut 2>/dev/null | tr -d '\r' | grep -q "bookmark:file:///storage/emulated/0/om_bm_target"; then
+                    pass "the bookmark was pinned to the home screen"
+                else
+                    fail "no home screen shortcut for the bookmark"
+                fi
+            else
+                fail "holding a bookmark did not show 'Add to home screen'"
+            fi
+            adb shell input keyevent KEYCODE_BACK; sleep 1
+        else
+            fail "could not reopen the bookmarks panel"
+        fi
     else
         fail "no 'Add bookmark' in the ⋮ menu"
         adb shell input keyevent KEYCODE_BACK

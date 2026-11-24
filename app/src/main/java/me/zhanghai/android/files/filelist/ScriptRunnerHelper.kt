@@ -622,7 +622,7 @@ object ScriptRunnerHelper {
                 }
                 activity.startActivity(intent)
             } catch (_: Throwable) {
-                Toast.makeText(activity, "Error: ${t.localizedMessage}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, activity.getString(R.string.om_error_format, t.localizedMessage.orEmpty()), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -933,7 +933,7 @@ object ScriptRunnerHelper {
                                 Toast.makeText(activity, R.string.file_properties_script_convert_success, Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 if (!activity.isFinishing && !activity.isDestroyed) {
-                                    Toast.makeText(activity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(activity, activity.getString(R.string.om_error_format, e.message.orEmpty()), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         }
@@ -1011,7 +1011,7 @@ object ScriptRunnerHelper {
                     tvSha256.text = sha256Hex
                 } catch (e: Exception) {
                     if (!activity.isFinishing && !activity.isDestroyed) {
-                        tvMd5.text = "Error: ${e.message}"
+                        tvMd5.text = tvMd5.context.getString(R.string.om_error_format, e.message.orEmpty())
                     }
                 }
             }

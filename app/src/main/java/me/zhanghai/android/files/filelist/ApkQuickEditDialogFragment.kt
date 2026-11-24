@@ -66,9 +66,9 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
                     if (bitmap != null) {
                         dialog?.findViewById<ImageView>(R.id.ivQuickEditIcon)?.setImageBitmap(bitmap)
                         selectedIconBytes = bytes
-                        Toast.makeText(requireContext(), "Icono seleccionado", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.om_apk_icon_selected, Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(requireContext(), "Formato de imagen no compatible", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), R.string.om_apk_image_unsupported, Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
@@ -355,12 +355,10 @@ class ApkQuickEditDialogFragment : AppCompatDialogFragment() {
 
                 if (Build.VERSION.SDK_INT >= 35 && targetSdkRaw != null && targetSdkRaw < 24) {
                     MaterialAlertDialogBuilder(hostActivity)
-                        .setTitle("targetSdk demasiado bajo para Android 15/16")
-                        .setMessage(
-                            "Android 15/16 bloquea la instalación de apps con targetSdk $targetSdkRaw (< 24). ¿Deseas ajustarlo a API 24 (Android 7.0) para permitir la instalación?"
-                        )
-                        .setPositiveButton("Subir a API 24") { _, _ -> startQuickEditSave(24) }
-                        .setNegativeButton("Mantener ($targetSdkRaw)") { _, _ -> startQuickEditSave(targetSdkRaw) }
+                        .setTitle(R.string.om_apk_low_target_title)
+                        .setMessage(hostActivity.getString(R.string.om_apk_low_target_message, targetSdkRaw))
+                        .setPositiveButton(R.string.om_apk_raise_to_24) { _, _ -> startQuickEditSave(24) }
+                        .setNegativeButton(hostActivity.getString(R.string.om_apk_keep_target, targetSdkRaw)) { _, _ -> startQuickEditSave(targetSdkRaw) }
                         .setNeutralButton(android.R.string.cancel, null)
                         .show()
                     return@setOnClickListener
