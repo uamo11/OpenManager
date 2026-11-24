@@ -178,7 +178,11 @@ theme dark off color_primary
 log "=== Zones of the app ==="
 open_dir "DCIM/Camera"; sleep 3
 demo more_menu; sleep 2
-pos=$(find_text "Gallery view (this folder)") && adb shell input tap $pos
+pos=$(find_text "Sort and view") && adb shell input tap $pos && sleep 2
+pos=$(find_text "View: list") && adb shell input tap $pos && sleep 2
+pos=$(find_text "Gallery (large") && adb shell input tap $pos && sleep 1
+pos=$(find_text "Only this folder") && adb shell input tap $pos && sleep 1
+pos=$(find_text "OK") && adb shell input tap $pos
 shot 10_gallery 6
 add_bookmark() {
     open_dir "$1"; sleep 3

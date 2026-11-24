@@ -2524,7 +2524,6 @@
     <string name="om_pdf_from_start">Từ đầu</string>
     <string name="om_md3_locked_by_ultra_ram">Tắt khi chế độ Ultra RAM đang bật (tốn nhiều bộ nhớ hơn)</string>
     <string name="om_apk_checking_signature">Đang kiểm tra…</string>
-    <string name="om_menu_gallery_view">Chế độ thư viện (thư mục này)</string>
     <string name="om_proc_state_running">ĐANG CHẠY</string>
     <string name="om_proc_state_active">HOẠT ĐỘNG</string>
     <string name="om_proc_state_sleep">CHỜ</string>
@@ -2542,4 +2541,13 @@
     <string name="om_heat_cause_gpu">GPU %1$d%%</string>
     <string name="om_heat_nothing">Hiện không có gì làm máy nóng lên</string>
     <string name="om_self_usage_format">OpenManager: RAM thực %1$s · ứng dụng %2$s · script (%3$d) %4$s</string>
+    <string name="om_menu_sort_view">Sắp xếp và chế độ xem</string>
+    <string name="om_sort_view_entry">Chế độ xem: danh sách, lưới hoặc thư viện…</string>
+    <string name="om_view_title">Chế độ xem</string>
+    <string name="om_view_list">Danh sách</string>
+    <string name="om_view_grid">Lưới</string>
+    <string name="om_view_gallery">Thư viện (ảnh và video lớn)</string>
+    <string name="om_view_scope_title">Áp dụng cho</string>
+    <string name="om_view_scope_folder">Chỉ thư mục này</string>
+    <string name="om_view_scope_all">Tất cả thư mục (mặc định)</string>
 </resources>

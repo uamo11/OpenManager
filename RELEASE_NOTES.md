@@ -1,3 +1,15 @@
+# OpenManager v2.0.24: Vídeos Panorámicos en la Galería y Menú Más Limpio
+
+### 🖼️ Galería
+- Los **vídeos** ocupan ahora **dos casillas** a lo ancho: una miniatura panorámica, como el vídeo, en vez de un cuadrado recortado. Tienen la misma altura que las fotos, así las filas quedan parejas.
+- Las fotos siguen igual.
+
+### 🧹 Menú ⋮ más limpio
+- Se quitó el botón «Vista galería» del menú ⋮ (había demasiados botones).
+- **Ordenar** pasa a llamarse **«Ordenar y vista»**. Su primera opción, **«Vista: lista, cuadrícula o galería…»**, permite elegir la vista y aplicarla:
+  - a **solo esta carpeta**, o
+  - a **todas las carpetas** como predeterminada.
+
 # OpenManager v2.0.23: Sin Cierres al Navegar por Fotos y Vídeos
 
 ### 🛠️ Corregido un cierre en Android 14–16 (Samsung y otros)

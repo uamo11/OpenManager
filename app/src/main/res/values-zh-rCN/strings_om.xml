@@ -2429,7 +2429,6 @@
     <string name="om_pdf_from_start">从头开始</string>
     <string name="om_md3_locked_by_ultra_ram">Ultra RAM 模式开启时停用（占用更多内存）</string>
     <string name="om_apk_checking_signature">正在检查…</string>
-    <string name="om_menu_gallery_view">图库视图（此文件夹）</string>
     <string name="om_proc_state_running">运行中</string>
     <string name="om_proc_state_active">活动</string>
     <string name="om_proc_state_sleep">休眠</string>
@@ -2447,4 +2446,13 @@
     <string name="om_heat_cause_gpu">GPU 负载 %1$d%%</string>
     <string name="om_heat_nothing">目前没有什么在让手机发热</string>
     <string name="om_self_usage_format">OpenManager：实际内存 %1$s · 应用 %2$s · 脚本（%3$d）%4$s</string>
+    <string name="om_menu_sort_view">排序与视图</string>
+    <string name="om_sort_view_entry">视图：列表、网格或图库…</string>
+    <string name="om_view_title">视图</string>
+    <string name="om_view_list">列表</string>
+    <string name="om_view_grid">网格</string>
+    <string name="om_view_gallery">图库（大图照片和视频）</string>
+    <string name="om_view_scope_title">应用于</string>
+    <string name="om_view_scope_folder">仅此文件夹</string>
+    <string name="om_view_scope_all">所有文件夹（默认）</string>
 </resources>

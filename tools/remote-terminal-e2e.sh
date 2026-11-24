@@ -1623,9 +1623,22 @@ else
 fi
 
 log "=== Gallery view for one folder: big tiles, no names, resolution label ==="
-demo more_menu; sleep 2
-if pos=$(find_text "Gallery view (this folder)" "Vista galería (esta carpeta)"); then
-    adb shell input tap $pos; sleep 6
+# set_view <view label> <scope label>: ⋮ > Sort and view > View… > choice > OK.
+set_view() {
+    demo more_menu; sleep 2
+    pos=$(find_contains "Sort and view" "Ordenar y vista") || return 1
+    adb shell input tap $pos; sleep 2
+    pos=$(find_contains "View: list" "Vista: lista") || return 1
+    adb shell input tap $pos; sleep 2
+    pos=$(find_contains "$1") || return 1
+    adb shell input tap $pos; sleep 1
+    pos=$(find_contains "$2") || return 1
+    adb shell input tap $pos; sleep 1
+    pos=$(find_text "OK" "Aceptar") || return 1
+    adb shell input tap $pos
+}
+if set_view "Gallery (large" "Only this folder"; then
+    sleep 6
     shot 48_gallery_view
     if node_with resolutionBadge 4K >/dev/null; then
         pass "the gallery view labels the 4K video (4K)"
@@ -1637,6 +1650,23 @@ if pos=$(find_text "Gallery view (this folder)" "Vista galería (esta carpeta)")
     else
         fail "the gallery view still shows the video names"
     fi
+    # Videos are wide tiles: two columns across and as tall as a photo (frame about 2:1).
+    node_center_by_id thumbnailFrame >/dev/null
+    tile=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+frames = [(int(x2) - int(x1), int(y2) - int(y1)) for x1, y1, x2, y2 in re.findall(r'resource-id="[^"]*:id/thumbnailFrame"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml)]
+frames = [f for f in frames if f[1] > 0]
+print(" ".join(f"{w}x{h}" for w, h in frames[:4]))
+sys.exit(0 if any(w >= 1.8 * h for w, h in frames) else 1)
+PY
+    ) && wide=1 || wide=0
+    log "      video tiles in the gallery: ${tile:-none}"
+    if [ "$wide" = 1 ]; then
+        pass "videos are wide tiles (two columns) in the gallery"
+    else
+        fail "videos are not wide tiles in the gallery"
+    fi
     # Only this folder: Pictures keeps the normal list.
     adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
         --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Pictures" >/dev/null; sleep 4
@@ -1645,13 +1675,20 @@ if pos=$(find_text "Gallery view (this folder)" "Vista galería (esta carpeta)")
     else
         fail "the gallery view leaked into another folder"
     fi
+    # The ⋮ menu no longer carries a gallery entry of its own.
+    demo more_menu; sleep 2
+    if find_contains "Gallery view (this folder)" "Vista galería (esta carpeta)" >/dev/null; then
+        fail "the ⋮ menu still has its own gallery entry"
+    else
+        pass "the gallery is chosen from Sort and view, not a separate ⋮ entry"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
     adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
         --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Movies" >/dev/null; sleep 3
-    demo more_menu; sleep 2
-    pos=$(find_text "Gallery view (this folder)" "Vista galería (esta carpeta)") && adb shell input tap $pos
+    set_view "List" "All folders" || fail "could not switch back to the list view"
     sleep 2
 else
-    fail "no 'Gallery view (this folder)' in the ⋮ menu"
+    fail "could not choose the gallery from Sort and view"
     adb shell input keyevent KEYCODE_BACK
 fi
 adb shell am force-stop $PKG; sleep 1

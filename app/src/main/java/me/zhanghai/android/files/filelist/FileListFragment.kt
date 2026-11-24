@@ -506,6 +506,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         ShizukuManager.addBinderListener(shizukuBinderListener)
         layoutManager = GridLayoutManager(activity, 1).apply {
             isItemPrefetchEnabled = !PerformanceModeManager.isEnabled
+            // Gallery: a video is a wide tile, two squares across.
+            spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int =
+                    if (::adapter.isInitialized) adapter.spanSizeAt(position, spanCount) else 1
+            }
         }
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.setHasFixedSize(true)
@@ -1527,15 +1532,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
     }
 
-    /** Gallery view for this folder only (⋮ menu). */
-    val isGalleryView: Boolean
-        get() = isAdded && viewModel.viewType == FileViewType.GALLERY
-
-    fun toggleGalleryView() {
-        if (!isAdded) return
-        PathSettings.getFileListViewType(currentPath)
-            .putValue(if (isGalleryView) null else FileViewType.GALLERY)
-    }
 
     private fun onSortOptionsChanged(sortOptions: FileSortOptions) {
         adapter.setSortOptionsWithoutResort(sortOptions)
@@ -1712,6 +1708,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     fun showSortOptionsDialog() {
         val options = arrayOf(
+            getString(R.string.om_sort_view_entry),
             getString(R.string.om_sort_by_name),
             getString(R.string.om_sort_by_type),
             getString(R.string.om_sort_by_size),
@@ -1723,11 +1720,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             .setTitle(R.string.om_menu_sort)
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> viewModel.setSortBy(By.NAME)
-                    1 -> viewModel.setSortBy(By.TYPE)
-                    2 -> viewModel.setSortBy(By.SIZE)
-                    3 -> viewModel.setSortBy(By.LAST_MODIFIED)
-                    4 -> {
+                    0 -> showViewOptionsDialog()
+                    1 -> viewModel.setSortBy(By.NAME)
+                    2 -> viewModel.setSortBy(By.TYPE)
+                    3 -> viewModel.setSortBy(By.SIZE)
+                    4 -> viewModel.setSortBy(By.LAST_MODIFIED)
+                    5 -> {
                         val newOrder = if (viewModel.sortOptions.order == Order.ASCENDING) {
                             Order.DESCENDING
                         } else {
@@ -1735,9 +1733,73 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                         }
                         viewModel.setSortOrder(newOrder)
                     }
-                    5 -> viewModel.setSortDirectoriesFirst(!viewModel.sortOptions.isDirectoriesFirst)
+                    6 -> viewModel.setSortDirectoriesFirst(!viewModel.sortOptions.isDirectoriesFirst)
                 }
             }
+            .show()
+    }
+
+    /**
+     * List, grid or gallery, for this folder only or as the default for every folder (the
+     * gallery used to be its own entry in the crowded ⋮ menu).
+     */
+    fun showViewOptionsDialog() {
+        val context = requireContext()
+        val density = resources.displayMetrics.density
+        val folderSetting = PathSettings.getFileListViewType(currentPath)
+        val types = listOf(
+            FileViewType.LIST to R.string.om_view_list,
+            FileViewType.GRID to R.string.om_view_grid,
+            FileViewType.GALLERY to R.string.om_view_gallery
+        )
+        fun header(res: Int) = android.widget.TextView(context).apply {
+            setText(res)
+            textSize = 13f
+            alpha = 0.7f
+            setPadding(0, (12 * density).toInt(), 0, (4 * density).toInt())
+        }
+        val typeGroup = android.widget.RadioGroup(context)
+        types.forEachIndexed { index, (type, label) ->
+            typeGroup.addView(android.widget.RadioButton(context).apply {
+                id = VIEW_TYPE_ID_BASE + index
+                setText(label)
+                isChecked = viewModel.viewType == type
+            })
+        }
+        val scopeGroup = android.widget.RadioGroup(context)
+        scopeGroup.addView(android.widget.RadioButton(context).apply {
+            id = VIEW_SCOPE_FOLDER_ID
+            setText(R.string.om_view_scope_folder)
+            isChecked = folderSetting.value != null
+        })
+        scopeGroup.addView(android.widget.RadioButton(context).apply {
+            id = VIEW_SCOPE_ALL_ID
+            setText(R.string.om_view_scope_all)
+            isChecked = folderSetting.value == null
+        })
+        val padding = (22 * density).toInt()
+        val content = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(padding, (4 * density).toInt(), padding, 0)
+            addView(typeGroup)
+            addView(header(R.string.om_view_scope_title))
+            addView(scopeGroup)
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.om_view_title)
+            .setView(android.widget.ScrollView(context).apply { addView(content) })
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val type = types.getOrNull(typeGroup.checkedRadioButtonId - VIEW_TYPE_ID_BASE)?.first
+                    ?: return@setPositiveButton
+                if (scopeGroup.checkedRadioButtonId == VIEW_SCOPE_FOLDER_ID) {
+                    folderSetting.putValue(type)
+                } else {
+                    // The default for every folder; this one follows it again.
+                    Settings.FILE_LIST_VIEW_TYPE.putValue(type)
+                    folderSetting.putValue(null)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -3594,6 +3656,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     companion object {
+        private const val VIEW_TYPE_ID_BASE = 1000
+        private const val VIEW_SCOPE_FOLDER_ID = 1100
+        private const val VIEW_SCOPE_ALL_ID = 1101
         private const val ACTION_VIEW_DOWNLOADS =
             "me.zhanghai.android.files.intent.action.VIEW_DOWNLOADS"
 

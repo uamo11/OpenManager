@@ -2435,7 +2435,6 @@
     <string name="om_pdf_from_start">Do início</string>
     <string name="om_md3_locked_by_ultra_ram">Desativado enquanto o modo Ultra RAM estiver ativo (usa mais memória)</string>
     <string name="om_apk_checking_signature">Verificando…</string>
-    <string name="om_menu_gallery_view">Visualização em galeria (esta pasta)</string>
     <string name="om_proc_state_running">EM EXECUÇÃO</string>
     <string name="om_proc_state_active">ATIVO</string>
     <string name="om_proc_state_sleep">EM ESPERA</string>
@@ -2453,4 +2452,13 @@
     <string name="om_heat_cause_gpu">GPU em %1$d%%</string>
     <string name="om_heat_nothing">No momento nada está esquentando o celular</string>
     <string name="om_self_usage_format">OpenManager: %1$s de RAM real · app %2$s · scripts (%3$d) %4$s</string>
+    <string name="om_menu_sort_view">Ordenar e visualizar</string>
+    <string name="om_sort_view_entry">Visualização: lista, grade ou galeria…</string>
+    <string name="om_view_title">Visualização</string>
+    <string name="om_view_list">Lista</string>
+    <string name="om_view_grid">Grade</string>
+    <string name="om_view_gallery">Galeria (fotos e vídeos grandes)</string>
+    <string name="om_view_scope_title">Aplicar a</string>
+    <string name="om_view_scope_folder">Somente esta pasta</string>
+    <string name="om_view_scope_all">Todas as pastas (padrão)</string>
 </resources>

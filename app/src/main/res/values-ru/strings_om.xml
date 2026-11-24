@@ -2449,7 +2449,6 @@
     <string name="om_pdf_from_start">С начала</string>
     <string name="om_md3_locked_by_ultra_ram">Выключено, пока включён режим Ultra RAM (требует больше памяти)</string>
     <string name="om_apk_checking_signature">Проверка…</string>
-    <string name="om_menu_gallery_view">Галерея (эта папка)</string>
     <string name="om_proc_state_running">РАБОТАЕТ</string>
     <string name="om_proc_state_active">АКТИВНО</string>
     <string name="om_proc_state_sleep">ОЖИДАНИЕ</string>
@@ -2467,4 +2466,13 @@
     <string name="om_heat_cause_gpu">ГП загружен на %1$d%%</string>
     <string name="om_heat_nothing">Сейчас ничто не нагревает телефон</string>
     <string name="om_self_usage_format">OpenManager: %1$s реальной ОЗУ · приложение %2$s · скрипты (%3$d) %4$s</string>
+    <string name="om_menu_sort_view">Сортировка и вид</string>
+    <string name="om_sort_view_entry">Вид: список, сетка или галерея…</string>
+    <string name="om_view_title">Вид</string>
+    <string name="om_view_list">Список</string>
+    <string name="om_view_grid">Сетка</string>
+    <string name="om_view_gallery">Галерея (крупные фото и видео)</string>
+    <string name="om_view_scope_title">Применить к</string>
+    <string name="om_view_scope_folder">Только эта папка</string>
+    <string name="om_view_scope_all">Все папки (по умолчанию)</string>
 </resources>

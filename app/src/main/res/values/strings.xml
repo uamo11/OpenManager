@@ -3345,7 +3345,6 @@
     <string name="om_pdf_from_start">From the start</string>
     <string name="om_md3_locked_by_ultra_ram">Off while Ultra RAM mode is on (it uses more memory)</string>
     <string name="om_apk_checking_signature">Checking…</string>
-    <string name="om_menu_gallery_view">Gallery view (this folder)</string>
     <string name="om_proc_state_running">RUNNING</string>
     <string name="om_proc_state_active">ACTIVE</string>
     <string name="om_proc_state_sleep">SLEEPING</string>
@@ -3363,4 +3362,13 @@
     <string name="om_heat_cause_gpu">GPU at %1$d%%</string>
     <string name="om_heat_nothing">Nothing is heating the phone up right now</string>
     <string name="om_self_usage_format">OpenManager: %1$s real RAM · app %2$s · scripts (%3$d) %4$s</string>
+    <string name="om_menu_sort_view">Sort and view</string>
+    <string name="om_sort_view_entry">View: list, grid or gallery…</string>
+    <string name="om_view_title">View</string>
+    <string name="om_view_list">List</string>
+    <string name="om_view_grid">Grid</string>
+    <string name="om_view_gallery">Gallery (large photos and videos)</string>
+    <string name="om_view_scope_title">Apply to</string>
+    <string name="om_view_scope_folder">Only this folder</string>
+    <string name="om_view_scope_all">All folders (default)</string>
 </resources>

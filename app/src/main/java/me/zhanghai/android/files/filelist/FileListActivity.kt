@@ -1576,7 +1576,6 @@ class FileListActivity : AppActivity() {
             isCheckable = true
             isChecked = showHidden
         }
-        popup.menu.findItem(R.id.mt_menu_gallery_view)?.isChecked = activeFragment.isGalleryView
         popup.menu.findItem(R.id.mt_menu_empty_recycle_bin)?.isVisible =
             activeFragment.currentPath.isInsideRecycleBin
         popup.setOnMenuItemClickListener { item ->
@@ -1611,10 +1610,6 @@ class FileListActivity : AppActivity() {
                 }
                 R.id.mt_menu_sort -> {
                     activeFragment.showSortOptionsDialog()
-                    true
-                }
-                R.id.mt_menu_gallery_view -> {
-                    activeFragment.toggleGalleryView()
                     true
                 }
                 R.id.mt_menu_hidden_files -> {

@@ -39,13 +39,7 @@
     <item
         android:id="@+id/mt_menu_sort"
         android:icon="@drawable/sort_icon_control_normal_24dp"
-        android:title="@string/om_menu_sort" />
-
-    <item
-        android:id="@+id/mt_menu_gallery_view"
-        android:checkable="true"
-        android:icon="@drawable/image_icon_white_24dp"
-        android:title="@string/om_menu_gallery_view" />
+        android:title="@string/om_menu_sort_view" />
 
     <item
         android:id="@+id/mt_menu_select_all"

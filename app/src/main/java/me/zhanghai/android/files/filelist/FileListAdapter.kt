@@ -388,7 +388,12 @@ class FileListAdapter(
         val frame = holder.thumbnailFrame ?: return
         val gallery = viewType == FileViewType.GALLERY
         val mediaTile = gallery && !isParent && (file.mimeType.isImage || file.mimeType.isVideo)
-        frame.ratio = if (gallery) 1f else GRID_THUMBNAIL_RATIO
+        // Videos are two squares wide and as tall as a photo, so rows stay even.
+        frame.ratio = when {
+            !gallery -> GRID_THUMBNAIL_RATIO
+            !isParent && file.mimeType.isVideo -> 2f
+            else -> 1f
+        }
         holder.nameBar?.isVisible = !mediaTile
         val badge = holder.resolutionBadge ?: return
         badge.isVisible = false
@@ -407,6 +412,13 @@ class FileListAdapter(
                 badge.isVisible = true
             }
         }
+    }
+
+    /** Columns the item at [position] takes: videos are wide tiles in the gallery. */
+    fun spanSizeAt(position: Int, spanCount: Int): Int {
+        if (viewType != FileViewType.GALLERY || spanCount < 2 || position !in 0 until itemCount) return 1
+        val file = getItem(position)
+        return if (!file.isParentDirectoryItem && file.mimeType.isVideo) 2 else 1
     }
 
     /** Whether ([x], [y]) in [recyclerView] falls on the icon of [holder] (a bit wider). */
