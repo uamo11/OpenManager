@@ -1,3 +1,23 @@
+# OpenManager v2.0.15: Apariencia sin Fallos, Archivos Seguros sin Avisos y APK más Ligero
+
+### 🎨 Apariencia
+- **AMOLED (y los demás temas rápidos) siempre responde**: si la pantalla ya se veía así (por ejemplo "Sistema" con el móvil en oscuro y el fondo negro activado), al tocar AMOLED no se marcaba y parecía que no hacía nada.
+- **Color de tema con Material 3**: antes se ignoraba y Material 3 usaba los colores del fondo de pantalla. Ahora el color elegido se aplica, con tonos para día y noche. El color por defecto sigue usando los del fondo de pantalla.
+- **Modo Ultra RAM** activa también el tema clásico (sin Material 3) y el **fondo uniforme** de los paneles. Al desactivarlo vuelven tus elecciones anteriores (salvo las que cambiaste mientras estaba activo).
+
+### 🗜️ Archivos comprimidos sin opciones que asusten
+- Desaparece la sección con interruptores de CVE. La protección es automática y no se puede desactivar por error:
+  - La limpieza de TAR (CVE-2026-15028, aún sin corregir en libarchive 3.8.8) está **siempre activa**.
+  - Los **RAR5 se abren con normalidad**: el fallo CVE-2026-14164 ya está corregido en la libarchive 3.8.8 que lleva la app, y además se comprueba la cabecera antes de abrirlos.
+- Un RAR dañado muestra un mensaje claro ("está dañado, no se abrió por seguridad") en vez de un código CVE.
+
+### 🪶 Más ligero y más fácil de diagnosticar
+- Imágenes en WebP sin pérdida (idénticas píxel a píxel): unos 460 KB menos.
+- Las librerías ya no incluyen textos en ~50 idiomas que la app no tiene.
+- En Android 11+, si el sistema cerró la app (bloqueo, fallo nativo o falta de memoria), se guarda un informe en la carpeta de logs al volver a abrirla.
+
+---
+
 # OpenManager v2.0.14: Ruso, Portugués, Indonesio y Vietnamita
 
 ### 🌍 Cuatro idiomas nuevos completos
