@@ -1809,6 +1809,23 @@ adb logcat -d > "$OUT/logcat_running.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_running.txt"; then fail "crash in Running Apps"; fi
 adb shell am force-stop $PKG; sleep 1
 
+log "=== Browsing photos does not flood the media scanner (Android 16 crash) ==="
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Pictures" >/dev/null; sleep 6
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Movies" >/dev/null; sleep 6
+queued=$(adb logcat -d -s OMMediaScan 2>/dev/null | grep -c "queued" || true)
+log "      media scans queued while browsing: ${queued:-0}"
+if [ "${queued:-0}" -eq 0 ]; then
+    pass "reading files (thumbnails) asks the media scanner nothing"
+else
+    fail "browsing queued ${queued} media scans"
+fi
+adb logcat -d > "$OUT/logcat_mediascan.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_mediascan.txt"; then fail "crash while browsing photos and videos"; fi
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

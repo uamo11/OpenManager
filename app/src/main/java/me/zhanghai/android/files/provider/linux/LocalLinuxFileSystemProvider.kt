@@ -103,8 +103,15 @@ class LocalLinuxFileSystemProvider(provider: LinuxFileSystemProvider) : FileSyst
                 e.printStackTrace()
             }
         }
+        // Only a write can change what the gallery shows. Reading (thumbnails, viewers, copies
+        // from here) used to ask the media scanner twice per file, and browsing a folder of videos
+        // flooded it until Android's own scanner connection crashed the app (Android 14+).
+        if (!openOptions.write && !openOptions.append && !openOptions.truncateExisting &&
+            !openOptions.create && !openOptions.createNew
+        ) {
+            return fileChannel
+        }
         val javaFile = file.toFile()
-        MediaScanner.scan(javaFile)
         return MediaScanner.createScanOnCloseFileChannel(fileChannel, javaFile)
     }
 
