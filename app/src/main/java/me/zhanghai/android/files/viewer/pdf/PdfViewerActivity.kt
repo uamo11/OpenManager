@@ -372,9 +372,11 @@ class PdfViewerActivity : AppActivity() {
     private fun runDemoGesture(gesture: String) {
         if (!BuildConfig.DEBUG) return
         val list = binding.recyclerView
-        val location = IntArray(2).also { list.getLocationOnScreen(it) }
-        val cx = location[0] + list.width / 2f
-        val cy = location[1] + list.height / 2f
+        // From the parent: the list's own location moves with its zoom translation.
+        val parent = list.parent as View
+        val location = IntArray(2).also { parent.getLocationOnScreen(it) }
+        val cx = location[0] + list.left + list.width / 2f
+        val cy = location[1] + list.top + list.height / 2f
         val root = window.decorView
         val rootLocation = IntArray(2).also { root.getLocationOnScreen(it) }
         val ox = cx - rootLocation[0]
