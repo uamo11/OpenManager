@@ -1572,7 +1572,8 @@ else
 fi
 # The user turns thumbnails back on inside Ultra RAM: they load, small and cached on disk.
 adb shell am force-stop $PKG; sleep 1
-adb shell run-as $PKG sed -i 's#<string name="key_thumbnail_load_mode">2</string>#<string name="key_thumbnail_load_mode">0</string>#' /data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+# Quoted for the device's shell too ("<" and ">" would be redirections there).
+adb shell "run-as $PKG sed -i 's#<string name=\"key_thumbnail_load_mode\">2</string>#<string name=\"key_thumbnail_load_mode\">0</string>#' /data/data/$PKG/shared_prefs/${PKG}_preferences.xml"
 adb shell run-as $PKG rm -rf cache/om_thumbs
 log "      thumbnail mode after turning them on inside Ultra RAM: $(pref_value key_thumbnail_load_mode)"
 adb logcat -c
@@ -1647,7 +1648,11 @@ if pos=$(node_in_half left bm_marker.txt); then
         log "      resumed: $top"
         fail "a tap on the icon did not open the file"
     fi
-    adb shell input keyevent KEYCODE_BACK; sleep 3
+    # Back to the explorer (the first back may only close the editor's keyboard).
+    for _ in 1 2 3; do
+        adb shell dumpsys activity activities | grep -m1 "mResumedActivity" | grep -q "FileListActivity" && break
+        adb shell input keyevent KEYCODE_BACK; sleep 2
+    done
     if pos=$(node_in_half left bm_marker.txt); then
         ry=${pos#* }
         adb shell input swipe 40 $ry 320 $ry 300; sleep 2
