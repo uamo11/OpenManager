@@ -27,21 +27,84 @@ import java.io.IOException
  * @see com.android.providers.media.scan.ModernMediaScanner.java
  */
 object MediaScanner {
+    /**
+     * Tells the media scanner about [file]. Requests are collected for a moment and sent as one
+     * batch, and only one batch is in flight at a time: many overlapping scanFile() calls make
+     * Android release its MediaProvider connection twice ("stableCount < 0"), which crashes the
+     * app from a system thread on recent Samsung/Android versions.
+     */
     fun scan(file: File, isDeleted: Boolean = false) {
         if (isRunningAsRoot) {
             return
         }
-        MediaScannerConnection.scanFile(application, arrayOf(file.path), null) { _, _ ->
-            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && isDeleted) {
-                // ModernMediaScanner has a bug on Android 10 that may prevent it from removing
-                // certain files after their deletion. This has been fixed on Android 11 by
-                // https://android.googlesource.com/platform/packages/providers/MediaProvider/+/637d133d90f49dd18bda5de219184bfa9d6c2deb
-                // , but we still have to work around it for Android 10 by always trying to delete
-                // the MediaStore entry ourselves.
-                deleteMediaStoreEntryAsync(file)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            android.util.Log.d("OMMediaScan", "queued ${file.path} deleted=$isDeleted")
+        }
+        synchronized(lock) {
+            val path = file.path
+            pending[path] = (pending[path] == true) || isDeleted
+            if (!flushScheduled) {
+                flushScheduled = true
+                scanHandler.postDelayed(::flush, BATCH_DELAY_MS)
             }
         }
     }
+
+    private val lock = Any()
+    private val pending = LinkedHashMap<String, Boolean>()
+    private var flushScheduled = false
+    private var inFlightGeneration = 0
+    private var inFlight = false
+
+    private val scanHandler by lazy {
+        val thread = HandlerThread("MediaScanQueue")
+        thread.start()
+        Handler(thread.looper)
+    }
+
+    private fun flush() {
+        val batch: Map<String, Boolean>
+        val generation: Int
+        synchronized(lock) {
+            if (inFlight) {
+                // The previous batch is still being scanned: try again shortly.
+                scanHandler.postDelayed(::flush, BATCH_DELAY_MS)
+                return
+            }
+            flushScheduled = false
+            if (pending.isEmpty()) return
+            batch = LinkedHashMap(pending)
+            pending.clear()
+            inFlight = true
+            generation = ++inFlightGeneration
+        }
+        var remaining = batch.size
+        try {
+            MediaScannerConnection.scanFile(application, batch.keys.toTypedArray(), null) { path, _ ->
+                if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q && batch[path] == true) {
+                    // ModernMediaScanner has a bug on Android 10 that may prevent it from removing
+                    // certain files after their deletion. This has been fixed on Android 11 by
+                    // https://android.googlesource.com/platform/packages/providers/MediaProvider/+/637d133d90f49dd18bda5de219184bfa9d6c2deb
+                    // , but we still have to work around it for Android 10 by always trying to
+                    // delete the MediaStore entry ourselves.
+                    deleteMediaStoreEntryAsync(File(path))
+                }
+                synchronized(lock) {
+                    if (--remaining <= 0 && inFlightGeneration == generation) inFlight = false
+                }
+            }
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            synchronized(lock) { if (inFlightGeneration == generation) inFlight = false }
+        }
+        // Never wait forever for callbacks that may not come.
+        scanHandler.postDelayed({
+            synchronized(lock) { if (inFlightGeneration == generation) inFlight = false }
+        }, BATCH_TIMEOUT_MS)
+    }
+
+    private const val BATCH_DELAY_MS = 500L
+    private const val BATCH_TIMEOUT_MS = 15_000L
 
     @get:RequiresApi(Build.VERSION_CODES.Q)
     private val deleteMediaStoreEntryHandler by lazy {

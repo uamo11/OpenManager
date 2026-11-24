@@ -1,3 +1,15 @@
+# OpenManager v2.0.23: Sin Cierres al Navegar por Fotos y Vídeos
+
+### 🛠️ Corregido un cierre en Android 14–16 (Samsung y otros)
+- La app podía cerrarse sola **al navegar por carpetas de vídeos o fotos** («stableCount < 0» en `MediaScannerConnection`).
+- **Causa:** cada vez que la app abría un archivo, **incluso solo para leerlo** (miniaturas, visores), avisaba dos veces al escáner de medios de Android. En una carpeta con muchos vídeos eran decenas de avisos seguidos, y el propio escáner de Android se equivocaba al cerrar su conexión y tumbaba la app desde un hilo del sistema.
+- **Ahora:**
+  - solo se avisa al escáner cuando un archivo **se escribe** (crear, copiar, mover, borrar), porque leer no cambia nada para la galería;
+  - los avisos se agrupan y se envían en un solo lote cada medio segundo, nunca dos a la vez;
+  - si aun así Android lanzara ese fallo concreto suyo, se anota en el registro y la app sigue abierta.
+- **Más fluido:** al no avisar al escáner por cada lectura, navegar por carpetas grandes de fotos y vídeos gasta menos batería y menos CPU.
+
+
 # OpenManager v2.0.22: PDF Completo y Contador de Páginas Visible
 
 ### 📄 Lector de PDF (aviso de un usuario)

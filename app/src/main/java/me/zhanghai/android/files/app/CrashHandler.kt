@@ -37,6 +37,12 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
     }
 
     override fun uncaughtException(thread: Thread, throwable: Throwable) {
+        // A known Android bug on its own background thread: log it and keep the app running.
+        if (FrameworkGlitches.isHarmless(thread.name, throwable)) {
+            Log.w(TAG, "Ignored an Android framework glitch on ${thread.name}", throwable)
+            runCatching { logHandledException(throwable, "FrameworkGlitch") }
+            return
+        }
         try {
             val (logFile, report, stackTrace) = generateAndSaveLog(thread, throwable, isCrash = true)
             launchCrashReportActivity(thread, throwable, logFile, report, stackTrace)
