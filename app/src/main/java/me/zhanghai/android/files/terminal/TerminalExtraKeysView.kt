@@ -118,12 +118,15 @@ class TerminalExtraKeysView @JvmOverloads constructor(
      * [palette] is the app's palette; [keepBlack] is the terminal's "always black" setting.
      */
     fun applyTheme(palette: OpenManagerPalette, keepBlack: Boolean) {
+        // The explorer's bar: gray on the dark theme, black on AMOLED, light on the light theme.
+        // A light bar under a terminal kept black would glare, so that case takes the dark gray.
         val light = !keepBlack && !palette.isDark
+        val darkUnderLightTheme = keepBlack && !palette.isDark
         val next = DeckPalette(
             isLightChrome = light,
-            deckBg = if (keepBlack) Color.BLACK else palette.bottomBarBg,
-            divider = if (keepBlack) 0xFF262626.toInt() else palette.dividerLineColor,
-            keyText = if (keepBlack) 0xFFDCDCDC.toInt() else palette.iconTint,
+            deckBg = if (darkUnderLightTheme) DARK_BAR else palette.bottomBarBg,
+            divider = if (darkUnderLightTheme) DARK_DIVIDER else palette.dividerLineColor,
+            keyText = if (darkUnderLightTheme) DARK_KEY_TEXT else palette.iconTint,
             accentColor = palette.accentColor,
             rippleColor = if (light) 0x220F172A else 0x38FFFFFF
         )
@@ -529,5 +532,9 @@ class TerminalExtraKeysView @JvmOverloads constructor(
     private companion object {
         const val MENU_COMPOSE = 100
         const val DIVIDER = "DIVIDER"
+        // The explorer's bottom bar on the dark theme.
+        const val DARK_BAR = 0xFF202020.toInt()
+        const val DARK_DIVIDER = 0xFF3A3A3A.toInt()
+        const val DARK_KEY_TEXT = 0xFFDCDCDC.toInt()
     }
 }
