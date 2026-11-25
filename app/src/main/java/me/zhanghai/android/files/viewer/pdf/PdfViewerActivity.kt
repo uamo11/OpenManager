@@ -330,7 +330,9 @@ class PdfViewerActivity : AppActivity() {
             // landscape pages were stretched (user report).
             addOnLayoutChangeListener { view, left, _, right, _, _, _, _, _ ->
                 val pageAdapter = this@PdfViewerActivity.adapter ?: return@addOnLayoutChangeListener
-                val width = right - left
+                // The width the pages really get: in landscape the list keeps a side padding
+                // for the navigation bar.
+                val width = right - left - view.paddingLeft - view.paddingRight
                 if (width <= 0 || width == pageAdapter.containerWidth) return@addOnLayoutChangeListener
                 val hadWidth = pageAdapter.containerWidth > 0
                 pageAdapter.containerWidth = width
