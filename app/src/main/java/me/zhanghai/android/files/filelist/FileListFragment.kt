@@ -745,6 +745,15 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             addPanelBackCallback(cb)
         }
         navigateUpCallback = callback
+        // Back first takes the filter off (and cancels a filter still running) before going up.
+        addPanelBackCallback(object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                collapseSearchView()
+                viewModel.stopSearching()
+            }
+        }.also { cb ->
+            viewModel.searchStateLiveData.observe(viewLifecycleOwner) { cb.isEnabled = it.isSearching }
+        })
         addPanelBackCallback(overlayActionMode.onBackPressedCallback)
         addPanelBackCallback(SpeedDialViewOnBackPressedCallback(binding.speedDialView))
         binding.drawerLayout?.let {
@@ -1210,7 +1219,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val hasFiles = !files.isNullOrEmpty()
         binding.swipeRefreshLayout.isRefreshing = isLoading && (hasFiles || isSearching)
         binding.progress.fadeToVisibilityUnsafe(isLoading && !(hasFiles || isSearching))
-        val showDirectoryProgress = isLoading || isSearching
+        // Only while something runs: a finished filter (even one that found nothing) stops the bar.
+        val showDirectoryProgress = isLoading
         binding.directoryProgressBar.visibility = if (showDirectoryProgress) View.VISIBLE else View.GONE
         val isFailureWithoutFiles = stateful is Failure && !hasFiles
         val isAndroidDataOrObbCurrent = isAndroidDataOrObb(currentPath) && !currentPath.isDocumentPath

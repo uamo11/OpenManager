@@ -325,8 +325,22 @@ class PdfViewerActivity : AppActivity() {
                     }
                 }
             })
-            post {
-                this@PdfViewerActivity.adapter?.containerWidth = width
+            // Page heights follow the list's real width. On rotation the width changes after
+            // onConfigurationChanged, so reading it there kept the portrait heights and the
+            // landscape pages were stretched (user report).
+            addOnLayoutChangeListener { view, left, _, right, _, _, _, _, _ ->
+                val pageAdapter = this@PdfViewerActivity.adapter ?: return@addOnLayoutChangeListener
+                val width = right - left
+                if (width <= 0 || width == pageAdapter.containerWidth) return@addOnLayoutChangeListener
+                val hadWidth = pageAdapter.containerWidth > 0
+                pageAdapter.containerWidth = width
+                val lm = (view as RecyclerView).layoutManager as? LinearLayoutManager
+                val page = lm?.findFirstVisibleItemPosition() ?: RecyclerView.NO_POSITION
+                view.post {
+                    pageAdapter.notifyDataSetChanged()
+                    if (hadWidth && page != RecyclerView.NO_POSITION) lm?.scrollToPositionWithOffset(page, 0)
+                    if (BuildConfig.DEBUG) android.util.Log.i("OMPdf", "container width=$width page=$page")
+                }
             }
         }
         restoreLastPage()
@@ -832,10 +846,7 @@ class PdfViewerActivity : AppActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        binding.recyclerView.post {
-            adapter?.containerWidth = binding.recyclerView.width
-            adapter?.notifyDataSetChanged()
-        }
+        // The new page sizes come from the list's layout listener once it has its new width.
     }
 
     override fun onDestroy() {

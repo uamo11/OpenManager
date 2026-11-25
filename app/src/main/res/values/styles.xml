@@ -74,4 +74,15 @@
         <item name="colorControlNormal">?android:textColorSecondary</item>
         <item name="searchViewStyle">@style/Widget.AppCompat.SearchView</item>
     </style>
+
+    <!-- Main ⋮ menu: shorter rows and smaller text, so the long list is less overwhelming. -->
+    <style name="ThemeOverlay.OpenManager.CompactPopupMenu" parent="">
+        <item name="dropdownListPreferredItemHeight">42dp</item>
+        <item name="textAppearanceLargePopupMenu">@style/TextAppearance.OpenManager.CompactPopupMenu</item>
+        <item name="textAppearanceSmallPopupMenu">@style/TextAppearance.OpenManager.CompactPopupMenu</item>
+    </style>
+
+    <style name="TextAppearance.OpenManager.CompactPopupMenu" parent="TextAppearance.AppCompat.Widget.PopupMenu.Large">
+        <item name="android:textSize">14sp</item>
+    </style>
 </resources>

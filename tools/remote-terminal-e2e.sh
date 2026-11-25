@@ -2019,6 +2019,148 @@ else
 fi
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
+log "=== Fast scroller: only its thumb drags, a swipe along the edge scrolls normally (user report) ==="
+adb shell 'mkdir -p /sdcard/om_scroll_test && cd /sdcard/om_scroll_test && i=0; while [ $i -lt 300 ]; do touch $(printf "f_%03d.txt" $i); i=$((i+1)); done'
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_scroll_test" >/dev/null; sleep 5
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+# The list that shows f_000.txt: its right edge is where the scroller's strip lies.
+strip=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+nodes = re.findall(r"<node [^>]*>", xml)
+box = lambda n: tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+files = [box(n) for n in nodes if re.search(r' text="f_000\.txt"', n)]
+lists = [box(n) for n in nodes if re.search(r'resource-id="[^"]*:id/recyclerView"', n)]
+for x1, y1, x2, y2 in lists:
+    if files and x1 <= files[0][0] < x2:
+        print(x2 - 12, y1 + (y2 - y1) * 3 // 4, y1 + (y2 - y1) * 4 // 5)
+        break
+PY
+)
+if [ -n "$strip" ]; then
+    read -r sx sy1 sy2 <<< "$strip"
+    # A slow drag down along the strip, far from the (hidden) thumb at the top.
+    adb shell input swipe $sx $sy1 $sx $sy2 900; sleep 2
+    shot 70_fast_scroll_strip
+    if find_text "f_000.txt" >/dev/null; then
+        pass "a swipe along the panel's edge no longer jumps the list (only the thumb drags)"
+    else
+        fail "a swipe along the edge jumped the list like a fast-scroll drag"
+    fi
+else
+    fail "fast scroller: the test folder did not open"
+fi
+
+log "=== Filter in an empty folder ends, and Back takes the filter off (user report) ==="
+adb shell 'mkdir -p /sdcard/om_empty_filter'
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_empty_filter" >/dev/null; sleep 4
+demo more_menu; sleep 2
+if pos=$(find_text "Filter" "Filtrar"); then
+    adb shell input tap $pos; sleep 2
+    adb shell input text "abc"; sleep 1
+    pos=$(find_text "Search" "Buscar" "SEARCH" "BUSCAR") && adb shell input tap $pos
+    sleep 5
+    shot 71_filter_empty_done
+    if node_center_by_id directoryProgressBar >/dev/null; then
+        fail "the filter of an empty folder keeps its progress bar running"
+    else
+        pass "the filter of an empty folder ends (no endless progress bar)"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 2
+    title=$(node_text_by_id tvPathTitle || true)
+    log "      after BACK: $title"
+    case "$title" in
+        *om_empty_filter*) pass "BACK takes the filter off and stays in the folder" ;;
+        *) fail "BACK with a filter left the folder ($title)" ;;
+    esac
+else
+    fail "no Filter in the ⋮ menu"
+    adb shell input keyevent KEYCODE_BACK
+fi
+
+log "=== The ⋮ menu is compact (owner request) ==="
+demo more_menu; sleep 2
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+shot 72_compact_menu
+density=$(adb shell wm density | grep -o '[0-9]*' | tail -1)
+pitch=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+ys = sorted(int(m.group(2)) + (int(m.group(4)) - int(m.group(2))) // 2 for n in re.findall(r"<node [^>]*>", xml)
+            if re.search(r'resource-id="[^"]*:id/title"', n)
+            for m in [re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)])
+d = [b - a for a, b in zip(ys, ys[1:])]
+print(sorted(d)[len(d) // 2] if d else 0)
+PY
+)
+limit=$(( 44 * ${density:-420} / 160 ))
+log "      ⋮ row height: ${pitch} px (limit ${limit} px at ${density} dpi)"
+if [ "${pitch:-0}" -gt 0 ] && [ "$pitch" -le "$limit" ]; then
+    pass "the ⋮ menu rows are compact"
+else
+    fail "the ⋮ menu rows are still tall (${pitch} px)"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+
+log "=== Side bar: Exit closes OpenManager (user request) ==="
+demo drawer; sleep 2
+pos=""
+for _ in 1 2 3 4; do
+    pos=$(find_text "Exit" "Salir") && break
+    adb shell input swipe 300 1800 300 600 300; sleep 1
+done
+if [ -n "$pos" ]; then
+    adb shell input tap $pos; sleep 3
+    left=$(adb shell dumpsys activity activities 2>/dev/null | grep -c "$PKG/me.zhanghai.android.files.filelist.FileListActivity" || true)
+    recents=$(adb shell dumpsys activity recents 2>/dev/null | grep -c "A=.*$PKG\|cmp=$PKG" || true)
+    log "      after Exit: FileListActivity records=$left, recent tasks=$recents"
+    if [ "${left:-1}" -eq 0 ]; then
+        pass "Exit in the side bar closes OpenManager"
+    else
+        fail "Exit left OpenManager's screen open"
+    fi
+else
+    fail "no Exit in the side bar"
+    adb shell input keyevent KEYCODE_BACK
+fi
+
+log "=== PDF: pages keep their shape after turning to landscape (user report) ==="
+rot_auto=$(adb shell settings get system accelerometer_rotation | tr -d '\r')
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 0
+adb shell am force-stop $PKG; sleep 1
+open_pages_pdf; sleep 6
+adb logcat -c
+adb shell settings put system user_rotation 1; sleep 6
+shot 73_pdf_landscape
+shown=$(adb logcat -d -s OMPdf 2>/dev/null | grep "shown page=" | tail -1)
+log "      $shown"
+ratio_ok=$(printf '%s' "$shown" | python3 -c '
+import re, sys
+m = re.search(r"frame=(\d+)x(\d+)", sys.stdin.read())
+if not m: print("none"); sys.exit()
+w, h = int(m.group(1)), int(m.group(2))
+page = 842 / 595
+print("yes" if w > 0 and abs(h / w - page) / page < 0.04 else "no %dx%d (h/w %.2f, page %.2f)" % (w, h, h / w, page))
+')
+if [ "$ratio_ok" = "yes" ]; then
+    pass "PDF: in landscape the page keeps its proportions"
+else
+    fail "PDF: in landscape the page is stretched ($ratio_ok)"
+fi
+adb shell settings put system user_rotation 0
+adb shell settings put system accelerometer_rotation "${rot_auto:-0}"
+sleep 2
+adb logcat -d > "$OUT/logcat_round28.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_round28.txt"; then fail "crash in the scroller, filter, menu, exit or PDF checks"; fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Text editor from the side bar: new document, Save as ==="
 adb shell rm -rf /sdcard/om_editor_test; adb shell mkdir -p /sdcard/om_editor_test
 adb shell am force-stop $PKG; sleep 1

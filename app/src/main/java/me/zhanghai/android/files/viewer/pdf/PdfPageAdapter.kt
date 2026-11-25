@@ -214,7 +214,7 @@ class PdfPageAdapter(
             view.post {
                 val drawn = view.drawable?.bounds?.width() ?: -1
                 android.util.Log.i(
-                    "OMPdf", "shown page=${holder.bindingAdapterPosition} frame=${view.width} drawn=$drawn " +
+                    "OMPdf", "shown page=${holder.bindingAdapterPosition} frame=${view.width}x${view.height} drawn=$drawn " +
                         "bitmap=${bitmap.width} paged=$isPagedMode"
                 )
             }

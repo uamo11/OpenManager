@@ -1214,6 +1214,12 @@ class FileListActivity : AppActivity() {
             startActivity(Intent(this, AboutActivity::class.java))
         }
 
+        // Closes every screen and takes OpenManager out of the recent apps (user request).
+        findViewById<View>(R.id.drawerItemExit).setOnClickListener {
+            drawerLayout.closeDrawer(GravityCompat.START)
+            finishAndRemoveTask()
+        }
+
         progressRootStorage = findViewById(R.id.progressRootStorage)
         tvRootStorageStats = findViewById(R.id.tvRootStorageStats)
         progressInternalStorage = findViewById(R.id.progressInternalStorage)
@@ -1617,7 +1623,10 @@ class FileListActivity : AppActivity() {
     }
 
     private fun showMTMoreMenu(anchor: View) {
-        val popup = PopupMenu(this, anchor, GravityCompat.END)
+        val popup = PopupMenu(
+            androidx.appcompat.view.ContextThemeWrapper(this, R.style.ThemeOverlay_OpenManager_CompactPopupMenu),
+            anchor, GravityCompat.END
+        )
         popup.inflate(R.menu.mt_overflow_menu)
         try {
             val field = popup.javaClass.getDeclaredField("mPopup")
