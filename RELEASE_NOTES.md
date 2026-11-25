@@ -14,6 +14,9 @@
 - Buscar y reemplazar (texto, palabra completa o expresión regular) en segundo plano, con el contador de coincidencias.
 - Barra de símbolos: los botones de sangría actúan sobre todas las líneas seleccionadas; las llaves y comillas envuelven la selección.
 
+### 🧹 Menú ⋮ más corto
+- Quitados **Actualizar** (desliza hacia abajo en la lista para recargar), **Añadir marcador** (se hace desde **Marcadores** → «Añadir esta carpeta a marcadores») y **Salir** (el botón atrás cierra la app).
+
 ### 🎨 Tema claro
 - En el menú ⋮, los iconos de Seleccionar todo, Archivos ocultos, Intercambiar paneles, Marcadores, Añadir marcador, Establecer como inicio y Salir eran blancos y desaparecían sobre el menú blanco. Ahora usan el color de los controles del tema (se ven en claro, oscuro, AMOLED y Material 3).
 - El ajuste de línea funciona: el editor viejo lo ignoraba (un JSON de una sola línea no se partía aunque la opción estuviera marcada).

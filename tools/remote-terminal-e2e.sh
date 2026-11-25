@@ -1457,9 +1457,12 @@ adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
     --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_bm_target" >/dev/null; sleep 4
 if wait_text 20 "bm_marker.txt" >/dev/null; then
+    # Added from the bookmarks panel (the ⋮ menu no longer has its own "Add bookmark").
     demo more_menu; sleep 2
-    if pos=$(find_text "Add bookmark" "Añadir a marcadores"); then
-        adb shell input tap $pos; sleep 2
+    pos=$(find_text "Bookmarks" "Marcadores") && adb shell input tap $pos; sleep 2
+    if pos=$(find_text "Bookmark this folder" "Añadir esta carpeta a marcadores"); then
+        adb shell input tap $pos; sleep 1
+        adb shell input keyevent KEYCODE_BACK; sleep 2
         adb shell input tap $(node_center_by_id btnBottomHome); sleep 3
         # Swipe up on the bottom bar (starting on a button: it must not be pressed).
         read -r sx sy <<< "$(node_center_by_id btnBottomSwap)"
@@ -1719,12 +1722,17 @@ PY
     else
         fail "the gallery view leaked into another folder"
     fi
-    # The ⋮ menu no longer carries a gallery entry of its own.
+    # The ⋮ menu no longer carries a gallery entry, Refresh, Add bookmark or Exit.
     demo more_menu; sleep 2
     if find_contains "Gallery view (this folder)" "Vista galería (esta carpeta)" >/dev/null; then
         fail "the ⋮ menu still has its own gallery entry"
     else
         pass "the gallery is chosen from Sort and view, not a separate ⋮ entry"
+    fi
+    if find_text "Refresh" "Add bookmark" "Exit" >/dev/null; then
+        fail "the ⋮ menu still shows Refresh, Add bookmark or Exit"
+    else
+        pass "the ⋮ menu is shorter: no Refresh, Add bookmark or Exit"
     fi
     adb shell input keyevent KEYCODE_BACK; sleep 1
     adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \

@@ -12,11 +12,6 @@
         android:visible="false" />
 
     <item
-        android:id="@+id/mt_menu_refresh"
-        android:icon="@drawable/reset_icon_white_24dp"
-        android:title="@string/om_menu_refresh" />
-
-    <item
         android:id="@+id/mt_menu_search"
         android:icon="@drawable/search_icon_control_normal_24dp"
         android:title="@string/om_menu_search_files" />
@@ -62,11 +57,6 @@
         android:title="@string/om_bookmarks_title" />
 
     <item
-        android:id="@+id/mt_menu_add_bookmark"
-        android:icon="@drawable/add_icon_white_24dp"
-        android:title="@string/om_menu_add_bookmark" />
-
-    <item
         android:id="@+id/mt_menu_set_as_home"
         android:icon="@drawable/home_icon_white_24dp"
         android:title="@string/om_menu_set_home" />
@@ -75,10 +65,5 @@
         android:id="@+id/mt_menu_export_file_list"
         android:icon="@drawable/file_document_icon"
         android:title="@string/action_export_file_list" />
-
-    <item
-        android:id="@+id/mt_menu_exit"
-        android:icon="@drawable/exit_to_app_icon_white_24dp"
-        android:title="@string/om_menu_exit" />
 
 </menu>

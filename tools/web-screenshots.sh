@@ -187,7 +187,9 @@ shot 10_gallery 6
 add_bookmark() {
     open_dir "$1"; sleep 3
     demo more_menu; sleep 2
-    pos=$(find_text "Add bookmark") && adb shell input tap $pos
+    pos=$(find_text "Bookmarks") && adb shell input tap $pos && sleep 2
+    pos=$(find_text "Bookmark this folder") && adb shell input tap $pos && sleep 1
+    adb shell input keyevent KEYCODE_BACK
     sleep 2
 }
 add_bookmark "DCIM/Camera"

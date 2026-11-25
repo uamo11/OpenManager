@@ -1609,10 +1609,6 @@ class FileListActivity : AppActivity() {
                     activeFragment.emptyRecycleBin()
                     true
                 }
-                R.id.mt_menu_refresh -> {
-                    activeFragment.reload()
-                    true
-                }
                 R.id.mt_menu_search -> {
                     showSearchDialog()
                     true
@@ -1643,10 +1639,6 @@ class FileListActivity : AppActivity() {
                     Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(newSetting)
                     true
                 }
-                R.id.mt_menu_add_bookmark -> {
-                    activeFragment.addBookmarkCurrentPath()
-                    true
-                }
                 R.id.mt_menu_bookmarks -> {
                     showBookmarks()
                     true
@@ -1664,10 +1656,6 @@ class FileListActivity : AppActivity() {
                     ExportFileListHelper.showDialog(this, activeFragment.currentPath, allFiles, activeFragment.selectedFiles.toList()) {
                         activeFragment.clearSelectedFiles()
                     }
-                    true
-                }
-                R.id.mt_menu_exit -> {
-                    finishAffinity()
                     true
                 }
                 else -> false
