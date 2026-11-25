@@ -638,7 +638,8 @@ if find_text "⋮" >/dev/null; then
     # The server ends the session while the app is in the background.
     sudo pkill -f "sshd: omtest" || true
     sleep 5
-    adb shell am start -n $PKG/me.zhanghai.android.files.terminal.TerminalActivity -f 0x00020000 >/dev/null 2>&1; sleep 4
+    # Back the way a user returns: the app icon brings the task (and its terminal) to the front.
+    adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 4
     shot 09e_ssh_lost_in_background
     if find_text "Connection lost" "Conexión perdida" >/dev/null; then
         pass "back from the background, a dead SSH session says so with Reconnect / Server list"
