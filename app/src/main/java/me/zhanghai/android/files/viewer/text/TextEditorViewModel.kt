@@ -57,6 +57,13 @@ class TextEditorViewModel(file: Path) : ViewModel() {
     var isSelfSaving: Boolean = false
         private set
 
+    /**
+     * Set when the user chose to read only the first [MAX_FILE_SIZE] of a larger file: the text is
+     * then read-only and can never be saved (it would cut the file). Declared before the
+     * init block below, which already starts loading.
+     */
+    val isPartial = MutableStateFlow(false)
+
     private var loadJob: Job? = null
     private var reloadJob: Job? = null
 
@@ -87,12 +94,6 @@ class TextEditorViewModel(file: Path) : ViewModel() {
             }
         }
     }
-
-    /**
-     * Set when the user chose to read only the first [MAX_FILE_SIZE] of a larger file: the text is
-     * then read-only and can never be saved (it would cut the file).
-     */
-    val isPartial = MutableStateFlow(false)
 
     fun loadPartial() {
         isPartial.value = true

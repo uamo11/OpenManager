@@ -2300,17 +2300,16 @@ for n in re.findall(r"<node [^>]*>", xml):
     if re.search(r'resource-id="[^"]*:id/drawerHeaderLogo"', n):
         logo = tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
 texts = [html.unescape(t) for t in re.findall(r' text="([^"]*)"', xml)]
-about = "About" in texts and "About OpenManager" not in texts
 center = (logo[0] + logo[2]) / 2 / d if logo else -1
-print("ok" if logo and 30 <= center <= 38 and about else "bad", round(center, 1), about)
+print("ok" if logo and 30 <= center <= 38 else "bad", round(center, 1))
 PY2
 )
-log "      side bar: logo center at $(echo $header | cut -d' ' -f2) dp (icons at 34 dp), entry 'About' only: $(echo $header | cut -d' ' -f3)"
+log "      side bar: logo center at $(echo $header | cut -d' ' -f2) dp (icons at 34 dp)"
 shot 41b_drawer_header
 if [ "${header%% *}" = ok ]; then
-    pass "the side bar logo lines up with the icons and the entry reads 'About'"
+    pass "the side bar logo lines up with the icons instead of the screen edge"
 else
-    fail "side bar header: logo or About label not fixed ($header)"
+    fail "side bar header: logo not aligned ($header)"
 fi
 pos=""
 for _ in 1 2 3 4; do
@@ -2318,6 +2317,12 @@ for _ in 1 2 3 4; do
     adb shell input swipe 300 1800 300 600 300; sleep 1
 done
 if [ -n "$pos" ]; then
+    # Exit is on screen, so the entry above it is too.
+    if grep -q 'text="About"' "$OUT/ui.xml" && ! grep -q 'text="About OpenManager"' "$OUT/ui.xml"; then
+        pass "the side bar entry reads 'About'"
+    else
+        fail "the side bar entry still reads 'About OpenManager' (or is missing)"
+    fi
     adb shell input tap $pos; sleep 3
     left=$(adb shell dumpsys activity activities 2>/dev/null | grep -c "$PKG/me.zhanghai.android.files.filelist.FileListActivity" || true)
     recents=$(adb shell dumpsys activity recents 2>/dev/null | grep -c "A=.*$PKG\|cmp=$PKG" || true)
@@ -2831,7 +2836,7 @@ adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.viewer.hex.HexEditorA
     --es $PKG.extra.PATH_URI $big_uri --es DEMO_HEX_SEARCH 4F4D4845584D41524B --es DEMO_HEX_WRITE 58" >/dev/null 2>&1
 saved=""
 for _ in $(seq 1 30); do
-    saved=$(adb logcat -d -s OMHex 2>/dev/null | grep "Save mode=" | tail -1 | sed 's/.*OMHex: //')
+    saved=$(adb logcat -d -s OMHex 2>/dev/null | grep "Save mode=patch" | tail -1 | sed 's/.*OMHex: //')
     [ -n "$saved" ] && break
     sleep 1
 done
@@ -2853,7 +2858,7 @@ adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.viewer.hex.HexEditorA
     --es $PKG.extra.PATH_URI $big_uri --es DEMO_HEX_INSERT AA" >/dev/null 2>&1
 saved=""
 for _ in $(seq 1 60); do
-    saved=$(adb logcat -d -s OMHex 2>/dev/null | grep "Save mode=" | tail -1 | sed 's/.*OMHex: //')
+    saved=$(adb logcat -d -s OMHex 2>/dev/null | grep "Save mode=rewrite" | tail -1 | sed 's/.*OMHex: //')
     [ -n "$saved" ] && break
     sleep 1
 done
