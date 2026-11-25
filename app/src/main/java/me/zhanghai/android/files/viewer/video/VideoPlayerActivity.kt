@@ -113,6 +113,8 @@ class VideoPlayerActivity : AppActivity() {
     private var lastRenderedFrames = 0
     private var lastStatsAtMs = 0L
     private var measuredFps = 0f
+    private var lastDecodedFrames = 0
+    private var decodedFps = 0f
     private var resumeChecked = false
     private var struggleReported = false
     private var lastScrubSeekAtMs = 0L
@@ -731,14 +733,21 @@ class VideoPlayerActivity : AppActivity() {
         val counters = p.videoDecoderCounters
         val now = System.currentTimeMillis()
         val rendered = counters?.renderedOutputBufferCount ?: 0
+        // Decoded = shown + decoded too late to show: what the decoder itself manages per second.
+        val decoded = rendered + (counters?.droppedBufferCount ?: 0)
         if (lastStatsAtMs > 0 && now - lastStatsAtMs >= 900) {
             measuredFps = (rendered - lastRenderedFrames) * 1000f / (now - lastStatsAtMs)
+            decodedFps = (decoded - lastDecodedFrames) * 1000f / (now - lastStatsAtMs)
             lastRenderedFrames = rendered
+            lastDecodedFrames = decoded
             lastStatsAtMs = now
         } else if (lastStatsAtMs == 0L) {
             lastRenderedFrames = rendered
+            lastDecodedFrames = decoded
             lastStatsAtMs = now
         }
+        val isDav1d = decoderName?.contains("libdav1d", ignoreCase = true) == true
+        val software = decoderName != null && isSoftwareDecoder(decoderName)
         tvStats.text = buildString {
             append(decoderName ?: "—")
             if (decoderName != null) append(if (isSoftwareDecoder(decoderName)) " · software" else " · hardware")
@@ -749,9 +758,22 @@ class VideoPlayerActivity : AppActivity() {
                 if (format.frameRate > 0) append(String.format(Locale.ROOT, " @ %.2f", format.frameRate))
                 append('\n')
             }
-            append(String.format(Locale.ROOT, "fps %.1f  ×%s\n", measuredFps, formatSpeed(SPEEDS[speedIndex])))
+            if (isDav1d) {
+                append("dav1d ").append(Av1SoftwareDecoder.modeLabel())
+                append(" · ").append(Runtime.getRuntime().availableProcessors()).append(" cores\n")
+            }
+            append(String.format(Locale.ROOT, "fps %.1f  ×%s", measuredFps, formatSpeed(SPEEDS[speedIndex])))
+            append(String.format(Locale.ROOT, "  decoded %.1f/s\n", decodedFps))
             append("dropped ").append(counters?.droppedBufferCount ?: 0)
             append(" / rendered ").append(rendered)
+            if (isDav1d) {
+                append(" / not decoded ").append(androidx.media3.decoder.av1.Libdav1dVideoRenderer.skippedNonReferenceInputs)
+            }
+            // When the processor is the limit, say it plainly instead of leaving a low number.
+            val target = (format?.frameRate ?: 0f) * SPEEDS[speedIndex]
+            if (software && target > 0 && decodedFps > 0 && decodedFps < target * 0.8f && p.isPlaying) {
+                append(String.format(Locale.ROOT, "\nCPU limit: decodes %.0f of %.0f fps", decodedFps, target))
+            }
             if (exceedsCapabilities) append("\nexceeds declared decoder caps")
         }
     }
@@ -821,6 +843,7 @@ class VideoPlayerActivity : AppActivity() {
                 TAG, "Summary decoder=$decoderName rendered=${counters?.renderedOutputBufferCount ?: 0} " +
                     "dropped=${counters?.droppedBufferCount ?: 0} skipped=${counters?.skippedOutputBufferCount ?: 0} " +
                     "notDecoded=${androidx.media3.decoder.av1.Libdav1dVideoRenderer.skippedNonReferenceInputs} " +
+                    "mode=${androidx.media3.decoder.av1.Libdav1dVideoRenderer.speedFlags} " +
                     "positionMs=${p.currentPosition}"
             )
             val key = resumeKey

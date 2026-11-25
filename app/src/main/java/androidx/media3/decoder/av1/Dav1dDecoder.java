@@ -125,7 +125,8 @@ public final class Dav1dDecoder
       int initialInputBufferSize,
       int threads,
       int maxFrameDelay,
-      boolean useCustomAllocator)
+      boolean useCustomAllocator,
+      int speedFlags)
       throws Dav1dDecoderException {
     if (!Dav1dLibrary.isAvailable()) {
       throw new Dav1dDecoderException("Failed to load decoder native library.");
@@ -154,7 +155,7 @@ public final class Dav1dDecoder
           public void run() {
             synchronized (lock) {
               Dav1dDecoder.this.dav1dDecoderContext =
-                  dav1dInit(threads, maxFrameDelay, useCustomAllocator, numInputBuffers);
+                  dav1dInit(threads, maxFrameDelay, useCustomAllocator, numInputBuffers, speedFlags);
               if (dav1dCheckError(Dav1dDecoder.this.dav1dDecoderContext) == DAV1D_ERROR) {
                 Dav1dDecoder.this.exception =
                     new Dav1dDecoderException(
@@ -616,7 +617,11 @@ public final class Dav1dDecoder
    * @return The address of the decoder context or {@link #DAV1D_ERROR} if there was an error.
    */
   private native long dav1dInit(
-      int threads, int maxFrameDelay, boolean useCustomAllocator, int numInputBuffers);
+      int threads,
+      int maxFrameDelay,
+      boolean useCustomAllocator,
+      int numInputBuffers,
+      int speedFlags);
 
   /**
    * Deallocates the decoder context.

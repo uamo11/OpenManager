@@ -50,7 +50,7 @@ object Av1SoftwareDecoder {
 
     fun shouldUse(): Boolean = when (debugOverride) {
         "system" -> false
-        "dav1d", "dav1d-noskip" -> Dav1dLibrary.isAvailable()
+        "dav1d", "dav1d-noskip", "dav1d-full" -> Dav1dLibrary.isAvailable()
         else -> !hasHardwareDecoder && Dav1dLibrary.isAvailable()
     }
 
@@ -61,6 +61,9 @@ object Av1SoftwareDecoder {
     ): Renderer {
         Libdav1dVideoRenderer.skippedNonReferenceInputs = 0
         Libdav1dVideoRenderer.skipLateNonReferenceFrames = debugOverride != "dav1d-noskip"
+        // "dav1d-full": every filter and the film grain, to compare with the fast mode.
+        Libdav1dVideoRenderer.forcedSpeedFlags = if (debugOverride == "dav1d-full") 0 else -1
+        Libdav1dVideoRenderer.speedFlags = 0
         return newRenderer(allowedJoiningTimeMs, eventHandler, eventListener)
     }
 
@@ -79,6 +82,17 @@ object Av1SoftwareDecoder {
         OUTPUT_BUFFERS,
         false
     )
+
+    /** How the current stream is decoded, for the statistics: "full" or what is left out. */
+    fun modeLabel(): String {
+        val flags = Libdav1dVideoRenderer.speedFlags
+        if (flags == 0) return "full quality"
+        val skipped = buildList {
+            if (flags and Libdav1dVideoRenderer.SPEED_NO_GRAIN != 0) add("grain")
+            if (flags and Libdav1dVideoRenderer.SPEED_DEBLOCK_ONLY != 0) add("CDEF/LR")
+        }
+        return "fast: no " + skipped.joinToString(", ")
+    }
 
     private const val MAX_DROPPED_FRAMES_TO_NOTIFY = 50
     private const val INPUT_BUFFERS = 8

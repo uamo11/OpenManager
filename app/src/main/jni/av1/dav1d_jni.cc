@@ -464,8 +464,11 @@ void CleanUpAllocatorData(jlong jContext, JNIEnv* env) {
 }
 }  // namespace
 
+// speed_flags (OpenManager): 1 = no film grain synthesis, 2 = deblocking only (no CDEF and no
+// loop restoration). Used for streams above what a phone without AV1 hardware can decode in time.
 jlong dav1dInit(JNIEnv* env, jobject thiz, jint threads, jint max_frame_delay,
-                jboolean use_custom_allocator, jint num_input_buffers) {
+                jboolean use_custom_allocator, jint num_input_buffers,
+                jint speed_flags) {
   JniContext* context = new (std::nothrow) JniContext();
   if (context == nullptr) {
     return kStatusError;
@@ -504,6 +507,8 @@ jlong dav1dInit(JNIEnv* env, jobject thiz, jint threads, jint max_frame_delay,
   dav1d_default_settings(&settings);
   settings.n_threads = GetThreadCount(threads);
   settings.max_frame_delay = max_frame_delay;
+  if (speed_flags & 1) settings.apply_grain = 0;
+  if (speed_flags & 2) settings.inloop_filters = DAV1D_INLOOPFILTER_DEBLOCK;
   context->use_custom_allocator = use_custom_allocator;
   if (use_custom_allocator) {
     PictureAllocatorCookie* cookie = new PictureAllocatorCookie();
@@ -1111,7 +1116,7 @@ extern "C" JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
     return -1;
   }
   static const JNINativeMethod kMethods[] = {
-      {"dav1dInit", "(IIZI)J", reinterpret_cast<void*>(dav1dInit)},
+      {"dav1dInit", "(IIZII)J", reinterpret_cast<void*>(dav1dInit)},
       {"dav1dClose", "(J)V", reinterpret_cast<void*>(dav1dClose)},
       {"dav1dDecode", "(JLandroidx/media3/decoder/DecoderInputBuffer;IIIZIJI)I",
        reinterpret_cast<void*>(dav1dDecode)},

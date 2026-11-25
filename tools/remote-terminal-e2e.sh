@@ -1018,7 +1018,7 @@ log "=== AV1 4K in software: Android's decoder vs our dav1d on every core (user 
 if [ -f /tmp/om_4k_av1.mp4 ]; then
     adb push /tmp/om_4k_av1.mp4 /sdcard/Movies/om_4k_av1.mp4 >/dev/null
     log "      emulator cores: $(adb shell nproc | tr -d '\r')"
-    for dec in system dav1d-noskip dav1d; do
+    for dec in system dav1d-full dav1d; do
         adb shell am force-stop $PKG; sleep 1
         adb logcat -c
         adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
@@ -1035,12 +1035,15 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
         position=$(echo "$summary" | grep -oE "positionMs=[0-9]+" | cut -d= -f2)
         sdropped=$(echo "$summary" | grep -oE "dropped=[0-9]+" | cut -d= -f2)
         notdecoded=$(echo "$summary" | grep -oE "notDecoded=[0-9]+" | cut -d= -f2)
+        mode=$(echo "$summary" | grep -oE "mode=[0-9]+" | cut -d= -f2)
+        # Decoded per second (shown + late), without the frames left out on purpose.
+        decoded=$(python3 -c "print(round((${rendered:-0} + ${sdropped:-0}) / max(${position:-0}, 1) * 1000, 1))")
         fps=$(python3 -c "print(round(${rendered:-0} / max(${position:-0}, 1) * 1000, 1))")
         # Frames the decoder got through per second (shown, decoded but late, or not needed).
         handled=$(python3 -c "print(round((${rendered:-0} + ${sdropped:-0} + ${notdecoded:-0}) / max(${position:-0}, 1) * 1000, 1))")
         log "      $dec: decoder=${decoder:-none} ${summary:-no summary} -> ${fps} fps shown, ${handled} fps decoded"
         var=${dec//-/_}
-        eval "fps_$var=$fps; handled_$var=$handled; skipped_$var=${notdecoded:-0}; dec_$var='${decoder:-}'"
+        eval "fps_$var=$fps; handled_$var=$handled; decoded_$var=$decoded; mode_$var=${mode:-0}; skipped_$var=${notdecoded:-0}; dec_$var='${decoder:-}'"
     done
     if printf '%s' "$dec_dav1d" | grep -q "libdav1d"; then
         pass "AV1 without a hardware decoder plays with our dav1d ($dec_dav1d)"
@@ -1052,13 +1055,20 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
     else
         fail "4K AV1: our dav1d is not clearly faster ($fps_dav1d vs $fps_system fps)"
     fi
-    # The emulator's software compositor shows ~10 fps of 4K whatever the decoder does, so what
-    # can be measured here is the decoder: it must keep up with the 30 fps clip in real time.
-    # As shipped (late non-reference frames skipped): the clip keeps its pace instead of stalling.
-    if python3 -c "import sys; sys.exit(0 if $handled_dav1d >= 24 else 1)"; then
-        pass "4K AV1: dav1d keeps up with the 30 fps clip ($handled_dav1d fps handled, ${skipped_dav1d} not needed)"
+    # 4K60 (user report: 6.9 fps on a Galaxy A07): above 1080p60 the shipped decoder skips film
+    # grain, CDEF and loop restoration (mode 3).
+    if [ "${mode_dav1d:-0}" = 3 ] && [ "${mode_dav1d_full:-0}" = 0 ]; then
+        pass "4K60 AV1 is decoded in fast mode (no grain, deblocking only)"
     else
-        fail "4K AV1: dav1d does not keep up with the 30 fps clip ($handled_dav1d fps handled)"
+        fail "4K60 AV1 fast mode not chosen (mode=${mode_dav1d:-?}, full run mode=${mode_dav1d_full:-?})"
+    fi
+    # The emulator's software compositor shows ~10 fps of 4K whatever the decoder does, so what
+    # is measured is the decoder: frames decoded per second with every filter and in fast mode.
+    log "      4K60 decoded per second: full quality $decoded_dav1d_full, fast mode $decoded_dav1d (handled with skips: $handled_dav1d_full -> $handled_dav1d)"
+    if python3 -c "import sys; sys.exit(0 if $handled_dav1d >= max($handled_dav1d_full, 24) * 0.97 else 1)"; then
+        pass "4K60 AV1: fast mode keeps up at least as well as full quality ($handled_dav1d vs $handled_dav1d_full fps handled)"
+    else
+        fail "4K60 AV1: fast mode is slower or under 24 fps ($handled_dav1d vs $handled_dav1d_full fps handled)"
     fi
     if [ "${skipped_dav1d:-0}" -gt 0 ]; then
         pass "4K AV1: when late, frames nothing depends on are not decoded (${skipped_dav1d} skipped)"

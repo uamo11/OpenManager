@@ -1,4 +1,4 @@
-# OpenManager v2.0.30: Editor HEX sin Límite de Tamaño
+# OpenManager v2.0.30: Editor HEX sin Límite de Tamaño y AV1 4K más Rápido
 
 ### 🔢 Editor HEX: archivos de cualquier tamaño
 - Se acabó el límite de **25 MB**. El editor ya no carga el archivo entero en memoria: lee del disco solo las páginas que se ven (unos pocos MB de RAM), así que un `global-metadata.dat`, un `.so` o un `.obb` de cientos de MB o varios GB **abre al instante**.
@@ -13,6 +13,10 @@
 - **Para editar un byte:** tócalo otra vez cuando ya está seleccionado, o mantenlo pulsado.
 - El **subtítulo** (tamaño y offset) ya no queda cortado bajo la barra de estado.
 - En vertical se muestran **8 bytes por fila**, así la columna ASCII cabe sin desplazar de lado; en horizontal, 16. Los títulos de las columnas quedan alineados con los bytes.
+
+### 🎞️ Reproductor: AV1 4K60 sin decodificador por hardware
+- Por encima de 1080p60 (4K, 1440p60), nuestro dav1d pasa a **modo rápido**: no sintetiza el *film grain* ni aplica los filtros CDEF y de restauración, que se llevan buena parte del tiempo de decodificado. En una pantalla de teléfono (720p o 1080p) un 4K se ve igual sin ellos. Entre 1080p30 y 1080p60 solo se omite el grano. Los teléfonos con AV1 por hardware no cambian.
+- **Estadísticas más claras:** el panel muestra el modo de dav1d y los núcleos, los cuadros **decodificados por segundo** (no solo los mostrados), los que no hizo falta decodificar y, cuando el procesador es el límite, lo dice: «CPU limit: decodes 14 of 60 fps».
 
 ### 📝 Editor de texto: archivos grandes
 - Abrir un archivo de más de 20 MB mostraba una **pantalla vacía**: el mensaje existía, pero quedaba oculto detrás del fondo del editor. Ahora se ve, con dos botones: **Abrir en el editor HEX** (sin límite y con búsqueda de texto) y **Ver los primeros 20 MB (solo lectura)**. En ese modo no se puede guardar, para no recortar el archivo.

@@ -80,6 +80,44 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
   /** Debug comparisons on the emulator can turn the skipping off. */
   public static volatile boolean skipLateNonReferenceFrames = true;
 
+  /** OpenManager: no film grain synthesis (dav1d {@code apply_grain = 0}). */
+  public static final int SPEED_NO_GRAIN = 1;
+
+  /** OpenManager: deblocking only, without CDEF and loop restoration. */
+  public static final int SPEED_DEBLOCK_ONLY = 2;
+
+  /** OpenManager: forces the speed flags (debug comparisons); -1 picks them from the stream. */
+  public static volatile int forcedSpeedFlags = -1;
+
+  /** OpenManager: the speed flags of the last decoder created, for the player's statistics. */
+  public static volatile int speedFlags;
+
+  /**
+   * OpenManager: this renderer only runs on phones without an AV1 hardware decoder. Above 1080p30
+   * the film grain synthesis is skipped, and above 1080p60 (4K, 1440p60) CDEF and loop restoration
+   * too: together they are a large part of the decoding time, and on a phone screen (often 720p or
+   * 1080p) a 4K picture without them looks the same. Below that, everything is decoded.
+   */
+  public static int speedFlagsFor(Format format) {
+    int forced = forcedSpeedFlags;
+    if (forced >= 0) {
+      return forced;
+    }
+    if (format.width <= 0 || format.height <= 0) {
+      return 0;
+    }
+    float fps = format.frameRate > 0 ? format.frameRate : 30f;
+    double pixelsPerSecond = (double) format.width * format.height * fps;
+    int flags = 0;
+    if (pixelsPerSecond > 1920.0 * 1080 * 31) {
+      flags |= SPEED_NO_GRAIN;
+    }
+    if (pixelsPerSecond > 1920.0 * 1080 * 61) {
+      flags |= SPEED_DEBLOCK_ONLY;
+    }
+    return flags;
+  }
+
   private final int maxFrameDelay;
 
   private final boolean useCustomAllocator;
@@ -184,7 +222,8 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
             initialInputBufferSize,
             threads,
             maxFrameDelay,
-            useCustomAllocator);
+            useCustomAllocator,
+            speedFlags = speedFlagsFor(format));
     this.decoder = decoder;
     TraceUtil.endSection();
     return decoder;
