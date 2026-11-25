@@ -1,3 +1,26 @@
+# OpenManager v2.0.30: Editor HEX sin Límite de Tamaño
+
+### 🔢 Editor HEX: archivos de cualquier tamaño
+- Se acabó el límite de **25 MB**. El editor ya no carga el archivo entero en memoria: lee del disco solo las páginas que se ven (unos pocos MB de RAM), así que un `global-metadata.dat`, un `.so` o un `.obb` de cientos de MB o varios GB **abre al instante**.
+- Las ediciones (sobrescribir, insertar, borrar, rellenar, reemplazar todo) se guardan como una lista de cambios sobre el archivo original: cuestan lo mismo en un archivo de 2 GB que en uno de 2 KB, y **deshacer/rehacer** también.
+- **Guardar es rápido:** si el tamaño no cambió, solo se escriben los bytes editados dentro del archivo; si insertaste o borraste bytes, se reescribe a través de una copia temporal.
+- La **búsqueda** (hex o texto) y **reemplazar todo** recorren el archivo en segundo plano sin congelar la pantalla. «Reemplazar todo» se deshace de una sola vez.
+- Los hashes (MD5/SHA-1/SHA-256) de **Información del archivo** se calculan leyendo por bloques.
+- Girar la pantalla ya no pierde las ediciones sin guardar.
+
+### 🎛️ Editor HEX: interfaz más limpia
+- Se quitaron los botones **EDITAR / HEX / TXT** de abajo. La barra inferior ahora es una sola franja plana con el color de la barra del explorador: **offset** (tócalo para ir a otro) y el valor del byte en HEX, UINT8, INT8, INT16, INT32, ASCII, binario y FLOAT32 (toca uno para copiarlo).
+- **Para editar un byte:** tócalo otra vez cuando ya está seleccionado, o mantenlo pulsado.
+- El **subtítulo** (tamaño y offset) ya no queda cortado bajo la barra de estado.
+- En vertical se muestran **8 bytes por fila**, así la columna ASCII cabe sin desplazar de lado; en horizontal, 16. Los títulos de las columnas quedan alineados con los bytes.
+
+### 📝 Editor de texto: archivos grandes
+- Abrir un archivo de más de 20 MB mostraba una **pantalla vacía**: el mensaje existía, pero quedaba oculto detrás del fondo del editor. Ahora se ve, con dos botones: **Abrir en el editor HEX** (sin límite y con búsqueda de texto) y **Ver los primeros 20 MB (solo lectura)**. En ese modo no se puede guardar, para no recortar el archivo.
+
+### ☰ Menú lateral
+- El logo de arriba ya no queda pegado al borde de la pantalla: se alinea con la columna de iconos y el título con los textos.
+- «Acerca de OpenManager» pasa a llamarse **«Acerca de»**.
+
 # OpenManager v2.0.29: Gestos en el Reproductor, Barra de la Terminal Renovada y APK más Ligero
 
 ### 🎬 Reproductor de video: gestos
