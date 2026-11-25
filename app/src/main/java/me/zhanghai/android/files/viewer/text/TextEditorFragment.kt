@@ -1568,6 +1568,18 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 }
                 updateUndoRedoMenuItems()
                 updateSubtitle()
+                if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+                    // E2E: how the text is laid out (wrapped rows per line).
+                    editor.postDelayed({
+                        if (this::binding.isInitialized) {
+                            android.util.Log.d(
+                                "OMEditor",
+                                "layout lines=${editor.text.lineCount} rows=${editor.layout.rowCount} " +
+                                    "wrap=${editor.isWordwrap} width=${editor.width}"
+                            )
+                        }
+                    }, 1500)
+                }
             }
             is DataState.Error -> {
                 state.throwable.printStackTrace()

@@ -1951,6 +1951,32 @@ PY
     if [ "${drafts:-0}" -eq 0 ]; then pass "the scratch file of the new document is removed"; else fail "$drafts scratch files left behind"; fi
 fi
 
+log "=== Text editor: word wrap folds a one-line JSON (user report) ==="
+python3 - "$OUT/om_oneline.json" <<'PY'
+import json, sys
+theme = {"id": "custom_1794844469837"}
+for i in range(120):
+    theme["key%03dBackground" % i] = None if i % 3 else 4278190080 + i
+json.dump(theme, open(sys.argv[1], "w"), separators=(",", ":"))
+PY
+log "      one-line JSON: $(wc -c < "$OUT/om_oneline.json") bytes"
+adb push "$OUT/om_oneline.json" /sdcard/om_editor_test/om_oneline.json >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_oneline.json" >/dev/null
+sleep 6
+shot 63_editor_wrap_json
+layout=$(adb logcat -d -s OMEditor 2>/dev/null | grep "layout lines=" | tail -1)
+log "      ${layout#*OMEditor: }"
+rows=$(printf '%s' "$layout" | sed -n 's/.*rows=\([0-9]*\).*/\1/p')
+if [ "${rows:-0}" -ge 10 ]; then
+    pass "word wrap folds a 4 KB one-line JSON into ${rows} rows"
+else
+    fail "word wrap did not fold the one-line JSON (rows=${rows:-?})"
+fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Text editor: big file, line numbers and typing stay right ==="
 python3 - "$OUT/om_big.txt" <<'PY'
 import sys
