@@ -9,6 +9,7 @@
 
 ### 🎞️ AV1 en 4K sin decodificador por hardware
 - Los teléfonos sin decodificador AV1 por hardware (como el Galaxy A07) decodificaban AV1 con el decodificador de Android, que **usa solo la mitad de los núcleos**: un video AV1 en 4K iba a unos 6 fps. Ahora OpenManager trae su propio **dav1d 1.5.5** (el decodificador AV1 más rápido que existe) usando **todos los núcleos** y varios cuadros en paralelo.
+- Cuando el teléfono va atrasado, los cuadros AV1 de los que no depende ningún otro **ya no se decodifican** (antes se decodificaban para luego tirarlos por llegar tarde): el trabajo se va a los cuadros que sí se ven.
 - Si el teléfono sí tiene decodificador AV1 por hardware, se sigue usando ese (es más rápido y gasta menos batería).
 - Solo para 64 bits (ARM64); añade ~0,9 MB, compensados de sobra por el recorte de x86.
 
@@ -17,6 +18,9 @@
 
 ### 📦 APK más ligero (−2,5 MB)
 - El APK publicado ya solo trae código nativo para **ARM** (todos los celulares). Se quitaron x86 y x86_64 (emuladores de PC y celulares Intel de 2014).
+
+### 📝 Editor: sin franjas vacías
+- Arriba, entre la barra de estado y la barra del editor, quedaba una franja vacía (y oscura en algunos temas): el margen de la barra de estado se sumaba dos veces. Abajo pasaba lo mismo con la barra de navegación bajo la barra de símbolos. Ahora cada margen se aplica una sola vez, en cualquier teléfono.
 
 ### 🧾 Registro de cierres
 - Cuando Android cierra OpenManager **en segundo plano** para liberar memoria (algo normal, por ejemplo, mientras reproduces un video pesado en otra app), ya no se guarda como «cerrada inesperadamente». Solo se registra si pasa con la app en pantalla.

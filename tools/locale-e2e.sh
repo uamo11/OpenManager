@@ -18,8 +18,11 @@ shot() { adb shell screencap -p "/data/local/tmp/$1.png" >/dev/null 2>&1; adb pu
 
 # find_contains <label>...: center of the first node whose text contains a label.
 find_contains() {
-    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
-    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    # A failed dump must not leave the previous screen's file to be read as the current one.
+    adb shell rm -f /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1 \
+        || { sleep 1; adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1; }
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null || : > "$OUT/ui.xml"
     python3 - "$OUT/ui.xml" "$@" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
@@ -70,7 +73,19 @@ adb shell am force-stop $PKG; sleep 1
 
 log "=== Language picked from the app's list (Settings > Language > Chinese) ==="
 adb shell am start -W -n "$SETTINGS" >/dev/null 2>&1; sleep 4
-if pos=$(scroll_to 30 "Language" "Idioma"); then
+pos=$(scroll_to 30 "Language" "Idioma") || {
+    # A swipe now and then gets lost on the slow emulator: the settings search finds it too.
+    log "      Language not reached by scrolling, using the settings search"
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n "$SETTINGS" >/dev/null 2>&1; sleep 4
+    if spos=$(find_contains "Search settings" "Buscar ajustes"); then
+        adb shell input tap $spos; sleep 1
+        adb shell input text "Language"; sleep 2
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+    fi
+    pos=$(scroll_to 6 "Language" "Idioma")
+}
+if [ -n "$pos" ]; then
     adb shell input tap $pos; sleep 2
     shot 01_language_list
     # The list is sorted by language tag: Chinese is near the end.

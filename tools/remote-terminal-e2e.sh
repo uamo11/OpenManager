@@ -1033,10 +1033,14 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
         summary=$(grep "Summary decoder=" "$OUT/av1_$dec.log" | tail -n1 | sed 's/.*Summary //')
         rendered=$(echo "$summary" | grep -oE "rendered=[0-9]+" | cut -d= -f2)
         position=$(echo "$summary" | grep -oE "positionMs=[0-9]+" | cut -d= -f2)
+        sdropped=$(echo "$summary" | grep -oE "dropped=[0-9]+" | cut -d= -f2)
+        notdecoded=$(echo "$summary" | grep -oE "notDecoded=[0-9]+" | cut -d= -f2)
         fps=$(python3 -c "print(round(${rendered:-0} / max(${position:-0}, 1) * 1000, 1))")
-        log "      $dec: decoder=${decoder:-none} ${summary:-no summary} -> ${fps} fps shown"
+        # Frames the decoder got through per second (shown, decoded but late, or not needed).
+        handled=$(python3 -c "print(round((${rendered:-0} + ${sdropped:-0} + ${notdecoded:-0}) / max(${position:-0}, 1) * 1000, 1))")
+        log "      $dec: decoder=${decoder:-none} ${summary:-no summary} -> ${fps} fps shown, ${handled} fps decoded"
         var=${dec//-/_}
-        eval "fps_$var=$fps; dec_$var='${decoder:-}'"
+        eval "fps_$var=$fps; handled_$var=$handled; skipped_$var=${notdecoded:-0}; dec_$var='${decoder:-}'"
     done
     if printf '%s' "$dec_dav1d" | grep -q "libdav1d"; then
         pass "AV1 without a hardware decoder plays with our dav1d ($dec_dav1d)"
@@ -1048,11 +1052,17 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
     else
         fail "4K AV1: our dav1d is not clearly faster ($fps_dav1d vs $fps_system fps)"
     fi
-    # Not decoding late frames nothing depends on: the decoder keeps up, so far more are shown.
-    if python3 -c "import sys; sys.exit(0 if $fps_dav1d >= 24 or $fps_dav1d >= $fps_dav1d_noskip * 1.5 else 1)"; then
-        pass "4K AV1: skipping late non-reference frames shows more frames ($fps_dav1d vs $fps_dav1d_noskip fps)"
+    # The emulator's software compositor shows ~10 fps of 4K whatever the decoder does, so what
+    # can be measured here is the decoder: it must keep up with the 30 fps clip in real time.
+    if python3 -c "import sys; sys.exit(0 if $handled_dav1d_noskip >= 27 else 1)"; then
+        pass "4K AV1: dav1d on every core decodes in real time ($handled_dav1d_noskip of 30 fps)"
     else
-        fail "4K AV1: skipping late non-reference frames did not help ($fps_dav1d vs $fps_dav1d_noskip fps)"
+        fail "4K AV1: dav1d does not keep up with the 30 fps clip ($handled_dav1d_noskip fps decoded)"
+    fi
+    if [ "${skipped_dav1d:-0}" -gt 0 ]; then
+        pass "4K AV1: when late, frames nothing depends on are not decoded (${skipped_dav1d} skipped)"
+    else
+        fail "4K AV1: late non-reference frames were still decoded"
     fi
     adb logcat -d > "$OUT/logcat_av1.txt" 2>/dev/null || true
     if app_crashed "$OUT/logcat_av1.txt"; then fail "crash while playing 4K AV1"; fi
@@ -2567,6 +2577,35 @@ if pos=$(find_text "More options" "Más opciones"); then
     adb shell input keyevent KEYCODE_BACK; sleep 1
 else
     fail "no ⋮ button in the editor"
+fi
+# No empty bands: the toolbar starts right under the status bar and the symbol keys sit right on
+# the navigation bar (both insets used to be added twice; user report).
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_editor_insets.xml" 2>/dev/null
+density=$(adb shell wm density | grep -o '[0-9]*' | tail -1)
+gaps=$(python3 - "$OUT/ui_editor_insets.xml" "${density:-420}" <<'PY2'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+d = int(sys.argv[2]) / 160
+def box(i):
+    for n in re.findall(r"<node [^>]*>", xml):
+        if re.search(r'resource-id="[^"]*:id/%s"' % i, n):
+            return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+height = max(int(b) for b in re.findall(r'bounds="\[\d+,\d+\]\[\d+,(\d+)\]"', xml))
+tb = box("toolbar"); keys = box("symbolContainer")
+top = tb[1] if tb else -1
+bottom = height - keys[3] if keys else -1
+# Status bar up to 50 dp (big cutouts), navigation bar up to 56 dp.
+ok = 0 <= top <= 50 * d and 0 <= bottom <= 56 * d
+print("ok" if ok else "bad", top, bottom, round(24 * d), round(48 * d))
+PY2
+)
+log "      editor insets: toolbar top=$(echo $gaps | cut -d' ' -f2) px, keys above the bottom=$(echo $gaps | cut -d' ' -f3) px (status ~$(echo $gaps | cut -d' ' -f4), nav ~$(echo $gaps | cut -d' ' -f5))"
+if [ "${gaps%% *}" = ok ]; then
+    pass "the editor has no empty band above the toolbar or under the symbol bar"
+else
+    shot 68b_editor_bands
+    fail "the editor still leaves an empty band ($gaps)"
 fi
 # Back to the default editor theme for the rest of the run.
 adb shell am force-stop $PKG; sleep 1

@@ -794,6 +794,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private var currentNavBottom: Int = 0
 
     private fun setupWindowInsets() {
+        // This fragment places every system bar inset itself (status bar above the toolbar, the
+        // navigation bar or keyboard under the symbol bar). The app bar and the scrolling frame
+        // also add them on their own, which left an empty band of the status bar's height above
+        // the toolbar and one of the navigation bar's height under the symbol bar (user report).
+        binding.appBarLayout.fitsSystemWindows = false
+        ViewCompat.setOnApplyWindowInsetsListener(binding.editorScrollingFrame) { _, insets -> insets }
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
             val statusBars = insets.getInsets(WindowInsetsCompat.Type.statusBars())
             val navBars = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
