@@ -636,7 +636,9 @@ demo remote_ssh; sleep 10
 if find_text "⋮" >/dev/null; then
     adb shell input keyevent KEYCODE_HOME; sleep 2
     # The server ends the session while the app is in the background.
-    sudo pkill -f "sshd: omtest" || true
+    # OpenSSH 9.8+ names the per-session process "sshd-session: omtest…" (older: "sshd: omtest…").
+    sudo pkill -KILL -f "sshd(-session)?: omtest" || true
+    sudo pkill -KILL -u omtest || true
     sleep 5
     # Back the way a user returns: Recents, then the app's card (the most recent one, centered).
     adb shell input keyevent KEYCODE_APP_SWITCH; sleep 3
@@ -1988,6 +1990,9 @@ log "=== Sort and view marks the active choice ==="
 demo more_menu; sleep 2
 pos=$(find_contains "Sort and view" "Ordenar y vista") && adb shell input tap $pos; sleep 2
 shot 65_sort_checks
+# A fresh dump of the open dialog (the one above was taken before tapping).
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
 marks=$(python3 - "$OUT/ui.xml" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
