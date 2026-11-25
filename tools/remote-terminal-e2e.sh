@@ -1038,6 +1038,50 @@ else
     fail "Ultra RAM off did not restore the look (md3=$md3_off contrast=$contrast_off)"
 fi
 
+# 4. Light theme: the ⋮ menu icons must show on its white menu (several were white, user report).
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME light >/dev/null 2>&1; sleep 4
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" >/dev/null 2>&1; sleep 4
+demo more_menu; sleep 2
+shot 44_light_menu_icons
+adb exec-out screencap > "$OUT/light_menu.raw" 2>/dev/null
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+icons=$(python3 - "$OUT/light_menu.raw" "$OUT/ui.xml" "Select all" "Bookmarks" <<'PY'
+import re, struct, sys, html
+raw = open(sys.argv[1], "rb").read()
+w, h = struct.unpack("<II", raw[:8])
+header = len(raw) - w * h * 4
+xml = open(sys.argv[2], encoding="utf-8", errors="replace").read()
+out = []
+for label in sys.argv[3:]:
+    dark = -1
+    for node in re.findall(r"<node [^>]*>", xml):
+        t = re.search(r' text="([^"]*)"', node)
+        if t and html.unescape(t.group(1)) == label:
+            x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+            dark = 0
+            # The icon sits left of the title, on the same row.
+            for y in range(max(0, y1), min(h, y2)):
+                for x in range(max(0, x1 - 120), max(0, x1 - 8)):
+                    o = header + (y * w + x) * 4
+                    r, g, b = raw[o], raw[o + 1], raw[o + 2]
+                    if 0.299 * r + 0.587 * g + 0.114 * b < 170:
+                        dark += 1
+            break
+    out.append("%s=%d" % (label.replace(" ", "_"), dark))
+print(" ".join(out))
+PY
+)
+log "      dark icon pixels on the light menu: $icons"
+if echo "$icons" | grep -qE "Select_all=([3-9][0-9]|[0-9]{3,})" && echo "$icons" | grep -qE "Bookmarks=([3-9][0-9]|[0-9]{3,})"; then
+    pass "the ⋮ menu icons are visible on the light theme"
+else
+    fail "⋮ menu icons are missing on the light theme ($icons)"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+
 # Back to the defaults used by the rest of the run.
 adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME dark >/dev/null 2>&1; sleep 4

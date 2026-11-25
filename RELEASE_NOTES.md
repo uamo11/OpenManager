@@ -14,6 +14,10 @@
 - Buscar y reemplazar (texto, palabra completa o expresión regular) en segundo plano, con el contador de coincidencias.
 - Barra de símbolos: los botones de sangría actúan sobre todas las líneas seleccionadas; las llaves y comillas envuelven la selección.
 
+### 🎨 Tema claro
+- En el menú ⋮, los iconos de Seleccionar todo, Archivos ocultos, Intercambiar paneles, Marcadores, Añadir marcador, Establecer como inicio y Salir eran blancos y desaparecían sobre el menú blanco. Ahora usan el color de los controles del tema (se ven en claro, oscuro, AMOLED y Material 3).
+- El ajuste de línea funciona: el editor viejo lo ignoraba (un JSON de una sola línea no se partía aunque la opción estuviera marcada).
+
 ### 🧩 Se mantiene todo lo anterior
 - Temas, codificaciones, CRLF/LF, ir a línea, historial de posiciones, solo lectura, «Guardar como», documentos nuevos desde la barra lateral, aviso de cambios externos y protección DeadMan.
 - Las estadísticas del archivo ahora están traducidas.

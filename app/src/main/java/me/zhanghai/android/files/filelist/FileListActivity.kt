@@ -1560,6 +1560,24 @@ class FileListActivity : AppActivity() {
         }
     }
 
+    /**
+     * Single-color menu icons take the theme's control color, like the menu text. Several were
+     * white drawables and disappeared on the light theme's white menu.
+     */
+    private fun tintMenuIcons(menu: android.view.Menu, anchor: View) {
+        val color = com.google.android.material.color.MaterialColors.getColor(
+            anchor, androidx.appcompat.R.attr.colorControlNormal
+        )
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId in COLORED_MENU_ICONS) continue
+            val icon = item.icon ?: continue
+            item.icon = androidx.core.graphics.drawable.DrawableCompat.wrap(icon.mutate()).also {
+                androidx.core.graphics.drawable.DrawableCompat.setTint(it, color)
+            }
+        }
+    }
+
     private fun showMTMoreMenu(anchor: View) {
         val popup = PopupMenu(this, anchor, GravityCompat.END)
         popup.inflate(R.menu.mt_overflow_menu)
@@ -1576,6 +1594,7 @@ class FileListActivity : AppActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
+        tintMenuIcons(popup.menu, anchor)
         val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
         // Translated title with a check mark (it used to be a fixed Spanish text).
         popup.menu.findItem(R.id.mt_menu_hidden_files)?.apply {
@@ -2954,6 +2973,8 @@ class FileListActivity : AppActivity() {
     }
 
     companion object {
+        /** Menu entries whose icons keep their own colors. */
+        private val COLORED_MENU_ICONS = setOf(R.id.mt_menu_search_text, R.id.mt_menu_export_file_list)
         const val EXTRA_SHOW_APKTOOL_PROGRESS = "me.zhanghai.android.files.filelist.extra.SHOW_APKTOOL_PROGRESS"
         const val EXTRA_NAVIGATE_TO_PATH = "me.zhanghai.android.files.filelist.extra.NAVIGATE_TO_PATH"
         const val EXTRA_HIGHLIGHT_FILE_PATH = "me.zhanghai.android.files.filelist.extra.HIGHLIGHT_FILE_PATH"
