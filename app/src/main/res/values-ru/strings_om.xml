@@ -936,7 +936,7 @@
     <string name="om_nav_remote_ftp">Удалённый менеджер (FTP)</string>
     <string name="om_nav_terminal">Терминал</string>
     <string name="om_nav_settings">Настройки</string>
-    <string name="om_nav_about">Об OpenManager</string>
+    <string name="om_nav_about">О приложении</string>
     <string name="om_nav_section_local">Локальные</string>
     <string name="om_loading_dots">Загрузка...</string>
     <string name="om_more_options">Ещё</string>
@@ -1224,8 +1224,6 @@
     <string name="om_crash_log_not_found">Файла журнала ещё нет</string>
     <string name="om_crash_share_error_format">Ошибка отправки: %1$s</string>
     <string name="om_hex_search_text_hint">Поиск текста…</string>
-    <string name="om_hex_file_too_large_title">Файл слишком большой</string>
-    <string name="om_hex_file_too_large_msg_format">Файл превышает безопасный предел 25 МБ для HEX-редактирования в памяти (%1$s).\n\nЧтобы избежать сбоя из-за нехватки памяти (OOM), его нельзя открыть в этом режиме.</string>
     <string name="om_hex_read_or_oom_error">Ошибка чтения файла или нехватка памяти</string>
     <string name="om_hex_preview_text_format">Байты: %1$d  |  Текст: %2$s</string>
     <string name="om_hex_invalid_hex">Неверный HEX</string>
@@ -2519,4 +2517,9 @@
     <string name="om_video_volume">Громкость %1$d%%</string>
     <string name="om_video_fit">Вписать в экран</string>
     <string name="om_video_fill">Заполнить экран</string>
+    <string name="om_hex_searching">Поиск…</string>
+    <string name="om_text_editor_open_hex">Открыть в HEX-редакторе</string>
+    <string name="om_text_editor_open_partial">Показать первые %1$s (только чтение)</string>
+    <string name="om_text_editor_partial_status">первые %1$s из %2$s, только чтение</string>
+    <string name="om_text_editor_partial_read_only">Открыта только часть файла, поэтому его нельзя редактировать или сохранить.</string>
 </resources>

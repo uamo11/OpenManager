@@ -195,6 +195,17 @@ class FileJobService : Service() {
             startJob(WriteFileJob(file, content, listener), context)
         }
 
+        /** Writes [size] bytes read from [openContent] (called on the job's thread). */
+        fun write(
+            file: Path,
+            size: Long,
+            openContent: () -> java.io.InputStream,
+            context: Context,
+            listener: ((Boolean) -> Unit)?
+        ) {
+            startJob(WriteFileJob(file, size, openContent, listener), context)
+        }
+
         @MainThread
         fun cancelJob(id: Int) {
             pendingJobs.removeFirst { it.id == id }

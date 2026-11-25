@@ -26,6 +26,7 @@ import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.file.AxmlDecoder
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.provider.common.getLastModifiedTime
+import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.provider.common.readAllBytes
 import me.zhanghai.android.files.provider.common.size
 import me.zhanghai.android.files.provider.linux.isLinuxPath
@@ -87,12 +88,24 @@ class TextEditorViewModel(file: Path) : ViewModel() {
         }
     }
 
+    /**
+     * Set when the user chose to read only the first [MAX_FILE_SIZE] of a larger file: the text is
+     * then read-only and can never be saved (it would cut the file).
+     */
+    val isPartial = MutableStateFlow(false)
+
+    fun loadPartial() {
+        isPartial.value = true
+        reload()
+    }
+
     private suspend fun mapFileToBytesState(file: Path) {
         _bytesState.value = _bytesState.value.toLoading()
         try {
+            val partial = isPartial.value
             val (bytes, size, modTime) = runInterruptible(Dispatchers.IO) {
                 val size = file.size()
-                if (size > MAX_FILE_SIZE) {
+                if (size > MAX_FILE_SIZE && !partial) {
                     throw FileTooLargeException(size, MAX_FILE_SIZE)
                 }
                 val modTime = try {
@@ -100,7 +113,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                 } catch (_: Throwable) {
                     0L
                 }
-                val bytes = file.readAllBytes()
+                val bytes = if (partial && size > MAX_FILE_SIZE) readHead(file) else file.readAllBytes()
                 Triple(bytes, size, modTime)
             }
             fileSize.value = size
@@ -179,6 +192,8 @@ class TextEditorViewModel(file: Path) : ViewModel() {
     }
 
     fun writeFile(path: Path, text: String, context: Context) {
+        // Only part of the file is loaded: writing it would cut the file.
+        if (isPartial.value && path == _file.value) return
         // A second tap on Save while the first save runs used to fail check() and close the app.
         if (!_writeFileState.value.isReady) return
         viewModelScope.launch {
@@ -277,6 +292,27 @@ class TextEditorViewModel(file: Path) : ViewModel() {
         val savedState = editTextSavedState
         editTextSavedState = null
         return savedState
+    }
+
+    /** The first [MAX_FILE_SIZE] bytes, cut after the last line break near the end when there is one. */
+    private fun readHead(file: Path): ByteArray {
+        val head = ByteArray(MAX_FILE_SIZE.toInt())
+        var read = 0
+        file.newInputStream().use { input ->
+            while (read < head.size) {
+                val n = input.read(head, read, head.size - read)
+                if (n < 0) break
+                read += n
+            }
+        }
+        var end = read
+        for (i in read - 1 downTo maxOf(0, read - 64 * 1024)) {
+            if (head[i] == '\n'.code.toByte()) {
+                end = i + 1
+                break
+            }
+        }
+        return head.copyOf(end)
     }
 
     /** The file is bigger than the editor accepts. */

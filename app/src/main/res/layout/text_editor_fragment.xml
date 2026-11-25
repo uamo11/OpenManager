@@ -138,19 +138,6 @@
                     android:layout_gravity="center"
                     android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/errorText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:paddingTop="12dp"
-                    android:paddingBottom="32dp"
-                    android:drawablePadding="8dp"
-                    android:gravity="center_horizontal"
-                    android:textAppearance="?textAppearanceListItem"
-                    android:visibility="gone"
-                    app:drawableTopCompat="@drawable/error_icon_240dp" />
-
                 <!-- The editor engine draws only the visible lines (sora-editor), so files with
                      hundreds of thousands of lines open and scroll without delay. -->
                 <FrameLayout
@@ -165,6 +152,48 @@
                         android:layout_height="match_parent"
                         android:importantForAutofill="no" />
                 </FrameLayout>
+
+                <!-- Above the editor: its dark background used to hide this message, so a file that
+                     could not be opened showed an empty editor. -->
+                <LinearLayout
+                    android:id="@+id/errorPanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingStart="24dp"
+                    android:paddingEnd="24dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/errorText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingTop="12dp"
+                        android:paddingBottom="16dp"
+                        android:drawablePadding="8dp"
+                        android:gravity="center_horizontal"
+                        android:textAppearance="?textAppearanceListItem"
+                        app:drawableTopCompat="@drawable/error_icon_240dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/errorOpenHexButton"
+                        style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/om_text_editor_open_hex"
+                        android:visibility="gone" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/errorOpenPartialButton"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="32dp"
+                        android:visibility="gone"
+                        tools:text="Show the first 20 MB (read-only)" />
+                </LinearLayout>
 
                 <!-- Floating Zoom HUD -->
                 <TextView

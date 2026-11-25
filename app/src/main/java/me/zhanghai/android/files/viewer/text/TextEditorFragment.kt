@@ -632,7 +632,15 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val fileName = displayName()
         val changed = viewModel.isTextChanged.value
         val fileSize = viewModel.fileSize.value
-        val formattedSize = if (fileSize > 0) " (${Formatter.formatFileSize(requireContext(), fileSize)})" else ""
+        val formattedSize = when {
+            viewModel.isPartial.value && fileSize > TextEditorViewModel.MAX_FILE_SIZE -> " (" + getString(
+                R.string.om_text_editor_partial_status,
+                Formatter.formatShortFileSize(requireContext(), TextEditorViewModel.MAX_FILE_SIZE),
+                Formatter.formatFileSize(requireContext(), fileSize)
+            ) + ")"
+            fileSize > 0 -> " (${Formatter.formatFileSize(requireContext(), fileSize)})"
+            else -> ""
+        }
         binding.statusFileNameText.text = "${if (changed) "*" else ""}$fileName$formattedSize"
         binding.statusFileNameText.setTextColor(if (changed) currentTheme.typeColor else currentTheme.textColor)
 
@@ -1358,6 +1366,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun toggleReadOnly() {
+        if (isReadOnly && refusePartialSave()) return
         setReadOnly(!isReadOnly)
         showToast(getString(if (isReadOnly) R.string.text_editor_read_only_mode_on else R.string.text_editor_edit_mode_on))
     }
@@ -1446,7 +1455,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 true
             }
             R.id.action_save_as -> {
-                showSaveAsDialog()
+                if (!refusePartialSave()) showSaveAsDialog()
                 true
             }
             R.id.action_undo -> {
@@ -1601,13 +1610,16 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         when (state) {
             is DataState.Loading -> {
                 binding.progress.fadeInUnsafe()
-                binding.errorText.fadeOutUnsafe()
+                binding.errorPanel.fadeOutUnsafe()
+                binding.editorContainer.visibility = View.VISIBLE
                 binding.codeEditor.fadeOutUnsafe()
             }
             is DataState.Success -> {
                 binding.progress.fadeOutUnsafe()
-                binding.errorText.fadeOutUnsafe()
+                binding.errorPanel.fadeOutUnsafe()
+                binding.editorContainer.visibility = View.VISIBLE
                 binding.codeEditor.fadeInUnsafe()
+                if (viewModel.isPartial.value && !isReadOnly) setReadOnly(true)
                 val retained = viewModel.retainedContent as? io.github.rosemoe.sora.text.Content
                 if (retained != null) {
                     // Same document after a rotation: keep the edits and the undo history.
@@ -1645,8 +1657,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             is DataState.Error -> {
                 state.throwable.printStackTrace()
                 binding.progress.fadeOutUnsafe()
-                binding.errorText.fadeInUnsafe()
                 binding.errorText.text = describeLoadError(state.throwable)
+                showLoadErrorActions(state.throwable)
+                binding.editorContainer.visibility = View.INVISIBLE
+                binding.errorPanel.fadeInUnsafe()
                 binding.codeEditor.fadeOutUnsafe()
             }
         }
@@ -1658,6 +1672,33 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val l = line.coerceIn(0, content.lineCount - 1)
         val c = column.coerceIn(0, content.getColumnCount(l))
         editor.post { if (this::binding.isInitialized) selectAndReveal(l, c) }
+    }
+
+    /**
+     * A file over the limit is not a dead end: open it in the HEX editor (any size, with text
+     * search), or read its first part here without being able to save it.
+     */
+    private fun showLoadErrorActions(throwable: Throwable) {
+        val tooLarge = throwable is TextEditorViewModel.FileTooLargeException && !isDraft
+        binding.errorOpenHexButton.visibility = if (tooLarge) View.VISIBLE else View.GONE
+        binding.errorOpenPartialButton.visibility = if (tooLarge) View.VISIBLE else View.GONE
+        if (!tooLarge) return
+        binding.errorOpenPartialButton.text = getString(
+            R.string.om_text_editor_open_partial,
+            Formatter.formatShortFileSize(requireContext(), TextEditorViewModel.MAX_FILE_SIZE)
+        )
+        binding.errorOpenHexButton.setOnClickListener {
+            me.zhanghai.android.files.viewer.hex.HexEditorActivity.start(requireContext(), argsFile)
+            requireActivity().finish()
+        }
+        binding.errorOpenPartialButton.setOnClickListener { viewModel.loadPartial() }
+    }
+
+    /** Saving a partial view would cut the file, so it is refused. */
+    private fun refusePartialSave(): Boolean {
+        if (!viewModel.isPartial.value) return false
+        showToast(R.string.om_text_editor_partial_read_only)
+        return true
     }
 
     private fun describeLoadError(throwable: Throwable): String {
@@ -1728,6 +1769,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun save() {
+        if (refusePartialSave()) return
         if (isDraft) {
             showSaveAsDialog()
             return

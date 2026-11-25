@@ -2277,6 +2277,31 @@ adb shell input keyevent KEYCODE_BACK; sleep 1
 
 log "=== Side bar: Exit closes OpenManager (user request) ==="
 demo drawer; sleep 2
+# The logo sits on the icon column instead of the screen edge, and the entry reads "About".
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_drawer.xml" 2>/dev/null
+density=$(adb shell wm density | grep -o '[0-9]*' | tail -1)
+header=$(python3 - "$OUT/ui_drawer.xml" "${density:-420}" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+d = int(sys.argv[2]) / 160
+logo = None
+for n in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/drawerHeaderLogo"', n):
+        logo = tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+texts = [html.unescape(t) for t in re.findall(r' text="([^"]*)"', xml)]
+about = "About" in texts and "About OpenManager" not in texts
+center = (logo[0] + logo[2]) / 2 / d if logo else -1
+print("ok" if logo and 30 <= center <= 38 and about else "bad", round(center, 1), about)
+PY2
+)
+log "      side bar: logo center at $(echo $header | cut -d' ' -f2) dp (icons at 34 dp), entry 'About' only: $(echo $header | cut -d' ' -f3)"
+shot 41b_drawer_header
+if [ "${header%% *}" = ok ]; then
+    pass "the side bar logo lines up with the icons and the entry reads 'About'"
+else
+    fail "side bar header: logo or About label not fixed ($header)"
+fi
 pos=""
 for _ in 1 2 3 4; do
     pos=$(find_text "Exit" "Salir") && break
@@ -2698,6 +2723,144 @@ adb logcat -d > "$OUT/logcat_editor.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; else pass "no crash in the text editor"; fi
 if grep -q "ANR in $PKG" "$OUT/logcat_editor.txt"; then fail "the text editor stopped responding (ANR)"; fi
 adb shell am force-stop $PKG; sleep 1
+
+log "=== HEX editor: a 60 MB file opens, searches, edits and saves (user report: 25 MB limit) ==="
+python3 - "$OUT/om_big.bin" <<'PY2'
+import os, sys
+size = 60 * 1024 * 1024
+with open(sys.argv[1], "wb") as f:
+    f.write(b"\x7fELF" + os.urandom(size - 4))
+    f.seek(50_000_000)
+    f.write(b"OMHEXMARK")
+PY2
+adb push "$OUT/om_big.bin" /sdcard/om_editor_test/om_big.bin >/dev/null
+big_uri="file:///storage/emulated/0/om_editor_test/om_big.bin"
+# The text editor explains the limit (the message used to be hidden behind the editor) and
+# offers the HEX editor and a read-only look at the first 20 MB.
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "$big_uri" >/dev/null
+sleep 5
+shot 70_editor_too_large
+err=$(node_text_by_id errorText || true)
+log "      text editor: ${err:-no message}"
+if printf '%s' "$err" | grep -q "MB" && node_center_by_id errorOpenHexButton >/dev/null; then
+    pass "the text editor shows why a 60 MB file did not open, with a button to the HEX editor"
+else
+    fail "the text editor shows an empty page for a 60 MB file"
+fi
+if pos=$(node_center_by_id errorOpenPartialButton); then
+    adb shell input tap $pos; sleep 8
+    shot 71_editor_partial
+    name=$(node_text_by_id statusFileNameText || true)
+    layout=$(adb logcat -d -s OMEditor 2>/dev/null | grep "layout lines=" | tail -1 | sed 's/.*OMEditor: //')
+    log "      partial: $name · ${layout:-no layout}"
+    lines=$(printf '%s' "$layout" | sed -n 's/.*lines=\([0-9]*\).*/\1/p')
+    if [ "${lines:-0}" -gt 1000 ] && printf '%s' "$name" | grep -q "read-only"; then
+        pass "the first 20 MB open read-only in the text editor"
+    else
+        fail "the read-only first part did not open ($name)"
+    fi
+else
+    fail "no button to read the first part of the file"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "$big_uri" >/dev/null
+sleep 5
+if pos=$(node_center_by_id errorOpenHexButton); then
+    adb shell input tap $pos; sleep 6
+    shot 72_hex_big
+    opened=$(adb logcat -d -s OMHex 2>/dev/null | grep "Open size=" | tail -1 | sed 's/.*OMHex: //')
+    rows=$(adb logcat -d -s OMHex 2>/dev/null | grep "Rows:" | tail -1 | sed 's/.*OMHex: //')
+    log "      $opened · $rows"
+    ms=$(printf '%s' "$opened" | sed -n 's/.*ms=\([0-9]*\).*/\1/p')
+    if printf '%s' "$opened" | grep -q "size=62914560 source=paged" && [ "${ms:-99999}" -lt 3000 ]; then
+        pass "the HEX editor opens a 60 MB file page by page (${ms} ms)"
+    else
+        fail "the HEX editor did not open the 60 MB file paged ($opened)"
+    fi
+    # Layout: the subtitle is not cut by the toolbar, no EDIT/HEX/TXT buttons at the bottom, and
+    # the ASCII column fits the screen.
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_hex.xml" 2>/dev/null
+    density=$(adb shell wm density | grep -o '[0-9]*' | tail -1)
+    hexui=$(python3 - "$OUT/ui_hex.xml" "${density:-420}" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+d = int(sys.argv[2]) / 160
+nodes = re.findall(r"<node [^>]*>", xml)
+def b(n): return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+width = max(b(n)[2] for n in nodes)
+sub = [b(n) for n in nodes if re.search(r' text="60\.00 MB', n)]
+sub_h = (sub[0][3] - sub[0][1]) / d if sub else 0
+buttons = [html.unescape(re.search(r' text="([^"]*)"', n).group(1)) for n in nodes
+           if 'Button' in n and re.search(r' text="(EDIT|Edit|Editar|HEX|Hex|TXT|Txt)"', n)]
+ascii_right = max([b(n)[2] for n in nodes if re.search(r':id/tvAscii"', n)] or [width + 1])
+ok = sub_h >= 15 and not buttons and ascii_right <= width
+print("ok" if ok else "bad", round(sub_h, 1), "|".join(buttons) or "-", ascii_right, width)
+PY2
+)
+    log "      hex layout: subtitle height=$(echo $hexui | cut -d' ' -f2) dp, bottom buttons=$(echo $hexui | cut -d' ' -f3), ASCII right edge=$(echo $hexui | cut -d' ' -f4)/$(echo $hexui | cut -d' ' -f5) px"
+    if [ "${hexui%% *}" = ok ]; then
+        pass "HEX editor: full subtitle, flat bottom strip, ASCII column on screen"
+    else
+        fail "HEX editor layout ($hexui)"
+    fi
+else
+    fail "no 'Open in HEX editor' button"
+fi
+adb logcat -d > "$OUT/logcat_hex.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_hex.txt"; then fail "crash opening a 60 MB file"; fi
+# Search 47 MB deep, overwrite there and save: only the edited bytes are written.
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.viewer.hex.HexEditorActivity \
+    --es $PKG.extra.PATH_URI $big_uri --es DEMO_HEX_SEARCH 4F4D4845584D41524B --es DEMO_HEX_WRITE 58" >/dev/null 2>&1
+saved=""
+for _ in $(seq 1 30); do
+    saved=$(adb logcat -d -s OMHex 2>/dev/null | grep "Save mode=" | tail -1 | sed 's/.*OMHex: //')
+    [ -n "$saved" ] && break
+    sleep 1
+done
+found=$(adb logcat -d -s OMHex 2>/dev/null | grep "Search match=" | tail -1 | sed 's/.*OMHex: //')
+mark=$(adb shell "tail -c +50000001 /sdcard/om_editor_test/om_big.bin | head -c 9" 2>/dev/null | tr -d '\r')
+fsize=$(adb shell stat -c %s /sdcard/om_editor_test/om_big.bin 2>/dev/null | tr -d '\r')
+log "      $found · $saved · bytes at 50000000='$mark' size=$fsize"
+if printf '%s' "$found" | grep -q "match=50000000 " && printf '%s' "$saved" | grep -q "mode=patch ok=true" \
+    && [ "$mark" = "XMHEXMARK" ] && [ "$fsize" = 62914560 ]; then
+    pass "search finds a mark 47 MB deep and the edit is saved in place"
+else
+    fail "search/edit/save in place on the 60 MB file ($found; $saved; '$mark'; $fsize)"
+fi
+shot 73_hex_saved
+# Insert one byte at the start: the file is rewritten and everything moves by one.
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.viewer.hex.HexEditorActivity \
+    --es $PKG.extra.PATH_URI $big_uri --es DEMO_HEX_INSERT AA" >/dev/null 2>&1
+saved=""
+for _ in $(seq 1 60); do
+    saved=$(adb logcat -d -s OMHex 2>/dev/null | grep "Save mode=" | tail -1 | sed 's/.*OMHex: //')
+    [ -n "$saved" ] && break
+    sleep 1
+done
+first=$(adb shell "head -c 5 /sdcard/om_editor_test/om_big.bin | od -An -tx1" 2>/dev/null | tr -d '\r' | xargs)
+mark=$(adb shell "tail -c +50000002 /sdcard/om_editor_test/om_big.bin | head -c 9" 2>/dev/null | tr -d '\r')
+fsize=$(adb shell stat -c %s /sdcard/om_editor_test/om_big.bin 2>/dev/null | tr -d '\r')
+log "      $saved · first bytes=$first mark='$mark' size=$fsize"
+if printf '%s' "$saved" | grep -q "mode=rewrite ok=true" && [ "$first" = "aa 7f 45 4c 46" ] \
+    && [ "$mark" = "XMHEXMARK" ] && [ "$fsize" = 62914561 ]; then
+    pass "inserting a byte in a 60 MB file rewrites it correctly"
+else
+    fail "insert + rewrite of the 60 MB file ($saved; $first; '$mark'; $fsize)"
+fi
+adb logcat -d > "$OUT/logcat_hex2.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_hex2.txt"; then fail "crash editing a 60 MB file"; fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -f /sdcard/om_editor_test/om_big.bin
 
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true

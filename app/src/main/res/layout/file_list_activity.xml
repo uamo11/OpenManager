@@ -277,10 +277,15 @@
             android:background="#151515"
             android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingStart="16dp"
-            android:paddingEnd="8dp">
+            android:paddingStart="18dp"
+            android:paddingTop="6dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="6dp">
 
+            <!-- Centered on the icon column of the items below (16dp + 36dp / 2), and the title
+                 starts where their labels start (66dp). -->
             <ImageView
+                android:id="@+id/drawerHeaderLogo"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@drawable/ic_openmanager_logo" />
@@ -289,7 +294,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="14dp"
+                android:layout_marginStart="16dp"
                 android:orientation="vertical">
 
                 <TextView

@@ -936,7 +936,7 @@
     <string name="om_nav_remote_ftp">Quản lý từ xa (FTP)</string>
     <string name="om_nav_terminal">Terminal</string>
     <string name="om_nav_settings">Cài đặt</string>
-    <string name="om_nav_about">Giới thiệu OpenManager</string>
+    <string name="om_nav_about">Giới thiệu</string>
     <string name="om_nav_section_local">Cục bộ</string>
     <string name="om_loading_dots">Đang tải...</string>
     <string name="om_more_options">Tùy chọn khác</string>
@@ -1224,8 +1224,6 @@
     <string name="om_crash_log_not_found">Tệp nhật ký chưa tồn tại</string>
     <string name="om_crash_share_error_format">Lỗi khi chia sẻ: %1$s</string>
     <string name="om_hex_search_text_hint">Tìm văn bản…</string>
-    <string name="om_hex_file_too_large_title">Tệp quá lớn</string>
-    <string name="om_hex_file_too_large_msg_format">Tệp vượt giới hạn an toàn 25 MB để sửa hex trong bộ nhớ (%1$s).\n\nĐể tránh crash do hết bộ nhớ (OOM), không thể mở tệp ở chế độ này.</string>
     <string name="om_hex_read_or_oom_error">Lỗi đọc tệp hoặc hết bộ nhớ</string>
     <string name="om_hex_preview_text_format">Byte: %1$d  |  Văn bản: %2$s</string>
     <string name="om_hex_invalid_hex">Hex không hợp lệ</string>
@@ -2594,4 +2592,9 @@
     <string name="om_video_volume">Âm lượng %1$d%%</string>
     <string name="om_video_fit">Vừa màn hình</string>
     <string name="om_video_fill">Lấp đầy màn hình</string>
+    <string name="om_hex_searching">Đang tìm…</string>
+    <string name="om_text_editor_open_hex">Mở bằng trình sửa HEX</string>
+    <string name="om_text_editor_open_partial">Xem %1$s đầu tiên (chỉ đọc)</string>
+    <string name="om_text_editor_partial_status">%1$s đầu của %2$s, chỉ đọc</string>
+    <string name="om_text_editor_partial_read_only">Chỉ một phần của tệp này được mở nên không thể sửa hoặc lưu.</string>
 </resources>

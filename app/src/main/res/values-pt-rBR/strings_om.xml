@@ -936,7 +936,7 @@
     <string name="om_nav_remote_ftp">Gerenciador remoto (FTP)</string>
     <string name="om_nav_terminal">Terminal</string>
     <string name="om_nav_settings">Configurações</string>
-    <string name="om_nav_about">Sobre o OpenManager</string>
+    <string name="om_nav_about">Sobre</string>
     <string name="om_nav_section_local">Local</string>
     <string name="om_loading_dots">Carregando...</string>
     <string name="om_more_options">Mais opções</string>
@@ -1224,8 +1224,6 @@
     <string name="om_crash_log_not_found">O arquivo de log ainda não existe</string>
     <string name="om_crash_share_error_format">Erro ao compartilhar: %1$s</string>
     <string name="om_hex_search_text_hint">Pesquisar texto…</string>
-    <string name="om_hex_file_too_large_title">Arquivo muito grande</string>
-    <string name="om_hex_file_too_large_msg_format">O arquivo passa do limite seguro de 25 MB para edição hexadecimal em memória (%1$s).\n\nPara evitar falhas por falta de memória (OOM), ele não pode ser aberto neste modo.</string>
     <string name="om_hex_read_or_oom_error">Erro ao ler o arquivo ou memória insuficiente</string>
     <string name="om_hex_preview_text_format">Bytes: %1$d  |  Texto: %2$s</string>
     <string name="om_hex_invalid_hex">Hex inválido</string>
@@ -2505,4 +2503,9 @@
     <string name="om_video_volume">Volume %1$d%%</string>
     <string name="om_video_fit">Ajustar à tela</string>
     <string name="om_video_fill">Preencher a tela</string>
+    <string name="om_hex_searching">Pesquisando…</string>
+    <string name="om_text_editor_open_hex">Abrir no editor HEX</string>
+    <string name="om_text_editor_open_partial">Ver os primeiros %1$s (somente leitura)</string>
+    <string name="om_text_editor_partial_status">primeiros %1$s de %2$s, somente leitura</string>
+    <string name="om_text_editor_partial_read_only">Só uma parte deste arquivo está aberta, então ele não pode ser editado nem salvo.</string>
 </resources>

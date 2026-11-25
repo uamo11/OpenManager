@@ -20,7 +20,8 @@
         <com.google.android.material.appbar.MaterialToolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="?actionBarSize"
+            android:layout_height="wrap_content"
+            android:minHeight="?actionBarSize"
             app:navigationIcon="@drawable/arrow_back_icon_white_24dp"
             app:title="@string/hex_editor_title"
             app:subtitle="0 B" />
@@ -207,15 +208,17 @@
                     android:paddingEnd="12dp">
 
                     <TextView
+                        android:id="@+id/tvHeaderOffset"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
-                        android:text="OFFSET:  "
+                        android:text="OFFSET  "
                         android:textColor="#757575"
                         android:textSize="11sp"
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/tvHeaderHex"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="8dp"
@@ -233,6 +236,7 @@
                         android:background="#383838" />
 
                     <TextView
+                        android:id="@+id/tvHeaderAscii"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="monospace"
@@ -260,121 +264,94 @@
             android:visibility="gone" />
     </FrameLayout>
 
-    <!-- Bottom Inspector Panel -->
+    <!-- Bottom strip: the offset and the value of the selected byte, flat like the editor's
+         symbol bar. Tap the offset to jump, a value to copy it; tap the selected byte (or hold
+         any byte) to edit it. -->
     <LinearLayout
         android:id="@+id/bottomInspectorPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="#1E1E1E"
-        android:elevation="4dp"
-        android:orientation="vertical"
-        android:paddingStart="10dp"
-        android:paddingEnd="10dp"
-        android:paddingTop="6dp"
-        android:paddingBottom="6dp">
+        android:orientation="vertical">
 
-        <!-- Info and Action Row -->
-        <LinearLayout
+        <View
+            android:id="@+id/bottomDivider"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_height="1dp"
+            android:background="#2A2A2A" />
 
-            <TextView
-                android:id="@+id/tvSelectionInfo"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:fontFamily="monospace"
-                android:textColor="#2196F3"
-                android:textSize="11.5sp"
-                android:textStyle="bold"
-                tools:text="Offset: 0x00000000 (0)" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEditByte"
-                style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:layout_marginEnd="4dp"
-                android:paddingStart="10dp"
-                android:paddingEnd="10dp"
-                android:text="@string/edit"
-                android:textSize="11sp"
-                app:icon="@drawable/edit_icon"
-                app:iconSize="14dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCopyHex"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:layout_marginEnd="4dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="Hex"
-                android:textSize="11sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCopyAscii"
-                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="34dp"
-                android:paddingStart="8dp"
-                android:paddingEnd="8dp"
-                android:text="Txt"
-                android:textSize="11sp" />
-        </LinearLayout>
-
-        <!-- Inspector Chips ScrollView -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="5dp"
             android:scrollbars="none">
 
             <LinearLayout
                 android:id="@+id/layoutChips"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_height="46dp"
+                android:dividerPadding="10dp"
+                android:orientation="horizontal"
+                android:showDividers="middle">
 
-                <!-- HEX -->
+                <LinearLayout
+                    android:id="@+id/offsetCell"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:background="?selectableItemBackground"
+                    android:contentDescription="@string/hex_editor_goto_offset"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="12dp">
+
+                    <TextView
+                        android:id="@+id/tvSelectionLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OFFSET"
+                        android:textColor="#888888"
+                        android:textSize="9.5sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvSelectionInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:textColor="#64B5F6"
+                        android:textSize="12.5sp"
+                        android:textStyle="bold"
+                        tools:text="0x00000000" />
+                </LinearLayout>
+
                 <include
                     android:id="@+id/cardHex"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- UInt8 / DEC -->
                 <include
                     android:id="@+id/cardDec"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- INT8 -->
                 <include
                     android:id="@+id/cardInt8"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- INT16 LE -->
                 <include
                     android:id="@+id/cardInt16"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- INT32 LE -->
                 <include
                     android:id="@+id/cardInt32"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- CHAR -->
                 <include
                     android:id="@+id/cardChar"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- BINARY -->
                 <include
                     android:id="@+id/cardBin"
                     layout="@layout/item_hex_inspector_card" />
 
-                <!-- FLOAT32 -->
                 <include
                     android:id="@+id/cardFloat"
                     layout="@layout/item_hex_inspector_card" />

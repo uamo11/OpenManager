@@ -437,6 +437,7 @@
 
         <activity
             android:name="me.zhanghai.android.files.viewer.hex.HexEditorActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="false"
             android:label="@string/open_as_hex_title"
             android:launchMode="singleTop"

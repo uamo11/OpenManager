@@ -936,7 +936,7 @@
     <string name="om_nav_remote_ftp">Pengelola jarak jauh (FTP)</string>
     <string name="om_nav_terminal">Terminal</string>
     <string name="om_nav_settings">Pengaturan</string>
-    <string name="om_nav_about">Tentang OpenManager</string>
+    <string name="om_nav_about">Tentang</string>
     <string name="om_nav_section_local">Lokal</string>
     <string name="om_loading_dots">Memuat...</string>
     <string name="om_more_options">Opsi lainnya</string>
@@ -1224,8 +1224,6 @@
     <string name="om_crash_log_not_found">File log belum ada</string>
     <string name="om_crash_share_error_format">Error membagikan: %1$s</string>
     <string name="om_hex_search_text_hint">Cari teks…</string>
-    <string name="om_hex_file_too_large_title">File terlalu besar</string>
-    <string name="om_hex_file_too_large_msg_format">File ini melebihi batas aman 25 MB untuk edit hex di memori (%1$s).\n\nAgar tidak crash karena kehabisan memori (OOM), file tidak bisa dibuka di mode ini.</string>
     <string name="om_hex_read_or_oom_error">Error membaca file atau memori tidak cukup</string>
     <string name="om_hex_preview_text_format">Byte: %1$d  |  Teks: %2$s</string>
     <string name="om_hex_invalid_hex">Hex tidak valid</string>
@@ -2500,4 +2498,9 @@
     <string name="om_video_volume">Volume %1$d%%</string>
     <string name="om_video_fit">Sesuaikan layar</string>
     <string name="om_video_fill">Penuhi layar</string>
+    <string name="om_hex_searching">Mencari…</string>
+    <string name="om_text_editor_open_hex">Buka di editor HEX</string>
+    <string name="om_text_editor_open_partial">Tampilkan %1$s pertama (hanya baca)</string>
+    <string name="om_text_editor_partial_status">%1$s pertama dari %2$s, hanya baca</string>
+    <string name="om_text_editor_partial_read_only">Hanya sebagian file ini yang terbuka, jadi tidak bisa diedit atau disimpan.</string>
 </resources>

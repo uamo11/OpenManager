@@ -138,6 +138,10 @@ class FileListActivity : AppActivity() {
     private var hasRequestedNotificationThisSession = false
     private var allFilesDialog: androidx.appcompat.app.AlertDialog? = null
     private var statusBarHeight: Int = 0
+    /** The drawer header's own padding from the layout, read before any inset is added. */
+    private val drawerHeaderBasePadding: IntArray by lazy {
+        findViewById<View>(R.id.layoutDrawerHeader)?.let { intArrayOf(it.paddingLeft, it.paddingTop) } ?: intArrayOf(0, 0)
+    }
     private var lastAppliedPalette: OpenManagerPalette? = null
     private var lastNavIconIsSelection: Boolean? = null
     private var lastNavIconTint: Int = 0
@@ -219,7 +223,9 @@ class FileListActivity : AppActivity() {
             systemNavBarBottom = resources.getDimensionPixelSize(navResId)
         }
         findViewById<View>(R.id.activityRoot)?.updatePadding(top = statusBarHeight)
-        findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(top = statusBarHeight)
+        findViewById<View>(R.id.layoutDrawerHeader)?.let {
+            it.updatePadding(top = drawerHeaderBasePadding[1] + statusBarHeight)
+        }
 
         if (!PerformanceModeManager.isEnabled || Settings.REQUEST_SHELL_PERMISSION.valueCompat) {
             me.zhanghai.android.files.provider.root.ShizukuManager.init(this)
@@ -1771,9 +1777,10 @@ class FileListActivity : AppActivity() {
                     top = statusBarInset,
                     right = insetRight
                 )
+                // Insets add to the header's own padding; replacing it put the logo on the edge.
                 findViewById<View>(R.id.layoutDrawerHeader)?.updatePadding(
-                    left = insetLeft,
-                    top = statusBarInset
+                    left = drawerHeaderBasePadding[0] + insetLeft,
+                    top = drawerHeaderBasePadding[1] + statusBarInset
                 )
                 findViewById<View>(R.id.drawerScrollView)?.updatePadding(
                     left = insetLeft,

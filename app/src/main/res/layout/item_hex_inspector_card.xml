@@ -7,17 +7,14 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:layout_marginEnd="6dp"
-    android:background="@drawable/bg_hex_card"
+    android:layout_height="match_parent"
+    android:background="?selectableItemBackground"
     android:clickable="true"
     android:focusable="true"
-    android:foreground="?selectableItemBackground"
+    android:gravity="center_vertical"
     android:orientation="vertical"
-    android:paddingStart="8dp"
-    android:paddingEnd="8dp"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:paddingStart="12dp"
+    android:paddingEnd="12dp">
 
     <TextView
         android:id="@+id/tvCardLabel"
@@ -34,6 +31,6 @@
         android:layout_height="wrap_content"
         android:fontFamily="monospace"
         android:textColor="#FFFFFF"
-        android:textSize="12sp"
+        android:textSize="12.5sp"
         tools:text="0x4D" />
 </LinearLayout>

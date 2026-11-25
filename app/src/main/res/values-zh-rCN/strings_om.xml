@@ -937,7 +937,7 @@
     <string name="om_nav_remote_ftp">远程管理 (FTP)</string>
     <string name="om_nav_terminal">终端</string>
     <string name="om_nav_settings">设置</string>
-    <string name="om_nav_about">关于 OpenManager</string>
+    <string name="om_nav_about">关于</string>
     <string name="om_nav_section_local">本地</string>
     <string name="om_loading_dots">正在加载...</string>
     <string name="om_more_options">更多选项</string>
@@ -1225,8 +1225,6 @@
     <string name="om_crash_log_not_found">日志文件尚不存在</string>
     <string name="om_crash_share_error_format">分享出错：%1$s</string>
     <string name="om_hex_search_text_hint">搜索文本…</string>
-    <string name="om_hex_file_too_large_title">文件过大</string>
-    <string name="om_hex_file_too_large_msg_format">该文件超出内存中十六进制编辑的安全上限 25 MB (%1$s)。\n\n为防止内存不足 (OOM) 崩溃，无法在此模式下加载。</string>
     <string name="om_hex_read_or_oom_error">读取文件出错或内存不足</string>
     <string name="om_hex_preview_text_format">字节：%1$d  |  文本：%2$s</string>
     <string name="om_hex_invalid_hex">无效的十六进制</string>
@@ -2499,4 +2497,9 @@
     <string name="om_video_volume">音量 %1$d%%</string>
     <string name="om_video_fit">适应屏幕</string>
     <string name="om_video_fill">填满屏幕</string>
+    <string name="om_hex_searching">正在搜索…</string>
+    <string name="om_text_editor_open_hex">在 HEX 编辑器中打开</string>
+    <string name="om_text_editor_open_partial">查看前 %1$s（只读）</string>
+    <string name="om_text_editor_partial_status">%2$s 中的前 %1$s，只读</string>
+    <string name="om_text_editor_partial_read_only">只打开了该文件的一部分，因此无法编辑或保存。</string>
 </resources>

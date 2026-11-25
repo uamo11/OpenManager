@@ -17,6 +17,7 @@ import androidx.annotation.StringRes
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 import java.io.InterruptedIOException
 import java8.nio.file.CopyOption
 import java8.nio.file.DirectoryIteratorException
@@ -2325,21 +2326,25 @@ private fun FileJob.postSetSeLinuxContextNotification(
 
 class WriteFileJob(
     private val file: Path,
-    private val content: ByteArray,
+    private val size: Long,
+    private val openContent: () -> InputStream,
     private val listener: ((Boolean) -> Unit)?
 ) : FileJob() {
+    constructor(file: Path, content: ByteArray, listener: ((Boolean) -> Unit)?) :
+        this(file, content.size.toLong(), { ByteArrayInputStream(content) }, listener)
+
     @Throws(IOException::class)
     override fun run() {
-        val successful = write(file, content)
+        val successful = write(file, size, openContent)
         listener?.let { mainExecutor.execute { it(successful) } }
     }
 }
 
 @Throws(IOException::class)
-private fun FileJob.write(file: Path, content: ByteArray): Boolean {
+private fun FileJob.write(file: Path, size: Long, openContent: () -> InputStream): Boolean {
     val scanInfo = ScanInfo().apply {
         incrementFileCount()
-        addToSize(content.size.toLong())
+        addToSize(size)
     }
     var retry: Boolean
     do {
@@ -2347,9 +2352,11 @@ private fun FileJob.write(file: Path, content: ByteArray): Boolean {
         val transferInfo = TransferInfo(scanInfo, file)
         try {
             file.newOutputStream().use { outputStream ->
-                ByteArrayInputStream(content).copyTo(outputStream, PROGRESS_INTERVAL_MILLIS) {
-                    transferInfo.addToTransferredSize(it)
-                    postWriteNotification(transferInfo)
+                openContent().use { input ->
+                    input.copyTo(outputStream, PROGRESS_INTERVAL_MILLIS) {
+                        transferInfo.addToTransferredSize(it)
+                        postWriteNotification(transferInfo)
+                    }
                 }
                 postWriteNotification(transferInfo)
             }
