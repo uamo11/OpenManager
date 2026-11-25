@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>OpenManager — Gestor de archivos de doble panel para Android</title>
   <meta name="description" content="OpenManager: gestor de archivos de doble panel para Android, libre y sin anuncios. Terminal SSH, archivos de tu VPS, lector de PDF, galería, herramientas APK, DEX/Smali, JADX, HEX, root y Shizuku.">
   <meta name="theme-color" content="#0b0d11">
@@ -14,9 +14,15 @@
   <link rel="icon" type="image/png" sizes="64x64" href="icons/om-icon-64.png">
   <link rel="apple-touch-icon" href="icons/om-icon-256.png">
   <link rel="preload" as="image" href="screenshots/01_home_dark.webp" fetchpriority="high">
-  <link rel="stylesheet" href="style.css?v=2021">
+  <link rel="stylesheet" href="style.css?v=2024">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="flag-mx" viewBox="0 0 30 20"><rect width="10" height="20" fill="#006847"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#ce1126"/><circle cx="15" cy="10" r="3.1" fill="#8c5a2b"/><path d="M12.4 11.6q2.6 2.2 5.2 0" stroke="#006847" stroke-width="1" fill="none"/></symbol>
+  <symbol id="flag-us" viewBox="0 0 30 20"><rect width="30" height="20" fill="#b22234"/><rect y="1.538" width="30" height="1.538" fill="#fff"/><rect y="4.615" width="30" height="1.538" fill="#fff"/><rect y="7.692" width="30" height="1.538" fill="#fff"/><rect y="10.769" width="30" height="1.538" fill="#fff"/><rect y="13.846" width="30" height="1.538" fill="#fff"/><rect y="16.923" width="30" height="1.538" fill="#fff"/><rect width="13" height="10.769" fill="#3c3b6e"/></symbol>
+  <symbol id="flag-cn" viewBox="0 0 30 20"><rect width="30" height="20" fill="#de2910"/><polygon points="5.00,2.00 5.67,4.07 7.85,4.07 6.09,5.35 6.76,7.43 5.00,6.15 3.24,7.43 3.91,5.35 2.15,4.07 4.33,4.07" fill="#ffde00"/><g fill="#ffde00"><circle cx="10" cy="2" r=".7"/><circle cx="12" cy="4" r=".7"/><circle cx="12" cy="7" r=".7"/><circle cx="10" cy="9" r=".7"/></g></symbol>
+  <symbol id="gh" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></symbol>
+</svg>
 <a href="#main" class="skip" data-i18n="skip">Saltar al contenido</a>
 
 <header class="nav">
@@ -26,18 +32,24 @@
       <span>OpenManager</span>
     </a>
     <nav class="links" id="links">
-      <a href="#funciones" data-i18n="nav_features">Funciones</a>
       <a href="#temas" data-i18n="nav_themes">Temas</a>
+      <a href="#funciones" data-i18n="nav_features">Funciones</a>
       <a href="#zonas" data-i18n="nav_zones">Zonas</a>
       <a href="#ajustes" data-i18n="nav_settings">Ajustes</a>
       <a href="#idiomas" data-i18n="nav_languages">Idiomas</a>
       <a href="#descargar" class="btn small" data-i18n="nav_download">Descargar</a>
     </nav>
-    <select id="lang" aria-label="Idioma / Language">
-      <option value="es">Español</option>
-      <option value="en">English</option>
-      <option value="zh">简体中文</option>
-    </select>
+    <div class="langpick">
+      <button id="langBtn" class="iconbtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="langMenu" aria-label="Idioma / Language" title="Idioma / Language">
+        <svg class="flag" width="30" height="20" aria-hidden="true"><use href="#flag-mx"/></svg>
+        <svg class="chev" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3l4 4 4-4" stroke="currentColor" stroke-width="1.6" fill="none"/></svg>
+      </button>
+      <div id="langMenu" class="langmenu" role="menu" hidden>
+        <button type="button" role="menuitemradio" aria-checked="true" data-lang="es"><svg class="flag" width="30" height="20" aria-hidden="true"><use href="#flag-mx"/></svg>Español</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-lang="en"><svg class="flag" width="30" height="20" aria-hidden="true"><use href="#flag-us"/></svg>English</button>
+        <button type="button" role="menuitemradio" aria-checked="false" data-lang="zh"><svg class="flag" width="30" height="20" aria-hidden="true"><use href="#flag-cn"/></svg>简体中文</button>
+      </div>
+    </div>
     <button class="menu" id="menu" aria-label="Menú" aria-expanded="false" aria-controls="links"><span></span><span></span><span></span></button>
   </div>
 </header>
@@ -46,12 +58,12 @@
 <section class="hero">
   <div class="wrap hero-in">
     <div class="hero-text">
-      <p class="tag"><span id="ver">v2.0.21</span> · <span data-i18n="hero_tag">Libre · Sin anuncios · GPLv3</span></p>
+      <p class="tag"><span id="ver">v2.0.24</span> · <span data-i18n="hero_tag">Libre · Sin anuncios · GPLv3</span></p>
       <h1 data-i18n="hero_title">Tus archivos, tu VPS y tus APK en una sola app</h1>
       <p class="lead" data-i18n="hero_lead">Gestor de archivos de doble panel para Android, alternativa libre a MT Manager: terminal SSH con los archivos de tu servidor, lector de PDF, galería, herramientas APK, edición DEX/Smali y todo el control con root o Shizuku.</p>
       <div class="cta">
         <a class="btn" href="https://github.com/uamo11/OpenManager/releases/latest" data-i18n="btn_download">Descargar APK</a>
-        <a class="btn ghost" href="https://github.com/uamo11/OpenManager" data-i18n="btn_source">Código fuente</a>
+        <a class="btn ghost icon" href="https://github.com/uamo11/OpenManager" data-i18n-label="btn_source" aria-label="Código fuente en GitHub" title="Código fuente en GitHub"><svg width="24" height="24" aria-hidden="true"><use href="#gh"/></svg></a>
       </div>
       <ul class="facts">
         <li><b>~33 MB</b> <span data-i18n="fact_size">APK</span></li>
@@ -66,28 +78,7 @@
   </div>
 </section>
 
-<section id="funciones" class="sec">
-  <div class="wrap">
-    <h2 data-i18n="feat_title">Todo lo que necesitas, sin pagar nada</h2>
-    <p class="sub" data-i18n="feat_sub">Las funciones principales se comprueban en un emulador real antes de cada versión.</p>
-    <div class="grid">
-      <article class="card"><span class="ico">🗂️</span><h3 data-i18n="f1_t">Doble panel y marcadores</h3><p data-i18n="f1_d">Dos carpetas a la vez, copiar y mover entre ellas, historial ‹ › y panel de marcadores al deslizar la barra inferior, con accesos directos en la pantalla de inicio.</p></article>
-      <article class="card"><span class="ico">🖥️</span><h3 data-i18n="f2_t">Terminal SSH y archivos de tu VPS</h3><p data-i18n="f2_d">SSH y Telnet con claves, y los archivos del servidor por SFTP sobre la misma sesión: sin segundo inicio de sesión, y se recupera solo de los cortes de red.</p></article>
-      <article class="card"><span class="ico">📄</span><h3 data-i18n="f3_t">Lector de PDF</h3><p data-i18n="f3_d">Zoom de todo el documento con texto nítido, recuerda la última página de cada PDF, modo noche y sepia, y pantalla siempre encendida.</p></article>
-      <article class="card"><span class="ico">🖼️</span><h3 data-i18n="f4_t">Fotos, vídeo 4K y galería</h3><p data-i18n="f4_d">Fotos de 12 MP en mosaico con su rotación EXIF, vídeo 4K que se adapta a tu móvil y vista galería por carpeta con la resolución (4K, 2K, 1080p).</p></article>
-      <article class="card"><span class="ico">🛠️</span><h3 data-i18n="f5_t">Ingeniería inversa</h3><p data-i18n="f5_d">Editor DEX/Smali, descompilador JADX, editor HEX con inspector de datos, ARSC y AXML, Apktool y comparación de archivos.</p></article>
-      <article class="card"><span class="ico">📦</span><h3 data-i18n="f6_t">Herramientas APK</h3><p data-i18n="f6_d">Instalar APK y splits, AntiSplit, firmar con V1/V2/V3, generar claves, edición rápida de nombre, icono y paquete. Los APK de 1 GB se abren al instante.</p></article>
-      <article class="card"><span class="ico">🛡️</span><h3 data-i18n="f7_t">Root y Shizuku, con red de seguridad</h3><p data-i18n="f7_d">Magisk, KernelSU, APatch y Shizuku. La protección Dead Man y DFRoot frena borrados masivos y escrituras en particiones antes de que pasen.</p></article>
-      <article class="card"><span class="ico">⚡</span><h3 data-i18n="f8_t">Modo Ultra RAM</h3><p data-i18n="f8_d">Para móviles con poca memoria: cachés mínimas, sin animaciones y miniaturas ligeras en caché solo si las quieres.</p></article>
-      <article class="card"><span class="ico">🌡️</span><h3 data-i18n="f9_t">Apps en ejecución</h3><p data-i18n="f9_d">RAM real (PSS) de la app y de tus scripts sin root; con root, todos los procesos y qué está calentando el móvil: CPU, brillo, carga y GPU.</p></article>
-      <article class="card"><span class="ico">💻</span><h3 data-i18n="f10_t">Acceso desde el PC</h3><p data-i18n="f10_d">Gestiona los archivos del móvil desde el navegador del ordenador con un código, o comparte por FTP. También SMB, WebDAV y SFTP.</p></article>
-      <article class="card"><span class="ico">🎨</span><h3 data-i18n="f11_t">Temas y Material 3</h3><p data-i18n="f11_d">Oscuro estilo MT, AMOLED negro puro, claro y Material 3 con 19 colores de acento para día y noche.</p></article>
-      <article class="card"><span class="ico">🌐</span><h3 data-i18n="f12_t">7 idiomas completos</h3><p data-i18n="f12_d">Español, inglés, chino, ruso, portugués, indonesio y vietnamita: toda la app, también los avisos y los errores.</p></article>
-    </div>
-  </div>
-</section>
-
-<section id="temas" class="sec alt">
+<section id="temas" class="sec">
   <div class="wrap two">
     <div>
       <h2 data-i18n="themes_title">Temas: oscuro, AMOLED, claro y Material 3</h2>
@@ -109,12 +100,39 @@
   </div>
 </section>
 
+<section id="funciones" class="sec alt">
+  <div class="wrap">
+    <h2 data-i18n="feat_title">Todo lo que necesitas, sin pagar nada</h2>
+    <p class="sub" data-i18n="feat_sub">Las funciones principales se comprueban en un emulador real antes de cada versión.</p>
+    <div class="grid">
+      <article class="card"><span class="ico">🗂️</span><h3 data-i18n="f1_t">Doble panel y marcadores</h3><p data-i18n="f1_d">Dos carpetas a la vez, copiar y mover entre ellas, historial ‹ › y panel de marcadores al deslizar la barra inferior, con accesos directos en la pantalla de inicio.</p></article>
+      <article class="card"><span class="ico">🖥️</span><h3 data-i18n="f2_t">Terminal SSH y archivos de tu VPS</h3><p data-i18n="f2_d">SSH y Telnet con claves, y los archivos del servidor por SFTP sobre la misma sesión: sin segundo inicio de sesión, y se recupera solo de los cortes de red.</p></article>
+      <article class="card"><span class="ico">📄</span><h3 data-i18n="f3_t">Lector de PDF</h3><p data-i18n="f3_d">Zoom de todo el documento con texto nítido, recuerda la última página de cada PDF, modo noche y sepia, y pantalla siempre encendida.</p></article>
+      <article class="card"><span class="ico">🖼️</span><h3 data-i18n="f4_t">Fotos, vídeo 4K y galería</h3><p data-i18n="f4_d">Fotos de 12 MP en mosaico con su rotación EXIF, vídeo 4K que se adapta a tu móvil y vista galería por carpeta con la resolución (4K, 2K, 1080p).</p></article>
+      <article class="card"><span class="ico">🛠️</span><h3 data-i18n="f5_t">Ingeniería inversa</h3><p data-i18n="f5_d">Editor DEX/Smali, descompilador JADX, editor HEX con inspector de datos, ARSC y AXML, Apktool y comparación de archivos.</p></article>
+      <article class="card"><span class="ico">📦</span><h3 data-i18n="f6_t">Herramientas APK</h3><p data-i18n="f6_d">Instalar APK y splits, AntiSplit, firmar con V1/V2/V3, generar claves, edición rápida de nombre, icono y paquete. Los APK de 1 GB se abren al instante.</p></article>
+      <article class="card"><span class="ico">🛡️</span><h3 data-i18n="f7_t">Root y Shizuku, con red de seguridad</h3><p data-i18n="f7_d">Magisk, KernelSU, APatch y Shizuku. La protección Dead Man y DFRoot frena borrados masivos y escrituras en particiones antes de que pasen.</p></article>
+      <article class="card"><span class="ico">⚡</span><h3 data-i18n="f8_t">Modo Ultra RAM</h3><p data-i18n="f8_d">Para móviles con poca memoria: cachés mínimas, sin animaciones y miniaturas ligeras en caché solo si las quieres.</p></article>
+      <article class="card"><span class="ico">🌡️</span><h3 data-i18n="f9_t">Apps en ejecución</h3><p data-i18n="f9_d">RAM real (PSS) de la app y de tus scripts sin root; con root, todos los procesos y qué está calentando el móvil: CPU, brillo, carga y GPU.</p></article>
+      <article class="card"><span class="ico">💻</span><h3 data-i18n="f10_t">Acceso desde el PC</h3><p data-i18n="f10_d">Gestiona los archivos del móvil desde el navegador del ordenador con un código, o comparte por FTP. También SMB, WebDAV y SFTP.</p></article>
+      <article class="card"><span class="ico">🎨</span><h3 data-i18n="f11_t">Temas y Material 3</h3><p data-i18n="f11_d">Oscuro estilo MT, AMOLED negro puro, claro y Material 3 con 19 colores de acento para día y noche.</p></article>
+      <article class="card"><span class="ico">🌐</span><h3 data-i18n="f12_t">7 idiomas completos</h3><p data-i18n="f12_d">Español, inglés, chino, ruso, portugués, indonesio y vietnamita: toda la app, también los avisos y los errores.</p></article>
+    </div>
+  </div>
+</section>
+
 <section id="zonas" class="sec">
   <div class="wrap">
     <h2 data-i18n="zones_title">Recorre la app</h2>
-    <p class="sub" data-i18n="zones_sub">Desliza para ver cada zona. Toca una captura para verla en grande.</p>
+    <div class="strip-head">
+      <p class="sub" data-i18n="zones_sub">Desliza para ver cada zona. Toca una captura para verla en grande.</p>
+      <div class="strip-ctl" data-strip="zonesStrip">
+        <button type="button" class="iconbtn" data-dir="-1" data-i18n-label="prev" aria-label="Anterior">‹</button>
+        <button type="button" class="iconbtn" data-dir="1" data-i18n-label="next" aria-label="Siguiente">›</button>
+      </div>
+    </div>
   </div>
-  <div class="strip" tabindex="0" aria-label="Capturas">
+  <div class="strip" id="zonesStrip" tabindex="0" aria-label="Capturas">
     <figure><img src="screenshots/10_gallery.webp" width="540" height="1200" loading="lazy" decoding="async" alt=""><figcaption data-i18n="z_gallery">Vista galería con resolución</figcaption></figure>
     <figure><img src="screenshots/11_bookmarks.webp" width="540" height="1200" loading="lazy" decoding="async" alt=""><figcaption data-i18n="z_bookmarks">Panel de marcadores</figcaption></figure>
     <figure><img src="screenshots/12_drawer.webp" width="540" height="1200" loading="lazy" decoding="async" alt=""><figcaption data-i18n="z_drawer">Menú lateral</figcaption></figure>
@@ -183,11 +201,11 @@ cd OpenManager
 
 <footer class="foot">
   <div class="wrap">
-    <p><span data-i18n="foot">OpenManager es software libre (GPLv3). No recopila datos.</span> · <a href="https://github.com/uamo11/OpenManager">GitHub</a></p>
+    <p><span data-i18n="foot">OpenManager es software libre (GPLv3). No recopila datos.</span> · <a class="ghlink" href="https://github.com/uamo11/OpenManager"><svg width="16" height="16" aria-hidden="true"><use href="#gh"/></svg>GitHub</a></p>
   </div>
 </footer>
 
 <dialog id="viewer" aria-label="Captura"><img alt="" width="540" height="1200"></dialog>
-<script src="app.js?v=2021" defer></script>
+<script src="app.js?v=2024" defer></script>
 </body>
 </html>

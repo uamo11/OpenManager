@@ -9,7 +9,7 @@
       hero_tag: "Free · No ads · GPLv3",
       hero_title: "Your files, your VPS and your APKs in one app",
       hero_lead: "A dual-panel file manager for Android and a free alternative to MT Manager: an SSH terminal with your server's files, a PDF reader, a gallery, APK tools, DEX/Smali editing and full control with root or Shizuku.",
-      btn_download: "Download APK", btn_source: "Source code", btn_issue: "Report a problem",
+      btn_download: "Download APK", btn_source: "Source code on GitHub", prev: "Previous", next: "Next", btn_issue: "Report a problem",
       fact_size: "APK", fact_langs: "languages", fact_ads: "ads",
       feat_title: "Everything you need, for free",
       feat_sub: "The main features are checked on a real emulator before every release.",
@@ -53,7 +53,7 @@
       hero_tag: "免费 · 无广告 · GPLv3",
       hero_title: "文件、VPS 和 APK，一个应用全搞定",
       hero_lead: "适用于 Android 的双窗口文件管理器，MT 管理器的免费替代品：带服务器文件的 SSH 终端、PDF 阅读器、图库、APK 工具、DEX/Smali 编辑，并可通过 Root 或 Shizuku 全面掌控。",
-      btn_download: "下载 APK", btn_source: "源代码", btn_issue: "报告问题",
+      btn_download: "下载 APK", btn_source: "GitHub 上的源代码", prev: "上一张", next: "下一张", btn_issue: "报告问题",
       fact_size: "APK", fact_langs: "种语言", fact_ads: "广告",
       feat_title: "所需功能一应俱全，全部免费",
       feat_sub: "每个版本发布前，主要功能都会在真实模拟器上检查。",
@@ -96,7 +96,13 @@
   const html = document.documentElement;
   const nodes = [...document.querySelectorAll("[data-i18n]")];
   const spanish = new Map(nodes.map((n) => [n, n.innerHTML]));
-  const select = document.getElementById("lang");
+  // Accessible names (icon-only buttons) translate too.
+  const labelled = [...document.querySelectorAll("[data-i18n-label]")];
+  const spanishLabels = new Map(labelled.map((n) => [n, n.getAttribute("aria-label")]));
+  const flags = { es: "#flag-mx", en: "#flag-us", zh: "#flag-cn" };
+  const langBtn = document.getElementById("langBtn");
+  const langMenu = document.getElementById("langMenu");
+  const langItems = [...langMenu.querySelectorAll("[data-lang]")];
 
   function setLang(lang) {
     const dict = i18n[lang];
@@ -104,8 +110,15 @@
       const key = n.dataset.i18n;
       n.innerHTML = dict && dict[key] ? dict[key] : spanish.get(n);
     }
+    for (const n of labelled) {
+      const key = n.dataset.i18nLabel;
+      const text = dict && dict[key] ? dict[key] : spanishLabels.get(n);
+      n.setAttribute("aria-label", text);
+      if (n.hasAttribute("title")) n.title = text;
+    }
     html.lang = lang === "zh" ? "zh-CN" : lang;
-    select.value = lang;
+    langBtn.querySelector(".flag use").setAttribute("href", flags[lang] || flags.es);
+    for (const item of langItems) item.setAttribute("aria-checked", String(item.dataset.lang === lang));
     try { localStorage.setItem("om_lang", lang); } catch (_) {}
   }
   let lang = null;
@@ -115,7 +128,37 @@
     lang = nav.startsWith("zh") ? "zh" : nav.startsWith("es") ? "es" : "en";
   }
   if (lang !== "es") setLang(lang);
-  select.addEventListener("change", () => setLang(select.value));
+
+  // Language menu: flag button, closes on a choice, outside tap or Escape; arrows move.
+  function openLang(open) {
+    langMenu.hidden = !open;
+    langBtn.setAttribute("aria-expanded", String(open));
+    if (open) (langItems.find((i) => i.getAttribute("aria-checked") === "true") || langItems[0]).focus();
+  }
+  langBtn.addEventListener("click", () => openLang(langMenu.hidden));
+  langMenu.addEventListener("click", (e) => {
+    const item = e.target.closest("[data-lang]");
+    if (!item) return;
+    setLang(item.dataset.lang);
+    openLang(false);
+    langBtn.focus();
+  });
+  langMenu.addEventListener("keydown", (e) => {
+    const i = langItems.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const n = langItems.length;
+      langItems[(i + (e.key === "ArrowDown" ? 1 : n - 1)) % n].focus();
+    }
+  });
+  document.addEventListener("click", (e) => {
+    if (!langMenu.hidden && !e.target.closest(".langpick")) openLang(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!langMenu.hidden) { openLang(false); langBtn.focus(); }
+    if (links.classList.contains("open")) { links.classList.remove("open"); menu.setAttribute("aria-expanded", "false"); menu.focus(); }
+  });
 
   // Mobile menu
   const menu = document.getElementById("menu");
@@ -135,6 +178,17 @@
       if (!button) return;
       document.getElementById(group.dataset.target).src = button.dataset.src;
       for (const b of document.querySelectorAll(".tabs[data-target] button")) b.setAttribute("aria-selected", String(b === button));
+    });
+  }
+
+  // Arrows for the screenshot strip on computers (shown only with a mouse).
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  for (const ctl of document.querySelectorAll(".strip-ctl")) {
+    const strip = document.getElementById(ctl.dataset.strip);
+    ctl.addEventListener("click", (e) => {
+      const b = e.target.closest("button[data-dir]");
+      if (!b || !strip) return;
+      strip.scrollBy({ left: Number(b.dataset.dir) * strip.clientWidth * 0.8, behavior: reduceMotion ? "auto" : "smooth" });
     });
   }
 

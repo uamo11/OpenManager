@@ -20,7 +20,7 @@ jobs:
       run: |
         cd web && (python3 -m http.server 8000 >/dev/null 2>&1 &) && sleep 2
         curl -sf http://localhost:8000/ >/dev/null && echo "served"
-    - name: Screenshots (phone and desktop)
+    - name: Screenshots (phones, tablet, desktop)
       run: |
         mkdir -p web-check
         CHROME=$(command -v google-chrome || command -v chromium)
@@ -30,6 +30,12 @@ jobs:
           --screenshot=web-check/desktop.png http://localhost:8000/ 2>/dev/null
         "$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size=412,900 --virtual-time-budget=4000 \
           --screenshot=web-check/phone_en.png "http://localhost:8000/?" 2>/dev/null
+        # More devices: small phone, phone in landscape, tablet, large monitor.
+        for size in small:320,2600 landscape:844,390 tablet:768,1800 large:1920,1600; do
+          name=${size%%:*}; dims=${size#*:}
+          "$CHROME" --headless=new --disable-gpu --hide-scrollbars --window-size=$dims --virtual-time-budget=4000 \
+            --screenshot=web-check/$name.png http://localhost:8000/ 2>/dev/null
+        done
         ls -la web-check
     - name: Lighthouse (mobile)
       run: |
