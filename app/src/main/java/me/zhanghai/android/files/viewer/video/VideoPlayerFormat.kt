@@ -27,7 +27,7 @@ fun formatSpeed(speed: Float): String =
 /** Android's own software codecs; anything else is a vendor (hardware) decoder. */
 fun isSoftwareDecoder(name: String?): Boolean =
     name != null && (name.startsWith("OMX.google.") || name.startsWith("c2.android.") ||
-        name.startsWith("OMX.ffmpeg.") || name.startsWith("c2.ffmpeg."))
+        name.startsWith("OMX.ffmpeg.") || name.startsWith("c2.ffmpeg.") || name.startsWith("libdav1d"))
 
 /**
  * True when a software decoder clearly cannot keep up: after at least [minFrames] frames, more
