@@ -3281,4 +3281,15 @@
     <string name="om_text_editor_open_failed">No se pudo abrir el archivo: %1$s</string>
     <string name="om_text_editor_selection">Sel: %1$d</string>
     <string name="om_syntax_plain_text">Texto plano</string>
+    <string name="om_text_editor_on">Activado</string>
+    <string name="om_text_editor_off">Desactivado</string>
+    <string name="om_text_editor_stats_path">Ruta</string>
+    <string name="om_text_editor_stats_lines">Líneas</string>
+    <string name="om_text_editor_stats_words">Palabras</string>
+    <string name="om_text_editor_stats_chars">Caracteres</string>
+    <string name="om_text_editor_stats_chars_no_spaces">Caracteres (sin espacios)</string>
+    <string name="sora_editor_clip_text_length_too_large">El texto es demasiado grande para copiarlo</string>
+    <string name="sora_editor_editor_search_busy">El editor aún se está preparando…</string>
+    <string name="sora_editor_editor_search_replacing">Reemplazando textos…</string>
+    <string name="sora_editor_editor_formatting">Formateando el código…</string>
 </resources>

@@ -22,8 +22,8 @@ android {
         //noinspection OldTargetApi
         targetSdk 36
         // -PomVersionCode / -PomVersionName let CI build an "older" app to test self-updates.
-        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 139
-        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.25'
+        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 140
+        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.26'
         resValue 'string', 'app_version', versionName + ' (' + versionCode + ')'
         buildConfigField 'String', 'FILE_PROVIDIER_AUTHORITY', 'APPLICATION_ID + ".file_provider"'
         resValue 'string', 'app_provider_authority', applicationId + '.app_provider'
@@ -126,6 +126,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
+    // Code editor engine (LGPL-2.1): draws only the visible lines, fast on huge files.
+    implementation 'io.github.Rosemoe.sora-editor:editor:0.23.6'
 
     // kotlinx-coroutines-android depends on kotlin-stdlib-jdk8
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"

@@ -2468,4 +2468,15 @@
     <string name="om_text_editor_open_failed">无法打开文件：%1$s</string>
     <string name="om_text_editor_selection">选中：%1$d</string>
     <string name="om_syntax_plain_text">纯文本</string>
+    <string name="om_text_editor_on">开启</string>
+    <string name="om_text_editor_off">关闭</string>
+    <string name="om_text_editor_stats_path">路径</string>
+    <string name="om_text_editor_stats_lines">行数</string>
+    <string name="om_text_editor_stats_words">单词数</string>
+    <string name="om_text_editor_stats_chars">字符数</string>
+    <string name="om_text_editor_stats_chars_no_spaces">字符数（不含空格）</string>
+    <string name="sora_editor_clip_text_length_too_large">文本太大，无法复制</string>
+    <string name="sora_editor_editor_search_busy">编辑器仍在准备中…</string>
+    <string name="sora_editor_editor_search_replacing">正在替换文本…</string>
+    <string name="sora_editor_editor_formatting">正在格式化代码…</string>
 </resources>

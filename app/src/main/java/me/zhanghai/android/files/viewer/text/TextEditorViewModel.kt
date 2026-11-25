@@ -122,9 +122,10 @@ class TextEditorViewModel(file: Path) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            combine(_bytesState, encoding, syntaxLanguage) { bytesState, encoding, language ->
-                Triple(bytesState, encoding, language)
-            }.collectLatest { (bytesState, encoding, language) ->
+            // The editor colors the text itself, so a change of language does not reload it.
+            combine(_bytesState, encoding) { bytesState, encoding ->
+                bytesState to encoding
+            }.collectLatest { (bytesState, encoding) ->
                 when (bytesState) {
                     is DataState.Loading -> _textState.value = _textState.value.toLoading()
                     is DataState.Success -> {
@@ -147,8 +148,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                                 isCrlf.value = hasCrlf
                                 val normalized = if (hasCrlf) rawText.replace("\r\n", "\n") else rawText
 
-                                // Background pre-highlighting
-                                FastSyntaxScanner.highlightToSpannable(normalized, language)
+                                normalized
                             }
                             currentCoroutineContext().ensureActive()
                             _textState.value = DataState.Success(highlighted)
@@ -253,6 +253,18 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                 _writeFileState.value = ActionState.Ready()
             }
         }
+    }
+
+    /**
+     * The editor's document (with its undo history) while the screen is rebuilt, e.g. on rotation:
+     * the new editor view continues with it instead of losing the edits.
+     */
+    var retainedContent: Any? = null
+    var retainedSelection: IntArray? = null
+
+    override fun onCleared() {
+        retainedContent = null
+        super.onCleared()
     }
 
     private var editTextSavedState: Parcelable? = null

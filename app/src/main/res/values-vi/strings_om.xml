@@ -2563,4 +2563,15 @@
     <string name="om_text_editor_open_failed">Không thể mở tệp: %1$s</string>
     <string name="om_text_editor_selection">Chọn: %1$d</string>
     <string name="om_syntax_plain_text">Văn bản thuần</string>
+    <string name="om_text_editor_on">Bật</string>
+    <string name="om_text_editor_off">Tắt</string>
+    <string name="om_text_editor_stats_path">Đường dẫn</string>
+    <string name="om_text_editor_stats_lines">Dòng</string>
+    <string name="om_text_editor_stats_words">Từ</string>
+    <string name="om_text_editor_stats_chars">Ký tự</string>
+    <string name="om_text_editor_stats_chars_no_spaces">Ký tự (không tính khoảng trắng)</string>
+    <string name="sora_editor_clip_text_length_too_large">Văn bản quá lớn để sao chép</string>
+    <string name="sora_editor_editor_search_busy">Trình soạn thảo vẫn đang chuẩn bị…</string>
+    <string name="sora_editor_editor_search_replacing">Đang thay thế văn bản…</string>
+    <string name="sora_editor_editor_formatting">Đang định dạng mã…</string>
 </resources>

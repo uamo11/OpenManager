@@ -2469,4 +2469,15 @@
     <string name="om_text_editor_open_failed">Tidak dapat membuka berkas: %1$s</string>
     <string name="om_text_editor_selection">Pilih: %1$d</string>
     <string name="om_syntax_plain_text">Teks biasa</string>
+    <string name="om_text_editor_on">Aktif</string>
+    <string name="om_text_editor_off">Nonaktif</string>
+    <string name="om_text_editor_stats_path">Jalur</string>
+    <string name="om_text_editor_stats_lines">Baris</string>
+    <string name="om_text_editor_stats_words">Kata</string>
+    <string name="om_text_editor_stats_chars">Karakter</string>
+    <string name="om_text_editor_stats_chars_no_spaces">Karakter (tanpa spasi)</string>
+    <string name="sora_editor_clip_text_length_too_large">Teks terlalu besar untuk disalin</string>
+    <string name="sora_editor_editor_search_busy">Editor masih bersiap…</string>
+    <string name="sora_editor_editor_search_replacing">Mengganti teks…</string>
+    <string name="sora_editor_editor_formatting">Memformat kode…</string>
 </resources>

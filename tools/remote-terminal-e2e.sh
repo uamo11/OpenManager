@@ -1904,7 +1904,7 @@ else
 fi
 if [ "$editor_ok" = 1 ]; then
     shot 60_editor_new_document
-    pos=$(node_center_by_id textEdit) && adb shell input tap $pos; sleep 1
+    pos=$(node_center_by_id codeEditor) && adb shell input tap $pos; sleep 1
     adb shell input text "hello%sfrom%sOpenManager"; sleep 1
     adb shell input keyevent KEYCODE_ENTER
     adb shell input text "second%sline"; sleep 1
@@ -1917,7 +1917,7 @@ if [ "$editor_ok" = 1 ]; then
     esac
     pos=$(find_text "Save" "Guardar") && adb shell input tap $pos; sleep 2
     shot 61_editor_save_as
-    node_text_by_id textEdit >/dev/null 2>&1 || true   # fresh dump of the dialog
+    node_text_by_id statusCursorPosText >/dev/null 2>&1 || true   # fresh dump of the dialog
     folder=$(python3 - "$OUT/ui.xml" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
@@ -1961,17 +1961,43 @@ PY
 adb push "$OUT/om_big.txt" /sdcard/om_editor_test/om_big.txt >/dev/null
 adb shell am force-stop $PKG; sleep 1
 adb logcat -c
+t0=$(date +%s%N)
 adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
     --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_big.txt" \
     --ei EXTRA_GOTO_LINE 149990 >/dev/null
-sleep 12
+# Wait until the editor shows the line (or 30 s).
+pos=""
+for i in $(seq 1 30); do
+    pos=$(node_text_by_id statusCursorPosText || true)
+    case "$pos" in 149990:*) break ;; esac
+    sleep 1
+done
+t1=$(date +%s%N)
+log "      9 MB / 150 000 lines ready at line 149990 in $(( (t1 - t0) / 1000000 )) ms (adb and dumps included)"
 shot 62_editor_big_file
-pos=$(node_text_by_id statusCursorPosText || true)
 log "      cursor after jumping near the end: $pos"
 case "$pos" in
     149990:*) pass "line numbers are right deep into a 150 000-line file" ;;
     *) fail "the cursor shows '$pos' instead of line 149990" ;;
 esac
+adb logcat -d 2>/dev/null | grep -E "Choreographer.*Skipped|Davey" | grep -v "^--" | tail -4 | sed 's/^/      /' | tee -a "$REPORT"
+# New lines from the symbol bar (no keyboard needed): the line number follows.
+for n in 1 2; do pos=$(find_text "↵") && adb shell input tap $pos; sleep 1; done
+pos=$(node_text_by_id statusCursorPosText || true)
+log "      cursor after two new lines: $pos"
+case "$pos" in
+    149992:1) pass "new lines deep in a big file update the line number" ;;
+    *) fail "after two new lines the cursor shows '$pos' instead of 149992:1" ;;
+esac
+# Scroll fast through the file: it must stay responsive.
+pos=$(node_center_by_id codeEditor)
+for n in 1 2 3 4 5 6; do adb shell input swipe 500 600 500 1700 80; done
+sleep 2
+if node_text_by_id statusCursorPosText >/dev/null; then
+    pass "the editor answers after fast scrolling through a 9 MB file"
+else
+    fail "the editor did not answer after fast scrolling"
+fi
 adb logcat -d > "$OUT/logcat_editor.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; else pass "no crash in the text editor"; fi
 if grep -q "ANR in $PKG" "$OUT/logcat_editor.txt"; then fail "the text editor stopped responding (ANR)"; fi

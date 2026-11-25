@@ -150,52 +150,20 @@
                     android:visibility="gone"
                     app:drawableTopCompat="@drawable/error_icon_240dp" />
 
-                <LinearLayout
+                <!-- The editor engine draws only the visible lines (sora-editor), so files with
+                     hundreds of thousands of lines open and scroll without delay. -->
+                <FrameLayout
                     android:id="@+id/editorContainer"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:orientation="horizontal"
                     android:background="#1E1E1E">
 
-                    <me.zhanghai.android.files.viewer.text.LineNumberView
-                        android:id="@+id/lineNumberView"
-                        android:layout_width="wrap_content"
-                        android:layout_height="match_parent" />
-
-                    <me.zhanghai.android.fastscroll.FastScrollNestedScrollView
-                        android:id="@+id/scrollView"
-                        android:layout_width="0dp"
+                    <io.github.rosemoe.sora.widget.CodeEditor
+                        android:id="@+id/codeEditor"
+                        android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:clipToPadding="false"
-                        android:fillViewport="true">
-
-                        <HorizontalScrollView
-                            android:id="@+id/horizontalScrollView"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fillViewport="true"
-                            android:scrollbars="none">
-
-                            <me.zhanghai.android.files.viewer.text.CodeEditText
-                                android:id="@+id/textEdit"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:paddingStart="8dp"
-                                android:paddingEnd="16dp"
-                                android:paddingTop="8dp"
-                                android:paddingBottom="48dp"
-                                android:background="@null"
-                                android:gravity="top"
-                                android:importantForAutofill="no"
-                                android:inputType="textMultiLine|textNoSuggestions"
-                                android:textColor="#DCDFE4"
-                                android:textSize="14sp">
-                                <requestFocus />
-                            </me.zhanghai.android.files.viewer.text.CodeEditText>
-                        </HorizontalScrollView>
-                    </me.zhanghai.android.fastscroll.FastScrollNestedScrollView>
-                </LinearLayout>
+                        android:importantForAutofill="no" />
+                </FrameLayout>
 
                 <!-- Floating Zoom HUD -->
                 <TextView

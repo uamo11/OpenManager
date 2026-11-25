@@ -2474,4 +2474,15 @@
     <string name="om_text_editor_open_failed">Não foi possível abrir o arquivo: %1$s</string>
     <string name="om_text_editor_selection">Sel: %1$d</string>
     <string name="om_syntax_plain_text">Texto simples</string>
+    <string name="om_text_editor_on">Ativado</string>
+    <string name="om_text_editor_off">Desativado</string>
+    <string name="om_text_editor_stats_path">Caminho</string>
+    <string name="om_text_editor_stats_lines">Linhas</string>
+    <string name="om_text_editor_stats_words">Palavras</string>
+    <string name="om_text_editor_stats_chars">Caracteres</string>
+    <string name="om_text_editor_stats_chars_no_spaces">Caracteres (sem espaços)</string>
+    <string name="sora_editor_clip_text_length_too_large">O texto é grande demais para copiar</string>
+    <string name="sora_editor_editor_search_busy">O editor ainda está se preparando…</string>
+    <string name="sora_editor_editor_search_replacing">Substituindo textos…</string>
+    <string name="sora_editor_editor_formatting">Formatando o código…</string>
 </resources>

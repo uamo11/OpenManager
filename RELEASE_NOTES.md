@@ -1,3 +1,23 @@
+# OpenManager v2.0.26: Nuevo Editor de Código
+
+### 🚀 Motor nuevo, rápido con archivos enormes
+- El editor de texto se ha reescrito sobre un motor de código (sora-editor) que **solo dibuja las líneas que se ven**. Abrir, desplazarse y escribir en archivos de cientos de miles de líneas ya no congela la pantalla.
+- El coloreado de sintaxis se calcula **en segundo plano**, nunca en el hilo de la interfaz, y se actualiza mientras escribes.
+- **Deshacer/Rehacer** con historial completo, que se conserva al girar la pantalla (antes se podían perder las ediciones al rotar).
+
+### ✍️ Más cómodo
+- Selección con asas y lupa, menú flotante de copiar/cortar/pegar, y doble toque para seleccionar palabras.
+- **Zoom con dos dedos** suave; el tamaño se recuerda.
+- Resaltado de la pareja de **llaves y paréntesis** y líneas guía de bloques.
+- Sangría automática al pulsar Intro (un nivel más tras `{`, `(`, `[` o `:`) y cierre automático de llaves y comillas.
+- El teclado no autocorrige ni sugiere palabras dentro del código.
+- Buscar y reemplazar (texto, palabra completa o expresión regular) en segundo plano, con el contador de coincidencias.
+- Barra de símbolos: los botones de sangría actúan sobre todas las líneas seleccionadas; las llaves y comillas envuelven la selección.
+
+### 🧩 Se mantiene todo lo anterior
+- Temas, codificaciones, CRLF/LF, ir a línea, historial de posiciones, solo lectura, «Guardar como», documentos nuevos desde la barra lateral, aviso de cambios externos y protección DeadMan.
+- Las estadísticas del archivo ahora están traducidas.
+
 # OpenManager v2.0.25: Editor de Texto Más Rápido, Estable y Abierto desde la Barra
 
 ### 📝 «Editor de texto» desde la barra lateral

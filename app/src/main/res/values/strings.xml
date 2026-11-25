@@ -3384,4 +3384,15 @@
     <string name="om_text_editor_open_failed">Could not open the file: %1$s</string>
     <string name="om_text_editor_selection">Sel: %1$d</string>
     <string name="om_syntax_plain_text">Plain text</string>
+    <string name="om_text_editor_on">On</string>
+    <string name="om_text_editor_off">Off</string>
+    <string name="om_text_editor_stats_path">Path</string>
+    <string name="om_text_editor_stats_lines">Lines</string>
+    <string name="om_text_editor_stats_words">Words</string>
+    <string name="om_text_editor_stats_chars">Characters</string>
+    <string name="om_text_editor_stats_chars_no_spaces">Characters (no spaces)</string>
+    <string name="sora_editor_clip_text_length_too_large">Text is too large to copy</string>
+    <string name="sora_editor_editor_search_busy">Editor is still preparing…</string>
+    <string name="sora_editor_editor_search_replacing">Replacing texts…</string>
+    <string name="sora_editor_editor_formatting">Formatting your code…</string>
 </resources>

@@ -50,11 +50,17 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.parcelize.Parcelize
+import io.github.rosemoe.sora.event.ContentChangeEvent
+import io.github.rosemoe.sora.event.PublishSearchResultEvent
+import io.github.rosemoe.sora.event.SelectionChangeEvent
+import io.github.rosemoe.sora.event.TextSizeChangeEvent
+import io.github.rosemoe.sora.widget.CodeEditor
+import io.github.rosemoe.sora.widget.EditorSearcher
+import io.github.rosemoe.sora.widget.SelectionMovement
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.TextEditorFragmentBinding
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.settings.PerformanceModeManager
-import me.zhanghai.android.files.ui.ThemedFastScroller
 import me.zhanghai.android.files.util.ActionState
 import me.zhanghai.android.files.util.DataState
 import me.zhanghai.android.files.util.ParcelableArgs
@@ -88,20 +94,18 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private lateinit var onBackPressedCallback: OnBackPressedCallback
 
     private var isSettingText = false
-    private lateinit var undoManager: TextEditorUndoManager
+
+    /** The editor engine: draws only what is on screen, with its own undo, search and zoom. */
+    private val editor: CodeEditor
+        get() = binding.codeEditor
 
     private var currentLanguage = SyntaxLanguage.PLAIN_TEXT
-    private var highlightJob: Job? = null
-    // Bumped on every edit: a highlight computed for an older text is not applied.
-    private var textGeneration = 0L
 
     /** A new document opened from the side bar: saved with "Save as". */
     private val isDraft: Boolean
         get() = args.intent.getBooleanExtra(TextEditorActivity.EXTRA_DRAFT, false)
 
-    // Search and replace state
-    private val searchMatches = mutableListOf<IntRange>()
-    private var currentMatchIndex = -1
+    // Search and replace options (the matches themselves live in the editor's searcher)
     private var isSearchCaseSensitive = false
     private var isSearchRegex = false
     private var isSearchWholeWord = false
@@ -121,7 +125,6 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private val cursorForwardStack = ArrayDeque<Int>()
     private var lastRecordedCursorOffset: Int = 0
 
-    private lateinit var scaleGestureDetector: ScaleGestureDetector
     private val hideZoomIndicatorRunnable = Runnable {
         if (this::binding.isInitialized) {
             if (PerformanceModeManager.isEnabled) {
@@ -227,65 +230,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             updateSubtitle()
         }
 
-        // Attach LineNumberView and Synchronized Scrolling
-        binding.lineNumberView.attachEditor(binding.textEdit)
-        binding.scrollView.setOnScrollChangeListener { _, _, scrollY, _, _ ->
-            binding.lineNumberView.scrollY = scrollY
-            binding.lineNumberView.invalidate()
-        }
-
-        ThemedFastScroller.create(binding.scrollView)
-
-        if (!PerformanceModeManager.currentBudget.editorUseCustomFont) {
-            binding.textEdit.typeface = Typeface.MONOSPACE
-        } else {
-            try {
-                val monoTypeface = Typeface.createFromAsset(requireContext().assets, "Mono.ttf")
-                binding.textEdit.typeface = monoTypeface
-            } catch (e: Exception) {
-                binding.textEdit.typeface = Typeface.MONOSPACE
-            }
-        }
-
-        // Cursor Position Listener for Subtitle, Status Strip and LineNumber Highlighting
-        binding.textEdit.onCursorPositionChanged = { line, col, totalLines ->
-            currentCursorLine = line
-            currentCursorCol = col
-            binding.lineNumberView.setCurrentLine(line - 1)
-            updateSubtitle()
-            checkRecordCursorJump(binding.textEdit.selectionStart)
-        }
-
-        binding.textEdit.onLineCountChanged = {
-            binding.lineNumberView.syncLineCount()
-        }
-
-        // Setup Undo Manager
-        undoManager = TextEditorUndoManager(binding.textEdit) { canUndo, canRedo ->
-            updateUndoRedoMenuItems()
-        }
-        binding.textEdit.addTextChangedListener(undoManager)
-
-        // Avoid TransactionTooLargeException
-        binding.textEdit.isSaveEnabled = false
-        val textEditSavedState = viewModel.removeEditTextSavedState()
-        if (textEditSavedState != null) {
-            binding.textEdit.onRestoreInstanceState(textEditSavedState)
-        }
-
-        binding.textEdit.doAfterTextChanged {
-            if (isSettingText || viewModel.textState.value !is DataState.Success) {
-                return@doAfterTextChanged
-            }
-            viewModel.isTextChanged.value = true
-            textGeneration++
-            binding.lineNumberView.syncLineCount()
-            requestSyntaxHighlight()
-            if (binding.searchPanel.visibility == View.VISIBLE) {
-                performSearch(resetCurrent = false)
-            }
-            updateSubtitle()
-        }
+        setupEditor()
 
         setupStatusStrip()
         setupSearchPanel()
@@ -308,13 +253,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         isReadOnly = TextEditorSettings.isReadOnlyDefault(ctx)
         setReadOnly(isReadOnly)
 
-        binding.lineNumberView.showWrapArrows = TextEditorSettings.isShowWrapArrows(ctx)
-        binding.textEdit.isHighlightCurrentLine = TextEditorSettings.isHighlightCurrentLine(ctx)
-        binding.textEdit.isAutoIndent = TextEditorSettings.isAutoIndent(ctx)
-        binding.textEdit.isAutoClosePairs = TextEditorSettings.isAutoClosePairs(ctx)
+        applyEditingPreferences(ctx)
         binding.symbolBar.visibility = if (TextEditorSettings.isShowSymbolBar(ctx) && !isReadOnly) View.VISIBLE else View.GONE
 
-        setupPinchToZoom()
         setupWindowInsets()
 
         // Check for Demo Screen intents in Debug builds
@@ -336,6 +277,93 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 showSyntaxLanguageDialog()
             }, 300)
         }
+    }
+
+    private fun setupEditor() {
+        val ctx = requireContext()
+        editor.typefaceText = editorTypeface()
+        editor.typefaceLineNumber = editor.typefaceText
+        editor.setLineSpacing(2f, 1.1f)
+        editor.setHighlightBracketPair(true)
+        editor.isCursorAnimationEnabled = !PerformanceModeManager.isEnabled
+        editor.props.stickyScroll = false
+        // Code: no spelling suggestions or autocorrect from the keyboard.
+        editor.props.disallowSuggestions = true
+        editor.setScaleTextSizes(
+            spToPx(TextEditorSettings.MIN_FONT_SIZE), spToPx(TextEditorSettings.MAX_FONT_SIZE)
+        )
+        editor.isScalable = TextEditorSettings.isPinchToZoom(ctx)
+
+        editor.subscribeAlways(ContentChangeEvent::class.java) { event ->
+            if (isSettingText || event.action == ContentChangeEvent.ACTION_SET_NEW_TEXT) {
+                return@subscribeAlways
+            }
+            if (viewModel.textState.value !is DataState.Success) return@subscribeAlways
+            if (!viewModel.isTextChanged.value) viewModel.isTextChanged.value = true
+            updateUndoRedoMenuItems()
+            updateSubtitle()
+        }
+        editor.subscribeAlways(SelectionChangeEvent::class.java) { _ ->
+            val cursor = editor.cursor
+            currentCursorLine = cursor.leftLine + 1
+            currentCursorCol = cursor.leftColumn + 1
+            updateSubtitle()
+            checkRecordCursorJump(cursor.left)
+        }
+        editor.subscribeAlways(PublishSearchResultEvent::class.java) { _ -> updateSearchCount() }
+        // Pinch to zoom is done by the editor; we keep the size and show it.
+        editor.subscribeAlways(TextSizeChangeEvent::class.java) { event ->
+            val sp = pxToSp(event.newTextSize)
+            if (abs(sp - currentFontSizeSp) < 0.05f) return@subscribeAlways
+            currentFontSizeSp = sp
+            showZoomIndicator()
+            binding.zoomIndicator.removeCallbacks(saveFontSizeRunnable)
+            binding.zoomIndicator.postDelayed(saveFontSizeRunnable, 600)
+        }
+    }
+
+    private val saveFontSizeRunnable = Runnable {
+        context?.let { TextEditorSettings.setFontSize(it, currentFontSizeSp) }
+        if (this::binding.isInitialized) scheduleHideZoomIndicator()
+    }
+
+    private fun editorTypeface(): Typeface =
+        if (!PerformanceModeManager.currentBudget.editorUseCustomFont) {
+            Typeface.MONOSPACE
+        } else {
+            try {
+                Typeface.createFromAsset(requireContext().assets, "Mono.ttf")
+            } catch (e: Exception) {
+                Typeface.MONOSPACE
+            }
+        }
+
+    private fun spToPx(sp: Float): Float = android.util.TypedValue.applyDimension(
+        android.util.TypedValue.COMPLEX_UNIT_SP, sp, resources.displayMetrics
+    )
+
+    private fun pxToSp(px: Float): Float = px / spToPx(1f)
+
+    private fun applyEditingPreferences(ctx: Context) {
+        editor.isHighlightCurrentLine = TextEditorSettings.isHighlightCurrentLine(ctx)
+        editor.props.autoIndent = TextEditorSettings.isAutoIndent(ctx)
+        editor.props.symbolPairAutoCompletion = TextEditorSettings.isAutoClosePairs(ctx)
+        editor.isScalable = TextEditorSettings.isPinchToZoom(ctx)
+        applyLanguage()
+    }
+
+    /** Coloring and indentation for [currentLanguage] in [currentTheme], done by the editor. */
+    private fun applyLanguage() {
+        val ctx = context ?: return
+        if (!this::binding.isInitialized) return
+        editor.setEditorLanguage(
+            OmCodeLanguage(
+                currentLanguage,
+                currentTheme,
+                TextEditorSettings.isSyntaxHighlighting(ctx),
+                TextEditorSettings.isAutoClosePairs(ctx)
+            )
+        )
     }
 
     override fun onResume() {
@@ -362,20 +390,23 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     override fun onDestroyView() {
         super.onDestroyView()
         stopFileChangeWatcher()
-        highlightJob?.cancel()
         if (this::binding.isInitialized) {
             binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+            binding.zoomIndicator.removeCallbacks(saveFontSizeRunnable)
+            // Rotation or theme change: the new view continues with this document and its undo
+            // history. Leaving the editor: nothing to keep.
+            if (viewModel.textState.value is DataState.Success && activity?.isFinishing != true) {
+                val cursor = editor.cursor
+                viewModel.retainedContent = editor.text
+                viewModel.retainedSelection = intArrayOf(cursor.leftLine, cursor.leftColumn)
+            } else {
+                viewModel.retainedContent = null
+            }
+            editor.release()
         }
         if (PerformanceModeManager.isEnabled) {
-            if (::undoManager.isInitialized) {
-                undoManager.clear()
-            }
-            searchMatches.clear()
             cursorBackStack.clear()
             cursorForwardStack.clear()
-            if (this::binding.isInitialized) {
-                FastSyntaxScanner.clearSpans(binding.textEdit.text)
-            }
         }
     }
 
@@ -435,27 +466,13 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     override fun onSyncConfirmed() {
         isSyncDialogShowing = false
-        val currentSelection = try {
-            binding.textEdit.selectionStart
-        } catch (_: Throwable) {
-            0
-        }
-        val currentScrollY = try {
-            binding.scrollView.scrollY
-        } catch (_: Throwable) {
-            0
-        }
+        pendingRestore = intArrayOf(editor.cursor.leftLine, editor.cursor.leftColumn)
         reload()
-        binding.textEdit.post {
-            try {
-                if (currentSelection >= 0 && currentSelection <= binding.textEdit.length()) {
-                    binding.textEdit.setSelection(currentSelection)
-                }
-                binding.scrollView.scrollY = currentScrollY
-            } catch (_: Throwable) {}
-        }
         showToast(getString(R.string.text_editor_sync_success))
     }
+
+    // Position to return to once a reloaded text is in the editor.
+    private var pendingRestore: IntArray? = null
 
     override fun onSyncIgnored() {
         isSyncDialogShowing = false
@@ -478,22 +495,18 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         currentFontSizeSp = TextEditorSettings.getFontSize(ctx)
         setFontSize(currentFontSizeSp, showIndicator = false)
 
-        binding.lineNumberView.showWrapArrows = TextEditorSettings.isShowWrapArrows(ctx)
-        binding.textEdit.isHighlightCurrentLine = TextEditorSettings.isHighlightCurrentLine(ctx)
-        binding.textEdit.isAutoIndent = TextEditorSettings.isAutoIndent(ctx)
-        binding.textEdit.isAutoClosePairs = TextEditorSettings.isAutoClosePairs(ctx)
+        applyEditingPreferences(ctx)
         binding.symbolBar.visibility = if (TextEditorSettings.isShowSymbolBar(ctx) && !isReadOnly) View.VISIBLE else View.GONE
         applyBottomBarInsets()
-
-        requestSyntaxHighlight()
     }
 
     private fun applyTheme(theme: EditorTheme) {
         currentTheme = theme
         FastSyntaxScanner.currentTheme = theme
         binding.editorContainer.setBackgroundColor(theme.backgroundColor)
-        binding.textEdit.setEditorTheme(theme)
-        binding.lineNumberView.setEditorTheme(theme)
+        editor.colorScheme = OmEditorColorScheme(theme)
+        // Token colors depend on the theme.
+        applyLanguage()
         binding.editorStatusStrip.setBackgroundColor(theme.gutterColor)
         binding.symbolBar.setBackgroundColor(theme.gutterColor)
         binding.searchPanel.setBackgroundColor(theme.gutterColor)
@@ -574,55 +587,6 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         }
     }
 
-    private fun requestSyntaxHighlight() {
-        highlightJob?.cancel()
-        if (view == null) return
-        if (!TextEditorSettings.isSyntaxHighlighting(requireContext())) {
-            FastSyntaxScanner.clearSpans(binding.textEdit.text)
-            return
-        }
-        highlightJob = viewLifecycleOwner.lifecycleScope.launch {
-            delay(250) // Debounce typing
-            val text = binding.textEdit.text
-            if (text != null && text.isNotEmpty() && currentLanguage != SyntaxLanguage.PLAIN_TEXT &&
-                FastSyntaxScanner.isWithinHighlightLimit(text.length, isLive = true)
-            ) {
-                // Scan a copy: the Editable changes on the main thread while the scan runs, and
-                // reading it from another thread could fail half-way or color the wrong chars.
-                val generation = textGeneration
-                val snapshot = text.toString()
-                val language = currentLanguage
-                val theme = currentTheme
-                val tokens = withContext(Dispatchers.Default) {
-                    FastSyntaxScanner.scan(snapshot, language, theme)
-                }
-                if (view == null || generation != textGeneration) return@launch
-                val window = highlightWindow(text.length)
-                if (window == null) {
-                    FastSyntaxScanner.applyTokens(text, tokens)
-                } else {
-                    FastSyntaxScanner.applyTokens(text, tokens, window.first, window.last)
-                }
-            } else if (text != null) {
-                FastSyntaxScanner.clearSpans(text)
-            }
-        }
-    }
-
-    /**
-     * Big texts are recolored around what is on screen only (the rest keeps its colors, which
-     * move with the text): re-setting every span of a long file on each pause made typing stutter.
-     */
-    private fun highlightWindow(length: Int): IntRange? {
-        if (length <= FULL_HIGHLIGHT_CHARS) return null
-        val layout = binding.textEdit.layout ?: return null
-        val top = (binding.scrollView.scrollY - binding.textEdit.totalPaddingTop).coerceAtLeast(0)
-        val bottom = top + binding.scrollView.height
-        val first = layout.getLineStart(layout.getLineForVertical(top))
-        val last = layout.getLineEnd(layout.getLineForVertical(bottom))
-        return (first - HIGHLIGHT_MARGIN_CHARS).coerceAtLeast(0)..(last + HIGHLIGHT_MARGIN_CHARS).coerceAtMost(length)
-    }
-
     private fun updateSubtitle() {
         val activity = requireActivity() as? AppCompatActivity ?: return
         val charsetName = viewModel.encoding.value.displayName()
@@ -644,10 +608,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.statusSyntaxText.text = syntax
 
         // Update selection indicator
-        val selStart = binding.textEdit.selectionStart
-        val selEnd = binding.textEdit.selectionEnd
-        if (selStart >= 0 && selEnd >= 0 && selStart != selEnd) {
-            val selLen = abs(selEnd - selStart)
+        val cursor = editor.cursor
+        if (cursor.isSelected) {
+            val selLen = abs(cursor.right - cursor.left)
             binding.statusSelectionText.visibility = View.VISIBLE
             binding.statusSelectionText.text = getString(R.string.om_text_editor_selection, selLen)
         } else {
@@ -660,25 +623,25 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         container.removeAllViews()
 
         // 1. Navigation Arrow Keys (micro-navigation for touchscreens)
-        addTextSymbolButton("◀") { binding.textEdit.moveCursor(CodeEditText.CursorDirection.LEFT) }
-        addTextSymbolButton("▶") { binding.textEdit.moveCursor(CodeEditText.CursorDirection.RIGHT) }
-        addTextSymbolButton("▲") { binding.textEdit.moveCursor(CodeEditText.CursorDirection.UP) }
-        addTextSymbolButton("▼") { binding.textEdit.moveCursor(CodeEditText.CursorDirection.DOWN) }
+        addTextSymbolButton("◀") { editor.moveSelection(SelectionMovement.LEFT) }
+        addTextSymbolButton("▶") { editor.moveSelection(SelectionMovement.RIGHT) }
+        addTextSymbolButton("▲") { editor.moveSelection(SelectionMovement.UP) }
+        addTextSymbolButton("▼") { editor.moveSelection(SelectionMovement.DOWN) }
 
         // 2. Indentation & Smart Newline
-        addTextSymbolButton("⇥") { binding.textEdit.indentSelection() }
-        addTextSymbolButton("⇤") { binding.textEdit.unindentSelection() }
-        addTextSymbolButton("↵") { binding.textEdit.handleSmartEnter() }
+        addTextSymbolButton("⇥") { indentLines(unindent = false) }
+        addTextSymbolButton("⇤") { indentLines(unindent = true) }
+        addTextSymbolButton("↵") { insertIfEditable { editor.commitText("\n", true) } }
 
         // 3. TAB
-        addTextSymbolButton("TAB") { binding.textEdit.insertSymbol("    ") }
+        addTextSymbolButton("TAB") { insertIfEditable { editor.insertText("    ", 4) } }
 
         // 4. Undo & Redo Quick Buttons
         addImageSymbolButton(R.drawable.ic_undo_24dp, R.string.text_editor_undo) {
-            undoManager.undo()
+            if (editor.canUndo()) editor.undo()
         }
         addImageSymbolButton(R.drawable.ic_redo_24dp, R.string.text_editor_redo) {
-            undoManager.redo()
+            if (editor.canRedo()) editor.redo()
         }
 
         // 5. Search Toggle
@@ -690,7 +653,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val brackets = listOf("{", "}", "(", ")", "[", "]", "<", ">", "\"", "'")
         for (sym in brackets) {
             addTextSymbolButton(sym) {
-                binding.textEdit.insertSymbol(sym)
+                insertSymbol(sym)
             }
         }
 
@@ -701,7 +664,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         )
         for (sym in symbols) {
             addTextSymbolButton(sym) {
-                binding.textEdit.insertSymbol(sym)
+                insertSymbol(sym)
             }
         }
 
@@ -710,18 +673,85 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             pasteClipboardText()
         }
         addTextSymbolButton("✂") {
-            binding.textEdit.selectAll()
+            editor.selectAll()
         }
     }
 
     private fun pasteClipboardText() {
-        val cm = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        val clip = cm?.primaryClip
-        if (clip == null || clip.itemCount == 0) return
-        val item = clip.getItemAt(0)
-        val text = item?.coerceToText(requireContext())?.toString()
-        if (!text.isNullOrEmpty()) {
-            binding.textEdit.insertSymbol(text)
+        insertIfEditable { editor.pasteText() }
+    }
+
+    private inline fun insertIfEditable(action: () -> Unit) {
+        if (isReadOnly || !editor.isEditable) return
+        action()
+    }
+
+    /**
+     * A symbol from the bar. An opening bracket or quote also gets its closing one around the
+     * selection or after the cursor, as typing does with auto-close on.
+     */
+    private fun insertSymbol(symbol: String) {
+        insertIfEditable {
+            val closing = when (symbol) {
+                "{" -> "}"
+                "(" -> ")"
+                "[" -> "]"
+                "\"" -> "\""
+                "'" -> "'"
+                else -> null
+            }
+            val cursor = editor.cursor
+            if (closing != null && editor.props.symbolPairAutoCompletion) {
+                if (cursor.isSelected) {
+                    val content = editor.text
+                    val leftLine = cursor.leftLine
+                    val leftColumn = cursor.leftColumn
+                    val rightLine = cursor.rightLine
+                    val rightColumn = cursor.rightColumn
+                    content.beginBatchEdit()
+                    try {
+                        content.insert(rightLine, rightColumn, closing)
+                        content.insert(leftLine, leftColumn, symbol)
+                    } finally {
+                        content.endBatchEdit()
+                    }
+                } else {
+                    editor.insertText(symbol + closing, symbol.length)
+                }
+            } else {
+                editor.insertText(symbol, symbol.length)
+            }
+        }
+    }
+
+    /** Adds or removes one indentation level on every line of the selection (or the cursor's). */
+    private fun indentLines(unindent: Boolean) {
+        insertIfEditable {
+            val content = editor.text
+            val cursor = editor.cursor
+            val first = cursor.leftLine
+            val last = if (cursor.isSelected && cursor.rightColumn == 0 && cursor.rightLine > first) {
+                cursor.rightLine - 1
+            } else {
+                cursor.rightLine
+            }
+            val indent = " ".repeat(OmCodeLanguage.INDENT)
+            content.beginBatchEdit()
+            try {
+                for (line in first..last) {
+                    if (unindent) {
+                        val text = content.getLine(line)
+                        var n = 0
+                        while (n < OmCodeLanguage.INDENT && n < text.length && text[n] == ' ') n++
+                        if (n == 0 && text.isNotEmpty() && text[0] == '\t') n = 1
+                        if (n > 0) content.delete(line, 0, line, n)
+                    } else {
+                        content.insert(line, 0, indent)
+                    }
+                }
+            } finally {
+                content.endBatchEdit()
+            }
         }
     }
 
@@ -824,23 +854,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             )
             binding.editorContainer.setPadding(0, 0, 0, 0)
 
-            binding.textEdit.post {
-                try {
-                    val sel = binding.textEdit.selectionStart
-                    val layout = binding.textEdit.layout
-                    if (sel >= 0 && layout != null) {
-                        val line = layout.getLineForOffset(sel)
-                        val lineBottom = layout.getLineBottom(line)
-                        val scrollY = binding.scrollView.scrollY
-                        val height = binding.scrollView.height
-                        if (height > 0 && lineBottom > scrollY + height) {
-                            binding.scrollView.smoothScrollTo(
-                                0,
-                                lineBottom - height + (40 * resources.displayMetrics.density).toInt()
-                            )
-                        }
-                    }
-                } catch (_: Throwable) {}
+            editor.post {
+                if (this::binding.isInitialized) runCatching { editor.ensureSelectionVisible() }
             }
         } else {
             // Soft keyboard is CLOSED: content layout rests at bottom, pad above navigation bar
@@ -1018,157 +1033,87 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private fun closeSearchPanel() {
         binding.searchPanel.visibility = View.GONE
         applyBottomBarInsets()
-        searchMatches.clear()
-        currentMatchIndex = -1
-        binding.textEdit.searchMatches = emptyList()
-        binding.textEdit.currentMatchIndex = -1
+        runCatching { editor.searcher.stopSearch() }
         binding.searchCountText.setText(R.string.text_editor_no_matches)
     }
 
+    @Suppress("UNUSED_PARAMETER")
     private fun performSearch(resetCurrent: Boolean) {
         val query = binding.searchEdit.text.toString()
-        searchMatches.clear()
-
+        val searcher = editor.searcher
         if (query.isEmpty()) {
-            currentMatchIndex = -1
-            binding.textEdit.searchMatches = emptyList()
-            binding.textEdit.currentMatchIndex = -1
+            searcher.stopSearch()
             binding.searchCountText.setText(R.string.text_editor_no_matches)
             return
         }
-
-        val text = binding.textEdit.text.toString()
-
+        val type = when {
+            isSearchRegex -> EditorSearcher.SearchOptions.TYPE_REGULAR_EXPRESSION
+            isSearchWholeWord -> EditorSearcher.SearchOptions.TYPE_WHOLE_WORD
+            else -> EditorSearcher.SearchOptions.TYPE_NORMAL
+        }
         try {
-            if (isSearchRegex) {
-                val flags = if (isSearchCaseSensitive) 0 else Pattern.CASE_INSENSITIVE
-                val pattern = Pattern.compile(query, flags)
-                val matcher = pattern.matcher(text)
-                while (matcher.find()) {
-                    if (matcher.start() < matcher.end()) {
-                        searchMatches.add(matcher.start() until matcher.end())
-                    }
-                }
-            } else if (isSearchWholeWord) {
-                val escaped = Pattern.quote(query)
-                val flags = if (isSearchCaseSensitive) 0 else Pattern.CASE_INSENSITIVE
-                val pattern = Pattern.compile("\\b$escaped\\b", flags)
-                val matcher = pattern.matcher(text)
-                while (matcher.find()) {
-                    searchMatches.add(matcher.start() until matcher.end())
-                }
-            } else {
-                var index = 0
-                while (index < text.length) {
-                    val found = text.indexOf(query, index, ignoreCase = !isSearchCaseSensitive)
-                    if (found == -1) break
-                    searchMatches.add(found until (found + query.length))
-                    index = found + query.length.coerceAtLeast(1)
-                }
-            }
+            // Runs in the background; PublishSearchResultEvent brings the count.
+            searcher.search(query, EditorSearcher.SearchOptions(type, !isSearchCaseSensitive))
         } catch (e: Exception) {
-            // Malformed regex while user is typing
+            // A regular expression that is still being typed.
+            searcher.stopSearch()
+            binding.searchCountText.setText(R.string.text_editor_no_matches)
         }
+    }
 
-        if (searchMatches.isEmpty()) {
-            currentMatchIndex = -1
-            binding.textEdit.searchMatches = emptyList()
-            binding.textEdit.currentMatchIndex = -1
+    private fun updateSearchCount() {
+        if (!this::binding.isInitialized || binding.searchPanel.visibility != View.VISIBLE) return
+        val searcher = editor.searcher
+        val count = if (searcher.hasQuery()) searcher.matchedPositionCount else 0
+        if (count <= 0) {
             binding.searchCountText.setText(R.string.text_editor_no_matches)
             return
         }
-
-        if (resetCurrent || currentMatchIndex !in searchMatches.indices) {
-            val cursor = binding.textEdit.selectionStart
-            val nearest = searchMatches.indexOfFirst { it.first >= cursor }
-            currentMatchIndex = if (nearest != -1) nearest else 0
-        }
-
-        binding.textEdit.searchMatches = searchMatches
-        binding.textEdit.currentMatchIndex = currentMatchIndex
-
-        binding.searchCountText.text = getString(
-            R.string.text_editor_match_count,
-            currentMatchIndex + 1,
-            searchMatches.size
-        )
-        scrollToMatch(currentMatchIndex)
+        val current = searcher.currentMatchedPositionIndex
+        binding.searchCountText.text =
+            getString(R.string.text_editor_match_count, (current + 1).coerceAtLeast(0), count)
     }
 
     private fun nextSearchMatch() {
-        if (searchMatches.isEmpty()) {
+        val searcher = editor.searcher
+        if (!searcher.hasQuery() || searcher.matchedPositionCount <= 0) {
             showToast(getString(R.string.text_editor_no_text_found))
             return
         }
-        currentMatchIndex = (currentMatchIndex + 1) % searchMatches.size
-        binding.textEdit.currentMatchIndex = currentMatchIndex
-        binding.searchCountText.text = getString(
-            R.string.text_editor_match_count,
-            currentMatchIndex + 1,
-            searchMatches.size
-        )
-        scrollToMatch(currentMatchIndex)
+        searcher.gotoNext()
+        updateSearchCount()
     }
 
     private fun prevSearchMatch() {
-        if (searchMatches.isEmpty()) {
+        val searcher = editor.searcher
+        if (!searcher.hasQuery() || searcher.matchedPositionCount <= 0) {
             showToast(getString(R.string.text_editor_no_text_found))
             return
         }
-        currentMatchIndex = if (currentMatchIndex - 1 < 0) searchMatches.size - 1 else currentMatchIndex - 1
-        binding.textEdit.currentMatchIndex = currentMatchIndex
-        binding.searchCountText.text = getString(
-            R.string.text_editor_match_count,
-            currentMatchIndex + 1,
-            searchMatches.size
-        )
-        scrollToMatch(currentMatchIndex)
-    }
-
-    private fun scrollToMatch(index: Int) {
-        if (index !in searchMatches.indices) return
-        val range = searchMatches[index]
-        binding.textEdit.setSelection(range.first, range.last + 1)
-
-        val layout = binding.textEdit.layout ?: return
-        val line = layout.getLineForOffset(range.first)
-        val lineTop = layout.getLineTop(line)
-        val scrollY = (lineTop - binding.scrollView.height / 3).coerceAtLeast(0)
-        binding.scrollView.smoothScrollTo(0, scrollY)
-
-        if (!isWordWrap) {
-            val horizontalX = layout.getPrimaryHorizontal(range.first).toInt()
-            val scrollX = (horizontalX - binding.horizontalScrollView.width / 3).coerceAtLeast(0)
-            binding.horizontalScrollView.smoothScrollTo(scrollX, 0)
-        }
+        searcher.gotoPrevious()
+        updateSearchCount()
     }
 
     private fun replaceCurrentMatch() {
-        if (isReadOnly || currentMatchIndex !in searchMatches.indices) return
-        val range = searchMatches[currentMatchIndex]
-        val replacement = binding.replaceEdit.text.toString()
-
-        binding.textEdit.text?.replace(range.first, range.last + 1, replacement)
-        performSearch(resetCurrent = false)
+        if (isReadOnly) return
+        val searcher = editor.searcher
+        if (!searcher.hasQuery() || searcher.matchedPositionCount <= 0) return
+        if (!searcher.isMatchedPositionSelected) {
+            searcher.gotoNext()
+            return
+        }
+        searcher.replaceCurrentMatch(binding.replaceEdit.text.toString())
     }
 
     private fun replaceAllMatches() {
-        if (isReadOnly || searchMatches.isEmpty()) return
-        val replacement = binding.replaceEdit.text.toString()
-        val count = searchMatches.size
-
-        undoManager.beginBatchEdit()
-        try {
-            for (i in searchMatches.indices.reversed()) {
-                val range = searchMatches[i]
-                binding.textEdit.text?.replace(range.first, range.last + 1, replacement)
-            }
-        } finally {
-            undoManager.endBatchEdit()
+        if (isReadOnly) return
+        val searcher = editor.searcher
+        if (!searcher.hasQuery()) return
+        val count = searcher.matchedPositionCount
+        if (count <= 0) return
+        searcher.replaceAll(binding.replaceEdit.text.toString()) {
+            if (isAdded) showToast(getString(R.string.text_editor_replaced_count, count))
         }
-
-        showToast(getString(R.string.text_editor_replaced_count, count))
-        performSearch(resetCurrent = true)
     }
 
     // Cursor Navigation History Stack (MT Manager: Posición anterior / Siguiente posición)
@@ -1185,44 +1130,35 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun navigateToPreviousCursorPosition() {
         if (cursorBackStack.isEmpty()) return
-        val current = binding.textEdit.selectionStart
-        cursorForwardStack.addLast(current)
+        cursorForwardStack.addLast(editor.cursor.left)
         val prev = cursorBackStack.removeLast()
         lastRecordedCursorOffset = prev
-        val clamped = prev.coerceIn(0, binding.textEdit.text?.length ?: 0)
-        binding.textEdit.setSelection(clamped)
-        scrollToOffset(clamped)
+        moveCursorToOffset(prev)
         updateNavigationHistoryMenuItems()
         showToast(getString(R.string.text_editor_navigated_back))
     }
 
     private fun navigateToNextCursorPosition() {
         if (cursorForwardStack.isEmpty()) return
-        val current = binding.textEdit.selectionStart
-        cursorBackStack.addLast(current)
+        cursorBackStack.addLast(editor.cursor.left)
         val next = cursorForwardStack.removeLast()
         lastRecordedCursorOffset = next
-        val clamped = next.coerceIn(0, binding.textEdit.text?.length ?: 0)
-        binding.textEdit.setSelection(clamped)
-        scrollToOffset(clamped)
+        moveCursorToOffset(next)
         updateNavigationHistoryMenuItems()
         showToast(getString(R.string.text_editor_navigated_forward))
     }
 
-    private fun scrollToOffset(offset: Int) {
-        val layout = binding.textEdit.layout ?: return
-        val line = layout.getLineForOffset(offset)
-        val lineTop = layout.getLineTop(line)
-        val scrollY = (lineTop - binding.scrollView.height / 3).coerceAtLeast(0)
-        binding.scrollView.smoothScrollTo(0, scrollY)
+    private fun moveCursorToOffset(offset: Int) {
+        val content = editor.text
+        val position = content.indexer.getCharPosition(offset.coerceIn(0, content.length))
+        editor.setSelection(position.line, position.column, true)
     }
 
     private fun jumpToLine(targetLine: Int) {
-        val layout = binding.textEdit.layout ?: return
-        val lineIndex = (targetLine - 1).coerceIn(0, (layout.lineCount - 1).coerceAtLeast(0))
-        val offset = layout.getLineStart(lineIndex)
-        binding.textEdit.setSelection(offset)
-        scrollToOffset(offset)
+        val lineCount = editor.text.lineCount
+        if (lineCount <= 0) return
+        val line = (targetLine - 1).coerceIn(0, lineCount - 1)
+        editor.setSelection(line, 0, true)
     }
 
     private fun updateNavigationHistoryMenuItems() {
@@ -1243,7 +1179,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 if (selected != currentLanguage) {
                     currentLanguage = selected
                     viewModel.syntaxLanguage.value = selected
-                    FastSyntaxScanner.applyHighlightTo(binding.textEdit.text, currentLanguage, currentTheme)
+                    applyLanguage()
                     updateSubtitle()
                     showToast(getString(R.string.text_editor_syntax_changed, syntaxName(selected)))
                 }
@@ -1289,12 +1225,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun showGotoLineDialog() {
-        val totalLines = binding.textEdit.lineCount.coerceAtLeast(1)
-        val layout = binding.textEdit.layout
-        val currentLine = if (layout != null) {
-            layout.getLineForOffset(binding.textEdit.selectionStart) + 1
-        } else 1
-
+        val totalLines = editor.text.lineCount.coerceAtLeast(1)
+        val currentLine = editor.cursor.leftLine + 1
         val input = EditText(requireContext()).apply {
             inputType = InputType.TYPE_CLASS_NUMBER
             hint = getString(R.string.text_editor_goto_line_hint, totalLines)
@@ -1302,19 +1234,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             selectAll()
             setPadding(48, 32, 48, 16)
         }
-
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.text_editor_goto_line)
             .setView(input)
             .setPositiveButton(android.R.string.ok) { _, _ ->
                 val targetLine = input.text.toString().toIntOrNull()
                 if (targetLine != null && targetLine in 1..totalLines) {
-                    val lineStart = layout?.getLineStart(targetLine - 1) ?: 0
-                    checkRecordCursorJump(lineStart)
-                    binding.textEdit.setSelection(lineStart)
-                    val lineTop = layout?.getLineTop(targetLine - 1) ?: 0
-                    val scrollY = (lineTop - binding.scrollView.height / 3).coerceAtLeast(0)
-                    binding.scrollView.smoothScrollTo(0, scrollY)
+                    checkRecordCursorJump(editor.text.getCharIndex(targetLine - 1, 0))
+                    jumpToLine(targetLine)
                 }
             }
             .setNegativeButton(android.R.string.cancel, null)
@@ -1322,36 +1249,51 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun showFileStatsDialog() {
-        val fileName = viewModel.file.value.fileName.toString()
+        val fileName = displayName()
         val filePath = viewModel.file.value.toAbsolutePath().toString()
         val sizeBytes = viewModel.fileSize.value
-        val formattedSize = "${Formatter.formatFileSize(requireContext(), sizeBytes)} ($sizeBytes bytes)"
+        val formattedSize = "${Formatter.formatFileSize(requireContext(), sizeBytes)} ($sizeBytes B)"
         val encodingName = viewModel.encoding.value.displayName()
         val lineEnding = if (viewModel.isCrlf.value) "Windows (CRLF)" else "Unix (LF)"
         val languageName = syntaxName(currentLanguage)
-        val text = binding.textEdit.text.toString()
-        val lineCount = binding.textEdit.lineCount
-        val charCount = text.length
-        val nonSpaceCharCount = text.count { !it.isWhitespace() }
-        val wordCount = if (text.isBlank()) 0 else text.trim().split("\\s+".toRegex()).size
-
+        val content = editor.text
+        val lineCount = content.lineCount
+        val charCount = content.length
+        var nonSpace = 0
+        var words = 0
+        var inWord = false
+        for (line in 0 until lineCount) {
+            val text = content.getLine(line)
+            for (i in 0 until text.length) {
+                val c = text[i]
+                if (c.isWhitespace()) {
+                    inWord = false
+                } else {
+                    nonSpace++
+                    if (!inWord) words++
+                    inWord = true
+                }
+            }
+            inWord = false
+        }
+        val on = getString(R.string.om_text_editor_on)
+        val off = getString(R.string.om_text_editor_off)
         val message = """
             ${getString(R.string.file_properties_basic_name)}: $fileName
-            Ruta: $filePath
+            ${getString(R.string.om_text_editor_stats_path)}: $filePath
             ${getString(R.string.file_properties_basic_size)}: $formattedSize
             ${getString(R.string.text_editor_encoding)}: $encodingName
             ${getString(R.string.text_editor_line_endings)}: $lineEnding
             ${getString(R.string.text_editor_syntax)}: $languageName
             ${getString(R.string.text_editor_theme)}: ${currentTheme.displayName}
-            ${getString(R.string.text_editor_word_wrap)}: ${if (isWordWrap) "Activado" else "Desactivado"}
-            ${getString(R.string.text_editor_line_numbers)}: ${if (showLineNumbers) "Activado" else "Desactivado"}
-            
-            Líneas: $lineCount
-            Palabras: $wordCount
-            Caracteres: $charCount
-            Caracteres (sin espacios): $nonSpaceCharCount
-        """.trimIndent()
+            ${getString(R.string.text_editor_word_wrap)}: ${if (isWordWrap) on else off}
+            ${getString(R.string.text_editor_line_numbers)}: ${if (showLineNumbers) on else off}
 
+            ${getString(R.string.om_text_editor_stats_lines)}: $lineCount
+            ${getString(R.string.om_text_editor_stats_words)}: $words
+            ${getString(R.string.om_text_editor_stats_chars)}: $charCount
+            ${getString(R.string.om_text_editor_stats_chars_no_spaces)}: $nonSpace
+        """.trimIndent()
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.text_editor_file_stats)
             .setMessage(message)
@@ -1361,21 +1303,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setWordWrap(wrap: Boolean) {
         isWordWrap = wrap
-        binding.textEdit.setHorizontallyScrolling(!wrap)
-        val params = binding.textEdit.layoutParams
-        params.width = if (wrap) {
-            ViewGroup.LayoutParams.MATCH_PARENT
-        } else {
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        }
-        binding.textEdit.layoutParams = params
-        binding.textEdit.requestLayout()
-        binding.lineNumberView.syncLineCount()
+        if (editor.isWordwrap != wrap) editor.isWordwrap = wrap
     }
 
     private fun setLineNumbers(show: Boolean) {
         showLineNumbers = show
-        binding.lineNumberView.visibility = if (show) View.VISIBLE else View.GONE
+        editor.isLineNumberEnabled = show
     }
 
     private fun toggleReadOnly() {
@@ -1385,9 +1318,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setReadOnly(readOnly: Boolean) {
         isReadOnly = readOnly
-        binding.textEdit.isFocusable = !readOnly
-        binding.textEdit.isFocusableInTouchMode = !readOnly
-        binding.textEdit.isCursorVisible = !readOnly
+        editor.isEditable = !readOnly
         binding.symbolBar.visibility = if (readOnly || !TextEditorSettings.isShowSymbolBar(requireContext())) View.GONE else View.VISIBLE
         applyBottomBarInsets()
         updateEditModeIcon()
@@ -1406,19 +1337,18 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setFontSize(sizeSp: Float, showIndicator: Boolean = false) {
         currentFontSizeSp = sizeSp.coerceIn(TextEditorSettings.MIN_FONT_SIZE, TextEditorSettings.MAX_FONT_SIZE)
-        binding.textEdit.textSize = currentFontSizeSp
-        binding.lineNumberView.updateTextSize(binding.textEdit.textSizePx * 0.85f)
-        binding.lineNumberView.syncLineCount()
+        if (abs(editor.textSizePx - spToPx(currentFontSizeSp)) > 0.5f) editor.setTextSize(currentFontSizeSp)
+        if (showIndicator) showZoomIndicator()
+    }
 
-        if (showIndicator) {
-            val percent = (currentFontSizeSp / TextEditorSettings.DEFAULT_FONT_SIZE * 100).toInt()
-            val formattedSp = String.format(java.util.Locale.US, "%.1f", currentFontSizeSp)
-            binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
-            binding.zoomIndicator.text = "$formattedSp sp  ($percent%)"
-            if (binding.zoomIndicator.visibility != View.VISIBLE) {
-                binding.zoomIndicator.alpha = 1f
-                binding.zoomIndicator.visibility = View.VISIBLE
-            }
+    private fun showZoomIndicator() {
+        val percent = (currentFontSizeSp / TextEditorSettings.DEFAULT_FONT_SIZE * 100).toInt()
+        val formattedSp = String.format(java.util.Locale.US, "%.1f", currentFontSizeSp)
+        binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
+        binding.zoomIndicator.text = "$formattedSp sp  ($percent%)"
+        if (binding.zoomIndicator.visibility != View.VISIBLE) {
+            binding.zoomIndicator.alpha = 1f
+            binding.zoomIndicator.visibility = View.VISIBLE
         }
     }
 
@@ -1427,50 +1357,8 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.zoomIndicator.postDelayed(hideZoomIndicatorRunnable, 1200)
     }
 
-    private fun setupPinchToZoom() {
-        scaleGestureDetector = ScaleGestureDetector(requireContext(), object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-            override fun onScale(detector: ScaleGestureDetector): Boolean {
-                if (!TextEditorSettings.isPinchToZoom(requireContext())) return false
-                val scaleFactor = detector.scaleFactor
-                if (scaleFactor != 1.0f) {
-                    val newSize = (currentFontSizeSp * scaleFactor).coerceIn(
-                        TextEditorSettings.MIN_FONT_SIZE,
-                        TextEditorSettings.MAX_FONT_SIZE
-                    )
-                    if (abs(newSize - currentFontSizeSp) >= 0.15f) {
-                        setFontSize(newSize, showIndicator = true)
-                    }
-                }
-                return true
-            }
-
-            override fun onScaleEnd(detector: ScaleGestureDetector) {
-                TextEditorSettings.setFontSize(requireContext(), currentFontSizeSp)
-                scheduleHideZoomIndicator()
-            }
-        })
-
-        val touchListener = View.OnTouchListener { _, event ->
-            if (event.pointerCount >= 2) {
-                binding.scrollView.requestDisallowInterceptTouchEvent(true)
-                binding.horizontalScrollView.requestDisallowInterceptTouchEvent(true)
-                scaleGestureDetector.onTouchEvent(event)
-                true
-            } else {
-                scaleGestureDetector.onTouchEvent(event)
-                false
-            }
-        }
-
-        binding.textEdit.setOnTouchListener(touchListener)
-        binding.scrollView.setOnTouchListener(touchListener)
-        binding.lineNumberView.setOnTouchListener(touchListener)
-        binding.editorContainer.setOnTouchListener(touchListener)
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        viewModel.setEditTextSavedState(binding.textEdit.onSaveInstanceState())
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -1501,11 +1389,11 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 true
             }
             R.id.action_undo -> {
-                undoManager.undo()
+                if (editor.canUndo()) editor.undo()
                 true
             }
             R.id.action_redo -> {
-                undoManager.redo()
+                if (editor.canRedo()) editor.redo()
                 true
             }
             R.id.action_search -> {
@@ -1642,8 +1530,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         if (!this::menuBinding.isInitialized) {
             return
         }
-        menuBinding.undoItem.isEnabled = undoManager.canUndo
-        menuBinding.redoItem.isEnabled = undoManager.canRedo
+        if (!this::binding.isInitialized) return
+        menuBinding.undoItem.isEnabled = editor.canUndo()
+        menuBinding.redoItem.isEnabled = editor.canRedo()
     }
 
     private fun onTextStateChanged(state: DataState<CharSequence>) {
@@ -1652,36 +1541,50 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             is DataState.Loading -> {
                 binding.progress.fadeInUnsafe()
                 binding.errorText.fadeOutUnsafe()
-                binding.textEdit.fadeOutUnsafe()
+                binding.codeEditor.fadeOutUnsafe()
             }
             is DataState.Success -> {
                 binding.progress.fadeOutUnsafe()
                 binding.errorText.fadeOutUnsafe()
-                binding.textEdit.fadeInUnsafe()
-                if (!viewModel.isTextChanged.value) {
-                    undoManager.isEnabled = false
+                binding.codeEditor.fadeInUnsafe()
+                val retained = viewModel.retainedContent as? io.github.rosemoe.sora.text.Content
+                if (retained != null) {
+                    // Same document after a rotation: keep the edits and the undo history.
+                    viewModel.retainedContent = null
+                    isSettingText = true
+                    editor.setText(retained, true, null)
+                    isSettingText = false
+                    viewModel.retainedSelection?.let { restoreSelection(it[0], it[1]) }
+                    viewModel.retainedSelection = null
+                } else if (!viewModel.isTextChanged.value) {
                     setText(state.data)
-                    undoManager.clear()
-                    undoManager.isEnabled = true
-                    binding.lineNumberView.syncLineCount()
-                    checkLargeFileSize()
+                    pendingRestore?.let { restoreSelection(it[0], it[1]) }
+                    pendingRestore = null
                     val gotoLine = requireActivity().intent.getIntExtra("EXTRA_GOTO_LINE", -1)
                     if (gotoLine > 0) {
                         requireActivity().intent.removeExtra("EXTRA_GOTO_LINE")
-                        binding.textEdit.post {
-                            jumpToLine(gotoLine)
-                        }
+                        editor.post { if (this::binding.isInitialized) jumpToLine(gotoLine) }
                     }
                 }
+                updateUndoRedoMenuItems()
+                updateSubtitle()
             }
             is DataState.Error -> {
                 state.throwable.printStackTrace()
                 binding.progress.fadeOutUnsafe()
                 binding.errorText.fadeInUnsafe()
                 binding.errorText.text = describeLoadError(state.throwable)
-                binding.textEdit.fadeOutUnsafe()
+                binding.codeEditor.fadeOutUnsafe()
             }
         }
+    }
+
+    private fun restoreSelection(line: Int, column: Int) {
+        val content = editor.text
+        if (content.lineCount == 0) return
+        val l = line.coerceIn(0, content.lineCount - 1)
+        val c = column.coerceIn(0, content.getColumnCount(l))
+        editor.post { if (this::binding.isInitialized) editor.setSelection(l, c, true) }
     }
 
     private fun describeLoadError(throwable: Throwable): String {
@@ -1711,7 +1614,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun setText(text: CharSequence?) {
         isSettingText = true
-        binding.textEdit.setText(text)
+        editor.setText(text ?: "")
         isSettingText = false
         viewModel.isTextChanged.value = false
     }
@@ -1766,7 +1669,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun performSave() {
-        val text = binding.textEdit.text.toString()
+        val text = editor.text.toString()
         viewModel.writeFile(argsFile, text, requireContext())
     }
 
@@ -1859,7 +1762,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
             return
         }
-        viewModel.writeFile(target, binding.textEdit.text.toString(), requireContext())
+        viewModel.writeFile(target, editor.text.toString(), requireContext())
     }
 
     /** Saved under another name: continue in that file (and drop the draft). */
@@ -1899,12 +1802,6 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             return
         }
         menuBinding.saveItem.isEnabled = viewModel.writeFileState.value.isReady && viewModel.isTextChanged.value
-    }
-
-    private companion object {
-        // Up to this size the whole text is recolored; beyond it, the part on screen.
-        const val FULL_HIGHLIGHT_CHARS = 60_000
-        const val HIGHLIGHT_MARGIN_CHARS = 20_000
     }
 
     @Parcelize
