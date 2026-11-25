@@ -9,12 +9,16 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.view.GestureDetector
+import android.view.ScaleGestureDetector
+import android.view.ViewConfiguration
 import android.view.MotionEvent
 import android.view.SurfaceView
 import android.view.View
@@ -58,6 +62,7 @@ import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.util.extraPath
 import java.io.File
 import java.io.FileOutputStream
+import kotlin.math.roundToInt
 import java.util.Locale
 
 /**
@@ -178,9 +183,7 @@ class VideoPlayerActivity : AppActivity() {
         }
         btnVideoAspect.alpha = 0.7f
         btnVideoAspect.setOnClickListener {
-            isZoomed = !isZoomed
-            btnVideoAspect.alpha = if (isZoomed) 1f else 0.7f
-            layoutSurface()
+            setZoomed(!isZoomed)
             scheduleControlsAutoHide()
         }
         btnSpeed.setOnClickListener {
@@ -436,6 +439,11 @@ class VideoPlayerActivity : AppActivity() {
         }
     }
 
+    /**
+     * Gestures of a full player: tap (controls), double tap (±10 s / pause), horizontal drag
+     * (seek with a live preview), vertical drag on the left (brightness) or the right (volume),
+     * long press (2× while held) and pinch (fit or fill the screen).
+     */
     @SuppressLint("ClickableViewAccessibility")
     private fun setupGestures() {
         val detector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -455,8 +463,200 @@ class VideoPlayerActivity : AppActivity() {
                 }
                 return true
             }
+
+            override fun onLongPress(e: MotionEvent) {
+                if (drag == VideoDrag.NONE && !isPinching) startSpeedHold()
+            }
         })
-        videoRoot.setOnTouchListener { _, event -> detector.onTouchEvent(event) }
+        val scaleDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            private var factor = 1f
+
+            override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
+                factor = 1f
+                isPinching = true
+                endDrag(commit = false)
+                return true
+            }
+
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                factor *= detector.scaleFactor
+                return true
+            }
+
+            override fun onScaleEnd(detector: ScaleGestureDetector) {
+                when {
+                    factor > 1.12f && !isZoomed -> setZoomed(true)
+                    factor < 0.89f && isZoomed -> setZoomed(false)
+                }
+            }
+        })
+        val slop = ViewConfiguration.get(this).scaledTouchSlop * 1.5f
+        videoRoot.setOnTouchListener { _, event ->
+            scaleDetector.onTouchEvent(event)
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    isPinching = false
+                    drag = VideoDrag.NONE
+                    dragStartX = event.x
+                    dragStartY = event.y
+                }
+                MotionEvent.ACTION_MOVE -> if (!isPinching && !isSpeedHeld && event.pointerCount == 1) {
+                    if (drag == VideoDrag.NONE) {
+                        drag = VideoGestures.classify(
+                            event.x - dragStartX, event.y - dragStartY, slop, dragStartX, videoRoot.width
+                        )
+                        if (drag != VideoDrag.NONE) beginDrag(event)
+                    }
+                    if (drag != VideoDrag.NONE) updateDrag(event)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    endDrag(commit = event.actionMasked == MotionEvent.ACTION_UP)
+                    stopSpeedHold()
+                }
+            }
+            // A drag or pinch is not also a tap, double tap or long press.
+            if (drag == VideoDrag.NONE && !isPinching) {
+                detector.onTouchEvent(event)
+            } else if (event.actionMasked == MotionEvent.ACTION_MOVE) {
+                val cancel = MotionEvent.obtain(event).apply { action = MotionEvent.ACTION_CANCEL }
+                detector.onTouchEvent(cancel)
+                cancel.recycle()
+            }
+            true
+        }
+    }
+
+    private var drag = VideoDrag.NONE
+    private var dragStartX = 0f
+    private var dragStartY = 0f
+    private var dragStartPositionMs = 0L
+    private var dragTargetMs = 0L
+    private var dragStartBrightness = 0.5f
+    private var dragStartVolume = 0
+    private var isPinching = false
+    private var isSpeedHeld = false
+    private var lastGestureSeekAtMs = 0L
+
+    private val audioManager: AudioManager by lazy { getSystemService(AudioManager::class.java) }
+
+    private fun beginDrag(event: MotionEvent) {
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        when (drag) {
+            VideoDrag.SEEK -> {
+                val p = player ?: run { drag = VideoDrag.NONE; return }
+                dragStartPositionMs = p.currentPosition
+                dragTargetMs = dragStartPositionMs
+                lastGestureSeekAtMs = 0L
+                // Preview with key frames: they decode at once, even in 4K.
+                p.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+            }
+            VideoDrag.BRIGHTNESS -> {
+                val current = window.attributes.screenBrightness
+                dragStartBrightness = if (current >= 0f) current else systemBrightness()
+            }
+            VideoDrag.VOLUME -> dragStartVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+            VideoDrag.NONE -> Unit
+        }
+        // Start from where the finger is now, so the value does not jump by the slop.
+        dragStartX = event.x
+        dragStartY = event.y
+    }
+
+    private fun updateDrag(event: MotionEvent) {
+        when (drag) {
+            VideoDrag.SEEK -> {
+                val p = player ?: return
+                val duration = p.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+                dragTargetMs = VideoGestures.seekTarget(
+                    dragStartPositionMs, event.x - dragStartX, videoRoot.width, duration
+                )
+                showGestureFeedback(VideoGestures.seekLabel(dragStartPositionMs, dragTargetMs, duration))
+                val now = System.currentTimeMillis()
+                if (now - lastGestureSeekAtMs >= SCRUB_INTERVAL_MS) {
+                    lastGestureSeekAtMs = now
+                    p.seekTo(dragTargetMs)
+                }
+            }
+            VideoDrag.BRIGHTNESS -> {
+                val value = VideoGestures.brightness(dragStartBrightness, event.y - dragStartY, videoRoot.height)
+                window.attributes = window.attributes.apply { screenBrightness = value }
+                showGestureFeedback(getString(R.string.om_video_brightness, (value * 100).roundToInt()))
+            }
+            VideoDrag.VOLUME -> {
+                val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                val value = VideoGestures.volume(dragStartVolume, event.y - dragStartY, videoRoot.height, max)
+                if (value != audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) {
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, value, 0)
+                }
+                showGestureFeedback(getString(R.string.om_video_volume, value * 100 / max.coerceAtLeast(1)))
+            }
+            VideoDrag.NONE -> Unit
+        }
+    }
+
+    private fun endDrag(commit: Boolean) {
+        val ended = drag
+        drag = VideoDrag.NONE
+        if (ended == VideoDrag.NONE) return
+        if (ended == VideoDrag.SEEK) {
+            player?.let { p ->
+                p.setSeekParameters(SeekParameters.EXACT)
+                if (commit) p.seekTo(dragTargetMs)
+            }
+        }
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            Log.i(TAG, when (ended) {
+                VideoDrag.SEEK -> "Gesture seek from=$dragStartPositionMs to=$dragTargetMs"
+                VideoDrag.BRIGHTNESS -> "Gesture brightness=${window.attributes.screenBrightness} from=$dragStartBrightness"
+                VideoDrag.VOLUME -> "Gesture volume=${audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)}" +
+                    "/${audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)} from=$dragStartVolume"
+                VideoDrag.NONE -> ""
+            })
+        }
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        handler.postDelayed(hideSeekFeedbackRunnable, 600)
+    }
+
+    private fun systemBrightness(): Float = try {
+        Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS) / 255f
+    } catch (_: Exception) {
+        0.5f
+    }
+
+    private fun showGestureFeedback(text: String) {
+        tvSeekFeedback.text = text
+        tvSeekFeedback.visibility = View.VISIBLE
+    }
+
+    /** Long press: 2× while the finger stays down, then back to the chosen speed. */
+    private fun startSpeedHold() {
+        val p = player ?: return
+        if (!p.isPlaying) return
+        isSpeedHeld = true
+        p.setPlaybackSpeed(VideoGestures.HOLD_SPEED)
+        videoRoot.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        showGestureFeedback(formatSpeed(VideoGestures.HOLD_SPEED) + " ▶▶")
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) Log.i(TAG, "Gesture speed hold ${VideoGestures.HOLD_SPEED}")
+    }
+
+    private fun stopSpeedHold() {
+        if (!isSpeedHeld) return
+        isSpeedHeld = false
+        player?.setPlaybackSpeed(SPEEDS[speedIndex])
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        handler.postDelayed(hideSeekFeedbackRunnable, 300)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) Log.i(TAG, "Gesture speed back ${SPEEDS[speedIndex]}")
+    }
+
+    private fun setZoomed(zoomed: Boolean) {
+        isZoomed = zoomed
+        btnVideoAspect.alpha = if (isZoomed) 1f else 0.7f
+        layoutSurface()
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        showGestureFeedback(getString(if (isZoomed) R.string.om_video_fill else R.string.om_video_fit))
+        handler.postDelayed(hideSeekFeedbackRunnable, 900)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) Log.i(TAG, "Gesture zoom=${if (isZoomed) "fill" else "fit"}")
     }
 
     private fun seekBy(deltaMs: Long) {

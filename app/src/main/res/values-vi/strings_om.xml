@@ -2588,4 +2588,10 @@
     <string name="om_editor_key_paste">Dán</string>
     <string name="om_editor_key_select_all">Chọn tất cả</string>
     <string name="om_sort_active">Đã chọn</string>
+    <string name="om_term_key_backspace">Xóa lùi</string>
+    <string name="om_term_key_keyboard">Hiện hoặc ẩn bàn phím</string>
+    <string name="om_video_brightness">Độ sáng %1$d%%</string>
+    <string name="om_video_volume">Âm lượng %1$d%%</string>
+    <string name="om_video_fit">Vừa màn hình</string>
+    <string name="om_video_fill">Lấp đầy màn hình</string>
 </resources>

@@ -62,6 +62,13 @@ else
     curl -fsSL -o "$OUT/old.apk" "https://github.com/uamo11/OpenManager/releases/download/$OLD/OpenManager-$OLD-release.apk"
 fi
 log "Old: $OLD  Latest on GitHub: $LATEST"
+# Releases carry only ARM libraries: the emulator must run them through its ARM translation.
+abilist=$(adb shell getprop ro.product.cpu.abilist | tr -d '\r')
+log "      emulator ABIs: $abilist"
+case "$abilist" in
+    *arm64-v8a*) pass "the emulator can install the ARM-only release APK ($abilist)" ;;
+    *) fail "the emulator has no ARM translation for the ARM-only release APK ($abilist)" ;;
+esac
 adb install -r "$OUT/old.apk" >/dev/null
 log "Installed: $(installed_version)"
 adb shell pm grant $PKG android.permission.READ_EXTERNAL_STORAGE 2>/dev/null || true

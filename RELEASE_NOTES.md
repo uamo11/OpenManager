@@ -1,3 +1,21 @@
+# OpenManager v2.0.29: Gestos en el Reproductor, Barra de la Terminal Renovada y APK más Ligero
+
+### 🎬 Reproductor de video: gestos
+- **Deslizar en horizontal:** adelanta o atrasa con vista previa en vivo (`+0:15  1:23 / 45:00`). Un deslizamiento de lado a lado recorre 2 minutos (o el video entero si es más corto).
+- **Deslizar en vertical:** a la izquierda el **brillo**, a la derecha el **volumen**, con su porcentaje en pantalla.
+- **Mantener pulsado:** reproduce a **2×** mientras el dedo siga abajo; al soltar vuelve a la velocidad elegida.
+- **Pellizcar:** cambia entre **ajustar a la pantalla** y **llenar la pantalla**.
+- Siguen el toque (controles) y el doble toque (−10 s / pausa / +10 s).
+
+### ⌨️ Terminal: barra de teclas renovada
+- Ahora se ve como la barra del explorador y la del editor: mismo color (gris, negro en AMOLED, claro en el tema claro), teclas planas, iconos para flechas, Tab, borrar y teclado, y separadores entre grupos. Se acabaron las teclas con sombra y los colores sueltos. Ctrl/Alt se resaltan con el color de acento cuando están activos.
+
+### 📦 APK más ligero (−2,5 MB)
+- El APK publicado ya solo trae código nativo para **ARM** (todos los celulares). Se quitaron x86 y x86_64 (emuladores de PC y celulares Intel de 2014).
+
+### 🧾 Registro de cierres
+- Cuando Android cierra OpenManager **en segundo plano** para liberar memoria (algo normal, por ejemplo, mientras reproduces un video pesado en otra app), ya no se guarda como «cerrada inesperadamente». Solo se registra si pasa con la app en pantalla.
+
 # OpenManager v2.0.28: Barra de Desplazamiento sin Toques Accidentales, Filtro que Termina y Botón Salir
 
 ### 📜 Barra de desplazamiento rápido

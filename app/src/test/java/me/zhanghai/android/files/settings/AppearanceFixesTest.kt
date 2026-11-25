@@ -115,7 +115,12 @@ class AppearanceFixesTest {
     fun onlyAbnormalExitsAreReported() {
         assertTrue(ExitReasonLogger.isWorthReporting(6)) // ANR
         assertTrue(ExitReasonLogger.isWorthReporting(5)) // native crash
-        assertTrue(ExitReasonLogger.isWorthReporting(3)) // low memory
+        assertTrue(ExitReasonLogger.isWorthReporting(3)) // low memory while on screen
+        // Killed for memory while cached in the background (the user's report, importance 400):
+        // Android making room, not a failure.
+        assertFalse(ExitReasonLogger.isWorthReporting(3, 400))
+        assertTrue(ExitReasonLogger.isWorthReporting(3, 100))
+        assertTrue(ExitReasonLogger.isWorthReporting(6, 400)) // an ANR is always reported
         assertFalse(ExitReasonLogger.isWorthReporting(10)) // user requested
         assertFalse(ExitReasonLogger.isWorthReporting(1)) // exit self
         assertFalse(ExitReasonLogger.isWorthReporting(4)) // Java crash: CrashHandler logs it

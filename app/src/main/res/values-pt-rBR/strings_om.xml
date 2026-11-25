@@ -2499,4 +2499,10 @@
     <string name="om_editor_key_paste">Colar</string>
     <string name="om_editor_key_select_all">Selecionar tudo</string>
     <string name="om_sort_active">Selecionado</string>
+    <string name="om_term_key_backspace">Apagar</string>
+    <string name="om_term_key_keyboard">Mostrar ou ocultar o teclado</string>
+    <string name="om_video_brightness">Brilho %1$d%%</string>
+    <string name="om_video_volume">Volume %1$d%%</string>
+    <string name="om_video_fit">Ajustar à tela</string>
+    <string name="om_video_fill">Preencher a tela</string>
 </resources>

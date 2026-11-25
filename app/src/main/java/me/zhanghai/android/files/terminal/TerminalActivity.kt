@@ -795,21 +795,18 @@ class TerminalActivity : AppActivity() {
         terminalContainer.setBackgroundColor(canvasFrameBg)
         terminalView.setBackgroundColor(if (keepBlack || isAmoledChrome) Color.BLACK else 0xFF0D1117.toInt())
 
-        val extraDeckBg = when {
-            isLightChrome -> 0xFFEEF2F6.toInt()
-            isAmoledChrome -> 0xFF090C10.toInt()
-            else -> 0xFF10141C.toInt()
-        }
+        // The key bar takes the explorer's bottom-bar colors (gray / black / light), like the
+        // editor's symbol bar; the navigation bar under it continues it.
+        extraKeysView.applyTheme(appPalette, keepBlack)
         @Suppress("DEPRECATION")
         window.statusBarColor = appBarBg
         @Suppress("DEPRECATION")
-        window.navigationBarColor = extraDeckBg
+        window.navigationBarColor = extraKeysView.barColor
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = isLightChrome
             isAppearanceLightNavigationBars = isLightChrome
         }
 
-        extraKeysView.applyTheme(isLightChrome, isAmoledChrome, appPalette.accentColor)
         updatePredictiveEcho()
         renderSessionBadge()
     }

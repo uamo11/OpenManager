@@ -28,8 +28,18 @@ object ExitReasonLogger {
     private const val KEY_LAST_SEEN = "last_seen_timestamp"
     private const val MAX_TRACE_BYTES = 256 * 1024
 
-    /** Exits worth a report: the app did not close by itself or by the user. */
-    fun isWorthReporting(reason: Int): Boolean = reason in REPORTED_REASONS
+    /**
+     * Exits worth a report: the app did not close by itself or by the user. A kill for memory
+     * while OpenManager sat in the background (cached, importance 400) is Android's normal way of
+     * making room, not a failure: only kills while it was on screen or working are reported.
+     */
+    fun isWorthReporting(reason: Int, importance: Int = IMPORTANCE_FOREGROUND): Boolean =
+        reason in REPORTED_REASONS && (reason != REASON_LOW_MEMORY || importance <= IMPORTANCE_PERCEPTIBLE)
+
+    private const val REASON_LOW_MEMORY = 3
+    private const val IMPORTANCE_FOREGROUND = 100
+    // ActivityManager.RunningAppProcessInfo.IMPORTANCE_PERCEPTIBLE: playing audio, a service...
+    private const val IMPORTANCE_PERCEPTIBLE = 230
 
     private val REPORTED_REASONS = setOf(
         6, // REASON_ANR
@@ -70,7 +80,7 @@ object ExitReasonLogger {
             prefs.edit().putLong(KEY_LAST_SEEN, newest).apply()
             return
         }
-        val fresh = exits.filter { it.timestamp > lastSeen && isWorthReporting(it.reason) }
+        val fresh = exits.filter { it.timestamp > lastSeen && isWorthReporting(it.reason, it.importance) }
         prefs.edit().putLong(KEY_LAST_SEEN, maxOf(newest, lastSeen)).apply()
         if (fresh.isEmpty()) return
         val dir = CrashHandler.ensureLogsDirectory() ?: return

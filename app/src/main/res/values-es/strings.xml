@@ -3306,4 +3306,10 @@
     <string name="om_editor_key_paste">Pegar</string>
     <string name="om_editor_key_select_all">Seleccionar todo</string>
     <string name="om_sort_active">Seleccionado</string>
+    <string name="om_term_key_backspace">Borrar</string>
+    <string name="om_term_key_keyboard">Mostrar u ocultar el teclado</string>
+    <string name="om_video_brightness">Brillo %1$d%%</string>
+    <string name="om_video_volume">Volumen %1$d%%</string>
+    <string name="om_video_fit">Ajustar a la pantalla</string>
+    <string name="om_video_fill">Llenar la pantalla</string>
 </resources>

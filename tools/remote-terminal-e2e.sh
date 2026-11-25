@@ -162,6 +162,33 @@ else
 fi
 adb shell input keyevent KEYCODE_BACK; sleep 1
 
+# dominant_color <raw> <id>: most common color inside the view with that id (last dump).
+dominant_color() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$1" "$OUT/ui.xml" "$2" <<'PY2'
+import re, struct, sys, collections
+raw = open(sys.argv[1], "rb").read()
+w, h = struct.unpack("<II", raw[:8]); header = len(raw) - w * h * 4
+xml = open(sys.argv[2], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[3]), n):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups())
+        c = collections.Counter()
+        for y in range(y1, min(y2, h), 3):
+            for x in range(x1, min(x2, w), 3):
+                o = header + (y * w + x) * 4
+                c[(raw[o], raw[o + 1], raw[o + 2])] += 1
+        (r, g, b), _ = c.most_common(1)[0]
+        print(r, g, b); sys.exit(0)
+sys.exit(1)
+PY2
+}
+# The explorer's bottom bar, to compare the terminal's key bar with it later.
+adb shell am start -n "$MAIN" >/dev/null 2>&1; sleep 3
+adb exec-out screencap > "$OUT/explorer_bar.raw" 2>/dev/null
+explorer=$(dominant_color "$OUT/explorer_bar.raw" bottomBar || true)
+
 log "=== SSH: first connection must ask to verify the host key ==="
 clear_probe /tmp/om_ssh_probe /tmp/om_shortcut_probe /tmp/om_typed_probe
 demo remote_ssh
@@ -375,6 +402,20 @@ if pos=$(find_text "⋮"); then
     fi
 else
     fail "key deck has no ⋮ button"
+fi
+
+log "=== Key bar: the explorer's bar colors, flat keys (user report: AI-slop look) ==="
+shot 07f_key_bar
+adb exec-out screencap > "$OUT/keybar.raw" 2>/dev/null
+keybar=$(dominant_color "$OUT/keybar.raw" extraKeysView || true)
+log "      key bar color: ${keybar:-?}  explorer bottom bar: ${explorer:-?}"
+same=$(python3 -c "
+a='$keybar'.split(); b='$explorer'.split()
+print('yes' if len(a) == 3 and len(b) == 3 and max(abs(int(x) - int(y)) for x, y in zip(a, b)) <= 6 else 'no')")
+if [ "$same" = yes ]; then
+    pass "the terminal's key bar has the explorer's bottom-bar color"
+else
+    fail "the terminal's key bar does not match the explorer's bar (${keybar:-?} vs ${explorer:-?})"
 fi
 
 log "=== Switch the profile to key login from the session ==="
@@ -904,6 +945,74 @@ for clip in om_4k_h264.mp4 om_1080p_hevc.mp4; do
 done
 adb logcat -d > "$OUT/logcat_video.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_video.txt"; then fail "crash during video playback"; fi
+
+log "=== Video gestures: seek, volume, brightness, hold for 2x (user report: no gestures) ==="
+if [ -f /tmp/om_gestures_720p.mp4 ]; then
+    adb push /tmp/om_gestures_720p.mp4 /sdcard/Movies/om_gestures_720p.mp4 >/dev/null
+    adb logcat -c
+    adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
+        -a android.intent.action.VIEW -d "file:///sdcard/Movies/om_gestures_720p.mp4" -t video/mp4 >/dev/null
+    sleep 8
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    root=$(python3 - "$OUT/ui.xml" <<'PY2'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/videoRoot"', n):
+        print(" ".join(re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups())); break
+PY2
+)
+    if [ -n "$root" ]; then
+        read -r vx1 vy1 vx2 vy2 <<< "$root"
+        vw=$((vx2 - vx1)); vh=$((vy2 - vy1)); cy=$((vy1 + vh / 2))
+        log "      player area: ${vw}x${vh}"
+        # Horizontal drag over 40% of the width: about 48 s forward with a live preview.
+        adb shell input swipe $((vx1 + vw * 3 / 10)) $cy $((vx1 + vw * 7 / 10)) $cy 900; sleep 2
+        shot 12g_video_seek_gesture
+        # Right side up: volume; left side up: brightness.
+        adb shell media volume --stream 3 --set 3 >/dev/null 2>&1 || true
+        adb shell input swipe $((vx1 + vw * 4 / 5)) $((vy1 + vh * 3 / 4)) $((vx1 + vw * 4 / 5)) $((vy1 + vh / 4)) 700; sleep 2
+        adb shell input swipe $((vx1 + vw / 5)) $((vy1 + vh * 3 / 4)) $((vx1 + vw / 5)) $((vy1 + vh / 4)) 700; sleep 2
+        # Long press: 2x while held.
+        adb shell input swipe $((vx1 + vw / 2)) $((vy1 + vh * 3 / 4)) $((vx1 + vw / 2)) $((vy1 + vh * 3 / 4)) 2500; sleep 2
+        adb logcat -d -s OMVideoPlayer > "$OUT/video_gestures.log" 2>/dev/null || true
+        grep "Gesture" "$OUT/video_gestures.log" | sed 's/.*OMVideoPlayer: /      /' | tee -a "$REPORT" >/dev/null
+        seek=$(grep -m1 "Gesture seek" "$OUT/video_gestures.log" | sed 's/.*from=\([0-9]*\) to=\([0-9]*\).*/\1 \2/')
+        read -r sfrom sto <<< "${seek:-0 0}"
+        moved=$(( ${sto:-0} - ${sfrom:-0} ))
+        if [ "$moved" -ge 30000 ] && [ "$moved" -le 70000 ]; then
+            pass "a horizontal swipe seeks the video ($((moved / 1000)) s forward)"
+        else
+            fail "the horizontal swipe did not seek as expected (${seek:-no seek gesture})"
+        fi
+        vol=$(grep -m1 "Gesture volume" "$OUT/video_gestures.log" | sed 's/.*volume=\([0-9]*\)\/[0-9]* from=\([0-9]*\).*/\1 \2/')
+        read -r vnow vfrom <<< "${vol:-0 0}"
+        if [ -n "$vol" ] && [ "${vnow:-0}" -gt "${vfrom:-0}" ]; then
+            pass "swiping up on the right raises the volume ($vfrom -> $vnow)"
+        else
+            fail "swiping up on the right did not raise the volume (${vol:-no volume gesture})"
+        fi
+        bright=$(grep -m1 "Gesture brightness" "$OUT/video_gestures.log" | sed 's/.*brightness=\([0-9.]*\) from=\([0-9.]*\).*/\1 \2/')
+        if [ -n "$bright" ] && python3 -c "import sys; a, b = map(float, '$bright'.split()); sys.exit(0 if a > b + 0.2 else 1)"; then
+            pass "swiping up on the left raises the brightness ($bright)"
+        else
+            fail "swiping up on the left did not raise the brightness (${bright:-no brightness gesture})"
+        fi
+        if grep -q "Gesture speed hold 2.0" "$OUT/video_gestures.log" && grep -q "Gesture speed back 1.0" "$OUT/video_gestures.log"; then
+            pass "holding the finger plays at 2x and lifting it goes back to 1x"
+        else
+            fail "a long press did not play at 2x while held"
+        fi
+    else
+        fail "video gestures: the player did not open"
+    fi
+    adb logcat -d > "$OUT/logcat_gestures.txt" 2>/dev/null || true
+    if app_crashed "$OUT/logcat_gestures.txt"; then fail "crash while using the video gestures"; fi
+    adb shell am force-stop $PKG; sleep 1
+else
+    fail "missing test clip om_gestures_720p.mp4"
+fi
 
 log "=== Photos: a 12 MP camera photo uses tiles and keeps its EXIF rotation ==="
 for spec in "om_photo_12mp.jpg:TILES:90" "om_photo_small.jpg:BITMAP:0"; do

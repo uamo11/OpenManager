@@ -2493,4 +2493,10 @@
     <string name="om_editor_key_paste">粘贴</string>
     <string name="om_editor_key_select_all">全选</string>
     <string name="om_sort_active">已选择</string>
+    <string name="om_term_key_backspace">退格</string>
+    <string name="om_term_key_keyboard">显示或隐藏键盘</string>
+    <string name="om_video_brightness">亮度 %1$d%%</string>
+    <string name="om_video_volume">音量 %1$d%%</string>
+    <string name="om_video_fit">适应屏幕</string>
+    <string name="om_video_fill">填满屏幕</string>
 </resources>

@@ -3409,4 +3409,10 @@
     <string name="om_editor_key_paste">Paste</string>
     <string name="om_editor_key_select_all">Select all</string>
     <string name="om_sort_active">Selected</string>
+    <string name="om_term_key_backspace">Backspace</string>
+    <string name="om_term_key_keyboard">Show or hide the keyboard</string>
+    <string name="om_video_brightness">Brightness %1$d%%</string>
+    <string name="om_video_volume">Volume %1$d%%</string>
+    <string name="om_video_fit">Fit to screen</string>
+    <string name="om_video_fill">Fill the screen</string>
 </resources>

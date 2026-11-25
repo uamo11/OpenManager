@@ -2513,4 +2513,10 @@
     <string name="om_editor_key_paste">Вставить</string>
     <string name="om_editor_key_select_all">Выделить всё</string>
     <string name="om_sort_active">Выбрано</string>
+    <string name="om_term_key_backspace">Удалить символ</string>
+    <string name="om_term_key_keyboard">Показать или скрыть клавиатуру</string>
+    <string name="om_video_brightness">Яркость %1$d%%</string>
+    <string name="om_video_volume">Громкость %1$d%%</string>
+    <string name="om_video_fit">Вписать в экран</string>
+    <string name="om_video_fill">Заполнить экран</string>
 </resources>
