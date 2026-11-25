@@ -2773,6 +2773,81 @@ if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; e
 if grep -q "ANR in $PKG" "$OUT/logcat_editor.txt"; then fail "the text editor stopped responding (ANR)"; fi
 adb shell am force-stop $PKG; sleep 1
 
+log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
+python3 - "$OUT/om_many" <<'PY2'
+import os, struct, sys, zlib
+d = sys.argv[1]; os.makedirs(d, exist_ok=True)
+def png(seed):
+    raw = b"".join(b"\x00" + bytes(((x * 31 + y * 17 + seed) % 256, seed % 256, 128) * 1)[:3] * 1 * 1 + bytes(3 * 7) for y in range(8) for x in [0])
+    def chunk(t, data): return struct.pack(">I", len(data)) + t + data + struct.pack(">I", zlib.crc32(t + data) & 0xffffffff)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 8, 8, 8, 2, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+for i in range(1000):
+    open(os.path.join(d, "img_%04d.png" % i), "wb").write(png(i))
+PY2
+adb shell rm -rf /sdcard/Pictures/om_many
+adb push "$OUT/om_many" /sdcard/Pictures/ >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME light >/dev/null 2>&1; sleep 4
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.image.ImageViewerActivity \
+    --es DEMO_IMAGE_DIR /sdcard/Pictures/om_many >/dev/null 2>&1
+sleep 4
+if find_text "19/1,000" "19/1000" >/dev/null; then
+    pass "the image viewer opens 1,000 images at the 19th"
+else
+    fail "the image viewer did not open the 1,000 images at the 19th"
+fi
+# Light theme: the ⋮ menu of the viewer is readable (it was white text on a light background).
+if pos=$(find_text "More options" "Más opciones"); then
+    adb shell input tap $pos; sleep 2
+    shot 21c_image_viewer_menu_light
+    adb exec-out screencap > "$OUT/viewer_menu.raw" 2>/dev/null
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_viewer_menu.xml" 2>/dev/null
+    row=$(python3 - "$OUT/ui_viewer_menu.xml" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    t = re.search(r' text="([^"]*)"', n)
+    if t and html.unescape(t.group(1)) in ("Delete", "Eliminar", "删除"):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups())
+        print(x1 - 20, y1 - 10, x2 + 120, y2 + 10)
+        break
+PY2
+)
+    if [ -n "$row" ]; then
+        read -r sat dark light <<< "$(raw_stats "$OUT/viewer_menu.raw" $row)"
+        log "      viewer menu row (light theme): dark pixels=$dark light pixels=$light"
+        # Readable: a dark menu with light text (white on light had no dark pixels at all).
+        if [ "${dark:-0}" -gt "${light:-0}" ] && [ "${light:-0}" -ge 5 ]; then
+            pass "light theme: the image viewer's menu is readable"
+        else
+            fail "light theme: the image viewer's menu text is hard to read (dark=$dark light=$light)"
+        fi
+    else
+        fail "no Delete entry in the image viewer's menu"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+else
+    fail "no ⋮ in the image viewer"
+fi
+# To the background, as a screenshot does: the saved state stays small and nothing crashes.
+adb shell input keyevent KEYCODE_HOME; sleep 3
+state=$(adb logcat -d -s OMImageViewer 2>/dev/null | grep "Saved state bytes=" | tail -1 | grep -o "bytes=[0-9]*" | cut -d= -f2)
+adb logcat -d > "$OUT/logcat_viewer_many.txt" 2>/dev/null || true
+log "      saved state with 1,000 images: ${state:-?} bytes"
+if [ -n "$state" ] && [ "$state" -lt 100000 ] && ! grep -q "TransactionTooLarge" "$OUT/logcat_viewer_many.txt" \
+    && ! app_crashed "$OUT/logcat_viewer_many.txt"; then
+    pass "1,000 images: going to the background saves ${state} bytes, no crash"
+else
+    fail "1,000 images: saved state ${state:-?} bytes or TransactionTooLargeException"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/Pictures/om_many
+adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME dark >/dev/null 2>&1; sleep 3
+adb shell am force-stop $PKG; sleep 1
+
 log "=== HEX editor: a 60 MB file opens, searches, edits and saves (user report: 25 MB limit) ==="
 python3 - "$OUT/om_big.bin" <<'PY2'
 import os, sys

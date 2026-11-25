@@ -22,14 +22,12 @@ import androidx.viewpager2.widget.ViewPager2
 import dev.chrisbanes.insetter.applySystemWindowInsetsToPadding
 import java8.nio.file.Path
 import kotlinx.parcelize.Parcelize
-import kotlinx.parcelize.WriteWith
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.databinding.ImageViewerFragmentBinding
 import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.provider.common.delete
 import me.zhanghai.android.files.ui.DepthPageTransformer
 import me.zhanghai.android.files.util.ParcelableArgs
-import me.zhanghai.android.files.util.ParcelableListParceler
 import me.zhanghai.android.files.util.ParcelableState
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.createSendImageIntent
@@ -47,9 +45,17 @@ import java.io.IOException
 
 class ImageViewerFragment : Fragment(), ConfirmDeleteDialogFragment.Listener {
     private val args by args<Args>()
-    private val argsPaths by lazy { args.intent.extraPathList }
+    /**
+     * The folder's images come from the activity's intent, which the system already keeps. They
+     * used to be copied into the fragment's arguments and saved state too: with 1,000 images that
+     * state reached ~2 MB and Android closed the app when it went to the background (a screenshot
+     * was enough), with TransactionTooLargeException.
+     */
+    private val argsPaths by lazy { requireActivity().intent.extraPathList }
 
     private lateinit var paths: MutableList<Path>
+
+    private val removedUris = mutableListOf<String>()
 
     private lateinit var binding: ImageViewerFragmentBinding
 
@@ -60,7 +66,10 @@ class ImageViewerFragment : Fragment(), ConfirmDeleteDialogFragment.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        paths = (savedInstanceState?.getState<State>()?.paths ?: argsPaths).toMutableList()
+        // Only the deleted images are saved, as URIs: a few bytes instead of the whole list.
+        savedInstanceState?.getState<State>()?.removedUris?.let { removedUris += it }
+        val removed = savedInstanceState?.getState<State>()?.removedUris.orEmpty().toSet()
+        paths = argsPaths.filterNot { it.toUri().toString() in removed }.toMutableList()
 
         setHasOptionsMenu(true)
     }
@@ -134,7 +143,7 @@ class ImageViewerFragment : Fragment(), ConfirmDeleteDialogFragment.Listener {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
 
-        outState.putState(State(paths))
+        outState.putState(State(ArrayList(removedUris)))
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -169,6 +178,7 @@ class ImageViewerFragment : Fragment(), ConfirmDeleteDialogFragment.Listener {
             return
         }
         paths.removeAll(listOf(path))
+        removedUris += path.toUri().toString()
         if (paths.isEmpty()) {
             finish()
             return
@@ -210,8 +220,8 @@ class ImageViewerFragment : Fragment(), ConfirmDeleteDialogFragment.Listener {
         get() = paths[binding.viewPager.currentItem]
 
     @Parcelize
-    class Args(val intent: Intent, val position: Int) : ParcelableArgs
+    class Args(val position: Int) : ParcelableArgs
 
     @Parcelize
-    private class State(val paths: @WriteWith<ParcelableListParceler> List<Path>) : ParcelableState
+    private class State(val removedUris: ArrayList<String>) : ParcelableState
 }

@@ -1,3 +1,13 @@
+# OpenManager v2.0.31: AV1 4K60 más Fluido y Visor de Imágenes sin Cierres
+
+### 🎞️ Reproductor: 4K60 AV1 a ritmo parejo
+- Con la v2.0.30 un 4K60 AV1 en un Galaxy A07 pasó de 6,9 a ~26 fps, pero el procesador decodificaba 35 cuadros por segundo y unos 9 se tiraban por llegar tarde: el decodificador solo se saltaba los cuadros prescindibles mientras iba atrasado, se ponía al día, dejaba de saltar y volvía a atrasarse.
+- Ahora, cuando se atrasa (4 cuadros tarde seguidos), sigue saltándose los cuadros de los que no depende ningún otro durante 8 segundos: el video va a un ritmo parejo (≈30 de 60 fps) y todo lo que se decodifica se muestra a tiempo. Un teléfono que sí da abasto no cambia: un cuadro tarde suelto (al adelantar, un tirón) no lo activa.
+
+### 🖼️ Visor de imágenes
+- **Cierre al pasar a segundo plano:** al abrir una imagen de una carpeta o búsqueda con muchas imágenes (por ejemplo 1.000) y salir de la app o hacer una captura de pantalla, OpenManager se cerraba (`TransactionTooLargeException`): la lista de imágenes se guardaba dos veces en el estado de la pantalla (~2 MB). Ahora el estado solo guarda las imágenes borradas (unos bytes).
+- **Tema claro:** el menú ⋮ del visor (Eliminar, Compartir) tenía texto blanco sobre fondo claro. Ahora es oscuro, como el visor.
+
 # OpenManager v2.0.30: Editor HEX sin Límite de Tamaño y AV1 4K más Rápido
 
 ### 🔢 Editor HEX: archivos de cualquier tamaño

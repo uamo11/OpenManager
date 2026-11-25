@@ -75,6 +75,12 @@
         <item name="searchViewStyle">@style/Widget.AppCompat.SearchView</item>
     </style>
 
+    <!-- The image viewer's ⋮ menu: dark like the viewer. Its toolbar is dark in every theme, and on
+         the light theme the menu took the light background with the toolbar's white text. -->
+    <style name="ThemeOverlay.OpenManager.ImageViewerPopup" parent="ThemeOverlay.MaterialComponents.Dark">
+        <item name="colorControlNormal">?android:textColorSecondary</item>
+    </style>
+
     <!-- Main ⋮ menu: shorter rows and smaller text, so the long list is less overwhelming. -->
     <style name="ThemeOverlay.OpenManager.CompactPopupMenu" parent="">
         <item name="dropdownListPreferredItemHeight">42dp</item>

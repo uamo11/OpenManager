@@ -27,6 +27,6 @@
             android:layout_width="match_parent"
             android:layout_height="?actionBarSize"
             android:theme="?actionBarTheme"
-            app:popupTheme="?actionBarPopupTheme" />
+            app:popupTheme="@style/ThemeOverlay.OpenManager.ImageViewerPopup" />
     </FrameLayout>
 </FrameLayout>
