@@ -147,6 +147,7 @@
     <string-array name="pref_entry_values_max_lines_file_name">
         <item>1</item>
         <item>2</item>
+        <item>3</item>
     </string-array>
     <string name="pref_key_file_list_time_preference">key_file_list_time_preference</string>
     <string name="pref_default_value_file_list_time_preference">1</string>

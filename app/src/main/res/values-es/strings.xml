@@ -956,6 +956,7 @@
     <string-array name="settings_max_lines_file_name_entries">
         <item>1</item>
         <item>2</item>
+        <item>3</item>
     </string-array>
     <string name="settings_file_list_time_preference_title">Preferencia de hora en lista</string>
     <string-array name="settings_file_list_time_preference_entries">

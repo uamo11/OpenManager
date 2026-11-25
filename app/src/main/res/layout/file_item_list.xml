@@ -88,15 +88,36 @@
             android:textColor="#EAEAEA"
             android:textSize="13sp" />
 
-        <me.zhanghai.android.files.ui.AutoGoneTextView
-            android:id="@+id/descriptionText"
+        <!-- Date (and permissions) on the left, cut if needed; the size on the right, always
+             whole (in a narrow panel "26-11-25 08:20 494.8…" lost the size). -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:duplicateParentState="true"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="#888888"
-            android:textSize="11sp" />
+            android:orientation="horizontal">
+
+            <me.zhanghai.android.files.ui.AutoGoneTextView
+                android:id="@+id/descriptionText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:duplicateParentState="true"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="#888888"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/sizeText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:duplicateParentState="true"
+                android:maxLines="1"
+                android:textColor="#888888"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
     </LinearLayout>
 
     <!--

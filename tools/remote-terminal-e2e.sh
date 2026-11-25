@@ -2773,6 +2773,116 @@ if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; e
 if grep -q "ANR in $PKG" "$OUT/logcat_editor.txt"; then fail "the text editor stopped responding (ANR)"; fi
 adb shell am force-stop $PKG; sleep 1
 
+log "=== File names: 2 lines by default, size never cut, marquee on 1 line (user report) ==="
+long_name="youmo-0.6.3-voice-assistant-release-build-arm64-v8a-signed-final.apk"
+adb shell rm -rf /sdcard/om_names; adb shell mkdir -p /sdcard/om_names
+adb shell "dd if=/dev/zero of=/sdcard/om_names/$long_name bs=1024 count=495" >/dev/null 2>&1
+adb shell "echo x > /sdcard/om_names/short.txt"
+# name_box <xml> : height of the long name, the size text and its right edge, the panel's right edge
+name_box() {
+    python3 - "$1" "$long_name" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+nodes = re.findall(r"<node [^>]*>", xml)
+def b(n): return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+name = [b(n) for n in nodes if ':id/nameText"' in n and html.unescape(re.search(r' text="([^"]*)"', n).group(1)).startswith("youmo-0.6.3")]
+size = [(b(n), html.unescape(re.search(r' text="([^"]*)"', n).group(1))) for n in nodes if ':id/sizeText"' in n]
+size = [x for x in size if name and abs(x[0][1] - name[0][3]) < 120]
+if not name:
+    print("none"); sys.exit()
+n = name[0]
+sb, st = size[0] if size else ((0, 0, 0, 0), "")
+print(n[3] - n[1], n[0], n[2], st.replace(" ", "_") or "-", sb[2])
+PY2
+}
+set_name_prefs() {  # <max lines> <ellipsize value>
+    adb shell am force-stop $PKG; sleep 1
+    adb shell run-as $PKG cat /data/data/$PKG/shared_prefs/${PKG}_preferences.xml > "$OUT/prefs_names.xml" 2>/dev/null
+    python3 - "$OUT/prefs_names.xml" "$1" "$2" <<'PY2'
+import re, sys
+p, lines, ell = sys.argv[1:4]
+s = open(p, encoding="utf-8").read()
+if "<map" not in s:
+    s = "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>\n<map>\n</map>\n"
+for key, val in (("key_max_lines_file_name", lines), ("key_file_name_ellipsize", ell)):
+    s = re.sub(r'\s*<string name="%s">[^<]*</string>' % key, "", s)
+    s = s.replace("</map>", '    <string name="%s">%s</string>\n</map>' % (key, val))
+open(p, "w", encoding="utf-8").write(s)
+PY2
+    owner=$(adb shell su 0 stat -c %u:%g /data/data/$PKG/shared_prefs/${PKG}_preferences.xml 2>/dev/null | tr -d '\r')
+    adb push "$OUT/prefs_names.xml" /data/local/tmp/om_prefs.xml >/dev/null
+    adb shell su 0 cp /data/local/tmp/om_prefs.xml /data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+    [ -n "$owner" ] && adb shell su 0 chown "$owner" /data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+    adb shell su 0 chmod 660 /data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+}
+open_names() {
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+        --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_names" >/dev/null; sleep 5
+    wait_text 15 "short.txt" >/dev/null || true
+}
+set_name_prefs 2 2
+open_names
+shot 74_names_two_lines
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_names2.xml" 2>/dev/null
+two=$(name_box "$OUT/ui_names2.xml")
+set_name_prefs 1 2
+open_names
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_names1.xml" 2>/dev/null
+one=$(name_box "$OUT/ui_names1.xml")
+log "      long name, 2 lines: height/left/right/size/size right = $two; 1 line: $one"
+h2=$(echo "$two" | cut -d' ' -f1); h1=$(echo "$one" | cut -d' ' -f1)
+if [ "$two" != none ] && [ "$one" != none ] && python3 -c "import sys; sys.exit(0 if $h2 >= $h1 * 1.6 else 1)"; then
+    pass "the 'max lines of file name' setting shows a long name on 2 lines (it stayed on 1)"
+else
+    fail "a long file name still shows on one line with the 2-line setting ($two vs $one)"
+fi
+size2=$(echo "$two" | cut -d' ' -f4); sright=$(echo "$two" | cut -d' ' -f5); nright=$(echo "$two" | cut -d' ' -f3)
+if printf '%s' "$size2" | grep -qE "^[0-9.,]+_?(KB|kB|MB|B)$" && [ "${sright:-0}" -le "$(( ${nright:-0} + 2 ))" ]; then
+    pass "the size is shown whole on the right of the date (${size2//_/ })"
+else
+    fail "the file size is cut or missing (${size2:-none})"
+fi
+# Marquee on a single line: the name moves.
+set_name_prefs 1 3
+open_names
+read -r mh mx1 mx2 _ <<< "$(name_box "$OUT/ui_names1.xml")"
+my=$(python3 - "$OUT/ui_names1.xml" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    if ':id/nameText"' in n and 'youmo-0.6.3' in n:
+        print(re.search(r'bounds="\[\d+,(\d+)\]\[\d+,(\d+)\]"', n).groups()[0]); break
+PY2
+)
+sleep 2
+adb exec-out screencap > "$OUT/marquee_a.raw" 2>/dev/null
+sleep 1.5
+adb exec-out screencap > "$OUT/marquee_b.raw" 2>/dev/null
+moved=$(python3 - "$OUT/marquee_a.raw" "$OUT/marquee_b.raw" "${mx1:-0}" "${my:-0}" "${mx2:-0}" "${mh:-0}" <<'PY2'
+import struct, sys
+a = open(sys.argv[1], "rb").read(); b = open(sys.argv[2], "rb").read()
+w, h = struct.unpack("<II", a[:8]); hd = len(a) - w * h * 4
+x1, y1, x2, hh = (int(v) for v in sys.argv[3:7])
+diff = 0
+for y in range(y1, min(h, y1 + hh), 2):
+    for x in range(x1, min(w, x2), 2):
+        o = hd + (y * w + x) * 4
+        if abs(a[o] - b[o]) + abs(a[o + 1] - b[o + 1]) + abs(a[o + 2] - b[o + 2]) > 60: diff += 1
+print(diff)
+PY2
+)
+log "      marquee: $moved pixels changed in the name over 1.5 s"
+if [ "${moved:-0}" -gt 30 ]; then
+    pass "marquee: a long name scrolls on one line"
+else
+    fail "marquee: the long name does not scroll ($moved pixels changed)"
+fi
+set_name_prefs 2 2
+adb shell rm -rf /sdcard/om_names
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

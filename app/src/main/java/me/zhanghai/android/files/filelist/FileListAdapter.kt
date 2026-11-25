@@ -623,6 +623,7 @@ class FileListAdapter(
             }
             holder.nameText.text = ".."
             holder.descriptionText?.isVisible = false
+            holder.sizeText?.isVisible = false
             holder.iconImage.apply {
                 isVisible = true
                 if (holder.boundIconRes != R.drawable.file_parent_directory_icon) {
@@ -733,6 +734,9 @@ class FileListAdapter(
                 }
                 val baseDesc = if (isDirectory) {
                     if (appLabel != null) "$lastModificationTime  $appLabel" else lastModificationTime
+                } else if (holder.sizeText != null) {
+                    // The size has its own view on the right, so it is never the part cut off.
+                    lastModificationTime
                 } else {
                     val sizeStr = FileListEngine.formatCompactFileSize(attributes.size())
                     "$lastModificationTime  $sizeStr"
@@ -742,6 +746,15 @@ class FileListAdapter(
                     descriptionCache.put(file, formattedDesc)
                 }
                 descView.text = formattedDesc
+            }
+        }
+
+        holder.sizeText?.let { sizeView ->
+            if (isDirectory) {
+                sizeView.isVisible = false
+            } else {
+                sizeView.isVisible = true
+                sizeView.text = FileListEngine.formatCompactFileSize(attributes.size())
             }
         }
 
@@ -1066,6 +1079,7 @@ class FileListAdapter(
                 if (isParentDir) currentPalette.textSecondary else currentPalette.filePrimaryText
             )
             holder.descriptionText?.setTextColor(currentPalette.textSecondary)
+            holder.sizeText?.setTextColor(currentPalette.textSecondary)
             ImageViewCompat.setImageTintList(
                 holder.menuButton,
                 cachedSecondaryTintList ?: ColorStateList.valueOf(currentPalette.textSecondary)
@@ -1073,8 +1087,12 @@ class FileListAdapter(
         }
         holder.nameText.apply {
             val targetMaxLines = this@FileListAdapter.maxLines
-            if (maxLines != targetMaxLines) {
+            // The layout's singleLine="true" (needed for the marquee) kept every name on one line
+            // whatever the setting said; it has to be switched off for 2 or 3 lines.
+            if (holder.appliedMaxLines != targetMaxLines) {
+                setSingleLine(targetMaxLines == 1)
                 maxLines = targetMaxLines
+                holder.appliedMaxLines = targetMaxLines
             }
             if (targetMaxLines == 1) {
                 val targetEllipsize = if (
@@ -1103,7 +1121,20 @@ class FileListAdapter(
         }
         if (holder.descriptionText != null) {
             ensureDimensionsCached(holder.itemView.resources.displayMetrics)
-            updateViewSizeIfChanged(holder.itemLayout, height = cachedRowHeightPx)
+            // Several name lines need a taller row: the size setting's height becomes the minimum.
+            val multiLine = this.maxLines > 1
+            updateViewSizeIfChanged(
+                holder.itemLayout,
+                height = if (multiLine) ViewGroup.LayoutParams.WRAP_CONTENT else cachedRowHeightPx
+            )
+            holder.itemLayout.minimumHeight = cachedRowHeightPx
+            val verticalPadding = if (multiLine) (4 * holder.itemView.resources.displayMetrics.density).toInt() else 0
+            if (holder.itemLayout.paddingTop != verticalPadding) {
+                holder.itemLayout.setPadding(
+                    holder.itemLayout.paddingLeft, verticalPadding,
+                    holder.itemLayout.paddingRight, verticalPadding
+                )
+            }
             updateViewSizeIfChanged(
                 holder.iconLayout,
                 width = cachedIconContainerPx,
@@ -1120,6 +1151,9 @@ class FileListAdapter(
             }
             if (abs(holder.descriptionText.textSize - cachedDescPx) > 0.5f) {
                 holder.descriptionText.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedDescSp)
+            }
+            holder.sizeText?.let {
+                if (abs(it.textSize - cachedDescPx) > 0.5f) it.setTextSize(TypedValue.COMPLEX_UNIT_SP, cachedDescSp)
             }
         }
         holder.appliedStyleVersion = styleVersion
@@ -1174,7 +1208,8 @@ class FileListAdapter(
         val badgeImage: ImageView,
         val nameText: TextView,
         val descriptionText: TextView?,
-        val menuButton: ImageButton
+        val menuButton: ImageButton,
+        val sizeText: TextView? = null
     ) : RecyclerView.ViewHolder(root) {
         constructor(binding: FileItemListBinding) : this(
             binding.root,
@@ -1189,7 +1224,8 @@ class FileListAdapter(
             binding.badgeImage,
             binding.nameText,
             binding.descriptionText,
-            binding.menuButton
+            binding.menuButton,
+            binding.sizeText
         )
 
         constructor(binding: FileItemGridBinding) : this(
@@ -1217,6 +1253,7 @@ class FileListAdapter(
         var isParentItem: Boolean = false
         var appliedStyleVersion: Int = -1
         var appliedIsParentStyle: Boolean = false
+        var appliedMaxLines: Int = -1
         var boundIconRes: Int = 0
         var boundBadgeRes: Int = 0
         var hasActiveThumbnail: Boolean = false
