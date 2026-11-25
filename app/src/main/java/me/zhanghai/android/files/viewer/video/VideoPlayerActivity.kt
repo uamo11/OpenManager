@@ -819,7 +819,9 @@ class VideoPlayerActivity : AppActivity() {
             val counters = p.videoDecoderCounters
             Log.i(
                 TAG, "Summary decoder=$decoderName rendered=${counters?.renderedOutputBufferCount ?: 0} " +
-                    "dropped=${counters?.droppedBufferCount ?: 0} positionMs=${p.currentPosition}"
+                    "dropped=${counters?.droppedBufferCount ?: 0} skipped=${counters?.skippedOutputBufferCount ?: 0} " +
+                    "notDecoded=${androidx.media3.decoder.av1.Libdav1dVideoRenderer.skippedNonReferenceInputs} " +
+                    "positionMs=${p.currentPosition}"
             )
             val key = resumeKey
             if (key != null && p.duration != C.TIME_UNSET && p.playbackState != Player.STATE_ENDED) {

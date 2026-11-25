@@ -1018,7 +1018,7 @@ log "=== AV1 4K in software: Android's decoder vs our dav1d on every core (user 
 if [ -f /tmp/om_4k_av1.mp4 ]; then
     adb push /tmp/om_4k_av1.mp4 /sdcard/Movies/om_4k_av1.mp4 >/dev/null
     log "      emulator cores: $(adb shell nproc | tr -d '\r')"
-    for dec in system dav1d; do
+    for dec in system dav1d-noskip dav1d; do
         adb shell am force-stop $PKG; sleep 1
         adb logcat -c
         adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
@@ -1035,7 +1035,8 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
         position=$(echo "$summary" | grep -oE "positionMs=[0-9]+" | cut -d= -f2)
         fps=$(python3 -c "print(round(${rendered:-0} / max(${position:-0}, 1) * 1000, 1))")
         log "      $dec: decoder=${decoder:-none} ${summary:-no summary} -> ${fps} fps shown"
-        eval "fps_$dec=$fps; dec_$dec='${decoder:-}'"
+        var=${dec//-/_}
+        eval "fps_$var=$fps; dec_$var='${decoder:-}'"
     done
     if printf '%s' "$dec_dav1d" | grep -q "libdav1d"; then
         pass "AV1 without a hardware decoder plays with our dav1d ($dec_dav1d)"
@@ -1046,6 +1047,12 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
         pass "4K AV1: our dav1d shows more frames than Android's decoder ($fps_dav1d vs $fps_system fps)"
     else
         fail "4K AV1: our dav1d is not clearly faster ($fps_dav1d vs $fps_system fps)"
+    fi
+    # Not decoding late frames nothing depends on: the decoder keeps up, so far more are shown.
+    if python3 -c "import sys; sys.exit(0 if $fps_dav1d >= 24 or $fps_dav1d >= $fps_dav1d_noskip * 1.5 else 1)"; then
+        pass "4K AV1: skipping late non-reference frames shows more frames ($fps_dav1d vs $fps_dav1d_noskip fps)"
+    else
+        fail "4K AV1: skipping late non-reference frames did not help ($fps_dav1d vs $fps_dav1d_noskip fps)"
     fi
     adb logcat -d > "$OUT/logcat_av1.txt" 2>/dev/null || true
     if app_crashed "$OUT/logcat_av1.txt"; then fail "crash while playing 4K AV1"; fi

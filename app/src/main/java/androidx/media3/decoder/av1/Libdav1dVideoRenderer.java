@@ -27,6 +27,7 @@ import androidx.media3.common.util.TraceUtil;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.common.util.Util;
 import androidx.media3.decoder.CryptoConfig;
+import androidx.media3.decoder.DecoderInputBuffer;
 import androidx.media3.decoder.VideoDecoderOutputBuffer;
 import androidx.media3.exoplayer.DecoderReuseEvaluation;
 import androidx.media3.exoplayer.RendererCapabilities;
@@ -66,6 +67,18 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
   private final int numOutputBuffers;
 
   private final int threads;
+
+  // OpenManager: when the decoder falls behind, AV1 frames nothing depends on are not decoded at
+  // all (like MediaCodecVideoRenderer does for hardware decoders). Decoding them only to drop
+  // them late was most of the work: a 4K clip showed 6 fps out of 27 decoded.
+  private static final long LATE_THRESHOLD_TO_SKIP_INPUT_US = 15_000;
+  private final androidx.media3.exoplayer.video.Av1SampleDependencyParser av1Parser =
+      new androidx.media3.exoplayer.video.Av1SampleDependencyParser();
+  private long lastOutputEarlyUs;
+  /** Frames not decoded because they were late and not depended on (debug statistics). */
+  public static volatile long skippedNonReferenceInputs;
+  /** Debug comparisons on the emulator can turn the skipping off. */
+  public static volatile boolean skipLateNonReferenceFrames = true;
 
   private final int maxFrameDelay;
 
@@ -188,6 +201,38 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
       decoder.renderToSurface(outputBuffer, surface);
     } finally {
       outputBuffer.release();
+    }
+  }
+
+  @Override
+  protected boolean shouldDropOutputBuffer(long earlyUs, long elapsedRealtimeUs) {
+    lastOutputEarlyUs = earlyUs;
+    return super.shouldDropOutputBuffer(earlyUs, elapsedRealtimeUs);
+  }
+
+  @Override
+  protected void onQueueInputBuffer(DecoderInputBuffer buffer) {
+    super.onQueueInputBuffer(buffer);
+    if (buffer.data == null) {
+      return;
+    }
+    if (buffer.isKeyFrame()) {
+      // Key frames carry the sequence header the parser needs.
+      av1Parser.queueInputBuffer(buffer.data);
+      return;
+    }
+    if (!skipLateNonReferenceFrames
+        || lastOutputEarlyUs > -LATE_THRESHOLD_TO_SKIP_INPUT_US
+        || buffer.isLastSample()
+        || buffer.hasSupplementalData()) {
+      return;
+    }
+    java.nio.ByteBuffer sample = buffer.data.asReadOnlyBuffer();
+    // Only whole samples: a partly skipped one would still output no frame for its input.
+    if (av1Parser.sampleLimitAfterSkippingNonReferenceFrame(sample, /* skipFrameHeaders= */ true)
+        == sample.position()) {
+      buffer.addFlag(C.BUFFER_FLAG_NOT_DEPENDED_ON);
+      skippedNonReferenceInputs++;
     }
   }
 

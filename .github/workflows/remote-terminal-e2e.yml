@@ -160,6 +160,8 @@ jobs:
         target: default
         arch: x86_64
         profile: pixel_6
+        # The runner has 4 cores; software video decoding (AV1 4K) scales with them.
+        cores: 4
         disable-animations: true
         emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio
         script: bash tools/remote-terminal-e2e.sh

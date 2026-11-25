@@ -379,6 +379,15 @@ public final class Dav1dDecoder
           }
         }
       }
+    } else if (inputBuffer.notDependedOn()) {
+      // OpenManager: a late frame nothing depends on (see Libdav1dVideoRenderer): not decoded.
+      // It still counts as one skipped output, so the renderer's count of frames in the decoder
+      // stays right.
+      releaseInputBuffer(inputBuffer);
+      synchronized (lock) {
+        skippedOutputBufferCount++;
+        releaseOutputBufferInternal(outputBuffer);
+      }
     } else {
       @C.BufferFlags int flags = 0;
       boolean decodeOnly = false;

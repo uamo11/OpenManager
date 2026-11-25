@@ -50,11 +50,21 @@ object Av1SoftwareDecoder {
 
     fun shouldUse(): Boolean = when (debugOverride) {
         "system" -> false
-        "dav1d" -> Dav1dLibrary.isAvailable()
+        "dav1d", "dav1d-noskip" -> Dav1dLibrary.isAvailable()
         else -> !hasHardwareDecoder && Dav1dLibrary.isAvailable()
     }
 
     fun createRenderer(
+        allowedJoiningTimeMs: Long,
+        eventHandler: Handler,
+        eventListener: VideoRendererEventListener
+    ): Renderer {
+        Libdav1dVideoRenderer.skippedNonReferenceInputs = 0
+        Libdav1dVideoRenderer.skipLateNonReferenceFrames = debugOverride != "dav1d-noskip"
+        return newRenderer(allowedJoiningTimeMs, eventHandler, eventListener)
+    }
+
+    private fun newRenderer(
         allowedJoiningTimeMs: Long,
         eventHandler: Handler,
         eventListener: VideoRendererEventListener
