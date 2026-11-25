@@ -19,6 +19,9 @@
 - **C y C++ por separado:** cada uno con sus palabras clave (C++ añade clases, plantillas, `nullptr`, conversiones…). `.c`/`.h` abren como C; `.cpp`, `.hpp`, `.cc`, `.ino`… como C++.
 - **Cambiar la sintaxis recolorea el texto** al momento (comprobado: de Texto plano a Java en el emulador).
 
+### ⚙️ Ajustes
+- Los últimos ajustes (Idioma…) quedaban medio tapados por la barra de navegación del sistema y costaba tocarlos: la lista ahora deja ese espacio y se pueden subir por encima.
+
 ### ✔️ Ordenar y vista
 - El criterio activo (Nombre, Tipo, Tamaño o Fecha) lleva una **marca ✓** y va en negrita; también se marcan «Invertir orden» y «Carpetas primero» cuando están activos.
 

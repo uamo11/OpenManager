@@ -342,6 +342,19 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             } else {
                 (itemAnimator as? SimpleItemAnimator)?.supportsChangeAnimations = false
             }
+            // The last settings (Language…) ended under the system navigation bar, half hidden
+            // and hard to tap: the list scrolls them above it.
+            clipToPadding = false
+            val basePadding = paddingBottom
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(this) { v, insets ->
+                val bottom = insets.getInsets(
+                    androidx.core.view.WindowInsetsCompat.Type.navigationBars() or
+                        androidx.core.view.WindowInsetsCompat.Type.ime()
+                ).bottom
+                v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, basePadding + bottom)
+                insets
+            }
+            androidx.core.view.ViewCompat.requestApplyInsets(this)
         }
         val palette = OpenManagerPalette.from(requireContext())
         if (!palette.isDark || palette.isAmoled) {
