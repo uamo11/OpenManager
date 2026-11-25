@@ -166,11 +166,11 @@ dialog#viewer img { border-radius: 22px; max-height: 92vh; max-height: 92dvh; wi
 
 /* Phones in landscape: little height, so smaller phone frames and the hero side by side. */
 @media (orientation: landscape) and (max-height: 520px) {
-  .hero-in { grid-template-columns: 1.4fr .6fr; gap: 28px; }
+  .hero-in { grid-template-columns: 1.4fr .6fr; gap: 28px; align-items: start; }
   .two { grid-template-columns: 1fr 200px; gap: 28px; }
   #ajustes .two { grid-template-columns: 200px 1fr; }
   /* The whole phone fits the short screen: its height follows the viewport height. */
-  .phone, .hero-phone { width: min(200px, 100%, calc((100vh - 110px) * .45 + 20px)); width: min(200px, 100%, calc((100dvh - 110px) * .45 + 20px)); }
+  .phone, .hero-phone { width: min(200px, 100%, calc((100vh - 150px) * .45 + 20px)); width: min(200px, 100%, calc((100dvh - 150px) * .45 + 20px)); }
   .hero { padding: 24px 0; }
   .sec { padding: 40px 0; }
   .strip { grid-auto-columns: 170px; }
