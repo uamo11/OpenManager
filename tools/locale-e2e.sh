@@ -39,11 +39,21 @@ wait_contains() {
     while [ $SECONDS -lt $end ]; do pos=$(find_contains "$@") && { echo "$pos"; return 0; }; sleep 1; done
     return 1
 }
-# scroll_to <max swipes> <label>...: swipes up until a label is on screen.
+# scroll_to <max swipes> <label>...: swipes up until a label is on screen, away from the bottom
+# edge (a label half under the navigation bar used to get a tap that hit the bar).
 scroll_to() {
     local max=$1; shift
+    local height
+    height=$(adb shell wm size | grep -o "[0-9]*x[0-9]*" | tail -1 | cut -dx -f2)
+    height=${height:-2400}
     for _ in $(seq 1 "$max"); do
-        pos=$(find_contains "$@") && { echo "$pos"; return 0; }
+        if pos=$(find_contains "$@"); then
+            y=${pos#* }
+            if [ "$y" -lt $((height - 400)) ]; then echo "$pos"; return 0; fi
+            # Visible but too low: a short swipe brings it up.
+            adb shell input swipe 540 1600 540 1100 300; sleep 1
+            continue
+        fi
         adb shell input swipe 540 1800 540 700 250; sleep 1
     done
     find_contains "$@"
