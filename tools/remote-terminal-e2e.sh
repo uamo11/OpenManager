@@ -1014,6 +1014,46 @@ else
     fail "missing test clip om_gestures_720p.mp4"
 fi
 
+log "=== AV1 4K in software: Android's decoder vs our dav1d on every core (user report: 6 fps) ==="
+if [ -f /tmp/om_4k_av1.mp4 ]; then
+    adb push /tmp/om_4k_av1.mp4 /sdcard/Movies/om_4k_av1.mp4 >/dev/null
+    log "      emulator cores: $(adb shell nproc | tr -d '\r')"
+    for dec in system dav1d; do
+        adb shell am force-stop $PKG; sleep 1
+        adb logcat -c
+        adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
+            -a android.intent.action.VIEW -d "file:///sdcard/Movies/om_4k_av1.mp4" -t video/mp4 \
+            --es DEMO_AV1_DECODER $dec >/dev/null
+        sleep 16
+        shot "12h_av1_4k_$dec"
+        adb shell input keyevent KEYCODE_HOME; sleep 2
+        adb logcat -d -s OMVideoPlayer > "$OUT/av1_$dec.log" 2>/dev/null || true
+        adb logcat -d | grep -iE "dav1d|FATAL EXCEPTION" | head -20 >> "$OUT/av1_$dec.log" || true
+        decoder=$(grep -m1 "Video decoder:" "$OUT/av1_$dec.log" | sed 's/.*Video decoder: //')
+        summary=$(grep "Summary decoder=" "$OUT/av1_$dec.log" | tail -n1 | sed 's/.*Summary //')
+        rendered=$(echo "$summary" | grep -oE "rendered=[0-9]+" | cut -d= -f2)
+        position=$(echo "$summary" | grep -oE "positionMs=[0-9]+" | cut -d= -f2)
+        fps=$(python3 -c "print(round(${rendered:-0} / max(${position:-0}, 1) * 1000, 1))")
+        log "      $dec: decoder=${decoder:-none} ${summary:-no summary} -> ${fps} fps shown"
+        eval "fps_$dec=$fps; dec_$dec='${decoder:-}'"
+    done
+    if printf '%s' "$dec_dav1d" | grep -q "libdav1d"; then
+        pass "AV1 without a hardware decoder plays with our dav1d ($dec_dav1d)"
+    else
+        fail "our dav1d did not decode the AV1 clip (${dec_dav1d:-no decoder})"
+    fi
+    if python3 -c "import sys; sys.exit(0 if $fps_dav1d >= max($fps_system * 1.3, $fps_system + 3) else 1)"; then
+        pass "4K AV1: our dav1d shows more frames than Android's decoder ($fps_dav1d vs $fps_system fps)"
+    else
+        fail "4K AV1: our dav1d is not clearly faster ($fps_dav1d vs $fps_system fps)"
+    fi
+    adb logcat -d > "$OUT/logcat_av1.txt" 2>/dev/null || true
+    if app_crashed "$OUT/logcat_av1.txt"; then fail "crash while playing 4K AV1"; fi
+    adb shell am force-stop $PKG; sleep 1
+else
+    fail "missing test clip om_4k_av1.mp4"
+fi
+
 log "=== Photos: a 12 MP camera photo uses tiles and keeps its EXIF rotation ==="
 for spec in "om_photo_12mp.jpg:TILES:90" "om_photo_small.jpg:BITMAP:0"; do
     name=${spec%%:*}; rest=${spec#*:}; want_mode=${rest%%:*}; want_rot=${rest#*:}

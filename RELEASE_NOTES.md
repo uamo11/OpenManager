@@ -7,6 +7,11 @@
 - **Pellizcar:** cambia entre **ajustar a la pantalla** y **llenar la pantalla**.
 - Siguen el toque (controles) y el doble toque (−10 s / pausa / +10 s).
 
+### 🎞️ AV1 en 4K sin decodificador por hardware
+- Los teléfonos sin decodificador AV1 por hardware (como el Galaxy A07) decodificaban AV1 con el decodificador de Android, que **usa solo la mitad de los núcleos**: un video AV1 en 4K iba a unos 6 fps. Ahora OpenManager trae su propio **dav1d 1.5.5** (el decodificador AV1 más rápido que existe) usando **todos los núcleos** y varios cuadros en paralelo.
+- Si el teléfono sí tiene decodificador AV1 por hardware, se sigue usando ese (es más rápido y gasta menos batería).
+- Solo para 64 bits (ARM64); añade ~0,9 MB, compensados de sobra por el recorte de x86.
+
 ### ⌨️ Terminal: barra de teclas renovada
 - Ahora se ve como la barra del explorador y la del editor: mismo color (gris, negro en AMOLED, claro en el tema claro), teclas planas, iconos para flechas, Tab, borrar y teclado, y separadores entre grupos. Se acabaron las teclas con sombra y los colores sueltos. Ctrl/Alt se resaltan con el color de acento cuando están activos.
 
