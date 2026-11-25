@@ -168,21 +168,45 @@ enum class SyntaxLanguage(
         commentBlockStart = "/*",
         commentBlockEnd = "*/"
     ),
-    C_CPP(
-        "C / C++",
-        listOf("c", "cpp", "cc", "cxx", "h", "hpp"),
+    C(
+        "C",
+        listOf("c", "h"),
         keywords = setOf(
             "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
             "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
             "register", "restrict", "return", "short", "signed", "sizeof", "static", "struct",
             "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
+            "_Bool", "_Complex", "_Alignas", "_Alignof", "_Atomic", "_Generic", "_Noreturn",
+            "_Static_assert", "_Thread_local", "NULL", "true", "false", "bool"
+        ),
+        types = setOf(
+            "size_t", "ssize_t", "ptrdiff_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+            "int8_t", "int16_t", "int32_t", "int64_t", "uintptr_t", "intptr_t", "FILE", "va_list"
+        ),
+        commentLine = "//",
+        commentBlockStart = "/*",
+        commentBlockEnd = "*/"
+    ),
+    CPP(
+        "C++",
+        listOf("cpp", "cc", "cxx", "c++", "hpp", "hh", "hxx", "h++", "ino", "ipp", "tpp"),
+        keywords = setOf(
+            "auto", "break", "case", "char", "const", "continue", "default", "do", "double",
+            "else", "enum", "extern", "float", "for", "goto", "if", "inline", "int", "long",
+            "register", "return", "short", "signed", "sizeof", "static", "struct",
+            "switch", "typedef", "union", "unsigned", "void", "volatile", "while",
             "class", "public", "private", "protected", "virtual", "friend", "template", "typename",
             "this", "new", "delete", "throw", "try", "catch", "namespace", "using", "operator",
-            "nullptr", "constexpr", "decltype", "override", "final", "static_assert"
+            "nullptr", "constexpr", "consteval", "constinit", "decltype", "override", "final",
+            "static_assert", "noexcept", "mutable", "explicit", "export", "concept", "requires",
+            "co_await", "co_return", "co_yield", "static_cast", "dynamic_cast", "const_cast",
+            "reinterpret_cast", "alignas", "alignof", "thread_local", "bool", "true", "false"
         ),
         types = setOf(
             "size_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t", "int8_t", "int16_t", "int32_t",
-            "int64_t", "string", "vector", "map", "set", "shared_ptr", "unique_ptr"
+            "int64_t", "string", "string_view", "vector", "map", "unordered_map", "set",
+            "unordered_set", "array", "pair", "tuple", "optional", "variant", "shared_ptr",
+            "unique_ptr", "weak_ptr", "std"
         ),
         commentLine = "//",
         commentBlockStart = "/*",

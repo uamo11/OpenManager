@@ -61,6 +61,7 @@ class OmCodeLanguage(
                 !FastSyntaxScanner.isWithinHighlightLimit(text.length, isLive = true)
             ) {
                 builder.addNormalIfNull()
+                debugLog(0, text.length)
                 return Styles(builder.build())
             }
             val tokens = FastSyntaxScanner.scan(text, language, theme)
@@ -92,7 +93,14 @@ class OmCodeLanguage(
             }
             advance(text.length)
             builder.determine(line)
+            debugLog(sorted.size, text.length)
             return Styles(builder.build())
+        }
+    }
+
+    private fun debugLog(tokens: Int, chars: Int) {
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            android.util.Log.d("OMEditor", "analyzed lang=$language tokens=$tokens chars=$chars")
         }
     }
 

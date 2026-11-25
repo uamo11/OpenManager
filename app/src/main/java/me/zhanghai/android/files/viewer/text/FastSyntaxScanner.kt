@@ -350,7 +350,7 @@ object FastSyntaxScanner {
                 tokens.add(SyntaxToken(start, i, colorAnnotation))
                 continue
             }
-            if ((language == SyntaxLanguage.C_CPP) && c == '#') {
+            if ((language == SyntaxLanguage.C || language == SyntaxLanguage.CPP) && c == '#') {
                 val start = i
                 i++
                 while (i < len && text[i].isLetter()) {

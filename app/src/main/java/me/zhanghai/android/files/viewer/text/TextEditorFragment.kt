@@ -237,6 +237,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
         // Load saved preferences
         val ctx = requireContext()
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            // E2E: open the editor in a given color theme.
+            requireActivity().intent.getStringExtra("DEMO_EDITOR_THEME")?.let {
+                TextEditorSettings.setTheme(ctx, EditorTheme.fromId(it))
+            }
+        }
         currentTheme = TextEditorSettings.getTheme(ctx)
         applyTheme(currentTheme)
 
@@ -540,6 +546,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.searchPanel.setBackgroundColor(theme.gutterColor)
         recolorChrome(binding.editorStatusStrip, theme)
         recolorChrome(binding.symbolBar, theme)
+        tintSymbolKeys(theme)
         recolorChrome(binding.searchPanel, theme)
         if (view != null) updateSubtitle()
         try {
@@ -588,6 +595,23 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     /** Language names are universal except plain text, which is translated. */
     private fun syntaxName(language: SyntaxLanguage): String =
         if (language == SyntaxLanguage.PLAIN_TEXT) getString(R.string.om_syntax_plain_text) else language.displayName
+
+    /**
+     * The symbol keys had a fixed dark background: on the light theme their (now dark) symbols
+     * were invisible. The key color follows the editor theme, a step away from the bar color.
+     */
+    private fun tintSymbolKeys(theme: EditorTheme) {
+        val bar = theme.gutterColor
+        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(bar) < 0.5
+        val key = androidx.core.graphics.ColorUtils.blendARGB(
+            bar, if (dark) Color.WHITE else Color.BLACK, if (dark) 0.07f else 0.09f
+        )
+        val tint = android.content.res.ColorStateList.valueOf(key)
+        val container = binding.symbolContainer
+        for (i in 0 until container.childCount) {
+            ViewCompat.setBackgroundTintList(container.getChildAt(i), tint)
+        }
+    }
 
     /** "Untitled" for a new document, else the file name. */
     private fun displayName(): String =
@@ -1392,6 +1416,19 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
         menuBinding = MenuBinding.inflate(menu, inflater)
+        // The ⋮ menu shows its icons, in the menu's own text color (visible on light and dark).
+        (menu as? androidx.appcompat.view.menu.MenuBuilder)?.setOptionalIconsVisible(true)
+        val iconColor = com.google.android.material.color.MaterialColors.getColor(
+            requireContext(), androidx.appcompat.R.attr.colorControlNormal, Color.GRAY
+        )
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            if (item.itemId in TOOLBAR_ITEMS) continue
+            val icon = item.icon ?: continue
+            item.icon = androidx.core.graphics.drawable.DrawableCompat.wrap(icon.mutate()).also {
+                androidx.core.graphics.drawable.DrawableCompat.setTint(it, iconColor)
+            }
+        }
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
@@ -1847,6 +1884,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private companion object {
         // Above this size word wrap is laid out in the background.
         const val LONG_TEXT_CHARS = 100_000
+
+        // Items shown on the toolbar itself keep the toolbar's icon color.
+        val TOOLBAR_ITEMS = setOf(
+            R.id.action_save, R.id.action_undo, R.id.action_redo, R.id.action_search,
+            R.id.action_toggle_edit
+        )
     }
 
     @Parcelize

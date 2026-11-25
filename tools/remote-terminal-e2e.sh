@@ -2111,6 +2111,130 @@ else
 fi
 adb shell am force-stop $PKG; sleep 1
 
+# raw_stats <raw screencap> <x1> <y1> <x2> <y2>: "saturated dark light" pixel counts in a box.
+raw_stats() {
+    python3 - "$@" <<'PY'
+import struct, sys
+raw = open(sys.argv[1], "rb").read()
+w, h = struct.unpack("<II", raw[:8])
+header = len(raw) - w * h * 4
+x1, y1, x2, y2 = (int(v) for v in sys.argv[2:6])
+sat = dark = light = 0
+for y in range(max(0, y1), min(h, y2), 2):
+    for x in range(max(0, x1), min(w, x2), 2):
+        o = header + (y * w + x) * 4
+        r, g, b = raw[o], raw[o + 1], raw[o + 2]
+        mx, mn = max(r, g, b), min(r, g, b)
+        if mx > 60 and (mx - mn) > 70: sat += 1
+        lum = 0.299 * r + 0.587 * g + 0.114 * b
+        if lum < 90: dark += 1
+        if lum > 200: light += 1
+print(sat, dark, light)
+PY
+}
+
+log "=== Text editor: changing the syntax recolors the text ==="
+cat > "$OUT/om_code.txt" <<'JAVA'
+public class Hello {
+    // A comment that turns gray
+    private static final String NAME = "OpenManager";
+    public static void main(String[] args) {
+        int count = 42;
+        for (int i = 0; i < count; i++) {
+            System.out.println(NAME + " " + i);
+        }
+        return;
+    }
+}
+JAVA
+adb push "$OUT/om_code.txt" /sdcard/om_editor_test/om_code.txt >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" \
+    --es DEMO_EDITOR_THEME one_dark >/dev/null
+sleep 4
+adb exec-out screencap > "$OUT/syntax_before.raw" 2>/dev/null
+read -r ex1 ey1 <<< "$(node_center_by_id codeEditor)"
+if pos=$(node_center_by_id statusSyntaxText); then
+    adb shell input tap $pos; sleep 2
+    pos=$(find_text "Java") && adb shell input tap $pos
+    sleep 4
+    adb exec-out screencap > "$OUT/syntax_after.raw" 2>/dev/null
+    shot 66_editor_syntax_java
+    before=$(raw_stats "$OUT/syntax_before.raw" 0 300 1080 1300)
+    after=$(raw_stats "$OUT/syntax_after.raw" 0 300 1080 1300)
+    analyzed=$(adb logcat -d -s OMEditor 2>/dev/null | grep "analyzed lang=JAVA" | tail -1 | sed 's/.*OMEditor: //')
+    log "      colored pixels plain text: ${before%% *} -> Java: ${after%% *} (${analyzed:-no JAVA analysis})"
+    if [ "${after%% *}" -gt $(( ${before%% *} + 300 )) ]; then
+        pass "switching the syntax from Plain text to Java colors the code"
+    else
+        fail "switching the syntax to Java did not color the code"
+    fi
+else
+    fail "no syntax button in the editor's status bar"
+fi
+
+log "=== Text editor: the symbol bar is readable on the light theme (user report) ==="
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" \
+    --es DEMO_EDITOR_THEME light >/dev/null
+sleep 4
+shot 67_editor_light_symbols
+adb exec-out screencap > "$OUT/light_symbols.raw" 2>/dev/null
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+tab=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    t = re.search(r' text="([^"]*)"', n)
+    if t and html.unescape(t.group(1)) == "TAB":
+        print(" ".join(re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+        break
+PY
+)
+if [ -n "$tab" ]; then
+    read -r tx1 ty1 tx2 ty2 <<< "$tab"
+    stats=$(raw_stats "$OUT/light_symbols.raw" $tx1 $ty1 $tx2 $ty2)
+    read -r s_sat s_dark s_light <<< "$stats"
+    log "      TAB key on the light theme: dark pixels=$s_dark light pixels=$s_light"
+    # A light key with dark text: mostly light pixels, and some dark ones (the label).
+    if [ "$s_light" -gt "$s_dark" ] && [ "$s_dark" -gt 5 ]; then
+        pass "light theme: symbol keys are light with dark, visible symbols"
+    else
+        fail "light theme: symbol keys are not readable (dark=$s_dark light=$s_light)"
+    fi
+else
+    fail "no TAB key found in the symbol bar"
+fi
+# The ⋮ menu of the editor shows an icon on every entry.
+if pos=$(find_text "More options" "Más opciones"); then
+    adb shell input tap $pos; sleep 2
+    shot 68_editor_menu_icons
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    icons=$(grep -o 'resource-id="[^"]*:id/icon"[^>]*bounds="\[[0-9]*,[0-9]*\]\[[0-9]*,[0-9]*\]"' "$OUT/ui.xml" | grep -vc 'bounds="\[0,0\]\[0,0\]"' || true)
+    rows=$(grep -o 'resource-id="[^"]*:id/title"' "$OUT/ui.xml" | wc -l | tr -d ' ')
+    log "      editor ⋮ menu: $icons icons for $rows entries"
+    if [ "${icons:-0}" -ge 8 ] && [ "${icons:-0}" -ge $(( ${rows:-0} - 1 )) ]; then
+        pass "the editor's ⋮ menu shows an icon on each entry"
+    else
+        fail "the editor's ⋮ menu has entries without icons ($icons of $rows)"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+else
+    fail "no ⋮ button in the editor"
+fi
+# Back to the default editor theme for the rest of the run.
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" \
+    --es DEMO_EDITOR_THEME one_dark >/dev/null
+sleep 3
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Text editor: big file, line numbers and typing stay right ==="
 python3 - "$OUT/om_big.txt" <<'PY'
 import sys
