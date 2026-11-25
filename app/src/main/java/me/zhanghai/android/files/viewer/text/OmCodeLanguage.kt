@@ -71,10 +71,12 @@ class OmCodeLanguage(
             var line = 0
             var lineStart = 0
             var pos = 0
+            // Lines as the editor counts them: a lone '\r' also ends a line ('\r\n' is one break).
             fun advance(to: Int) {
                 val target = to.coerceAtMost(text.length)
                 while (pos < target) {
-                    if (text[pos] == '\n') {
+                    val c = text[pos]
+                    if (c == '\n' || (c == '\r' && (pos + 1 >= text.length || text[pos + 1] != '\n'))) {
                         line++
                         lineStart = pos + 1
                     }
