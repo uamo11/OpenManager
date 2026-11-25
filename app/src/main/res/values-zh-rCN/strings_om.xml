@@ -2467,4 +2467,5 @@
     <string name="om_text_editor_too_large">此文件太大，无法在这里编辑（%1$s；上限为 %2$s）。请改用 HEX 编辑器打开。</string>
     <string name="om_text_editor_open_failed">无法打开文件：%1$s</string>
     <string name="om_text_editor_selection">选中：%1$d</string>
+    <string name="om_syntax_plain_text">纯文本</string>
 </resources>

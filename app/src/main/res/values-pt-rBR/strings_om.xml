@@ -2473,4 +2473,5 @@
     <string name="om_text_editor_too_large">Este arquivo é grande demais para editar aqui (%1$s; o limite é %2$s). Abra-o no editor HEX.</string>
     <string name="om_text_editor_open_failed">Não foi possível abrir o arquivo: %1$s</string>
     <string name="om_text_editor_selection">Sel: %1$d</string>
+    <string name="om_syntax_plain_text">Texto simples</string>
 </resources>

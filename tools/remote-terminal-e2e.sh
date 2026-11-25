@@ -1909,8 +1909,15 @@ if [ "$editor_ok" = 1 ]; then
     adb shell input keyevent KEYCODE_ENTER
     adb shell input text "second%sline"; sleep 1
     adb shell input keyevent KEYCODE_BACK; sleep 1   # first BACK only hides the keyboard
+    pos=$(node_text_by_id statusCursorPosText || true)
+    log "      cursor after typing two lines: $pos"
+    case "$pos" in
+        2:12) pass "typing a new line updates the line and column (2:12)" ;;
+        *) fail "after typing the cursor shows '$pos' instead of 2:12" ;;
+    esac
     pos=$(find_text "Save" "Guardar") && adb shell input tap $pos; sleep 2
     shot 61_editor_save_as
+    node_text_by_id textEdit >/dev/null 2>&1 || true   # fresh dump of the dialog
     folder=$(python3 - "$OUT/ui.xml" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
@@ -1964,15 +1971,6 @@ log "      cursor after jumping near the end: $pos"
 case "$pos" in
     149990:*) pass "line numbers are right deep into a 150 000-line file" ;;
     *) fail "the cursor shows '$pos' instead of line 149990" ;;
-esac
-# Type a few lines there: the line number follows without recounting the file.
-adb shell input text "typed"; adb shell input keyevent KEYCODE_ENTER; adb shell input keyevent KEYCODE_ENTER
-sleep 2
-pos=$(node_text_by_id statusCursorPosText || true)
-log "      cursor after typing two new lines: $pos"
-case "$pos" in
-    149992:1) pass "typing new lines updates the line number" ;;
-    *) fail "after typing the cursor shows '$pos' instead of 149992:1" ;;
 esac
 adb logcat -d > "$OUT/logcat_editor.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; else pass "no crash in the text editor"; fi

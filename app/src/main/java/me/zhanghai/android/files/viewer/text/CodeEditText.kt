@@ -114,6 +114,12 @@ class CodeEditText @JvmOverloads constructor(
         typeface = Typeface.MONOSPACE
         setLineSpacing(0f, 1.2f)
         setBackgroundColor(0) // Transparent background
+        // Code needs no typographic line breaking: the simple strategy without hyphenation lays
+        // out long texts much faster.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            breakStrategy = android.text.Layout.BREAK_STRATEGY_SIMPLE
+            hyphenationFrequency = android.text.Layout.HYPHENATION_FREQUENCY_NONE
+        }
         lineIndex.reset(text ?: "")
         addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {

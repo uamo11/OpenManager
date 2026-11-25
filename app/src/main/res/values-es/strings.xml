@@ -3280,4 +3280,5 @@
     <string name="om_text_editor_too_large">Este archivo es demasiado grande para editarlo aquí (%1$s; el límite es %2$s). Ábrelo con el editor HEX.</string>
     <string name="om_text_editor_open_failed">No se pudo abrir el archivo: %1$s</string>
     <string name="om_text_editor_selection">Sel: %1$d</string>
+    <string name="om_syntax_plain_text">Texto plano</string>
 </resources>

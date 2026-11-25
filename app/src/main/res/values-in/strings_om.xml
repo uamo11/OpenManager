@@ -2468,4 +2468,5 @@
     <string name="om_text_editor_too_large">Berkas ini terlalu besar untuk diedit di sini (%1$s; batasnya %2$s). Buka dengan editor HEX.</string>
     <string name="om_text_editor_open_failed">Tidak dapat membuka berkas: %1$s</string>
     <string name="om_text_editor_selection">Pilih: %1$d</string>
+    <string name="om_syntax_plain_text">Teks biasa</string>
 </resources>

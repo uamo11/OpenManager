@@ -544,6 +544,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         walk(root)
     }
 
+    /** Language names are universal except plain text, which is translated. */
+    private fun syntaxName(language: SyntaxLanguage): String =
+        if (language == SyntaxLanguage.PLAIN_TEXT) getString(R.string.om_syntax_plain_text) else language.displayName
+
     /** "Untitled" for a new document, else the file name. */
     private fun displayName(): String =
         if (isDraft) getString(R.string.om_text_editor_untitled) else viewModel.file.value.fileName.toString()
@@ -623,7 +627,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val activity = requireActivity() as? AppCompatActivity ?: return
         val charsetName = viewModel.encoding.value.displayName()
         val lineEnding = if (viewModel.isCrlf.value) "CRLF" else "LF"
-        val syntax = currentLanguage.displayName
+        val syntax = syntaxName(currentLanguage)
         activity.supportActionBar?.subtitle = null
 
         // Update MT Manager Status Info Strip
@@ -1229,7 +1233,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun showSyntaxLanguageDialog() {
         val languages = SyntaxLanguage.entries.toTypedArray()
-        val names = languages.map { it.displayName }.toTypedArray()
+        val names = languages.map { syntaxName(it) }.toTypedArray()
         val selectedIndex = languages.indexOf(currentLanguage)
 
         MaterialAlertDialogBuilder(requireContext())
@@ -1241,7 +1245,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     viewModel.syntaxLanguage.value = selected
                     FastSyntaxScanner.applyHighlightTo(binding.textEdit.text, currentLanguage, currentTheme)
                     updateSubtitle()
-                    showToast(getString(R.string.text_editor_syntax_changed, selected.displayName))
+                    showToast(getString(R.string.text_editor_syntax_changed, syntaxName(selected)))
                 }
                 dialog.dismiss()
             }
@@ -1324,7 +1328,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val formattedSize = "${Formatter.formatFileSize(requireContext(), sizeBytes)} ($sizeBytes bytes)"
         val encodingName = viewModel.encoding.value.displayName()
         val lineEnding = if (viewModel.isCrlf.value) "Windows (CRLF)" else "Unix (LF)"
-        val syntaxName = currentLanguage.displayName
+        val languageName = syntaxName(currentLanguage)
         val text = binding.textEdit.text.toString()
         val lineCount = binding.textEdit.lineCount
         val charCount = text.length
@@ -1337,7 +1341,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             ${getString(R.string.file_properties_basic_size)}: $formattedSize
             ${getString(R.string.text_editor_encoding)}: $encodingName
             ${getString(R.string.text_editor_line_endings)}: $lineEnding
-            ${getString(R.string.text_editor_syntax)}: $syntaxName
+            ${getString(R.string.text_editor_syntax)}: $languageName
             ${getString(R.string.text_editor_theme)}: ${currentTheme.displayName}
             ${getString(R.string.text_editor_word_wrap)}: ${if (isWordWrap) "Activado" else "Desactivado"}
             ${getString(R.string.text_editor_line_numbers)}: ${if (showLineNumbers) "Activado" else "Desactivado"}
