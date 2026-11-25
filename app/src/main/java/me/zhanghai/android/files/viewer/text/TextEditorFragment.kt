@@ -1366,8 +1366,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun updateEditModeIcon() {
         if (!this::menuBinding.isInitialized) return
+        // The icon shows the current mode (open lock: editing, closed lock: read-only) in the
+        // toolbar's color; the old white lock vanished on the light theme (user report).
         menuBinding.toggleEditItem.setIcon(
-            if (isReadOnly) R.drawable.edit_icon else R.drawable.lock_icon_white_24dp
+            if (isReadOnly) R.drawable.ic_editor_lock_24dp else R.drawable.ic_editor_lock_open_24dp
         )
         menuBinding.toggleEditItem.title = getString(
             if (isReadOnly) R.string.text_editor_edit_mode_on else R.string.text_editor_read_only

@@ -2363,6 +2363,30 @@ PY
     else
         fail "app $apptheme theme: no Tab key in the symbol bar"
     fi
+    # The read-only switch in the toolbar takes the toolbar's icon color (it was white on white).
+    lock=$(python3 - "$OUT/ui.xml" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    d = re.search(r' content-desc="([^"]*)"', n)
+    if d and html.unescape(d.group(1)) in ("Read-only", "Solo lectura"):
+        print(" ".join(re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+        break
+PY2
+)
+    if [ -n "$lock" ]; then
+        read -r lx1 ly1 lx2 ly2 <<< "$lock"
+        read -r l_sat l_dark l_light <<< "$(raw_stats "$OUT/symbols_$apptheme.raw" $lx1 $ly1 $lx2 $ly2)"
+        log "      app $apptheme: read-only switch dark pixels=$l_dark light pixels=$l_light"
+        if [ "$apptheme" = light ]; then l_contrast=$l_dark; else l_contrast=$l_light; fi
+        if [ "${l_contrast:-0}" -gt 20 ]; then
+            pass "app $apptheme theme: the read-only switch in the toolbar is visible"
+        else
+            fail "app $apptheme theme: the read-only switch is invisible (dark=$l_dark light=$l_light)"
+        fi
+    else
+        fail "app $apptheme theme: no read-only switch in the editor toolbar"
+    fi
 done
 adb shell am force-stop $PKG; sleep 1
 adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME dark >/dev/null 2>&1; sleep 3

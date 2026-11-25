@@ -48,7 +48,7 @@
 
     <item
         android:id="@+id/action_toggle_edit"
-        android:icon="@drawable/edit_icon"
+        android:icon="@drawable/ic_editor_lock_open_24dp"
         android:orderInCategory="45"
         android:title="@string/text_editor_read_only"
         app:showAsAction="always"

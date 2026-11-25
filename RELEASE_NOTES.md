@@ -1,3 +1,23 @@
+# OpenManager v2.0.28: Barra de Desplazamiento sin Toques Accidentales, Filtro que Termina y Botón Salir
+
+### 📜 Barra de desplazamiento rápido
+- Ahora **solo se arrastra desde su bloque visible**. Antes, deslizar en cualquier punto de la franja del borde del panel hacía saltar la lista, y en el panel izquierdo esa franja queda justo en el centro de la pantalla, donde pasa el pulgar al usar el teléfono con una mano. Un deslizamiento fuera del bloque desplaza la lista con normalidad.
+
+### 🔎 Filtro
+- En una carpeta vacía (o cuando ya terminó), la **barra azul ya no se queda girando** sin fin.
+- **Atrás quita el filtro** (y cancela la búsqueda si aún corre) sin salir de la carpeta; ya no hace falta cerrar la app.
+
+### ☰ Menús
+- **Salir** al final del menú lateral: cierra OpenManager y lo quita de las apps recientes.
+- El menú **⋮** es más compacto: filas más bajas y texto más pequeño.
+
+### 📄 Lector PDF
+- Al girar a **horizontal**, las páginas ya no se estiran: mantienen su proporción y se queda en la página que estabas leyendo.
+
+### 📝 Editor
+- El botón de **Solo lectura / Edición** de la barra superior era blanco y en el tema claro no se veía. Ahora toma el color de la barra y muestra el modo actual: **candado abierto** = puedes editar, **candado cerrado** = solo lectura (mantenlo pulsado para ver su nombre).
+- Los colores de sintaxis ya no se desplazan de línea en archivos con saltos de línea `\r` sueltos (formato antiguo de Mac o archivos binarios).
+
 # OpenManager v2.0.27: Atrás que se Detiene en el Almacenamiento, VPS que se Desconecta y Ordenar con Marca
 
 ### ⬅️ Atrás
