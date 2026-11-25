@@ -1041,7 +1041,7 @@ log "=== AV1 4K in software: Android's decoder vs our dav1d on every core (user 
 if [ -f /tmp/om_4k_av1.mp4 ]; then
     adb push /tmp/om_4k_av1.mp4 /sdcard/Movies/om_4k_av1.mp4 >/dev/null
     log "      emulator cores: $(adb shell nproc | tr -d '\r')"
-    for dec in system dav1d-full dav1d; do
+    for dec in system dav1d-full dav1d-nohold dav1d; do
         adb shell am force-stop $PKG; sleep 1
         adb logcat -c
         adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
@@ -1066,6 +1066,9 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
         handled=$(python3 -c "print(round((${rendered:-0} + ${sdropped:-0} + ${notdecoded:-0}) / max(${position:-0}, 1) * 1000, 1))")
         log "      $dec: decoder=${decoder:-none} ${summary:-no summary} -> ${fps} fps shown, ${handled} fps decoded"
         var=${dec//-/_}
+        # Share of the decoded frames thrown away as late: wasted work.
+        wasted=$(python3 -c "print(round(${sdropped:-0} / max(${rendered:-0} + ${sdropped:-0}, 1) * 100, 1))")
+        eval "wasted_$var=$wasted"
         eval "fps_$var=$fps; handled_$var=$handled; decoded_$var=$decoded; mode_$var=${mode:-0}; skipped_$var=${notdecoded:-0}; dec_$var='${decoder:-}'"
     done
     if printf '%s' "$dec_dav1d" | grep -q "libdav1d"; then
@@ -1092,6 +1095,14 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
         pass "4K60 AV1: fast mode keeps up at least as well as full quality ($handled_dav1d vs $handled_dav1d_full fps handled)"
     else
         fail "4K60 AV1: fast mode is slower or under 24 fps ($handled_dav1d vs $handled_dav1d_full fps handled)"
+    fi
+    # Galaxy A07 with 4K60 (v2.0.30): 35 decoded/s but 26 shown, the rest decoded and then dropped as
+    # late. Holding the skipping for 8 s after falling behind wastes fewer decoded frames.
+    log "      decoded frames dropped as late: skip only while late $wasted_dav1d_nohold%, with the 8 s hold $wasted_dav1d%"
+    if python3 -c "import sys; sys.exit(0 if $wasted_dav1d <= $wasted_dav1d_nohold else 1)"; then
+        pass "4K60 AV1: holding the skipping wastes fewer decoded frames ($wasted_dav1d% vs $wasted_dav1d_nohold%)"
+    else
+        fail "4K60 AV1: the skip hold wastes more decoded frames ($wasted_dav1d% vs $wasted_dav1d_nohold%)"
     fi
     if [ "${skipped_dav1d:-0}" -gt 0 ]; then
         pass "4K AV1: when late, frames nothing depends on are not decoded (${skipped_dav1d} skipped)"

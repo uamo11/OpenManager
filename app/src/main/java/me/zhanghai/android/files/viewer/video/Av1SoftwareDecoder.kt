@@ -50,7 +50,7 @@ object Av1SoftwareDecoder {
 
     fun shouldUse(): Boolean = when (debugOverride) {
         "system" -> false
-        "dav1d", "dav1d-noskip", "dav1d-full" -> Dav1dLibrary.isAvailable()
+        "dav1d", "dav1d-noskip", "dav1d-full", "dav1d-nohold" -> Dav1dLibrary.isAvailable()
         else -> !hasHardwareDecoder && Dav1dLibrary.isAvailable()
     }
 
@@ -63,6 +63,8 @@ object Av1SoftwareDecoder {
         Libdav1dVideoRenderer.skipLateNonReferenceFrames = debugOverride != "dav1d-noskip"
         // "dav1d-full": every filter and the film grain, to compare with the fast mode.
         Libdav1dVideoRenderer.forcedSpeedFlags = if (debugOverride == "dav1d-full") 0 else -1
+        // "dav1d-nohold": skip only while late (v2.0.30), to compare with the 8 s hold.
+        Libdav1dVideoRenderer.skipHoldUs = if (debugOverride == "dav1d-nohold") 0 else 8_000_000
         Libdav1dVideoRenderer.speedFlags = 0
         return newRenderer(allowedJoiningTimeMs, eventHandler, eventListener)
     }
