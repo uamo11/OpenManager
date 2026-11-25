@@ -29,7 +29,7 @@ body {
 img { max-width: 100%; height: auto; display: block; }
 a { color: var(--accent2); text-decoration: none; }
 a:hover { text-decoration: underline; }
-h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; }
+h1, h2, h3 { line-height: 1.2; margin: 0 0 .5em; text-wrap: balance; }
 h1 { font-size: clamp(2rem, 4.6vw, 3.2rem); letter-spacing: -.02em; }
 h2 { font-size: clamp(1.6rem, 3.2vw, 2.3rem); letter-spacing: -.01em; }
 h3 { font-size: 1.08rem; }
@@ -169,7 +169,8 @@ dialog#viewer img { border-radius: 22px; max-height: 92vh; max-height: 92dvh; wi
   .hero-in { grid-template-columns: 1.4fr .6fr; gap: 28px; }
   .two { grid-template-columns: 1fr 200px; gap: 28px; }
   #ajustes .two { grid-template-columns: 200px 1fr; }
-  .phone, .hero-phone { width: min(200px, 100%); }
+  /* The whole phone fits the short screen: its height follows the viewport height. */
+  .phone, .hero-phone { width: min(200px, 100%, calc((100vh - 110px) * .45 + 20px)); width: min(200px, 100%, calc((100dvh - 110px) * .45 + 20px)); }
   .hero { padding: 24px 0; }
   .sec { padding: 40px 0; }
   .strip { grid-auto-columns: 170px; }
