@@ -2577,4 +2577,14 @@
     <string name="om_ssh_connection_lost_title">Mất kết nối</string>
     <string name="om_ssh_connection_lost_message">Kết nối tới %1$s đã đóng khi ứng dụng chạy nền.</string>
     <string name="om_ssh_connection_lost_list">Danh sách máy chủ</string>
+    <string name="om_editor_key_left">Con trỏ sang trái</string>
+    <string name="om_editor_key_right">Con trỏ sang phải</string>
+    <string name="om_editor_key_up">Con trỏ lên</string>
+    <string name="om_editor_key_down">Con trỏ xuống</string>
+    <string name="om_editor_key_tab">Tab</string>
+    <string name="om_editor_key_indent">Tăng thụt lề</string>
+    <string name="om_editor_key_outdent">Giảm thụt lề</string>
+    <string name="om_editor_key_enter">Xuống dòng</string>
+    <string name="om_editor_key_paste">Dán</string>
+    <string name="om_editor_key_select_all">Chọn tất cả</string>
 </resources>

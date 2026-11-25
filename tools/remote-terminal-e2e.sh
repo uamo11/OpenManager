@@ -2176,40 +2176,49 @@ else
     fail "no syntax button in the editor's status bar"
 fi
 
-log "=== Text editor: the symbol bar is readable on the light theme (user report) ==="
-adb shell am force-stop $PKG; sleep 1
-adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
-    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" \
-    --es DEMO_EDITOR_THEME light >/dev/null
-sleep 4
-shot 67_editor_light_symbols
-adb exec-out screencap > "$OUT/light_symbols.raw" 2>/dev/null
-adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
-adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
-tab=$(python3 - "$OUT/ui.xml" <<'PY'
+log "=== Text editor: the symbol bar looks like the explorer's bar and is readable (user reports) ==="
+for apptheme in dark light; do
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME $apptheme >/dev/null 2>&1; sleep 4
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+        --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" \
+        --es DEMO_EDITOR_THEME light >/dev/null
+    sleep 4
+    shot 67_editor_symbols_app_$apptheme
+    adb exec-out screencap > "$OUT/symbols_$apptheme.raw" 2>/dev/null
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    key=$(python3 - "$OUT/ui.xml" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
 for n in re.findall(r"<node [^>]*>", xml):
-    t = re.search(r' text="([^"]*)"', n)
-    if t and html.unescape(t.group(1)) == "TAB":
+    d = re.search(r' content-desc="([^"]*)"', n)
+    if d and html.unescape(d.group(1)) in ("Tab", "Tabulación"):
         print(" ".join(re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
         break
 PY
 )
-if [ -n "$tab" ]; then
-    read -r tx1 ty1 tx2 ty2 <<< "$tab"
-    stats=$(raw_stats "$OUT/light_symbols.raw" $tx1 $ty1 $tx2 $ty2)
-    read -r s_sat s_dark s_light <<< "$stats"
-    log "      TAB key on the light theme: dark pixels=$s_dark light pixels=$s_light"
-    # A light key with dark text: mostly light pixels, and some dark ones (the label).
-    if [ "$s_light" -gt "$s_dark" ] && [ "$s_dark" -gt 5 ]; then
-        pass "light theme: symbol keys are light with dark, visible symbols"
+    if [ -n "$key" ]; then
+        read -r kx1 ky1 kx2 ky2 <<< "$key"
+        read -r k_sat k_dark k_light <<< "$(raw_stats "$OUT/symbols_$apptheme.raw" $kx1 $ky1 $kx2 $ky2)"
+        log "      app $apptheme: Tab key dark pixels=$k_dark light pixels=$k_light"
+        # Readable: the icon contrasts with the bar (both dark and light pixels in the key).
+        if [ "$k_dark" -gt 5 ] && [ "$k_light" -gt 5 ]; then
+            pass "app $apptheme theme: the symbol keys are readable"
+        else
+            fail "app $apptheme theme: the symbol keys are not readable (dark=$k_dark light=$k_light)"
+        fi
     else
-        fail "light theme: symbol keys are not readable (dark=$s_dark light=$s_light)"
+        fail "app $apptheme theme: no Tab key in the symbol bar"
     fi
-else
-    fail "no TAB key found in the symbol bar"
-fi
+done
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $SETTINGS --es DEMO_MD3 off --es DEMO_THEME_COLOR color_primary --es DEMO_THEME dark >/dev/null 2>&1; sleep 3
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" >/dev/null
+sleep 4
 # The ⋮ menu of the editor shows an icon on every entry.
 if pos=$(find_text "More options" "Más opciones"); then
     adb shell input tap $pos; sleep 2
@@ -2234,6 +2243,28 @@ adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorAc
     --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_code.txt" \
     --es DEMO_EDITOR_THEME one_dark >/dev/null
 sleep 3
+adb shell am force-stop $PKG; sleep 1
+
+log "=== Text editor: a binary .dat shows its bytes, not an empty page (user report) ==="
+python3 -c "import os,sys; open(sys.argv[1],'wb').write(bytes([0xAF,0x1B,0xB1,0xFA]) + os.urandom(2*1024*1024))" "$OUT/global-metadata.dat"
+adb push "$OUT/global-metadata.dat" /sdcard/om_editor_test/global-metadata.dat >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/global-metadata.dat" >/dev/null
+sleep 8
+shot 69_editor_binary_dat
+layout=$(adb logcat -d -s OMEditor 2>/dev/null | grep "layout lines=" | tail -1 | sed 's/.*OMEditor: //')
+name=$(node_text_by_id statusFileNameText || true)
+log "      $name · ${layout:-no layout}"
+lines=$(printf '%s' "$layout" | sed -n 's/.*lines=\([0-9]*\).*/\1/p')
+if [ "${lines:-0}" -gt 100 ] && printf '%s' "$name" | grep -q "MB"; then
+    pass "a 2 MB binary .dat opens with its content (${lines} lines)"
+else
+    fail "the binary .dat opened empty ($name, ${layout:-no layout})"
+fi
+adb logcat -d > "$OUT/logcat_binary.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_binary.txt"; then fail "crash opening a binary .dat"; fi
 adb shell am force-stop $PKG; sleep 1
 
 log "=== Text editor: big file, line numbers and typing stay right ==="
@@ -2275,7 +2306,7 @@ else
     fail "line 149990 is not on screen after the jump ($(printf '%s' "$visible" | head -c 60))"
 fi
 # New lines from the symbol bar (no keyboard needed): the line number follows.
-for n in 1 2; do pos=$(find_text "↵") && adb shell input tap $pos; sleep 1; done
+for n in 1 2; do pos=$(find_text "New line" "Nueva línea") && adb shell input tap $pos; sleep 1; done
 pos=$(adb logcat -d -s OMEditor 2>/dev/null | grep -o "cursor=[0-9:]*" | tail -1 | sed 's/cursor=//')
 log "      cursor after two new lines: $pos"
 case "$pos" in

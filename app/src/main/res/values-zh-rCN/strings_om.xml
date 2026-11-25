@@ -2482,4 +2482,14 @@
     <string name="om_ssh_connection_lost_title">连接已断开</string>
     <string name="om_ssh_connection_lost_message">应用在后台时，与 %1$s 的连接已关闭。</string>
     <string name="om_ssh_connection_lost_list">服务器列表</string>
+    <string name="om_editor_key_left">光标左移</string>
+    <string name="om_editor_key_right">光标右移</string>
+    <string name="om_editor_key_up">光标上移</string>
+    <string name="om_editor_key_down">光标下移</string>
+    <string name="om_editor_key_tab">制表符</string>
+    <string name="om_editor_key_indent">增加缩进</string>
+    <string name="om_editor_key_outdent">减少缩进</string>
+    <string name="om_editor_key_enter">换行</string>
+    <string name="om_editor_key_paste">粘贴</string>
+    <string name="om_editor_key_select_all">全选</string>
 </resources>

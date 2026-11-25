@@ -14,7 +14,7 @@
 - Si la conexión SSH/Telnet se cae mientras la app está en segundo plano, al volver ya no se queda la pantalla congelada con «[Connection closed - press Enter]»: aparece **«Conexión perdida»** con **Reconectar** o **Lista de servidores**. La sesión muerta se descarta y libera su memoria.
 
 ### 📝 Editor de código
-- **Tema claro:** la barra de símbolos tenía las teclas negras fijas y sus símbolos no se veían. Ahora las teclas siguen el tema del editor (claras en el tema claro, oscuras en el oscuro).
+- **Barra de símbolos rediseñada:** ahora se ve como la barra inferior del explorador: mismo color (gris, negro en AMOLED, claro en el tema claro), teclas planas con efecto al pulsar, iconos vectoriales del mismo tamaño (flechas, tabulación, sangría, nueva línea, deshacer/rehacer, buscar, pegar, seleccionar todo) y separadores entre grupos. Mantén pulsada una tecla para ver su nombre. Se acabaron las cajitas oscuras con glifos sueltos, que en el tema claro eran invisibles.
 - **Menú ⋮ con iconos:** Guardar como, Posición anterior/siguiente, Sintaxis, Ir a línea, Ajuste de línea, Números de línea, Solo lectura, Tema, Estadísticas, Fin de línea, Codificación, Preferencias y Recargar.
 - **C y C++ por separado:** cada uno con sus palabras clave (C++ añade clases, plantillas, `nullptr`, conversiones…). `.c`/`.h` abren como C; `.cpp`, `.hpp`, `.cc`, `.ino`… como C++.
 - **Cambiar la sintaxis recolorea el texto** al momento (comprobado: de Texto plano a Java en el emulador).

@@ -3398,4 +3398,14 @@
     <string name="om_ssh_connection_lost_title">Connection lost</string>
     <string name="om_ssh_connection_lost_message">The connection to %1$s closed while the app was in the background.</string>
     <string name="om_ssh_connection_lost_list">Server list</string>
+    <string name="om_editor_key_left">Cursor left</string>
+    <string name="om_editor_key_right">Cursor right</string>
+    <string name="om_editor_key_up">Cursor up</string>
+    <string name="om_editor_key_down">Cursor down</string>
+    <string name="om_editor_key_tab">Tab</string>
+    <string name="om_editor_key_indent">Indent lines</string>
+    <string name="om_editor_key_outdent">Unindent lines</string>
+    <string name="om_editor_key_enter">New line</string>
+    <string name="om_editor_key_paste">Paste</string>
+    <string name="om_editor_key_select_all">Select all</string>
 </resources>

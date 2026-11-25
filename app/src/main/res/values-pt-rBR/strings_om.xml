@@ -2488,4 +2488,14 @@
     <string name="om_ssh_connection_lost_title">Conexão perdida</string>
     <string name="om_ssh_connection_lost_message">A conexão com %1$s foi encerrada enquanto o app estava em segundo plano.</string>
     <string name="om_ssh_connection_lost_list">Lista de servidores</string>
+    <string name="om_editor_key_left">Cursor para a esquerda</string>
+    <string name="om_editor_key_right">Cursor para a direita</string>
+    <string name="om_editor_key_up">Cursor para cima</string>
+    <string name="om_editor_key_down">Cursor para baixo</string>
+    <string name="om_editor_key_tab">Tabulação</string>
+    <string name="om_editor_key_indent">Aumentar recuo</string>
+    <string name="om_editor_key_outdent">Diminuir recuo</string>
+    <string name="om_editor_key_enter">Nova linha</string>
+    <string name="om_editor_key_paste">Colar</string>
+    <string name="om_editor_key_select_all">Selecionar tudo</string>
 </resources>

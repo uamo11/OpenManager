@@ -2502,4 +2502,14 @@
     <string name="om_ssh_connection_lost_title">Соединение потеряно</string>
     <string name="om_ssh_connection_lost_message">Соединение с %1$s закрылось, пока приложение было в фоне.</string>
     <string name="om_ssh_connection_lost_list">Список серверов</string>
+    <string name="om_editor_key_left">Курсор влево</string>
+    <string name="om_editor_key_right">Курсор вправо</string>
+    <string name="om_editor_key_up">Курсор вверх</string>
+    <string name="om_editor_key_down">Курсор вниз</string>
+    <string name="om_editor_key_tab">Табуляция</string>
+    <string name="om_editor_key_indent">Увеличить отступ</string>
+    <string name="om_editor_key_outdent">Уменьшить отступ</string>
+    <string name="om_editor_key_enter">Новая строка</string>
+    <string name="om_editor_key_paste">Вставить</string>
+    <string name="om_editor_key_select_all">Выделить всё</string>
 </resources>

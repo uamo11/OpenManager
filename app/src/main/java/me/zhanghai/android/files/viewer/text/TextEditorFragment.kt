@@ -542,16 +542,15 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         // Token colors depend on the theme.
         applyLanguage()
         binding.editorStatusStrip.setBackgroundColor(theme.gutterColor)
-        binding.symbolBar.setBackgroundColor(theme.gutterColor)
         binding.searchPanel.setBackgroundColor(theme.gutterColor)
         recolorChrome(binding.editorStatusStrip, theme)
-        recolorChrome(binding.symbolBar, theme)
-        tintSymbolKeys(theme)
         recolorChrome(binding.searchPanel, theme)
         if (view != null) updateSubtitle()
         try {
             requireActivity().window.navigationBarColor = theme.gutterColor
         } catch (ignored: Throwable) {}
+        // After the line above: with the symbol bar shown, the navigation bar takes its color.
+        applySymbolBarColors()
     }
 
     /**
@@ -595,23 +594,6 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     /** Language names are universal except plain text, which is translated. */
     private fun syntaxName(language: SyntaxLanguage): String =
         if (language == SyntaxLanguage.PLAIN_TEXT) getString(R.string.om_syntax_plain_text) else language.displayName
-
-    /**
-     * The symbol keys had a fixed dark background: on the light theme their (now dark) symbols
-     * were invisible. The key color follows the editor theme, a step away from the bar color.
-     */
-    private fun tintSymbolKeys(theme: EditorTheme) {
-        val bar = theme.gutterColor
-        val dark = androidx.core.graphics.ColorUtils.calculateLuminance(bar) < 0.5
-        val key = androidx.core.graphics.ColorUtils.blendARGB(
-            bar, if (dark) Color.WHITE else Color.BLACK, if (dark) 0.07f else 0.09f
-        )
-        val tint = android.content.res.ColorStateList.valueOf(key)
-        val container = binding.symbolContainer
-        for (i in 0 until container.childCount) {
-            ViewCompat.setBackgroundTintList(container.getChildAt(i), tint)
-        }
-    }
 
     /** "Untitled" for a new document, else the file name. */
     private fun displayName(): String =
@@ -670,62 +652,63 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         }
     }
 
+    /**
+     * The symbol bar, styled like the explorer's bottom bar (same color: gray, AMOLED black or
+     * light, flat keys with a ripple, real icons of one size) instead of boxed Unicode glyphs.
+     */
     private fun setupSymbolBar() {
         val container = binding.symbolContainer
         container.removeAllViews()
 
-        // 1. Navigation Arrow Keys (micro-navigation for touchscreens)
-        addTextSymbolButton("◀") { editor.moveSelection(SelectionMovement.LEFT) }
-        addTextSymbolButton("▶") { editor.moveSelection(SelectionMovement.RIGHT) }
-        addTextSymbolButton("▲") { editor.moveSelection(SelectionMovement.UP) }
-        addTextSymbolButton("▼") { editor.moveSelection(SelectionMovement.DOWN) }
-
-        // 2. Indentation & Smart Newline
-        addTextSymbolButton("⇥") { indentLines(unindent = false) }
-        addTextSymbolButton("⇤") { indentLines(unindent = true) }
-        addTextSymbolButton("↵") { insertIfEditable { editor.commitText("\n", true) } }
-
-        // 3. TAB
-        addTextSymbolButton("TAB") { insertIfEditable { editor.insertText("    ", 4) } }
-
-        // 4. Undo & Redo Quick Buttons
-        addImageSymbolButton(R.drawable.ic_undo_24dp, R.string.text_editor_undo) {
-            if (editor.canUndo()) editor.undo()
+        // Moving the cursor
+        addIconKey(R.drawable.ic_key_left_24dp, R.string.om_editor_key_left) { editor.moveSelection(SelectionMovement.LEFT) }
+        addIconKey(R.drawable.ic_key_right_24dp, R.string.om_editor_key_right) { editor.moveSelection(SelectionMovement.RIGHT) }
+        addIconKey(R.drawable.ic_key_up_24dp, R.string.om_editor_key_up) { editor.moveSelection(SelectionMovement.UP) }
+        addIconKey(R.drawable.ic_key_down_24dp, R.string.om_editor_key_down) { editor.moveSelection(SelectionMovement.DOWN) }
+        addKeyDivider()
+        // Editing
+        addIconKey(R.drawable.ic_editor_goto_line_24dp, R.string.om_editor_key_tab) {
+            insertIfEditable { editor.insertText(" ".repeat(OmCodeLanguage.INDENT), OmCodeLanguage.INDENT) }
         }
-        addImageSymbolButton(R.drawable.ic_redo_24dp, R.string.text_editor_redo) {
-            if (editor.canRedo()) editor.redo()
+        addIconKey(R.drawable.ic_key_indent_24dp, R.string.om_editor_key_indent) { indentLines(unindent = false) }
+        addIconKey(R.drawable.ic_key_outdent_24dp, R.string.om_editor_key_outdent) { indentLines(unindent = true) }
+        addIconKey(R.drawable.ic_editor_line_endings_24dp, R.string.om_editor_key_enter) {
+            insertIfEditable { editor.commitText("\n", true) }
         }
-
-        // 5. Search Toggle
-        addImageSymbolButton(R.drawable.search_icon_control_normal_24dp, R.string.text_editor_search) {
-            toggleSearchPanel()
+        addKeyDivider()
+        addIconKey(R.drawable.ic_undo_24dp, R.string.text_editor_undo) { if (editor.canUndo()) editor.undo() }
+        addIconKey(R.drawable.ic_redo_24dp, R.string.text_editor_redo) { if (editor.canRedo()) editor.redo() }
+        addIconKey(R.drawable.search_icon_control_normal_24dp, R.string.text_editor_search) { toggleSearchPanel() }
+        addKeyDivider()
+        // Brackets, quotes and operators (an opening one wraps the selection)
+        for (sym in listOf(
+            "{", "}", "(", ")", "[", "]", "<", ">", "\"", "'", "=", ":", ";", "/", "\\", "+", "-",
+            "*", "%", "!", "?", "&", "|", "@", "#", "$", "~", "^", ",", ".", "_"
+        )) {
+            addTextKey(sym) { insertSymbol(sym) }
         }
+        addKeyDivider()
+        addIconKey(R.drawable.ic_key_paste_24dp, R.string.om_editor_key_paste) { pasteClipboardText() }
+        addIconKey(R.drawable.select_all_icon_white_24dp, R.string.om_editor_key_select_all) { editor.selectAll() }
+        applySymbolBarColors()
+    }
 
-        // 6. Programming Brackets & Quotes (with Auto-wrap)
-        val brackets = listOf("{", "}", "(", ")", "[", "]", "<", ">", "\"", "'")
-        for (sym in brackets) {
-            addTextSymbolButton(sym) {
-                insertSymbol(sym)
+    /** Colors of the explorer's bottom bar, so the editor's bar matches the rest of the app. */
+    private fun applySymbolBarColors() {
+        if (!this::binding.isInitialized) return
+        val palette = me.zhanghai.android.files.theme.custom.OpenManagerPalette.from(requireContext())
+        binding.symbolBar.setBackgroundColor(palette.bottomBarBg)
+        val tint = android.content.res.ColorStateList.valueOf(palette.iconTint)
+        val container = binding.symbolContainer
+        for (i in 0 until container.childCount) {
+            when (val key = container.getChildAt(i)) {
+                is ImageButton -> androidx.core.widget.ImageViewCompat.setImageTintList(key, tint)
+                is TextView -> key.setTextColor(palette.iconTint)
+                else -> key.setBackgroundColor(palette.dividerLineColor)
             }
         }
-
-        // 7. Programming Operators & Delimiters
-        val symbols = listOf(
-            "=", ":", ";", "/", "\\", "+", "-", "*", "%",
-            "!", "?", "&", "|", "@", "#", "$", "~", "^", ",", ".", "_"
-        )
-        for (sym in symbols) {
-            addTextSymbolButton(sym) {
-                insertSymbol(sym)
-            }
-        }
-
-        // 8. Clipboard Actions (Paste & Select All)
-        addTextSymbolButton("📋") {
-            pasteClipboardText()
-        }
-        addTextSymbolButton("✂") {
-            editor.selectAll()
+        if (binding.symbolBar.visibility == View.VISIBLE) {
+            runCatching { requireActivity().window.navigationBarColor = palette.bottomBarBg }
         }
     }
 
@@ -946,57 +929,62 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         }
     }
 
-    private fun addTextSymbolButton(text: String, onClick: () -> Unit) {
-        val density = resources.displayMetrics.density
-        val btn = TextView(requireContext()).apply {
-            this.text = text
-            gravity = Gravity.CENTER
-            minWidth = (34 * density).toInt()
-            val hPadding = (8 * density).toInt()
-            setPadding(hPadding, 0, hPadding, 0)
-            textSize = 13.5f
-            typeface = Typeface.MONOSPACE
-            setTextColor(Color.parseColor("#DCDFE4"))
-            setBackgroundResource(R.drawable.bg_symbol_button)
-            isClickable = true
-            isFocusable = true
-            setOnClickListener { onClick() }
-        }
-        val params = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            (32 * density).toInt()
-        ).apply {
-            val marginH = (2 * density).toInt()
-            marginStart = marginH
-            marginEnd = marginH
-        }
-        binding.symbolContainer.addView(btn, params)
+    private fun keyBackground(): Int {
+        val value = android.util.TypedValue()
+        requireContext().theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, value, true)
+        return value.resourceId
     }
 
-    private fun addImageSymbolButton(resId: Int, contentDescriptionRes: Int, onClick: () -> Unit) {
+    private fun addTextKey(text: String, onClick: () -> Unit) {
         val density = resources.displayMetrics.density
-        val btn = ImageButton(requireContext()).apply {
-            setImageResource(resId)
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            contentDescription = getString(contentDescriptionRes)
-            setBackgroundResource(R.drawable.bg_symbol_button)
-            val pad = (6 * density).toInt()
-            setPadding(pad, pad, pad, pad)
-            setColorFilter(Color.parseColor("#ABB2BF"))
+        val key = TextView(requireContext()).apply {
+            this.text = text
+            gravity = Gravity.CENTER
+            minWidth = (40 * density).toInt()
+            setPadding((6 * density).toInt(), 0, (6 * density).toInt(), 0)
+            textSize = 17f
+            typeface = editorTypeface()
+            setBackgroundResource(keyBackground())
             isClickable = true
             isFocusable = true
+            contentDescription = text
             setOnClickListener { onClick() }
         }
-        val btnSize = (32 * density).toInt()
-        val params = LinearLayout.LayoutParams(
-            btnSize,
-            btnSize
-        ).apply {
-            val marginH = (2 * density).toInt()
-            marginStart = marginH
-            marginEnd = marginH
+        binding.symbolContainer.addView(
+            key, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+    }
+
+    private fun addIconKey(resId: Int, contentDescriptionRes: Int, onClick: () -> Unit) {
+        val density = resources.displayMetrics.density
+        val key = ImageButton(requireContext()).apply {
+            setImageResource(resId)
+            scaleType = ImageView.ScaleType.CENTER
+            contentDescription = getString(contentDescriptionRes)
+            setBackgroundResource(keyBackground())
+            val pad = (10 * density).toInt()
+            setPadding(pad, pad, pad, pad)
+            setOnClickListener { onClick() }
+            // The name of the key on a long press, like the toolbar's buttons.
+            androidx.appcompat.widget.TooltipCompat.setTooltipText(this, contentDescription)
         }
-        binding.symbolContainer.addView(btn, params)
+        binding.symbolContainer.addView(
+            key, LinearLayout.LayoutParams((44 * density).toInt(), ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+    }
+
+    /** A thin separator between groups of keys. */
+    private fun addKeyDivider() {
+        val density = resources.displayMetrics.density
+        val divider = View(requireContext())
+        binding.symbolContainer.addView(
+            divider,
+            LinearLayout.LayoutParams((1 * density).coerceAtLeast(1f).toInt(), (20 * density).toInt()).apply {
+                gravity = Gravity.CENTER_VERTICAL
+                marginStart = (4 * density).toInt()
+                marginEnd = (4 * density).toInt()
+            }
+        )
     }
 
     private fun setupSearchPanel() {

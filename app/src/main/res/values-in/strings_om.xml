@@ -2483,4 +2483,14 @@
     <string name="om_ssh_connection_lost_title">Koneksi terputus</string>
     <string name="om_ssh_connection_lost_message">Koneksi ke %1$s tertutup saat aplikasi berada di latar belakang.</string>
     <string name="om_ssh_connection_lost_list">Daftar server</string>
+    <string name="om_editor_key_left">Kursor ke kiri</string>
+    <string name="om_editor_key_right">Kursor ke kanan</string>
+    <string name="om_editor_key_up">Kursor ke atas</string>
+    <string name="om_editor_key_down">Kursor ke bawah</string>
+    <string name="om_editor_key_tab">Tab</string>
+    <string name="om_editor_key_indent">Tambah indentasi</string>
+    <string name="om_editor_key_outdent">Kurangi indentasi</string>
+    <string name="om_editor_key_enter">Baris baru</string>
+    <string name="om_editor_key_paste">Tempel</string>
+    <string name="om_editor_key_select_all">Pilih semua</string>
 </resources>
