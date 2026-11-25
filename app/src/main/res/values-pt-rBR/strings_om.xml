@@ -2485,4 +2485,7 @@
     <string name="sora_editor_editor_search_busy">O editor ainda está se preparando…</string>
     <string name="sora_editor_editor_search_replacing">Substituindo textos…</string>
     <string name="sora_editor_editor_formatting">Formatando o código…</string>
+    <string name="om_ssh_connection_lost_title">Conexão perdida</string>
+    <string name="om_ssh_connection_lost_message">A conexão com %1$s foi encerrada enquanto o app estava em segundo plano.</string>
+    <string name="om_ssh_connection_lost_list">Lista de servidores</string>
 </resources>

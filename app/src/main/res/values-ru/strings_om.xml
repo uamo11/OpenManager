@@ -2499,4 +2499,7 @@
     <string name="sora_editor_editor_search_busy">Редактор ещё готовится…</string>
     <string name="sora_editor_editor_search_replacing">Замена текста…</string>
     <string name="sora_editor_editor_formatting">Форматирование кода…</string>
+    <string name="om_ssh_connection_lost_title">Соединение потеряно</string>
+    <string name="om_ssh_connection_lost_message">Соединение с %1$s закрылось, пока приложение было в фоне.</string>
+    <string name="om_ssh_connection_lost_list">Список серверов</string>
 </resources>

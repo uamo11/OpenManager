@@ -70,6 +70,7 @@ import me.zhanghai.android.files.appmanager.running.RunningAppsActivity
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.provider.sftp.sftpAuthority
 import me.zhanghai.android.files.file.createFallbackFileItem
 import me.zhanghai.android.files.ftpserver.FtpServerActivity
 import me.zhanghai.android.files.ftpserver.FtpServerService
@@ -174,6 +175,34 @@ class FileListActivity : AppActivity() {
         } else {
             Settings.FILE_LIST_DEFAULT_DIRECTORY_RIGHT.valueCompat
         }
+    }
+
+    /** The phone folder a panel goes back to when it leaves a VPS. */
+    private fun localHomeFor(fragment: FileListFragment): Path {
+        val configured = if (isFragmentA(fragment)) {
+            Settings.FILE_LIST_DEFAULT_DIRECTORY.valueCompat
+        } else {
+            Settings.FILE_LIST_DEFAULT_DIRECTORY_RIGHT.valueCompat
+        }
+        return if (configured.sftpAuthority == null) configured else Paths.get("/storage/emulated/0")
+    }
+
+    /**
+     * Leaves the VPS shown in [fragment] for the phone's storage; the server's file connection
+     * and cached listings are released as soon as no panel shows it (see releaseRemoteIfUnused).
+     */
+    fun leaveRemote(fragment: FileListFragment) {
+        fragment.navigateTo(localHomeFor(fragment))
+    }
+
+    /** Closes the file connection to [authority] when neither panel is on that server. */
+    fun releaseRemoteIfUnused(authority: me.zhanghai.android.files.provider.sftp.client.Authority) {
+        if (isFinishing && !isChangingConfigurations) return
+        val inUse = listOfNotNull(
+            if (::fragmentA.isInitialized) fragmentA else null,
+            if (::fragmentB.isInitialized) fragmentB else null
+        ).any { runCatching { it.currentPath.sftpAuthority == authority }.getOrDefault(false) }
+        if (!inUse) me.zhanghai.android.files.provider.sftp.SftpSessions.release(authority)
     }
 
     fun isFragmentA(fragment: FileListFragment): Boolean =
@@ -356,6 +385,15 @@ class FileListActivity : AppActivity() {
     }
 
     override fun onDestroy() {
+        // Leaving the explorer: its VPS file connections go too (a terminal keeps its own SSH).
+        if (isFinishing && !isChangingConfigurations) {
+            listOfNotNull(
+                if (::fragmentA.isInitialized) fragmentA else null,
+                if (::fragmentB.isInitialized) fragmentB else null
+            ).mapNotNull { runCatching { it.currentPath.sftpAuthority }.getOrNull() }
+                .distinct()
+                .forEach { me.zhanghai.android.files.provider.sftp.SftpSessions.release(it) }
+        }
         super.onDestroy()
         try {
             unregisterReceiver(demoReceiver)
@@ -1776,8 +1814,12 @@ class FileListActivity : AppActivity() {
         // Home of the active panel: the VPS home on a VPS, else that panel's start folder (the
         // phone's storage by default). Going up one folder stays in the top bar's arrow.
         btnBottomHome.setOnClickListener {
+            val current = runCatching { activeFragment.currentPath }.getOrNull()
             val home = homeFor(activeFragment)
-            if (home != null && home != activeFragment.currentPath) {
+            if (current?.sftpAuthority != null && (home == null || home == current)) {
+                // Already at the VPS home: Home leaves the server (and closes its connection).
+                leaveRemote(activeFragment)
+            } else if (home != null && home != current) {
                 activeFragment.navigateTo(home)
             }
         }

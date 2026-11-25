@@ -92,6 +92,15 @@ object DirectorySnapshotCache {
             cache.evictAll()
         }
     }
+
+    /** Drops every listing under [uriPrefix] (a whole server that was disconnected). */
+    fun invalidateUnder(uriPrefix: String) {
+        synchronized(cache) {
+            for (key in cache.snapshot().keys) {
+                if (key.startsWith(uriPrefix)) cache.remove(key)
+            }
+        }
+    }
 }
 
 class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List<FileItem>>>() {

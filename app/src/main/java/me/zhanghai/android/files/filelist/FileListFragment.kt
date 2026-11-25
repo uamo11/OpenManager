@@ -120,6 +120,9 @@ import me.zhanghai.android.files.provider.archive.archiveFile
 import me.zhanghai.android.files.provider.archive.createArchiveRootPath
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
+import me.zhanghai.android.files.compat.pathFileCompat
+import me.zhanghai.android.files.provider.sftp.isSftpRoot
+import me.zhanghai.android.files.provider.sftp.sftpAuthority
 import me.zhanghai.android.files.provider.root.DeadManProtectionManager
 import me.zhanghai.android.files.settings.PathSettings
 import me.zhanghai.android.files.settings.PerformanceModeManager
@@ -1170,7 +1173,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         updateSpanCount()
     }
 
+    // The VPS this panel showed last: when the panel leaves it, its connection can be closed.
+    private var lastSftpAuthority: me.zhanghai.android.files.provider.sftp.client.Authority? = null
+
     private fun onCurrentPathChanged(path: Path) {
+        val authority = path.sftpAuthority
+        val left = lastSftpAuthority
+        lastSftpAuthority = authority
+        if (left != null && left != authority) {
+            // After both panels settled (the other one may be on the same server).
+            view?.post { (activity as? FileListActivity)?.releaseRemoteIfUnused(left) }
+        }
         clearSelectedFiles()
         updateOverlayToolbar()
         updateBottomToolbar()
@@ -1573,6 +1586,26 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         menuBinding.viewSortPathSpecificItem.isChecked = viewModel.isViewSortPathSpecific
     }
 
+    /**
+     * Whether [path] is the top of a storage (internal storage, SD card, USB) on a phone where
+     * the app has no root: Back does not climb above it.
+     */
+    fun isStorageBoundary(path: Path): Boolean {
+        if (path.isArchivePath || !path.isLinuxPath) return false
+        if (me.zhanghai.android.files.provider.root.SuperuserDetector.cachedStatus?.isRootGranted == true) {
+            return false
+        }
+        val file = try { path.toFile().absoluteFile } catch (_: Throwable) { return false }
+        if (file == android.os.Environment.getExternalStorageDirectory().absoluteFile) return true
+        return try {
+            me.zhanghai.android.files.storage.StorageVolumeListLiveData.valueCompat.any {
+                it.pathFileCompat.absoluteFile == file
+            }
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
     fun isHomeOrRootPath(path: Path): Boolean {
         if (path.isArchivePath) {
             return false
@@ -1589,6 +1622,10 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     override fun navigateUp() {
         if (!canNavigateUp) return
         collapseSearchView()
+        if (currentPath.isSftpRoot) {
+            (activity as? FileListActivity)?.leaveRemote(this) ?: navigateToHome()
+            return
+        }
         if (currentPath.isArchivePath && currentPath.parent == null) {
             try {
                 pendingHighlightPath = currentPath.archiveFile.toString()
@@ -1716,9 +1753,34 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             getString(R.string.om_sort_invert_order),
             getString(R.string.om_sort_dirs_first)
         )
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+        val sort = viewModel.sortOptions
+        // Which rows carry a check mark: the active criterion and the switches that are on.
+        val checked = booleanArrayOf(
+            false,
+            sort.by == By.NAME,
+            sort.by == By.TYPE,
+            sort.by == By.SIZE,
+            sort.by == By.LAST_MODIFIED,
+            sort.order == Order.DESCENDING,
+            sort.isDirectoriesFirst
+        )
+        val context = requireContext()
+        val adapter = object : android.widget.ArrayAdapter<String>(
+            context, R.layout.sort_option_item, android.R.id.text1, options
+        ) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val row = super.getView(position, convertView, parent)
+                row.findViewById<View>(R.id.sortOptionCheck).visibility =
+                    if (checked[position]) View.VISIBLE else View.INVISIBLE
+                row.findViewById<android.widget.TextView>(android.R.id.text1).setTypeface(
+                    null, if (checked[position]) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL
+                )
+                return row
+            }
+        }
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
             .setTitle(R.string.om_menu_sort)
-            .setItems(options) { _, which ->
+            .setAdapter(adapter) { _, which ->
                 when (which) {
                     0 -> showViewOptionsDialog()
                     1 -> viewModel.setSortBy(By.NAME)
@@ -3317,9 +3379,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         get() {
             if (!isAdded) return false
             val current = try { viewModel.currentPath } catch (_: Exception) { null } ?: return false
+            // The root of a VPS: Back leaves the server for the phone's storage.
+            if (current.isSftpRoot) return true
             if (isHomeOrRootPath(current)) {
                 return false
             }
+            // Without root, Back stops at the storage (internal, SD card): above it are system
+            // folders an app cannot read. "/" stays reachable from the side menu.
+            if (isStorageBoundary(current)) return false
             return viewModel.canNavigateUpBreadcrumb || current.parentOrArchiveParent != null
         }
 

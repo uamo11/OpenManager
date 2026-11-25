@@ -139,6 +139,10 @@ class TerminalActivity : AppActivity() {
         const val EXTRA_REMOTE_PROFILE_ID = "me.zhanghai.android.files.terminal.extra.REMOTE_PROFILE_ID"
         private const val MENU_SESSION_BASE = 1000
 
+        /** Remote sessions that ended while the terminal was not in front, not yet told. */
+        private val remoteLostUnseen: MutableSet<TerminalSession> =
+            java.util.Collections.newSetFromMap(java.util.WeakHashMap())
+
         /** Opens the terminal connected to a saved SSH/Telnet profile. */
         fun createRemoteIntent(context: Context, profileId: String): Intent =
             Intent(context, TerminalActivity::class.java).apply {
@@ -242,6 +246,12 @@ class TerminalActivity : AppActivity() {
         }
 
         override fun onSessionFinished(finishedSession: TerminalSession) {
+            // An SSH/Telnet link that died while the user was elsewhere: on return, a clear choice
+            // instead of a frozen "[Connection closed - press Enter]" screen.
+            val host = hostActivity
+            if (finishedSession.isRemote && (host == null || !host.isResumedNow)) {
+                synchronized(remoteLostUnseen) { remoteLostUnseen.add(finishedSession) }
+            }
             val activity = hostActivity
             if (activity != null) {
                 activity.runOnUiThread {
@@ -361,8 +371,15 @@ class TerminalActivity : AppActivity() {
         startTerminalSession()
     }
 
+    /** Whether this screen is in front (read from the session thread's callbacks). */
+    @Volatile
+    var isResumedNow = false
+        private set
+
     override fun onResume() {
         super.onResume()
+        isResumedNow = true
+        showRemoteLostIfNeeded()
         RemotePrompter.attach(this)
         me.zhanghai.android.files.terminal.tracer.GuardPrompter.attach(this)
         applyPreferences()
@@ -373,6 +390,7 @@ class TerminalActivity : AppActivity() {
 
     override fun onPause() {
         super.onPause()
+        isResumedNow = false
         me.zhanghai.android.files.terminal.tracer.GuardPrompter.detach(this)
         if (me.zhanghai.android.files.BuildConfig.DEBUG && terminalSession?.isRemote == true) {
             android.util.Log.i(
@@ -1503,6 +1521,35 @@ class TerminalActivity : AppActivity() {
             }
         }
         popup.show()
+    }
+
+    /** The SSH/Telnet session on screen died while the app was in the background. */
+    private fun showRemoteLostIfNeeded() {
+        val session = terminalSession ?: return
+        if (!session.isRemote || session.isRunning) return
+        val unseen = synchronized(remoteLostUnseen) { remoteLostUnseen.remove(session) }
+        if (!unseen) return
+        val profile = remoteProfile
+        val name = profile?.displayName ?: session.title.orEmpty()
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_ssh_connection_lost_title)
+            .setMessage(getString(R.string.om_ssh_connection_lost_message, name))
+            .setCancelable(false)
+            .setPositiveButton(R.string.om_remote_files_reconnect) { _, _ ->
+                ScriptExecutionManager.entryFor(session)?.let { ScriptExecutionManager.dismiss(it) }
+                profile?.let { RemoteProfileStore.get(this, it.id) ?: it }
+                    ?.let { me.zhanghai.android.files.terminal.remote.ConnectionsActivity.connect(this, it) }
+            }
+            .setNegativeButton(R.string.om_ssh_connection_lost_list) { _, _ ->
+                // The dead session is dropped (it only held its screen text) and the server list opens.
+                ScriptExecutionManager.entryFor(session)?.let { ScriptExecutionManager.dismiss(it) }
+                startActivity(
+                    me.zhanghai.android.files.terminal.remote.ConnectionsActivity.createIntent(this)
+                        .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                )
+                finish()
+            }
+            .show()
     }
 
     private fun copyTerminalTranscript() {

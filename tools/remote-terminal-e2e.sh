@@ -347,6 +347,12 @@ while [ $backs -lt 5 ]; do
     find_text "⋮" >/dev/null && break
 done
 shot 07f_back_to_vps_terminal
+released=$(adb logcat -d -s OMSftp 2>/dev/null | grep -c "released" || true)
+if [ "${released:-0}" -ge 1 ]; then
+    pass "leaving the VPS files closes their connection (the SSH session stays)"
+else
+    fail "leaving the VPS files kept their SFTP connection open"
+fi
 if find_text "⋮" >/dev/null && [ $backs -le 2 ]; then
     pass "back from the VPS files returns to the SSH session ($backs presses)"
 else
@@ -459,6 +465,21 @@ for label in sys.argv[2:]:
             x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
             print((x1 + x2) // 2, (y1 + y2) // 2)
             sys.exit(0)
+sys.exit(1)
+PY
+}
+# node_text_by_id <id>: text of the first node with that resource id.
+node_text_by_id() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
+        t = re.search(r' text="([^"]*)"', node)
+        print(html.unescape(t.group(1)) if t else "")
+        sys.exit(0)
 sys.exit(1)
 PY
 }
@@ -608,6 +629,36 @@ adb shell am force-stop $PKG; sleep 1
 # The rest of the run expects hidden files off again.
 adb shell run-as $PKG sed -i 's/name="key_file_list_show_hidden_files" value="true"/name="key_file_list_show_hidden_files" value="false"/' /data/data/$PKG/shared_prefs/${PKG}_preferences.xml 2>/dev/null || true
 adb shell am start -W -n "$MAIN" >/dev/null; sleep 4
+
+log "=== SSH: a connection that dies in the background asks what to do ==="
+adb logcat -c
+demo remote_ssh; sleep 10
+if find_text "⋮" >/dev/null; then
+    adb shell input keyevent KEYCODE_HOME; sleep 2
+    # The server ends the session while the app is in the background.
+    sudo pkill -f "sshd: omtest" || true
+    sleep 5
+    adb shell am start -n $PKG/me.zhanghai.android.files.terminal.TerminalActivity -f 0x00020000 >/dev/null 2>&1; sleep 4
+    shot 09e_ssh_lost_in_background
+    if find_text "Connection lost" "Conexión perdida" >/dev/null; then
+        pass "back from the background, a dead SSH session says so with Reconnect / Server list"
+        pos=$(find_text "Server list" "Lista de servidores") && adb shell input tap $pos; sleep 3
+        top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -o "$PKG/[A-Za-z0-9_.]*")
+        case "$top" in
+            *ConnectionsActivity) pass "Server list leaves the dead session for the list of servers" ;;
+            *) fail "Server list opened $top instead of the servers" ;;
+        esac
+    elif find_contains "Connection closed - press Enter" >/dev/null; then
+        fail "the dead SSH session still shows a frozen '[Connection closed - press Enter]'"
+    else
+        fail "no 'Connection lost' notice after the SSH session died in the background"
+    fi
+else
+    fail "could not open the SSH session for the background test"
+fi
+adb logcat -d > "$OUT/logcat_ssh_lost.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_ssh_lost.txt"; then fail "crash after the SSH session died in the background"; fi
+adb shell am force-stop $PKG; sleep 1
 
 log "=== SSH: a changed host key must be blocked ==="
 sudo pkill -f "sshd -f /tmp/sshd_om/sshd_config" || true
@@ -1915,22 +1966,50 @@ fi
 adb logcat -d > "$OUT/logcat_mediascan.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_mediascan.txt"; then fail "crash while browsing photos and videos"; fi
 
-log "=== Text editor from the side bar: new document, Save as ==="
-# node_text_by_id <id>: text of the first node with that resource id.
-node_text_by_id() {
-    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
-    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
-    python3 - "$OUT/ui.xml" "$1" <<'PY'
+log "=== Back stops at the internal storage without root ==="
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Download" >/dev/null; sleep 4
+adb shell input keyevent KEYCODE_BACK; sleep 2
+adb shell input keyevent KEYCODE_BACK; sleep 2
+title=$(node_text_by_id tvPathTitle || true)
+shot 64_back_stops_at_storage
+log "      after two BACK presses from Download: $title"
+case "$title" in
+    */storage/emulated/0|*/storage/emulated/0/) pass "BACK climbs to the internal storage and stops there (no root)" ;;
+    *) fail "BACK went to '$title' instead of stopping at the internal storage" ;;
+esac
+
+log "=== Sort and view marks the active choice ==="
+demo more_menu; sleep 2
+pos=$(find_contains "Sort and view" "Ordenar y vista") && adb shell input tap $pos; sleep 2
+shot 65_sort_checks
+marks=$(python3 - "$OUT/ui.xml" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-for node in re.findall(r"<node [^>]*>", xml):
-    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
-        t = re.search(r' text="([^"]*)"', node)
-        print(html.unescape(t.group(1)) if t else "")
-        sys.exit(0)
-sys.exit(1)
+nodes = re.findall(r"<node [^>]*>", xml)
+def box(n):
+    return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+checks = [box(n) for n in nodes if re.search(r'resource-id="[^"]*:id/sortOptionCheck"', n)]
+rows = {}
+for n in nodes:
+    t = re.search(r' text="([^"]*)"', n)
+    if t and re.search(r'resource-id="android:id/text1"', n):
+        rows[html.unescape(t.group(1))] = box(n)
+marked = [label for label, (x1, y1, x2, y2) in rows.items()
+          if any(cy1 < (y1 + y2) // 2 < cy2 for _, cy1, _, cy2 in checks)]
+print(" | ".join(marked))
 PY
-}
+)
+log "      marked: ${marks:-none}"
+if printf '%s' "$marks" | grep -qi "name\|nombre"; then
+    pass "Sort and view shows a check next to the active sort (Name)"
+else
+    fail "Sort and view does not mark the active sort ($marks)"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+
+log "=== Text editor from the side bar: new document, Save as ==="
 adb shell rm -rf /sdcard/om_editor_test; adb shell mkdir -p /sdcard/om_editor_test
 adb shell am force-stop $PKG; sleep 1
 adb logcat -c

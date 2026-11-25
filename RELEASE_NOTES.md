@@ -1,3 +1,21 @@
+# OpenManager v2.0.27: Atrás que se Detiene en el Almacenamiento, VPS que se Desconecta y Ordenar con Marca
+
+### ⬅️ Atrás
+- **Sin root**, Atrás se detiene en el almacenamiento interno (o en la raíz de la tarjeta SD/USB) en lugar de subir a `/storage/emulated`, `/storage` y `/`, carpetas que una app sin root no puede leer (pantallas vacías). Allí, Atrás de nuevo ofrece salir de la app.
+- **Con root**, Atrás sigue subiendo hasta `/`.
+- En ambos casos `/` sigue a un toque desde el menú lateral (Raíz).
+
+### 🖥️ Archivos del VPS: salida limpia
+- **Atrás** en la raíz del VPS sale al almacenamiento del teléfono.
+- **Inicio** lleva primero a la carpeta de inicio del VPS; si ya estás en ella, sale al almacenamiento del teléfono.
+- Al salir (o al cerrar el explorador), la conexión de archivos con ese servidor **se cierra** y se borran sus listados en caché, así no queda nada consumiendo red ni memoria. La sesión SSH de la terminal sigue abierta.
+
+### 🔌 SSH caído en segundo plano
+- Si la conexión SSH/Telnet se cae mientras la app está en segundo plano, al volver ya no se queda la pantalla congelada con «[Connection closed - press Enter]»: aparece **«Conexión perdida»** con **Reconectar** o **Lista de servidores**. La sesión muerta se descarta y libera su memoria.
+
+### ✔️ Ordenar y vista
+- El criterio activo (Nombre, Tipo, Tamaño o Fecha) lleva una **marca ✓** y va en negrita; también se marcan «Invertir orden» y «Carpetas primero» cuando están activos.
+
 # OpenManager v2.0.26: Nuevo Editor de Código
 
 ### 🚀 Motor nuevo, rápido con archivos enormes

@@ -2574,4 +2574,7 @@
     <string name="sora_editor_editor_search_busy">Trình soạn thảo vẫn đang chuẩn bị…</string>
     <string name="sora_editor_editor_search_replacing">Đang thay thế văn bản…</string>
     <string name="sora_editor_editor_formatting">Đang định dạng mã…</string>
+    <string name="om_ssh_connection_lost_title">Mất kết nối</string>
+    <string name="om_ssh_connection_lost_message">Kết nối tới %1$s đã đóng khi ứng dụng chạy nền.</string>
+    <string name="om_ssh_connection_lost_list">Danh sách máy chủ</string>
 </resources>

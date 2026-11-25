@@ -2480,4 +2480,7 @@
     <string name="sora_editor_editor_search_busy">Editor masih bersiap…</string>
     <string name="sora_editor_editor_search_replacing">Mengganti teks…</string>
     <string name="sora_editor_editor_formatting">Memformat kode…</string>
+    <string name="om_ssh_connection_lost_title">Koneksi terputus</string>
+    <string name="om_ssh_connection_lost_message">Koneksi ke %1$s tertutup saat aplikasi berada di latar belakang.</string>
+    <string name="om_ssh_connection_lost_list">Daftar server</string>
 </resources>
