@@ -1863,6 +1863,122 @@ fi
 adb logcat -d > "$OUT/logcat_mediascan.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_mediascan.txt"; then fail "crash while browsing photos and videos"; fi
 
+log "=== Text editor from the side bar: new document, Save as ==="
+# node_text_by_id <id>: text of the first node with that resource id.
+node_text_by_id() {
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % re.escape(sys.argv[2]), node):
+        t = re.search(r' text="([^"]*)"', node)
+        print(html.unescape(t.group(1)) if t else "")
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+adb shell rm -rf /sdcard/om_editor_test; adb shell mkdir -p /sdcard/om_editor_test
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test" >/dev/null; sleep 4
+demo drawer; sleep 2
+pos=$(node_center_by_id drawerItemTextEditor) || {
+    # Lower in the drawer: scroll it.
+    adb shell input swipe 300 1600 300 500 300; sleep 1
+    pos=$(node_center_by_id drawerItemTextEditor)
+}
+editor_ok=0
+if [ -n "$pos" ]; then
+    adb shell input tap $pos; sleep 4
+    top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -o "$PKG/[A-Za-z0-9_.]*")
+    log "      side bar editor opened: ${top:-nothing}"
+    case "$top" in
+        *TextEditorActivity) pass "the side bar opens the text editor (it used to close at once)"; editor_ok=1 ;;
+        *) fail "the side bar did not open the text editor ($top)" ;;
+    esac
+else
+    fail "no Text editor entry in the side bar"
+fi
+if [ "$editor_ok" = 1 ]; then
+    shot 60_editor_new_document
+    pos=$(node_center_by_id textEdit) && adb shell input tap $pos; sleep 1
+    adb shell input text "hello%sfrom%sOpenManager"; sleep 1
+    adb shell input keyevent KEYCODE_ENTER
+    adb shell input text "second%sline"; sleep 1
+    adb shell input keyevent KEYCODE_BACK; sleep 1   # first BACK only hides the keyboard
+    pos=$(find_text "Save" "Guardar") && adb shell input tap $pos; sleep 2
+    shot 61_editor_save_as
+    folder=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+texts = [html.unescape(t) for t in re.findall(r'class="android.widget.EditText"[^>]* text="([^"]*)"', xml)]
+texts += [html.unescape(t) for t in re.findall(r' text="([^"]*)"[^>]*class="android.widget.EditText"', xml)]
+print(next((t for t in texts if t.startswith("/")), ""))
+PY
+)
+    log "      Save as suggests the folder: ${folder:-?}"
+    case "$folder" in
+        */om_editor_test) pass "Save as suggests the folder open in the panel" ;;
+        *) fail "Save as suggests '$folder' instead of the panel folder" ;;
+    esac
+    # The name is selected without its extension: typing replaces it.
+    adb shell input text "om_note"; sleep 1
+    pos=$(find_text "SAVE" "GUARDAR" "Save" "Guardar") && adb shell input tap $pos; sleep 4
+    saved=$(adb shell cat /sdcard/om_editor_test/om_note.txt 2>/dev/null | tr -d '\r')
+    log "      saved file: $(printf '%s' "$saved" | tr '\n' '|')"
+    if [ "$saved" = "$(printf 'hello from OpenManager\nsecond line')" ]; then
+        pass "a new document is saved with its text where the user chose"
+    else
+        fail "the new document was not saved as om_note.txt"
+    fi
+    title=$(node_text_by_id statusFileNameText || true)
+    log "      editor now shows: $title"
+    case "$title" in
+        om_note.txt*) pass "after Save as the editor continues in the saved file" ;;
+        *) fail "after Save as the editor shows '$title'" ;;
+    esac
+    drafts=$(adb shell run-as $PKG ls files/editor_drafts 2>/dev/null | tr -d '\r' | grep -c "untitled-" || true)
+    if [ "${drafts:-0}" -eq 0 ]; then pass "the scratch file of the new document is removed"; else fail "$drafts scratch files left behind"; fi
+fi
+
+log "=== Text editor: big file, line numbers and typing stay right ==="
+python3 - "$OUT/om_big.txt" <<'PY'
+import sys
+with open(sys.argv[1], "w") as f:
+    for i in range(1, 150001):
+        f.write("line %06d: the quick brown fox jumps over the lazy dog {}\n" % i)
+PY
+adb push "$OUT/om_big.txt" /sdcard/om_editor_test/om_big.txt >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_big.txt" \
+    --ei EXTRA_GOTO_LINE 149990 >/dev/null
+sleep 12
+shot 62_editor_big_file
+pos=$(node_text_by_id statusCursorPosText || true)
+log "      cursor after jumping near the end: $pos"
+case "$pos" in
+    149990:*) pass "line numbers are right deep into a 150 000-line file" ;;
+    *) fail "the cursor shows '$pos' instead of line 149990" ;;
+esac
+# Type a few lines there: the line number follows without recounting the file.
+adb shell input text "typed"; adb shell input keyevent KEYCODE_ENTER; adb shell input keyevent KEYCODE_ENTER
+sleep 2
+pos=$(node_text_by_id statusCursorPosText || true)
+log "      cursor after typing two new lines: $pos"
+case "$pos" in
+    149992:1) pass "typing new lines updates the line number" ;;
+    *) fail "after typing the cursor shows '$pos' instead of 149992:1" ;;
+esac
+adb logcat -d > "$OUT/logcat_editor.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; else pass "no crash in the text editor"; fi
+if grep -q "ANR in $PKG" "$OUT/logcat_editor.txt"; then fail "the text editor stopped responding (ANR)"; fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

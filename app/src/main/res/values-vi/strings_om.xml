@@ -2550,4 +2550,16 @@
     <string name="om_view_scope_title">Áp dụng cho</string>
     <string name="om_view_scope_folder">Chỉ thư mục này</string>
     <string name="om_view_scope_all">Tất cả thư mục (mặc định)</string>
+    <string name="om_text_editor_untitled">Chưa đặt tên</string>
+    <string name="om_text_editor_new_file_name">moi.txt</string>
+    <string name="om_text_editor_save_as">Lưu thành…</string>
+    <string name="om_text_editor_save_as_name">Tên tệp</string>
+    <string name="om_text_editor_save_as_folder">Thư mục</string>
+    <string name="om_text_editor_save_as_folder_missing">Thư mục này không tồn tại</string>
+    <string name="om_text_editor_save_as_name_invalid">Hãy nhập tên tệp hợp lệ</string>
+    <string name="om_text_editor_save_as_exists">%1$s đã tồn tại. Thay thế?</string>
+    <string name="om_text_editor_replace">Thay thế</string>
+    <string name="om_text_editor_too_large">Tệp này quá lớn để sửa ở đây (%1$s; giới hạn là %2$s). Hãy mở bằng trình sửa HEX.</string>
+    <string name="om_text_editor_open_failed">Không thể mở tệp: %1$s</string>
+    <string name="om_text_editor_selection">Chọn: %1$d</string>
 </resources>

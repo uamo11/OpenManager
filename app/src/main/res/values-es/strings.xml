@@ -3268,4 +3268,16 @@
     <string name="om_view_scope_title">Aplicar a</string>
     <string name="om_view_scope_folder">Solo esta carpeta</string>
     <string name="om_view_scope_all">Todas las carpetas (predeterminado)</string>
+    <string name="om_text_editor_untitled">Sin título</string>
+    <string name="om_text_editor_new_file_name">nuevo.txt</string>
+    <string name="om_text_editor_save_as">Guardar como…</string>
+    <string name="om_text_editor_save_as_name">Nombre del archivo</string>
+    <string name="om_text_editor_save_as_folder">Carpeta</string>
+    <string name="om_text_editor_save_as_folder_missing">Esta carpeta no existe</string>
+    <string name="om_text_editor_save_as_name_invalid">Escribe un nombre de archivo válido</string>
+    <string name="om_text_editor_save_as_exists">%1$s ya existe. ¿Reemplazarlo?</string>
+    <string name="om_text_editor_replace">Reemplazar</string>
+    <string name="om_text_editor_too_large">Este archivo es demasiado grande para editarlo aquí (%1$s; el límite es %2$s). Ábrelo con el editor HEX.</string>
+    <string name="om_text_editor_open_failed">No se pudo abrir el archivo: %1$s</string>
+    <string name="om_text_editor_selection">Sel: %1$d</string>
 </resources>

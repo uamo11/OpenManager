@@ -61,6 +61,7 @@ import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.addOnBackPressedCallback
 import me.zhanghai.android.files.util.args
 import me.zhanghai.android.files.util.extraPath
+import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.util.fadeInUnsafe
 import me.zhanghai.android.files.util.fadeOutUnsafe
 import me.zhanghai.android.files.util.isReady
@@ -91,6 +92,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private var currentLanguage = SyntaxLanguage.PLAIN_TEXT
     private var highlightJob: Job? = null
+    // Bumped on every edit: a highlight computed for an older text is not applied.
+    private var textGeneration = 0L
+
+    /** A new document opened from the side bar: saved with "Save as". */
+    private val isDraft: Boolean
+        get() = args.intent.getBooleanExtra(TextEditorActivity.EXTRA_DRAFT, false)
 
     // Search and replace state
     private val searchMatches = mutableListOf<IntRange>()
@@ -154,7 +161,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                         closeSearchPanel()
                         return
                     }
-                    if (TextEditorSettings.isConfirmOnExit(requireContext()) && viewModel.isTextChanged.value) {
+                    if ((isDraft || TextEditorSettings.isConfirmOnExit(requireContext())) &&
+                        viewModel.isTextChanged.value
+                    ) {
                         ConfirmCloseDialogFragment.show(this@TextEditorFragment)
                     } else {
                         finish()
@@ -269,6 +278,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 return@doAfterTextChanged
             }
             viewModel.isTextChanged.value = true
+            textGeneration++
             binding.lineNumberView.syncLineCount()
             requestSyntaxHighlight()
             if (binding.searchPanel.visibility == View.VISIBLE) {
@@ -341,6 +351,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         stopFileChangeWatcher()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Leaving a new document without saving: its scratch file goes away.
+        if (isDraft && ::argsFile.isInitialized && activity?.isFinishing == true) {
+            TextEditorActivity.deleteDraft(argsFile)
+        }
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         stopFileChangeWatcher()
@@ -387,6 +405,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
 
     private fun startFileChangeWatcher() {
         fileChangeWatcherJob?.cancel()
+        // Remote files (SFTP, SMB...) are only checked when the editor comes back to the front:
+        // asking the server every 2.5 s cost network and battery.
+        if (!argsFile.isLinuxPath || isDraft) return
         fileChangeWatcherJob = viewLifecycleOwner.lifecycleScope.launch {
             while (isActive) {
                 delay(2500L)
@@ -476,10 +497,56 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         binding.editorStatusStrip.setBackgroundColor(theme.gutterColor)
         binding.symbolBar.setBackgroundColor(theme.gutterColor)
         binding.searchPanel.setBackgroundColor(theme.gutterColor)
+        recolorChrome(binding.editorStatusStrip, theme)
+        recolorChrome(binding.symbolBar, theme)
+        recolorChrome(binding.searchPanel, theme)
+        if (view != null) updateSubtitle()
         try {
             requireActivity().window.navigationBarColor = theme.gutterColor
         } catch (ignored: Throwable) {}
     }
+
+    /**
+     * The status strip, symbol bar and search panel are drawn with One Dark colors in XML. Each
+     * view remembers its original color and gets the matching color of [theme].
+     */
+    private fun recolorChrome(root: View, theme: EditorTheme) {
+        fun mapped(original: Int): Int = when (original) {
+            0xFFDCDFE4.toInt(), 0xFFFFFFFF.toInt() -> theme.textColor
+            0xFFABB2BF.toInt() -> theme.commentColor
+            0xFF5C6370.toInt() -> theme.gutterTextColor
+            0xFF61AFEF.toInt() -> theme.gutterCurrentLineColor
+            0xFFE5C07B.toInt() -> theme.typeColor
+            0xFF98C379.toInt() -> theme.stringColor
+            0xFFC678DD.toInt() -> theme.keywordColor
+            else -> original
+        }
+        fun walk(v: View) {
+            when (v) {
+                is android.widget.EditText -> {
+                    val original = (v.getTag(R.id.om_editor_original_color) as? IntArray)
+                        ?: intArrayOf(v.currentTextColor, v.currentHintTextColor)
+                            .also { v.setTag(R.id.om_editor_original_color, it) }
+                    v.setTextColor(mapped(original[0]))
+                    v.setHintTextColor(mapped(original[1]))
+                }
+                is android.widget.TextView -> {
+                    val original = (v.getTag(R.id.om_editor_original_color) as? IntArray)
+                        ?: intArrayOf(v.currentTextColor).also { v.setTag(R.id.om_editor_original_color, it) }
+                    v.setTextColor(mapped(original[0]))
+                }
+                is android.widget.ImageView -> {
+                    v.setColorFilter(theme.textColor)
+                }
+            }
+            if (v is ViewGroup) for (i in 0 until v.childCount) walk(v.getChildAt(i))
+        }
+        walk(root)
+    }
+
+    /** "Untitled" for a new document, else the file name. */
+    private fun displayName(): String =
+        if (isDraft) getString(R.string.om_text_editor_untitled) else viewModel.file.value.fileName.toString()
 
     private fun setupStatusStrip() {
         // Tapping Cursor Pos jumps to line
@@ -516,16 +583,40 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             if (text != null && text.isNotEmpty() && currentLanguage != SyntaxLanguage.PLAIN_TEXT &&
                 FastSyntaxScanner.isWithinHighlightLimit(text.length, isLive = true)
             ) {
+                // Scan a copy: the Editable changes on the main thread while the scan runs, and
+                // reading it from another thread could fail half-way or color the wrong chars.
+                val generation = textGeneration
+                val snapshot = text.toString()
+                val language = currentLanguage
+                val theme = currentTheme
                 val tokens = withContext(Dispatchers.Default) {
-                    FastSyntaxScanner.scan(text, currentLanguage, currentTheme)
+                    FastSyntaxScanner.scan(snapshot, language, theme)
                 }
-                if (view != null) {
+                if (view == null || generation != textGeneration) return@launch
+                val window = highlightWindow(text.length)
+                if (window == null) {
                     FastSyntaxScanner.applyTokens(text, tokens)
+                } else {
+                    FastSyntaxScanner.applyTokens(text, tokens, window.first, window.last)
                 }
             } else if (text != null) {
                 FastSyntaxScanner.clearSpans(text)
             }
         }
+    }
+
+    /**
+     * Big texts are recolored around what is on screen only (the rest keeps its colors, which
+     * move with the text): re-setting every span of a long file on each pause made typing stutter.
+     */
+    private fun highlightWindow(length: Int): IntRange? {
+        if (length <= FULL_HIGHLIGHT_CHARS) return null
+        val layout = binding.textEdit.layout ?: return null
+        val top = (binding.scrollView.scrollY - binding.textEdit.totalPaddingTop).coerceAtLeast(0)
+        val bottom = top + binding.scrollView.height
+        val first = layout.getLineStart(layout.getLineForVertical(top))
+        val last = layout.getLineEnd(layout.getLineForVertical(bottom))
+        return (first - HIGHLIGHT_MARGIN_CHARS).coerceAtLeast(0)..(last + HIGHLIGHT_MARGIN_CHARS).coerceAtMost(length)
     }
 
     private fun updateSubtitle() {
@@ -536,12 +627,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         activity.supportActionBar?.subtitle = null
 
         // Update MT Manager Status Info Strip
-        val fileName = viewModel.file.value.fileName.toString()
+        val fileName = displayName()
         val changed = viewModel.isTextChanged.value
         val fileSize = viewModel.fileSize.value
         val formattedSize = if (fileSize > 0) " (${Formatter.formatFileSize(requireContext(), fileSize)})" else ""
         binding.statusFileNameText.text = "${if (changed) "*" else ""}$fileName$formattedSize"
-        binding.statusFileNameText.setTextColor(if (changed) Color.parseColor("#E5C07B") else Color.parseColor("#ABB2BF"))
+        binding.statusFileNameText.setTextColor(if (changed) currentTheme.typeColor else currentTheme.textColor)
 
         binding.statusCursorPosText.text = "$currentCursorLine:$currentCursorCol"
         binding.statusEncodingText.text = charsetName
@@ -554,7 +645,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         if (selStart >= 0 && selEnd >= 0 && selStart != selEnd) {
             val selLen = abs(selEnd - selStart)
             binding.statusSelectionText.visibility = View.VISIBLE
-            binding.statusSelectionText.text = "[Sel: $selLen]"
+            binding.statusSelectionText.text = getString(R.string.om_text_editor_selection, selLen)
         } else {
             binding.statusSelectionText.visibility = View.GONE
         }
@@ -1401,6 +1492,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 save()
                 true
             }
+            R.id.action_save_as -> {
+                showSaveAsDialog()
+                true
+            }
             R.id.action_undo -> {
                 undoManager.undo()
                 true
@@ -1502,6 +1597,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     override fun finish() {
+        if (isDraft && ::argsFile.isInitialized) TextEditorActivity.deleteDraft(argsFile)
         // A file sent by another app goes back to the explorer (to keep or copy it).
         val activity = requireActivity()
         (activity as? me.zhanghai.android.files.app.AppActivity)?.leaveToIncomingFile() ?: activity.finish()
@@ -1578,9 +1674,25 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                 state.throwable.printStackTrace()
                 binding.progress.fadeOutUnsafe()
                 binding.errorText.fadeInUnsafe()
-                binding.errorText.text = state.throwable.toString()
+                binding.errorText.text = describeLoadError(state.throwable)
                 binding.textEdit.fadeOutUnsafe()
             }
+        }
+    }
+
+    private fun describeLoadError(throwable: Throwable): String {
+        val ctx = requireContext()
+        return if (throwable is TextEditorViewModel.FileTooLargeException) {
+            getString(
+                R.string.om_text_editor_too_large,
+                Formatter.formatFileSize(ctx, throwable.size),
+                Formatter.formatFileSize(ctx, throwable.maxSize)
+            )
+        } else {
+            getString(
+                R.string.om_text_editor_open_failed,
+                throwable.localizedMessage?.takeIf { it.isNotBlank() } ?: throwable.javaClass.simpleName
+            )
         }
     }
 
@@ -1607,7 +1719,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun updateTitle() {
-        val fileName = viewModel.file.value.fileName.toString()
+        val fileName = displayName()
         val changed = viewModel.isTextChanged.value
         requireActivity().title = getString(
             if (changed) {
@@ -1636,6 +1748,10 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     }
 
     private fun save() {
+        if (isDraft) {
+            showSaveAsDialog()
+            return
+        }
         if (DeadManProtectionManager.isDfrootProtectionActive(requireContext()) &&
             DeadManProtectionManager.isProtectedFromModification(argsFile)
         ) {
@@ -1650,10 +1766,117 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         viewModel.writeFile(argsFile, text, requireContext())
     }
 
+    /** Name and folder for a new document, or a copy of this file somewhere else. */
+    private fun showSaveAsDialog() {
+        val ctx = requireContext()
+        val density = resources.displayMetrics.density
+        val currentParent: Path? = if (isDraft) null else argsFile.parent
+        val startFolder = when {
+            currentParent != null -> currentParent.toString()
+            else -> args.intent.getStringExtra(TextEditorActivity.EXTRA_TARGET_DIR)
+                ?: android.os.Environment.getExternalStoragePublicDirectory(
+                    android.os.Environment.DIRECTORY_DOCUMENTS
+                ).absolutePath
+        }
+        val startName = if (isDraft) getString(R.string.om_text_editor_new_file_name) else argsFile.fileName.toString()
+        fun field(hint: Int, value: String) = com.google.android.material.textfield.TextInputLayout(ctx).apply {
+            this.hint = getString(hint)
+            addView(com.google.android.material.textfield.TextInputEditText(context).apply {
+                setText(value)
+                isSingleLine = true
+            })
+        }
+        val nameField = field(R.string.om_text_editor_save_as_name, startName)
+        val folderField = field(R.string.om_text_editor_save_as_folder, startFolder)
+        val content = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            val pad = (22 * density).toInt()
+            setPadding(pad, (8 * density).toInt(), pad, 0)
+            addView(nameField)
+            addView(folderField)
+        }
+        val dialog = com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+            .setTitle(R.string.om_text_editor_save_as)
+            .setView(content)
+            .setPositiveButton(R.string.save, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        dialog.setOnShowListener {
+            // Select the name without its extension, ready to type over.
+            nameField.editText?.let { edit ->
+                val dot = startName.lastIndexOf('.')
+                edit.requestFocus()
+                edit.setSelection(0, if (dot > 0) dot else startName.length)
+            }
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = nameField.editText?.text?.toString()?.trim().orEmpty()
+                val folder = folderField.editText?.text?.toString()?.trim().orEmpty()
+                nameField.error = null
+                folderField.error = null
+                if (name.isEmpty() || name.contains('/') || name == "." || name == "..") {
+                    nameField.error = getString(R.string.om_text_editor_save_as_name_invalid)
+                    return@setOnClickListener
+                }
+                val parent: Path = if (currentParent != null && folder == currentParent.toString()) {
+                    currentParent
+                } else {
+                    val dir = java.io.File(folder)
+                    if (!dir.isDirectory) {
+                        folderField.error = getString(R.string.om_text_editor_save_as_folder_missing)
+                        return@setOnClickListener
+                    }
+                    java8.nio.file.Paths.get(dir.absolutePath)
+                }
+                val target = parent.resolve(name)
+                dialog.dismiss()
+                if (target == argsFile) {
+                    performSave()
+                    return@setOnClickListener
+                }
+                val exists = target.isLinuxPath && target.toFile().exists()
+                if (exists) {
+                    com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
+                        .setMessage(getString(R.string.om_text_editor_save_as_exists, name))
+                        .setPositiveButton(R.string.om_text_editor_replace) { _, _ -> saveTo(target) }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                } else {
+                    saveTo(target)
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    private fun saveTo(target: Path) {
+        if (DeadManProtectionManager.isDfrootProtectionActive(requireContext()) &&
+            DeadManProtectionManager.isProtectedFromModification(target)
+        ) {
+            DeadManProtectionManager.showDirtyFlagProtectionDialog(requireActivity())
+            return
+        }
+        viewModel.writeFile(target, binding.textEdit.text.toString(), requireContext())
+    }
+
+    /** Saved under another name: continue in that file (and drop the draft). */
+    private fun continueIn(target: Path) {
+        val activity = requireActivity()
+        startActivity(Intent(activity, TextEditorActivity::class.java).apply { extraPath = target })
+        if (isDraft) TextEditorActivity.deleteDraft(argsFile)
+        activity.finish()
+    }
+
     private fun onWriteFileStateChanged(state: ActionState<Pair<Path, String>, Unit>) {
         when (state) {
             is ActionState.Ready, is ActionState.Running -> updateSaveMenuItem()
             is ActionState.Success -> {
+                if (state.argument.first != argsFile) {
+                    showToast(R.string.text_editor_save_success)
+                    viewModel.finishWritingFile()
+                    viewModel.isTextChanged.value = false
+                    continueIn(state.argument.first)
+                    return
+                }
                 showToast(R.string.text_editor_save_success)
                 viewModel.finishWritingFile()
                 viewModel.isTextChanged.value = false
@@ -1672,6 +1895,12 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             return
         }
         menuBinding.saveItem.isEnabled = viewModel.writeFileState.value.isReady && viewModel.isTextChanged.value
+    }
+
+    private companion object {
+        // Up to this size the whole text is recolored; beyond it, the part on screen.
+        const val FULL_HIGHLIGHT_CHARS = 60_000
+        const val HIGHLIGHT_MARGIN_CHARS = 20_000
     }
 
     @Parcelize

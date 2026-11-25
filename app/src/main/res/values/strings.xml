@@ -3371,4 +3371,16 @@
     <string name="om_view_scope_title">Apply to</string>
     <string name="om_view_scope_folder">Only this folder</string>
     <string name="om_view_scope_all">All folders (default)</string>
+    <string name="om_text_editor_untitled">Untitled</string>
+    <string name="om_text_editor_new_file_name">new.txt</string>
+    <string name="om_text_editor_save_as">Save as…</string>
+    <string name="om_text_editor_save_as_name">File name</string>
+    <string name="om_text_editor_save_as_folder">Folder</string>
+    <string name="om_text_editor_save_as_folder_missing">This folder does not exist</string>
+    <string name="om_text_editor_save_as_name_invalid">Enter a valid file name</string>
+    <string name="om_text_editor_save_as_exists">%1$s already exists. Replace it?</string>
+    <string name="om_text_editor_replace">Replace</string>
+    <string name="om_text_editor_too_large">This file is too large to edit here (%1$s; the limit is %2$s). Open it with the HEX editor instead.</string>
+    <string name="om_text_editor_open_failed">Could not open the file: %1$s</string>
+    <string name="om_text_editor_selection">Sel: %1$d</string>
 </resources>

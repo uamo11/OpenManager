@@ -1085,7 +1085,13 @@ class FileListActivity : AppActivity() {
 
         findViewById<View>(R.id.drawerItemTextEditor).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
-            startActivity(Intent(this, TextEditorActivity::class.java))
+            // A new document; "Save as" suggests the folder open in the active panel.
+            startActivity(Intent(this, TextEditorActivity::class.java).apply {
+                val dir = runCatching { activeFragment.currentPath }.getOrNull()
+                if (dir != null && dir.isLinuxPath) {
+                    putExtra(TextEditorActivity.EXTRA_TARGET_DIR, dir.toFile().absolutePath)
+                }
+            })
         }
 
         // Connections hub replaces the old FTP server entry (the FTP server lives inside it).

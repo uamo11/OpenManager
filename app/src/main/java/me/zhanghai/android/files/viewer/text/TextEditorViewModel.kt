@@ -93,7 +93,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
             val (bytes, size, modTime) = runInterruptible(Dispatchers.IO) {
                 val size = file.size()
                 if (size > MAX_FILE_SIZE) {
-                    throw IOException("File size $size is too large (max 20MB)")
+                    throw FileTooLargeException(size, MAX_FILE_SIZE)
                 }
                 val modTime = try {
                     if (file.isLinuxPath) file.toFile().lastModified() else file.getLastModifiedTime().toMillis()
@@ -179,8 +179,9 @@ class TextEditorViewModel(file: Path) : ViewModel() {
     }
 
     fun writeFile(path: Path, text: String, context: Context) {
+        // A second tap on Save while the first save runs used to fail check() and close the app.
+        if (!_writeFileState.value.isReady) return
         viewModelScope.launch {
-            check(_writeFileState.value.isReady)
             val argument = path to text
             _writeFileState.value = ActionState.Running(argument)
             isSelfSaving = true
@@ -248,8 +249,9 @@ class TextEditorViewModel(file: Path) : ViewModel() {
 
     fun finishWritingFile() {
         viewModelScope.launch {
-            check(_writeFileState.value.isFinished)
-            _writeFileState.value = ActionState.Ready()
+            if (_writeFileState.value.isFinished) {
+                _writeFileState.value = ActionState.Ready()
+            }
         }
     }
 
@@ -265,7 +267,11 @@ class TextEditorViewModel(file: Path) : ViewModel() {
         return savedState
     }
 
+    /** The file is bigger than the editor accepts. */
+    class FileTooLargeException(val size: Long, val maxSize: Long) :
+        IOException("File size $size is too large (max $maxSize)")
+
     companion object {
-        private const val MAX_FILE_SIZE = 20 * 1024 * 1024L
+        const val MAX_FILE_SIZE = 20 * 1024 * 1024L
     }
 }

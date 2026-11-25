@@ -19,6 +19,12 @@
         tools:ignore="AlwaysShowAction" />
 
     <item
+        android:id="@+id/action_save_as"
+        android:orderInCategory="11"
+        android:title="@string/om_text_editor_save_as"
+        app:showAsAction="never" />
+
+    <item
         android:id="@+id/action_undo"
         android:icon="@drawable/ic_undo_24dp"
         android:orderInCategory="20"

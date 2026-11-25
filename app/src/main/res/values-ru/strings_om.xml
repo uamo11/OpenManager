@@ -2475,4 +2475,16 @@
     <string name="om_view_scope_title">Применить к</string>
     <string name="om_view_scope_folder">Только эта папка</string>
     <string name="om_view_scope_all">Все папки (по умолчанию)</string>
+    <string name="om_text_editor_untitled">Без названия</string>
+    <string name="om_text_editor_new_file_name">новый.txt</string>
+    <string name="om_text_editor_save_as">Сохранить как…</string>
+    <string name="om_text_editor_save_as_name">Имя файла</string>
+    <string name="om_text_editor_save_as_folder">Папка</string>
+    <string name="om_text_editor_save_as_folder_missing">Эта папка не существует</string>
+    <string name="om_text_editor_save_as_name_invalid">Введите корректное имя файла</string>
+    <string name="om_text_editor_save_as_exists">%1$s уже существует. Заменить?</string>
+    <string name="om_text_editor_replace">Заменить</string>
+    <string name="om_text_editor_too_large">Файл слишком большой для редактирования здесь (%1$s; предел %2$s). Откройте его в HEX-редакторе.</string>
+    <string name="om_text_editor_open_failed">Не удалось открыть файл: %1$s</string>
+    <string name="om_text_editor_selection">Выд.: %1$d</string>
 </resources>

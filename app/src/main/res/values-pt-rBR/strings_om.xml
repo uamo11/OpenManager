@@ -2461,4 +2461,16 @@
     <string name="om_view_scope_title">Aplicar a</string>
     <string name="om_view_scope_folder">Somente esta pasta</string>
     <string name="om_view_scope_all">Todas as pastas (padrão)</string>
+    <string name="om_text_editor_untitled">Sem título</string>
+    <string name="om_text_editor_new_file_name">novo.txt</string>
+    <string name="om_text_editor_save_as">Salvar como…</string>
+    <string name="om_text_editor_save_as_name">Nome do arquivo</string>
+    <string name="om_text_editor_save_as_folder">Pasta</string>
+    <string name="om_text_editor_save_as_folder_missing">Esta pasta não existe</string>
+    <string name="om_text_editor_save_as_name_invalid">Digite um nome de arquivo válido</string>
+    <string name="om_text_editor_save_as_exists">%1$s já existe. Substituir?</string>
+    <string name="om_text_editor_replace">Substituir</string>
+    <string name="om_text_editor_too_large">Este arquivo é grande demais para editar aqui (%1$s; o limite é %2$s). Abra-o no editor HEX.</string>
+    <string name="om_text_editor_open_failed">Não foi possível abrir o arquivo: %1$s</string>
+    <string name="om_text_editor_selection">Sel: %1$d</string>
 </resources>

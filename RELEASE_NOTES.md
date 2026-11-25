@@ -1,3 +1,27 @@
+# OpenManager v2.0.25: Editor de Texto Más Rápido, Estable y Abierto desde la Barra
+
+### 📝 «Editor de texto» desde la barra lateral
+- Antes se abría y se cerraba al instante (el editor exigía un archivo). Ahora abre un **documento nuevo «Sin título»**.
+- Al guardar aparece **«Guardar como…»**: nombre (ya seleccionado para escribir encima) y carpeta, con la del panel abierto propuesta. Avisa si el archivo ya existe.
+- Si sales sin guardar un documento con texto, pregunta antes de descartarlo.
+- **«Guardar como…»** también está en el menú para cualquier archivo, para guardar una copia con otro nombre o en otra carpeta.
+
+### ⚡ Rendimiento con archivos grandes
+- El número de línea, la columna y los números del margen ya no recuentan todo el archivo en cada tecla ni en cada fotograma del scroll: se actualizan solo con lo que cambia. En archivos de miles de líneas escribir y desplazarse ya no da tirones.
+- En textos largos, el coloreado de sintaxis repinta solo la zona visible.
+- Intro y Retroceso ya no copian el archivo entero.
+- La búsqueda del paréntesis o llave pareja tiene un límite.
+- Los archivos remotos (SFTP, SMB…) ya no se consultan al servidor cada 2,5 s para ver si cambiaron; solo al volver al editor.
+
+### 🛡️ Estabilidad
+- Pulsar **Guardar** dos veces seguidas podía cerrar la app. Ya no.
+- El coloreado de sintaxis leía el texto mientras escribías desde otro hilo; podía fallar o colorear caracteres equivocados. Ahora trabaja sobre una copia y descarta resultados viejos.
+- Errores al abrir en lenguaje claro: un archivo demasiado grande dice su tamaño y el límite, y sugiere el editor HEX.
+
+### 🎨 Interfaz
+- Con el tema **claro**, la barra de símbolos, la de búsqueda y la de estado tenían texto casi blanco sobre fondo claro (ilegible). Ahora usan los colores del tema.
+- La columna se cuenta dentro de la línea real también con ajuste de línea, y «Sel: N» está traducido.
+
 # OpenManager v2.0.24: Vídeos Panorámicos en la Galería y Menú Más Limpio
 
 ### 🖼️ Galería

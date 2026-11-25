@@ -103,7 +103,8 @@ class LineNumberView @JvmOverloads constructor(
     }
 
     fun syncLineCount() {
-        val count = editor?.lineCount ?: 1
+        // Logical lines (the numbers drawn), not wrapped rows.
+        val count = editor?.logicalLineCount ?: 1
         if (count != totalLines) {
             totalLines = max(1, count)
             val newDigits = max(3, totalLines.toString().length)
@@ -165,16 +166,13 @@ class LineNumberView @JvmOverloads constructor(
         val startLine = layout.getLineForVertical(max(0, visibleTop - paddingTop))
         val endLine = layout.getLineForVertical(max(0, visibleBottom - paddingTop))
 
-        var logicalLine = 1
-        // Calculate logical line at startLine
+        // Logical line of the first visible row: the index only walks what scrolled since the
+        // last frame instead of the whole text before it.
         val text = ed.text ?: ""
-        if (startLine > 0) {
-            val startOffset = layout.getLineStart(startLine)
-            var count = 1
-            for (j in 0 until startOffset) {
-                if (text[j] == '\n') count++
-            }
-            logicalLine = count
+        var logicalLine = if (startLine > 0) {
+            ed.lineIndex.lineAt(text, layout.getLineStart(startLine), ed.gutterAnchor)
+        } else {
+            1
         }
 
         for (i in startLine..endLine) {

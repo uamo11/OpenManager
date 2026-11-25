@@ -127,6 +127,31 @@ object FastSyntaxScanner {
         }
     }
 
+    /**
+     * Recolors only [from]..[to] of [editable]: spans there are replaced by the [tokens] that fall
+     * inside, the rest of the text keeps its spans.
+     */
+    fun applyTokens(editable: Editable?, tokens: List<SyntaxToken>, from: Int, to: Int) {
+        if (editable == null) return
+        val len = editable.length
+        val start = from.coerceIn(0, len)
+        val end = to.coerceIn(start, len)
+        for (span in editable.getSpans(start, end, SyntaxColorSpan::class.java)) {
+            if (editable.getSpanStart(span) >= start && editable.getSpanEnd(span) <= end) editable.removeSpan(span)
+        }
+        for (span in editable.getSpans(start, end, SyntaxItalicSpan::class.java)) {
+            if (editable.getSpanStart(span) >= start && editable.getSpanEnd(span) <= end) editable.removeSpan(span)
+        }
+        for (i in tokens.indices) {
+            val token = tokens[i]
+            if (token.start < start || token.end > end || token.end > len || token.start >= token.end) continue
+            editable.setSpan(SyntaxColorSpan(token.color), token.start, token.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            if (token.isItalic) {
+                editable.setSpan(SyntaxItalicSpan(), token.start, token.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+        }
+    }
+
     fun clearSpans(editable: Editable?) {
         if (editable == null) return
         val existingColorSpans = editable.getSpans(0, editable.length, SyntaxColorSpan::class.java)

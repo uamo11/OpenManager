@@ -101,12 +101,37 @@ class CodeEditText @JvmOverloads constructor(
     var onCursorPositionChanged: ((line: Int, col: Int, totalLines: Int) -> Unit)? = null
     var onLineCountChanged: (() -> Unit)? = null
 
+    /** Line numbers kept up to date per edit (see [NewlineIndex]): no whole-text scans. */
+    val lineIndex = NewlineIndex()
+    private val cursorAnchor = lineIndex.newAnchor()
+    val gutterAnchor = lineIndex.newAnchor()
+
+    // Start of the cursor's logical line, kept while edits happen after it (typing on the line).
+    private var cachedLineStart = -1
+
     init {
         // Monospace font and comfortable code line spacing
         typeface = Typeface.MONOSPACE
         setLineSpacing(0f, 1.2f)
         setBackgroundColor(0) // Transparent background
+        lineIndex.reset(text ?: "")
+        addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {
+                lineIndex.beforeChange(s, start, count)
+                if (start < cachedLineStart || (count > 0 && start <= cachedLineStart)) cachedLineStart = -1
+            }
+
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                lineIndex.afterChange(s, start, count)
+            }
+
+            override fun afterTextChanged(s: android.text.Editable) {}
+        })
     }
+
+    /** Logical lines in the text. */
+    val logicalLineCount: Int
+        get() = lineIndex.lineCount
 
     override fun onPreDraw(): Boolean = true
 
@@ -117,12 +142,8 @@ class CodeEditText @JvmOverloads constructor(
         invalidate() // Refresh current line and bracket highlights
     }
 
-    private var cachedTotalLogicalLines: Int = 1
-    private var isLogicalLineCountDirty: Boolean = true
-
     override fun onTextChanged(text: CharSequence?, start: Int, lengthBefore: Int, lengthAfter: Int) {
         super.onTextChanged(text, start, lengthBefore, lengthAfter)
-        isLogicalLineCountDirty = true
         onLineCountChanged?.invoke()
     }
 
@@ -133,36 +154,23 @@ class CodeEditText @JvmOverloads constructor(
         invalidate()
     }
 
-    private fun getTotalLogicalLines(): Int {
-        if (!isLogicalLineCountDirty) return cachedTotalLogicalLines
-        val textSeq = text ?: return 1
-        var count = 1
-        val len = textSeq.length
-        for (i in 0 until len) {
-            if (textSeq[i] == '\n') count++
-        }
-        cachedTotalLogicalLines = count
-        isLogicalLineCountDirty = false
-        return count
-    }
-
     private fun notifyCursorChanged(cursorPos: Int) {
-        val layout = layout ?: return
-        val textSeq = text ?: ""
+        val callback = onCursorPositionChanged ?: return
+        val textSeq = text ?: return
         val pos = cursorPos.coerceIn(0, textSeq.length)
-        val physicalLine = layout.getLineForOffset(pos)
-        val lineStart = layout.getLineStart(physicalLine)
-        val col = pos - lineStart + 1
-
-        var logicalLine = 1
-        val limit = min(pos, textSeq.length)
-        for (i in 0 until limit) {
-            if (textSeq[i] == '\n') logicalLine++
+        val logicalLine = lineIndex.lineAt(textSeq, pos, cursorAnchor)
+        // Column within the logical line (also with word wrap). The line start is remembered
+        // while typing on the same line, so long lines are not walked on every key.
+        var lineStart = cachedLineStart
+        if (lineStart < 0 || lineStart > pos || cachedLineStartLine != logicalLine) {
+            lineStart = lineIndex.lineStart(textSeq, pos)
+            cachedLineStart = lineStart
+            cachedLineStartLine = logicalLine
         }
-
-        val totalLogical = getTotalLogicalLines()
-        onCursorPositionChanged?.invoke(logicalLine, col, totalLogical)
+        callback(logicalLine, pos - lineStart + 1, lineIndex.lineCount)
     }
+
+    private var cachedLineStartLine = -1
 
     private fun updateBracketMatching(cursorPos: Int) {
         val text = text ?: return
@@ -216,7 +224,9 @@ class CodeEditText @JvmOverloads constructor(
         var depth = 0
         var i = pos
 
-        while (i in text.indices) {
+        // Huge files: give up after a while instead of walking megabytes on each cursor move.
+        var budget = MAX_BRACKET_SCAN
+        while (i in text.indices && budget-- > 0) {
             val c = text[i]
             if (c == openBracket) {
                 depth++
@@ -383,9 +393,8 @@ class CodeEditText @JvmOverloads constructor(
         val selEnd = selectionEnd
         if (selStart < 0 || selStart != selEnd) return false
 
-        val textStr = editable.toString()
-        val lineStart = textStr.lastIndexOf('\n', selStart - 1).let { if (it == -1) 0 else it + 1 }
-        val currentLineBeforeCursor = textStr.substring(lineStart, selStart)
+        val lineStart = lineIndex.lineStart(editable, selStart)
+        val currentLineBeforeCursor = editable.subSequence(lineStart, selStart).toString()
 
         // Find leading indentation
         var indentLen = 0
@@ -421,9 +430,8 @@ class CodeEditText @JvmOverloads constructor(
         val selEnd = selectionEnd
         if (selStart <= 0 || selStart != selEnd) return false
 
-        val textStr = editable.toString()
-        val lineStart = textStr.lastIndexOf('\n', selStart - 1).let { if (it == -1) 0 else it + 1 }
-        val prefix = textStr.substring(lineStart, selStart)
+        val lineStart = lineIndex.lineStart(editable, selStart)
+        val prefix = editable.subSequence(lineStart, selStart).toString()
 
         if (prefix.isNotEmpty() && prefix.all { it == ' ' }) {
             val spacesToDelete = when (val remainder = prefix.length % 4) {
@@ -533,5 +541,6 @@ class CodeEditText @JvmOverloads constructor(
         private const val COLOR_CURRENT_SEARCH_BORDER = 0xFFFFB300.toInt()
         private const val COLOR_BRACKET_BG = 0x4461AFEF.toInt()
         private const val COLOR_BRACKET_BORDER = 0xFF61AFEF.toInt()
+        private const val MAX_BRACKET_SCAN = 200_000
     }
 }
