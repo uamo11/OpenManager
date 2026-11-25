@@ -1,0 +1,31 @@
+name: Build dav1d
+
+# Builds the static dav1d libraries the AV1 software decoder links against. The result is
+# committed under app/src/main/jni/dav1d, so app builds need no meson/nasm.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - tools/build-dav1d.sh
+      - .github/workflows/build-dav1d.yml
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Tools
+      run: |
+        sudo apt-get update -qq
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nasm ninja-build
+        pip install --quiet meson
+    - name: NDK
+      run: |
+        yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;30.0.16248370" >/dev/null
+        echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/30.0.16248370" >> "$GITHUB_ENV"
+    - name: Build
+      run: bash tools/build-dav1d.sh
+    - uses: actions/upload-artifact@v4
+      with:
+        name: dav1d
+        path: app/src/main/jni/dav1d/

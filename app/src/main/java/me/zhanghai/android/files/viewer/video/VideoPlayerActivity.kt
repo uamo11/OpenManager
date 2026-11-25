@@ -45,6 +45,9 @@ import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.DecoderReuseEvaluation
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.Renderer
+import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
+import androidx.media3.exoplayer.video.VideoRendererEventListener
 import androidx.media3.exoplayer.SeekParameters
 import androidx.media3.exoplayer.analytics.AnalyticsListener
 import java8.nio.file.Path
@@ -160,6 +163,9 @@ class VideoPlayerActivity : AppActivity() {
         btnVideoPlayPause = findViewById(R.id.btnVideoPlayPause)
         btnVideoAspect = findViewById(R.id.btnVideoAspect)
 
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            Av1SoftwareDecoder.debugOverride = intent.getStringExtra("DEMO_AV1_DECODER")
+        }
         resumeStore = VideoResumeStore(this)
         currentPath = intent.extraPath
         externalUri = intent.data
@@ -236,7 +242,28 @@ class VideoPlayerActivity : AppActivity() {
 
     private fun initPlayer() {
         val ultraRam = PerformanceModeManager.isEnabled
-        val renderersFactory = DefaultRenderersFactory(this)
+        val renderersFactory = object : DefaultRenderersFactory(this) {
+            override fun buildVideoRenderers(
+                context: Context,
+                extensionRendererMode: Int,
+                mediaCodecSelector: MediaCodecSelector,
+                enableDecoderFallback: Boolean,
+                eventHandler: Handler,
+                eventListener: VideoRendererEventListener,
+                allowedVideoJoiningTimeMs: Long,
+                out: ArrayList<Renderer>
+            ) {
+                // First in the list: AV1 goes to dav1d on every core when there is no AV1
+                // hardware decoder; every other format falls through to MediaCodec.
+                if (Av1SoftwareDecoder.shouldUse()) {
+                    out.add(Av1SoftwareDecoder.createRenderer(allowedVideoJoiningTimeMs, eventHandler, eventListener))
+                }
+                super.buildVideoRenderers(
+                    context, extensionRendererMode, mediaCodecSelector, enableDecoderFallback,
+                    eventHandler, eventListener, allowedVideoJoiningTimeMs, out
+                )
+            }
+        }
             // If the preferred (hardware) decoder cannot be configured for this stream, try the
             // next one instead of failing: the main reason 4K files "don't play" on some devices.
             .setEnableDecoderFallback(true)
