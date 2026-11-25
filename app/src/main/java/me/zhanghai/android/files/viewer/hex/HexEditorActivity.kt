@@ -171,13 +171,17 @@ class HexEditorActivity : AppActivity() {
         val chrome = 45f * resources.displayMetrics.density
         val digits = adapter.offsetDigits
         val perRow = if (HexRowAdapter.rowChars(16, digits) * charWidth + chrome <= width) 16 else 8
+        // Rows fill the width: the font grows into the room left (up to 15 sp).
+        val needed = HexRowAdapter.rowChars(perRow, digits) * charWidth + chrome
+        val textSp = (11.5f * (width / needed)).coerceIn(11.5f, 15f).let { (it * 2).toInt() / 2f }
+        adapter.textSizeSp = textSp
         val firstVisible = (binding.rvHex.layoutManager as LinearLayoutManager).findFirstVisibleItemPosition()
             .coerceAtLeast(0).toLong() * adapter.bytesPerRow
         adapter.bytesPerRow = perRow
         // Same font and size as the rows, so the column titles sit over their bytes.
         for (header in listOf(binding.tvHeaderOffset, binding.tvHeaderHex, binding.tvHeaderAscii)) {
             header.typeface = Typeface.create(monoTypeface, Typeface.BOLD)
-            header.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f)
+            header.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSp)
         }
         binding.tvHeaderOffset.text = "OFFSET".padEnd(digits)
         binding.tvHeaderHex.text = buildString {
@@ -185,10 +189,10 @@ class HexEditorActivity : AppActivity() {
                 append(String.format("%02X", i))
                 append(if (i == perRow / 2 - 1) "  " else " ")
             }
-        }.trimEnd()
+        }
         binding.tvHeaderAscii.text = "0123456789ABCDEF".substring(0, perRow)
         (binding.rvHex.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(adapter.rowOf(firstVisible), 0)
-        if (BuildConfig.DEBUG) Log.d(TAG, "Rows: $perRow bytes per row, width=$width")
+        if (BuildConfig.DEBUG) Log.d(TAG, "Rows: $perRow bytes per row, ${textSp}sp, width=$width")
     }
 
     private val inspectorCards: List<Pair<ItemHexInspectorCardBinding, String>> by lazy {

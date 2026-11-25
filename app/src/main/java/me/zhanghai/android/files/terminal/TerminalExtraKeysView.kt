@@ -140,6 +140,10 @@ class TerminalExtraKeysView @JvmOverloads constructor(
     val barColor: Int
         get() = deckPalette.deckBg
 
+    /** The bar's colors, for the strips drawn above it (shortcuts, writing bar). */
+    val palette: DeckPalette
+        get() = deckPalette
+
     private fun applyDeckBackground() {
         setBackgroundColor(deckPalette.deckBg)
     }

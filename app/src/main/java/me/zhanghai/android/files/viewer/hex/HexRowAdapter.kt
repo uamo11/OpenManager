@@ -38,6 +38,15 @@ class HexRowAdapter(
             notifyDataSetChanged()
         }
 
+    /** Text size of the rows, grown to fill the screen width. */
+    var textSizeSp: Float = 11.5f
+        @SuppressLint("NotifyDataSetChanged")
+        set(value) {
+            if (field == value) return
+            field = value
+            notifyDataSetChanged()
+        }
+
     /** Hex digits of the offset column: 8, or more for files past 4 GB. */
     val offsetDigits: Int
         get() = if (buffer.size > 0xFFFFFFFFL) 10 else 8
@@ -129,6 +138,12 @@ class HexRowAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val rowOffset = position.toLong() * bytesPerRow
         val b = holder.binding
+        if (b.tvHex.tag != textSizeSp) {
+            for (view in listOf(b.tvOffset, b.tvHex, b.tvAscii)) {
+                view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp)
+            }
+            b.tvHex.tag = textSizeSp
+        }
         b.tvOffset.text = String.format("%0${offsetDigits}X", rowOffset)
 
         if (rowBytes.size < bytesPerRow) rowBytes = ByteArray(bytesPerRow)

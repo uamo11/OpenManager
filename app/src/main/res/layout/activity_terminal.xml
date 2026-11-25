@@ -354,7 +354,14 @@
             android:paddingEnd="6dp" />
     </HorizontalScrollView>
 
-    <!-- Local writing bar: compose with the keyboard (no network round trip per key), send at once -->
+    <!-- Local writing bar: compose with the keyboard (no network round trip per key), send at once.
+         Flat on the key bar's color, like the editor's symbol bar. -->
+    <View
+        android:id="@+id/composeDivider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/composeBar"
         android:layout_width="match_parent"
@@ -373,15 +380,15 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@drawable/remote_section_bar_background"
+            android:background="@null"
             android:hint="@string/om_term_compose_hint"
             android:imeOptions="actionSend|flagNoExtractUi"
             android:importantForAutofill="no"
             android:inputType="textMultiLine|textCapSentences"
             android:maxLines="5"
             android:minHeight="40dp"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
             android:textColor="#E6EDF3"
             android:textColorHint="#8B949E"
             android:textSize="15sp" />

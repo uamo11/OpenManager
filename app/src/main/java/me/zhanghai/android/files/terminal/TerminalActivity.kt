@@ -98,6 +98,9 @@ class TerminalActivity : AppActivity() {
     private var btnShowExtraKeys: View? = null
     private var remoteShortcutsContainer: android.widget.LinearLayout? = null
 
+    /** Title, subtitle and icon colors of the toolbar, set by [applyPreferences]. */
+    private var lastChromeColors = intArrayOf(Color.WHITE, Color.LTGRAY, Color.WHITE)
+
     /** Profile of the attached SSH/Telnet session, null for local shells. */
     private var remoteProfile: RemoteProfile? = null
 
@@ -631,6 +634,7 @@ class TerminalActivity : AppActivity() {
         val send = findViewById<View>(R.id.composeSend)
         fun apply(enabled: Boolean, focus: Boolean) {
             bar.isVisible = enabled
+            findViewById<View>(R.id.composeDivider)?.isVisible = enabled
             extraKeysView.composeBarEnabled = enabled
             if (enabled && focus) {
                 input.requestFocus()
@@ -708,103 +712,62 @@ class TerminalActivity : AppActivity() {
         val appPalette = OpenManagerPalette.from(this)
         val keepBlack = TerminalSettings.isKeepBlackTheme(this)
         val isLightChrome = !keepBlack && !appPalette.isDark
-        val isAmoledChrome = appPalette.isAmoled || keepBlack
+        // "Always black" under the light theme: the explorer's dark colors, not a glaring light bar.
+        val darkUnderLightTheme = keepBlack && !appPalette.isDark
         lastIsLightChrome = isLightChrome
 
-        val appBarBg = when {
-            isLightChrome -> appPalette.appBarBg
-            isAmoledChrome -> 0xFF0A0D12.toInt()
-            else -> 0xFF161B22.toInt()
-        }
-        val hudBg = when {
-            isLightChrome -> 0xFFF1F5F9.toInt()
-            isAmoledChrome -> 0xFF07090D.toInt()
-            else -> 0xFF121720.toInt()
-        }
-        val dividerColor = when {
-            isLightChrome -> appPalette.dividerLineColor
-            isAmoledChrome -> 0xFF1B222D.toInt()
-            else -> 0xFF21262D.toInt()
-        }
-        val canvasFrameBg = when {
-            isLightChrome -> 0xFFE2E8F0.toInt()
-            keepBlack || isAmoledChrome -> Color.BLACK
-            else -> 0xFF0D1117.toInt()
-        }
-        val titleText = if (isLightChrome) appPalette.textPrimary else 0xFFF0F6FC.toInt()
-        val subtitleText = if (isLightChrome) appPalette.textSecondary else 0xFF8B949E.toInt()
-        val iconTint = if (isLightChrome) appPalette.iconTint else 0xFFC9D1D9.toInt()
-        val chipBg = when {
-            isLightChrome -> 0xFFFFFFFF.toInt()
-            isAmoledChrome -> 0xFF10151E.toInt()
-            else -> 0xFF181F2B.toInt()
-        }
-        val chipBorder = when {
-            isLightChrome -> 0xFFCBD5E1.toInt()
-            isAmoledChrome -> 0xFF1E2736.toInt()
-            else -> 0xFF2A3444.toInt()
-        }
-        val chipText = if (isLightChrome) appPalette.textPrimary else 0xFFC9D1D9.toInt()
-        val rippleColor = if (isLightChrome) 0x200F172A else 0x30FFFFFF
+        // The explorer's toolbar colors for the toolbar and the session strip, one flat surface
+        // (it was a GitHub-style navy with outlined capsules, a glowing dot and colored icons).
+        val chromeBg = if (darkUnderLightTheme) 0xFF151515.toInt() else appPalette.toolbarBg
+        val titleText = if (darkUnderLightTheme) 0xFFEDEDED.toInt() else appPalette.textPrimary
+        val subtitleText = if (darkUnderLightTheme) 0xFF9E9E9E.toInt() else appPalette.textSecondary
+        val iconTint = if (darkUnderLightTheme) 0xFFDCDCDC.toInt() else appPalette.iconTint
+        val dividerColor = if (darkUnderLightTheme) 0xFF2E2E2E.toInt() else appPalette.dividerLineColor
+        val terminalBg = if (keepBlack || appPalette.isAmoled || !isLightChrome) Color.BLACK else 0xFF0D1117.toInt()
+        lastChromeColors = intArrayOf(titleText, subtitleText, iconTint)
 
-        rootTerminal.setBackgroundColor(canvasFrameBg)
-        appBarLayout.setBackgroundColor(appBarBg)
-        toolbar.setBackgroundColor(appBarBg)
+        rootTerminal.setBackgroundColor(terminalBg)
+        appBarLayout.setBackgroundColor(chromeBg)
+        toolbar.setBackgroundColor(chromeBg)
         toolbar.setTitleTextColor(titleText)
         toolbar.setSubtitleTextColor(subtitleText)
-        toolbar.navigationIcon?.setTint(titleText)
+        toolbar.navigationIcon?.setTint(iconTint)
 
-        btnCopyScreen?.imageTintList = ColorStateList.valueOf(iconTint)
-        btnOverflowMenu?.imageTintList = ColorStateList.valueOf(iconTint)
-        btnScriptAudit?.imageTintList = ColorStateList.valueOf(
-            if (isLightChrome) appPalette.accentColor else 0xFF58A6FF.toInt()
-        )
+        val tint = ColorStateList.valueOf(iconTint)
+        btnCopyScreen?.imageTintList = tint
+        btnOverflowMenu?.imageTintList = tint
+        btnScriptAudit?.imageTintList = tint
+        btnStopSession?.imageTintList = tint
 
-        layoutTerminalHud?.setBackgroundColor(hudBg)
+        layoutTerminalHud?.setBackgroundColor(chromeBg)
         viewHudBottomDivider?.setBackgroundColor(dividerColor)
 
-        layoutCwdChip?.apply {
-            val chipShape = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpF(9f)
-                setColor(chipBg)
-                setStroke(dp(1), chipBorder)
-            }
-            val mask = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = dpF(9f)
-                setColor(Color.WHITE)
-            }
-            background = RippleDrawable(ColorStateList.valueOf(rippleColor), chipShape, mask)
-        }
+        // Working directory and font size: plain text with a ripple, no boxes.
+        layoutCwdChip?.background = flatRipple(isLightChrome)
         ivCwdFolder?.imageTintList = ColorStateList.valueOf(subtitleText)
-        tvTerminalBreadcrumb?.setTextColor(chipText)
+        tvTerminalBreadcrumb?.setTextColor(subtitleText)
+        layoutZoomPill?.background = null
+        viewZoomDivLeft?.setBackgroundColor(dividerColor)
+        viewZoomDivRight?.setBackgroundColor(dividerColor)
+        btnZoomOut?.setTextColor(iconTint)
+        btnZoomIn?.setTextColor(iconTint)
+        tvZoomSize?.setTextColor(subtitleText)
 
-        layoutZoomPill?.background = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpF(15f)
-            setColor(chipBg)
-            setStroke(dp(1), chipBorder)
-        }
-        viewZoomDivLeft?.setBackgroundColor(chipBorder)
-        viewZoomDivRight?.setBackgroundColor(chipBorder)
-        btnZoomOut?.setTextColor(chipText)
-        btnZoomIn?.setTextColor(chipText)
-        tvZoomSize?.setTextColor(if (isLightChrome) appPalette.accentColor else 0xFF58A6FF.toInt())
-
-        terminalContainer.setBackgroundColor(canvasFrameBg)
-        terminalView.setBackgroundColor(if (keepBlack || isAmoledChrome) Color.BLACK else 0xFF0D1117.toInt())
+        // The terminal fills its area: no colored frame around it.
+        terminalContainer.setBackgroundColor(terminalBg)
+        terminalView.setBackgroundColor(terminalBg)
 
         // The key bar takes the explorer's bottom-bar colors (gray / black / light), like the
         // editor's symbol bar; the navigation bar under it continues it.
         extraKeysView.applyTheme(appPalette, keepBlack)
+        applyBottomStripColors()
         @Suppress("DEPRECATION")
-        window.statusBarColor = appBarBg
+        window.statusBarColor = chromeBg
         @Suppress("DEPRECATION")
         window.navigationBarColor = extraKeysView.barColor
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = isLightChrome
-            isAppearanceLightNavigationBars = isLightChrome
+            isAppearanceLightNavigationBars = extraKeysView.palette.isLightChrome
         }
 
         updatePredictiveEcho()
@@ -820,35 +783,55 @@ class TerminalActivity : AppActivity() {
             isLightChrome = lastIsLightChrome,
             remoteLabel = remoteProfile?.let { if (it.protocol == RemoteProtocol.SSH) "SSH" else "TELNET" }
         )
-        viewSessionDotHalo?.background = GradientDrawable().apply {
-            shape = GradientDrawable.OVAL
-            setColor(spec.haloColor)
-        }
+        // A small status dot and the session name, flat like the rest of the toolbar.
+        viewSessionDotHalo?.background = null
         viewSessionDot?.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             setColor(spec.dotColor)
         }
+        val (titleText, subtitleText, _) = lastChromeColors.toList()
         tvSessionLabel?.text = spec.label
-        tvSessionLabel?.setTextColor(spec.textColor)
-        tvSessionChevron?.setTextColor(spec.textColor)
+        tvSessionLabel?.setTextColor(titleText)
+        tvSessionChevron?.setTextColor(subtitleText)
+        layoutSessionBadge?.background = flatRipple(lastIsLightChrome)
+    }
 
-        val pillShape = GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpF(15f)
-            setColor(spec.bgColor)
-            setStroke(dp(1), spec.strokeColor)
-        }
+    /** A ripple on a transparent background: the flat touch feedback of the app's bars. */
+    private fun flatRipple(light: Boolean): RippleDrawable {
         val mask = GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
-            cornerRadius = dpF(15f)
+            cornerRadius = dpF(6f)
             setColor(Color.WHITE)
         }
-        val rippleColor = if (lastIsLightChrome) 0x200F172A else 0x35FFFFFF
-        layoutSessionBadge?.background = RippleDrawable(
-            ColorStateList.valueOf(rippleColor),
-            pillShape,
-            mask
-        )
+        return RippleDrawable(ColorStateList.valueOf(if (light) 0x220F172A else 0x38FFFFFF), null, mask)
+    }
+
+    /**
+     * The shortcuts strip and the writing bar sit on the key bar's color with flat keys and a
+     * thin divider, like the editor's symbol bar (they were rounded outlined boxes).
+     */
+    private fun applyBottomStripColors() {
+        val deck = extraKeysView.palette
+        remoteShortcutsScroll?.setBackgroundColor(deck.deckBg)
+        remoteShortcutsContainer?.let { container ->
+            for (i in 0 until container.childCount) {
+                when (val child = container.getChildAt(i)) {
+                    is TextView -> {
+                        child.setTextColor(deck.keyText)
+                        child.background = flatRipple(deck.isLightChrome)
+                    }
+                    else -> child.setBackgroundColor(deck.divider)
+                }
+            }
+        }
+        findViewById<View>(R.id.composeBar)?.setBackgroundColor(deck.deckBg)
+        findViewById<View>(R.id.composeDivider)?.setBackgroundColor(deck.divider)
+        findViewById<android.widget.EditText>(R.id.composeInput)?.apply {
+            setTextColor(deck.keyText)
+            setHintTextColor(androidx.core.graphics.ColorUtils.setAlphaComponent(deck.keyText, 0x88))
+        }
+        (findViewById<android.widget.ImageButton>(R.id.composeSend))?.imageTintList =
+            ColorStateList.valueOf(deck.accentColor)
     }
 
     private fun updateCwdDisplay(rawPath: String?) {
@@ -1274,29 +1257,21 @@ class TerminalActivity : AppActivity() {
             return
         }
         tvTerminalBreadcrumb?.text = remoteBreadcrumb(profile)
-        val light = lastIsLightChrome
-        val chipText = if (light) 0xFF1E293B.toInt() else 0xFFE2E8F0.toInt()
-        val chipBg = if (light) 0xFFFFFFFF.toInt() else 0xFF1B2230.toInt()
-        val chipStroke = if (light) 0xFFCBD5E1.toInt() else 0xFF334155.toInt()
-        for (shortcut in shortcuts) {
-            val chip = TextView(this).apply {
+        for ((index, shortcut) in shortcuts.withIndex()) {
+            if (index > 0) {
+                container.addView(
+                    View(this),
+                    android.widget.LinearLayout.LayoutParams(dp(1), dp(18))
+                )
+            }
+            val key = TextView(this).apply {
                 text = shortcut.label
-                setTextColor(chipText)
-                textSize = 12.5f
+                textSize = 13f
                 typeface = Typeface.MONOSPACE
                 maxLines = 1
                 gravity = android.view.Gravity.CENTER
-                setPadding(dp(12), 0, dp(12), 0)
+                setPadding(dp(16), 0, dp(16), 0)
                 contentDescription = shortcut.command
-                background = RippleDrawable(
-                    ColorStateList.valueOf(if (light) 0x200F172A else 0x35FFFFFF),
-                    GradientDrawable().apply {
-                        cornerRadius = dpF(14f)
-                        setColor(chipBg)
-                        setStroke(dp(1), chipStroke)
-                    },
-                    null
-                )
                 setOnClickListener {
                     it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                     sendRemoteShortcut(shortcut.command)
@@ -1307,12 +1282,14 @@ class TerminalActivity : AppActivity() {
                 }
             }
             container.addView(
-                chip,
+                key,
                 android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, dp(30)
-                ).apply { marginEnd = dp(6) }
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT
+                )
             )
         }
+        applyBottomStripColors()
         renderSessionBadge()
     }
 
@@ -1324,7 +1301,7 @@ class TerminalActivity : AppActivity() {
         val remote = remoteProfile != null
         btnCopyScreen?.isVisible = false
         btnStopSession?.setImageResource(if (remote) R.drawable.close_icon_white_24dp else R.drawable.ic_terminal_stop_24dp)
-        btnStopSession?.imageTintList = ColorStateList.valueOf(0xFFF85149.toInt())
+        btnStopSession?.imageTintList = ColorStateList.valueOf(lastChromeColors[2])
         btnStopSession?.contentDescription = getString(if (remote) R.string.om_conn_disconnect else R.string.om_term_stop_signal)
         btnScriptAudit?.setImageResource(if (remote) R.drawable.lock_icon_white_24dp else R.drawable.shield_icon_white_24dp)
         btnScriptAudit?.contentDescription = getString(if (remote) R.string.om_conn_title else R.string.script_audit_title)

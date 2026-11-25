@@ -188,6 +188,7 @@ PY2
 adb shell am start -n "$MAIN" >/dev/null 2>&1; sleep 3
 adb exec-out screencap > "$OUT/explorer_bar.raw" 2>/dev/null
 explorer=$(dominant_color "$OUT/explorer_bar.raw" bottomBar || true)
+explorer_top=$(dominant_color "$OUT/explorer_bar.raw" mainToolbar || true)
 
 log "=== SSH: first connection must ask to verify the host key ==="
 clear_probe /tmp/om_ssh_probe /tmp/om_shortcut_probe /tmp/om_typed_probe
@@ -416,6 +417,28 @@ if [ "$same" = yes ]; then
     pass "the terminal's key bar has the explorer's bottom-bar color"
 else
     fail "the terminal's key bar does not match the explorer's bar (${keybar:-?} vs ${explorer:-?})"
+fi
+
+# The top too: toolbar and session strip in the explorer's toolbar color (it was a navy with
+# outlined capsules), and the shortcuts strip on the key bar's color (it was rounded boxes).
+same_color() {
+    python3 -c "
+a='$1'.split(); b='$2'.split()
+print('yes' if len(a) == 3 and len(b) == 3 and max(abs(int(x) - int(y)) for x, y in zip(a, b)) <= 6 else 'no')"
+}
+term_top=$(dominant_color "$OUT/keybar.raw" toolbar || true)
+term_hud=$(dominant_color "$OUT/keybar.raw" layoutTerminalHud || true)
+shortcuts=$(dominant_color "$OUT/keybar.raw" remoteShortcutsScroll || true)
+log "      toolbar: ${term_top:-?}  session strip: ${term_hud:-?}  explorer toolbar: ${explorer_top:-?}  shortcuts: ${shortcuts:-?}"
+if [ "$(same_color "$term_top" "$explorer_top")" = yes ] && [ "$(same_color "$term_hud" "$explorer_top")" = yes ]; then
+    pass "the terminal's toolbar and session strip have the explorer's toolbar color"
+else
+    fail "the terminal's top bars do not match the explorer's toolbar (${term_top:-?} / ${term_hud:-?} vs ${explorer_top:-?})"
+fi
+if [ "$(same_color "$shortcuts" "$keybar")" = yes ]; then
+    pass "the shortcuts strip sits on the key bar's color (flat keys, no boxes)"
+else
+    fail "the shortcuts strip is not on the key bar's color (${shortcuts:-?} vs ${keybar:-?})"
 fi
 
 log "=== Switch the profile to key login from the session ==="
