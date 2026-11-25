@@ -48,7 +48,11 @@ build x86_64 x86_64-linux-android x86_64
 
 mkdir -p "$OUT/include/dav1d"
 cp "$SRC"/include/dav1d/*.h "$OUT/include/dav1d/"
-cp "$WORK/build-arm64-v8a/include/dav1d/version.h" "$OUT/include/dav1d/version.h"
+# version.h is generated at configure time; its place in the build tree changed between releases.
+gen=$(find "$WORK/build-arm64-v8a" -name version.h -path "*dav1d*" | head -n1)
+[ -n "$gen" ] || gen=$(find "$WORK/build-arm64-v8a" -name version.h | head -n1)
+[ -n "$gen" ] && cp "$gen" "$OUT/include/dav1d/version.h"
+ls "$OUT/include/dav1d/"
 cp "$SRC/COPYING" "$OUT/COPYING"
 echo "dav1d $VERSION" > "$OUT/VERSION"
 ls -la "$OUT" "$OUT"/*/
