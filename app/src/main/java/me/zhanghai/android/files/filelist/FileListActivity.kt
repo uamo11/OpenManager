@@ -109,6 +109,12 @@ class FileListActivity : AppActivity() {
     private lateinit var tvPathTitle: TextView
     private lateinit var tvStatsSubtitle: TextView
     private lateinit var btnMainMore: ImageButton
+    private lateinit var etQuickFilter: EditText
+    private lateinit var btnQuickFilterClose: ImageButton
+
+    /** The panel being filtered and its folder: going to another folder closes the filter. */
+    private var quickFilterTarget: FileListFragment? = null
+    private var quickFilterPath: java8.nio.file.Path? = null
 
     private lateinit var containerA: FrameLayout
     private lateinit var containerB: FrameLayout
@@ -263,6 +269,22 @@ class FileListActivity : AppActivity() {
 
         tvPathTitle = findViewById(R.id.tvPathTitle)
         tvStatsSubtitle = findViewById(R.id.tvStatsSubtitle)
+        etQuickFilter = findViewById(R.id.etQuickFilter)
+        btnQuickFilterClose = findViewById(R.id.btnQuickFilterClose)
+        btnQuickFilterClose.setOnClickListener { closeQuickFilter() }
+        etQuickFilter.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                quickFilterTarget?.quickFilter = s?.toString().orEmpty()
+            }
+        })
+        etQuickFilter.setOnEditorActionListener { v, _, _ ->
+            // Done hides the keyboard and keeps the filter, to browse the filtered list.
+            (getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)
+                ?.hideSoftInputFromWindow(v.windowToken, 0)
+            true
+        }
         findViewById<View>(R.id.layoutPathTitle)?.let { layout ->
             layout.setOnClickListener {
                 showJumpToPathDialog()
@@ -1654,6 +1676,8 @@ class FileListActivity : AppActivity() {
             isCheckable = true
             isChecked = showHidden
         }
+        popup.menu.findItem(R.id.mt_menu_search_results)?.isVisible =
+            activeFragment.canShowLastSearchResults
         popup.menu.findItem(R.id.mt_menu_empty_recycle_bin)?.isVisible =
             activeFragment.currentPath.isInsideRecycleBin
         popup.setOnMenuItemClickListener { item ->
@@ -1679,7 +1703,12 @@ class FileListActivity : AppActivity() {
                     true
                 }
                 R.id.mt_menu_filter -> {
-                    showFileNameSearchPrompt()
+                    openQuickFilter()
+                    true
+                }
+                R.id.mt_menu_search_results -> {
+                    closeQuickFilter()
+                    activeFragment.showLastSearchResults()
                     true
                 }
                 R.id.mt_menu_sort -> {
@@ -2023,6 +2052,10 @@ class FileListActivity : AppActivity() {
                     drawerLayout.closeDrawer(GravityCompat.START)
                     return
                 }
+                if (isQuickFilterOpen) {
+                    closeQuickFilter()
+                    return
+                }
                 // Only the active panel: its search, selection, paste bar or folder.
                 if (activeFragment.handleBackInPanel()) {
                     return
@@ -2199,7 +2232,10 @@ class FileListActivity : AppActivity() {
         mainToolbar.setBackgroundColor(palette.toolbarBg)
         tvPathTitle.setTextColor(palette.textPrimary)
         tvStatsSubtitle.setTextColor(palette.textSecondary)
+        etQuickFilter.setTextColor(palette.textPrimary)
+        etQuickFilter.setHintTextColor(palette.textSecondary)
         val iconTintList = ColorStateList.valueOf(palette.iconTint)
+        ImageViewCompat.setImageTintList(btnQuickFilterClose, iconTintList)
         ImageViewCompat.setImageTintList(btnMainBack, iconTintList)
         ImageViewCompat.setImageTintList(btnMainMore, iconTintList)
         updateMainToolbarNavigationIcon()
@@ -2338,6 +2374,10 @@ class FileListActivity : AppActivity() {
         if (!::fragmentA.isInitialized || !::fragmentB.isInitialized) return
         if (!activeFragment.isAdded) return
         try {
+            // Another folder in the filtered panel: the filter was for the folder it left.
+            quickFilterTarget?.let { target ->
+                if (target.isAdded && target.currentPath != quickFilterPath) closeQuickFilter()
+            }
             val path = activeFragment.currentPath
             val pathStr = path.toDisplayPath(trailingSlash = true)
             tvPathTitle.text = pathStr
@@ -2783,6 +2823,40 @@ class FileListActivity : AppActivity() {
             onZip = { activeFragment.showCreateArchiveDialog(fileItemSetOf()) },
             onKeystore = { activeFragment.showKeystoreGeneratorDialog() }
         )
+    }
+
+    val isQuickFilterOpen: Boolean
+        get() = ::etQuickFilter.isInitialized && etQuickFilter.isVisible
+
+    /** MT-style filter: the toolbar becomes a text field that filters the active panel as you type. */
+    fun openQuickFilter() {
+        if (!activeFragment.isAdded) return
+        quickFilterTarget?.takeIf { it !== activeFragment }?.quickFilter = ""
+        quickFilterTarget = activeFragment
+        quickFilterPath = activeFragment.currentPath
+        findViewById<View>(R.id.layoutPathTitle)?.isVisible = false
+        etQuickFilter.isVisible = true
+        btnQuickFilterClose.isVisible = true
+        etQuickFilter.setText(activeFragment.quickFilter)
+        etQuickFilter.setSelection(etQuickFilter.text?.length ?: 0)
+        etQuickFilter.requestFocus()
+        (getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)
+            ?.showSoftInput(etQuickFilter, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    fun closeQuickFilter() {
+        if (!::etQuickFilter.isInitialized) return
+        quickFilterTarget?.quickFilter = ""
+        quickFilterTarget = null
+        quickFilterPath = null
+        if (!etQuickFilter.isVisible) return
+        (getSystemService(INPUT_METHOD_SERVICE) as? android.view.inputmethod.InputMethodManager)
+            ?.hideSoftInputFromWindow(etQuickFilter.windowToken, 0)
+        etQuickFilter.isVisible = false
+        btnQuickFilterClose.isVisible = false
+        etQuickFilter.setText("")
+        findViewById<View>(R.id.layoutPathTitle)?.isVisible = true
+        updateTopBarInfo()
     }
 
     fun showSearchDialog() {

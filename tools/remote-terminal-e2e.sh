@@ -2883,6 +2883,70 @@ fi
 set_name_prefs 2 2
 adb shell rm -rf /sdcard/om_names
 
+log "=== Quick filter in the toolbar and 'Search results' again (user requests, MT style) ==="
+adb shell rm -rf /sdcard/om_qf; adb shell mkdir -p /sdcard/om_qf/sub
+for f in alpha.txt beta.txt alphabet.log gamma.txt sub/alpha_deep.txt; do adb shell "echo x > /sdcard/om_qf/$f"; done
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_qf" >/dev/null; sleep 5
+wait_text 15 "gamma.txt" >/dev/null || true
+demo more_menu; sleep 2
+if pos=$(find_text "Filter" "Filtro"); then
+    adb shell input tap $pos; sleep 2
+    if node_center_by_id etQuickFilter >/dev/null; then
+        adb shell input text alp; sleep 2
+        shot 75_quick_filter
+        adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+        adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_qf.xml" 2>/dev/null
+        shown=$(grep -o 'text="[^"]*"' "$OUT/ui_qf.xml" | sed 's/text="//; s/"$//' | grep -E "^(alpha\.txt|beta\.txt|alphabet\.log|gamma\.txt)$" | sort | tr '\n' ' ')
+        dialog=$(grep -c 'resource-id="android:id/button1"' "$OUT/ui_qf.xml" || true)
+        log "      typed 'alp' in the toolbar: listed = $shown(dialogs: $dialog)"
+        if [ "$shown" = "alpha.txt alphabet.log " ] && [ "${dialog:-0}" -eq 0 ]; then
+            pass "quick filter: typing in the toolbar filters the panel at once, without a dialog"
+        else
+            fail "quick filter did not filter as typed ($shown)"
+        fi
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+        adb shell input keyevent KEYCODE_BACK; sleep 2
+        if find_text "beta.txt" >/dev/null && ! node_center_by_id etQuickFilter >/dev/null; then
+            pass "quick filter: Back closes it and the whole folder is back"
+        else
+            fail "quick filter: Back did not close it"
+        fi
+    else
+        fail "quick filter: no text field in the toolbar"
+    fi
+else
+    fail "no Filter entry in the ⋮ menu"
+fi
+# Search, open a folder from elsewhere, then show the results again from the ⋮ menu.
+demo more_menu; sleep 2
+if pos=$(find_text "Search files..." "Buscar archivos..."); then
+    adb shell input tap $pos; sleep 2
+    pos=$(find_text "Search files by name or extension") && adb shell input tap $pos; sleep 2
+    adb shell input text alpha; sleep 1
+    pos=$(find_text "Search") && adb shell input tap $pos; sleep 6
+    adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+        --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_qf/sub" >/dev/null; sleep 4
+    demo more_menu; sleep 2
+    if pos=$(find_text "Search results" "Resultados de búsqueda"); then
+        adb shell input tap $pos; sleep 6
+        shot 76_search_results_again
+        if find_text "alpha_deep.txt" >/dev/null && find_text "alphabet.log" >/dev/null; then
+            pass "'Search results' in the ⋮ menu shows the last search again"
+        else
+            fail "'Search results' did not show the last search's results"
+        fi
+    else
+        fail "no 'Search results' entry after a search"
+        adb shell input keyevent KEYCODE_BACK
+    fi
+else
+    fail "no 'Search files' entry in the ⋮ menu"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_qf
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

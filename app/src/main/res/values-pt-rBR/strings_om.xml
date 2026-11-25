@@ -2508,4 +2508,7 @@
     <string name="om_text_editor_open_partial">Ver os primeiros %1$s (somente leitura)</string>
     <string name="om_text_editor_partial_status">primeiros %1$s de %2$s, somente leitura</string>
     <string name="om_text_editor_partial_read_only">Só uma parte deste arquivo está aberta, então ele não pode ser editado nem salvo.</string>
+    <string name="om_quick_filter_hint">Filtrar esta pasta…</string>
+    <string name="om_quick_filter_close">Fechar filtro</string>
+    <string name="om_menu_search_results">Resultados da pesquisa</string>
 </resources>

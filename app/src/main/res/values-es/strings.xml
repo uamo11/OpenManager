@@ -3316,4 +3316,7 @@
     <string name="om_text_editor_open_partial">Ver los primeros %1$s (solo lectura)</string>
     <string name="om_text_editor_partial_status">primeros %1$s de %2$s, solo lectura</string>
     <string name="om_text_editor_partial_read_only">Solo está abierta una parte de este archivo, así que no se puede editar ni guardar.</string>
+    <string name="om_quick_filter_hint">Filtrar esta carpeta…</string>
+    <string name="om_quick_filter_close">Cerrar filtro</string>
+    <string name="om_menu_search_results">Resultados de búsqueda</string>
 </resources>

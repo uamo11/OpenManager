@@ -62,11 +62,16 @@ class FileListViewModel : ViewModel() {
     val searchState: SearchState
         get() = _searchStateLiveData.valueCompat
 
+    /** Folder and text of the last search, to show its results again from the ⋮ menu. */
+    var lastSearch: Pair<Path, String>? = null
+        private set
+
     fun search(query: String) {
         val searchState = _searchStateLiveData.valueCompat
         if (searchState.isSearching && searchState.query == query) {
             return
         }
+        lastSearch = currentPath to query
         _searchStateLiveData.value = SearchState(true, query)
     }
 

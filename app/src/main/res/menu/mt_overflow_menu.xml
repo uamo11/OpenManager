@@ -17,6 +17,12 @@
         android:title="@string/om_menu_search_files" />
 
     <item
+        android:id="@+id/mt_menu_search_results"
+        android:icon="@drawable/visibility_icon_white_24dp"
+        android:title="@string/om_menu_search_results"
+        android:visible="false" />
+
+    <item
         android:id="@+id/mt_menu_search_text"
         android:icon="@drawable/file_document_icon"
         android:title="@string/om_menu_search_text_replace" />

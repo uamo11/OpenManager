@@ -2502,4 +2502,7 @@
     <string name="om_text_editor_open_partial">查看前 %1$s（只读）</string>
     <string name="om_text_editor_partial_status">%2$s 中的前 %1$s，只读</string>
     <string name="om_text_editor_partial_read_only">只打开了该文件的一部分，因此无法编辑或保存。</string>
+    <string name="om_quick_filter_hint">筛选当前文件夹…</string>
+    <string name="om_quick_filter_close">关闭筛选</string>
+    <string name="om_menu_search_results">搜索结果</string>
 </resources>

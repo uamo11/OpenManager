@@ -1904,7 +1904,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     private fun updateAdapterFileList(restoreStateAndHighlight: Boolean = false) {
-        val files = viewModel.fileListLiveData.value?.value ?: return
+        val allFiles = viewModel.fileListLiveData.value?.value ?: return
+        val filterText = quickFilter.trim()
+        val files = if (filterText.isEmpty()) allFiles else allFiles.filter {
+            it.path.fileName?.toString()?.contains(filterText, ignoreCase = true) == true
+        }
         val showHidden = Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat
         val sortOptions = viewModel.sortOptionsLiveData.value
             ?: Settings.FILE_LIST_SORT_OPTIONS.valueCompat
@@ -1931,7 +1935,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 computeDiff = true
             )
             adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
-            updateHiddenOnlyHint(files, showHidden, isSearching)
+            updateHiddenOnlyHint(allFiles, showHidden, isSearching)
             if (restoreStateAndHighlight) {
                 viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
                 applyPendingHighlightIfReady()
@@ -1954,7 +1958,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                     return@withContext
                 }
                 adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
-                updateHiddenOnlyHint(files, showHidden, isSearching)
+                updateHiddenOnlyHint(allFiles, showHidden, isSearching)
                 if (restoreStateAndHighlight) {
                     viewModel.pendingState?.let { layoutManager.onRestoreInstanceState(it) }
                     applyPendingHighlightIfReady()
@@ -3370,6 +3374,28 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     fun searchFiles(query: String) {
         viewModel.search(query)
     }
+
+    /** The panel searched before and is not showing those results now. */
+    val canShowLastSearchResults: Boolean
+        get() = isAdded && viewModel.lastSearch != null && !viewModel.searchState.isSearching
+
+    /** Shows the last search's results again (MT's "Search results"), searching its folder anew. */
+    fun showLastSearchResults() {
+        val (path, query) = viewModel.lastSearch ?: return
+        if (currentPath != path) navigateTo(path)
+        viewModel.search(query)
+    }
+
+    /**
+     * Quick filter: only the names containing this text are listed, as it is typed. Unlike a
+     * search it does not go into subfolders, so the list changes at once.
+     */
+    var quickFilter: String = ""
+        set(value) {
+            if (field == value) return
+            field = value
+            if (isAdded && view != null) updateAdapterFileList()
+        }
 
     fun stopSearching() {
         viewModel.stopSearching()

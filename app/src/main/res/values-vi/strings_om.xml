@@ -2597,4 +2597,7 @@
     <string name="om_text_editor_open_partial">Xem %1$s đầu tiên (chỉ đọc)</string>
     <string name="om_text_editor_partial_status">%1$s đầu của %2$s, chỉ đọc</string>
     <string name="om_text_editor_partial_read_only">Chỉ một phần của tệp này được mở nên không thể sửa hoặc lưu.</string>
+    <string name="om_quick_filter_hint">Lọc thư mục này…</string>
+    <string name="om_quick_filter_close">Đóng bộ lọc</string>
+    <string name="om_menu_search_results">Kết quả tìm kiếm</string>
 </resources>

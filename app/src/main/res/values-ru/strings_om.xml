@@ -2522,4 +2522,7 @@
     <string name="om_text_editor_open_partial">Показать первые %1$s (только чтение)</string>
     <string name="om_text_editor_partial_status">первые %1$s из %2$s, только чтение</string>
     <string name="om_text_editor_partial_read_only">Открыта только часть файла, поэтому его нельзя редактировать или сохранить.</string>
+    <string name="om_quick_filter_hint">Фильтр этой папки…</string>
+    <string name="om_quick_filter_close">Закрыть фильтр</string>
+    <string name="om_menu_search_results">Результаты поиска</string>
 </resources>

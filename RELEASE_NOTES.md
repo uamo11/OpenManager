@@ -1,4 +1,4 @@
-# OpenManager v2.0.31: AV1 4K60 más Fluido, Nombres en Varias Líneas y Visor sin Cierres
+# OpenManager v2.0.31: Filtro Rápido, Nombres en Varias Líneas, AV1 4K60 más Fluido y Visor sin Cierres
 
 ### 🎞️ Reproductor: 4K60 AV1 a ritmo parejo
 - Con la v2.0.30 un 4K60 AV1 en un Galaxy A07 pasó de 6,9 a ~26 fps, pero el procesador decodificaba 35 cuadros por segundo y unos 9 se tiraban por llegar tarde: el decodificador solo se saltaba los cuadros prescindibles mientras iba atrasado, se ponía al día, dejaba de saltar y volvía a atrasarse.
@@ -8,6 +8,10 @@
 - El ajuste **«Líneas máx. de nombre de archivo»** no hacía nada: el nombre siempre salía en una línea (aunque el valor por defecto es 2). Ahora un nombre largo ocupa 2 líneas y la fila crece lo necesario. Nueva opción: **3 líneas**.
 - El **tamaño** ya no se corta en paneles estrechos (`494.8…`): va a la derecha de la fecha y siempre se ve entero; si falta espacio se recorta la fecha.
 - El **desplazamiento** (marquesina) funciona con 1 línea; con 2 o 3 líneas el nombre se muestra completo en vez de desplazarse. En el modo de rendimiento la marquesina sigue desactivada para ahorrar batería.
+
+### 🔎 Filtro rápido y «Resultados de búsqueda»
+- **Filtro** (menú ⋮) ya no abre una ventana: la barra superior se convierte en un campo de texto y el panel se filtra **mientras escribes**, solo en la carpeta actual (como en MT Manager). La X o Atrás lo cierran; al entrar a otra carpeta se cierra solo. La búsqueda en subcarpetas sigue en **Buscar archivos**.
+- Nueva entrada **«Resultados de búsqueda»** en el menú ⋮: después de abrir un archivo o irte a otra carpeta, vuelve a mostrar la última búsqueda de ese panel.
 
 ### 🖼️ Visor de imágenes
 - **Cierre al pasar a segundo plano:** al abrir una imagen de una carpeta o búsqueda con muchas imágenes (por ejemplo 1.000) y salir de la app o hacer una captura de pantalla, OpenManager se cerraba (`TransactionTooLargeException`): la lista de imágenes se guardaba dos veces en el estado de la pantalla (~2 MB). Ahora el estado solo guarda las imágenes borradas (unos bytes).
