@@ -3305,4 +3305,5 @@
     <string name="om_editor_key_enter">Nueva línea</string>
     <string name="om_editor_key_paste">Pegar</string>
     <string name="om_editor_key_select_all">Seleccionar todo</string>
+    <string name="om_sort_active">Seleccionado</string>
 </resources>

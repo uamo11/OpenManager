@@ -2492,4 +2492,5 @@
     <string name="om_editor_key_enter">换行</string>
     <string name="om_editor_key_paste">粘贴</string>
     <string name="om_editor_key_select_all">全选</string>
+    <string name="om_sort_active">已选择</string>
 </resources>

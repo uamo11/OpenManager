@@ -2498,4 +2498,5 @@
     <string name="om_editor_key_enter">Nova linha</string>
     <string name="om_editor_key_paste">Colar</string>
     <string name="om_editor_key_select_all">Selecionar tudo</string>
+    <string name="om_sort_active">Selecionado</string>
 </resources>

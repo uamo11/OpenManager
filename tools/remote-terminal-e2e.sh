@@ -638,8 +638,11 @@ if find_text "⋮" >/dev/null; then
     # The server ends the session while the app is in the background.
     sudo pkill -f "sshd: omtest" || true
     sleep 5
-    # Back the way a user returns: the app icon brings the task (and its terminal) to the front.
-    adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1; sleep 4
+    # Back the way a user returns: Recents, then the app's card (the most recent one, centered).
+    adb shell input keyevent KEYCODE_APP_SWITCH; sleep 3
+    shot 09e0_recents
+    read -r sw sh <<< "$(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1 | tr x ' ')"
+    adb shell input tap $(( ${sw:-1080} / 2 )) $(( ${sh:-2400} / 2 )); sleep 4
     shot 09e_ssh_lost_in_background
     if find_text "Connection lost" "Conexión perdida" >/dev/null; then
         pass "back from the background, a dead SSH session says so with Reconnect / Server list"
@@ -1991,7 +1994,8 @@ xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
 nodes = re.findall(r"<node [^>]*>", xml)
 def box(n):
     return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
-checks = [box(n) for n in nodes if re.search(r'resource-id="[^"]*:id/sortOptionCheck"', n)]
+checks = [box(n) for n in nodes if re.search(r'resource-id="[^"]*:id/sortOptionCheck"', n)
+          or re.search(r'content-desc="(Selected|Seleccionado)"', n)]
 rows = {}
 for n in nodes:
     t = re.search(r' text="([^"]*)"', n)

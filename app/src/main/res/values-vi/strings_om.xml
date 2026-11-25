@@ -2587,4 +2587,5 @@
     <string name="om_editor_key_enter">Xuống dòng</string>
     <string name="om_editor_key_paste">Dán</string>
     <string name="om_editor_key_select_all">Chọn tất cả</string>
+    <string name="om_sort_active">Đã chọn</string>
 </resources>

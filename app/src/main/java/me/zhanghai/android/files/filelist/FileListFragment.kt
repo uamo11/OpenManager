@@ -1770,8 +1770,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         ) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val row = super.getView(position, convertView, parent)
-                row.findViewById<View>(R.id.sortOptionCheck).visibility =
-                    if (checked[position]) View.VISIBLE else View.INVISIBLE
+                row.findViewById<View>(R.id.sortOptionCheck).apply {
+                    visibility = if (checked[position]) View.VISIBLE else View.INVISIBLE
+                    // TalkBack says "selected" for the active choice.
+                    contentDescription = if (checked[position]) getString(R.string.om_sort_active) else null
+                }
                 row.findViewById<android.widget.TextView>(android.R.id.text1).setTypeface(
                     null, if (checked[position]) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL
                 )

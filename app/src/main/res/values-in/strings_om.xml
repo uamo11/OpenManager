@@ -2493,4 +2493,5 @@
     <string name="om_editor_key_enter">Baris baru</string>
     <string name="om_editor_key_paste">Tempel</string>
     <string name="om_editor_key_select_all">Pilih semua</string>
+    <string name="om_sort_active">Dipilih</string>
 </resources>

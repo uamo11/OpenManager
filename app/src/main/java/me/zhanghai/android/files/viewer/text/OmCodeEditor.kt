@@ -41,7 +41,11 @@ class OmCodeEditor : CodeEditor {
 
     override fun createAccessibilityNodeInfo(): AccessibilityNodeInfo {
         val content = text
-        if (content.length <= A11Y_FULL_TEXT_LIMIT) return super.createAccessibilityNodeInfo()
+        if (content.length <= A11Y_FULL_TEXT_LIMIT) {
+            return super.createAccessibilityNodeInfo().also { info ->
+                info.text?.let { info.text = readableForAccessibility(it) }
+            }
+        }
         @Suppress("DEPRECATION")
         val info = AccessibilityNodeInfo.obtain(this)
         onInitializeAccessibilityNodeInfo(info)
@@ -58,7 +62,7 @@ class OmCodeEditor : CodeEditor {
                 visible.append(content.getLine(line))
                 if (visible.length > A11Y_FULL_TEXT_LIMIT) break
             }
-            info.text = visible
+            info.text = readableForAccessibility(visible)
             info.isLongClickable = true
             info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_COPY)
             info.addAction(AccessibilityNodeInfo.AccessibilityAction.ACTION_PASTE)
@@ -73,5 +77,23 @@ class OmCodeEditor : CodeEditor {
 
     private companion object {
         const val A11Y_FULL_TEXT_LIMIT = 32 * 1024
+
+        /**
+         * Control characters of binary files (NUL, ESC…) are not valid in the XML that screen
+         * readers and UI tools exchange: they made those tools fail. They are shown as "·".
+         */
+        fun readableForAccessibility(text: CharSequence): CharSequence {
+            var clean: StringBuilder? = null
+            for (i in text.indices) {
+                val c = text[i]
+                val bad = (c < ' ' && c != '\n' && c != '\t') || c == '\uFFFE' || c == '\uFFFF' ||
+                    Character.isSurrogate(c) && !(Character.isHighSurrogate(c) && i + 1 < text.length &&
+                        Character.isLowSurrogate(text[i + 1])) && !(Character.isLowSurrogate(c) && i > 0 &&
+                        Character.isHighSurrogate(text[i - 1]))
+                if (bad && clean == null) clean = StringBuilder(text.length).append(text, 0, i)
+                clean?.append(if (bad) '·' else c)
+            }
+            return clean ?: text
+        }
     }
 }

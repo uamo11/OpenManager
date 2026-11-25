@@ -3408,4 +3408,5 @@
     <string name="om_editor_key_enter">New line</string>
     <string name="om_editor_key_paste">Paste</string>
     <string name="om_editor_key_select_all">Select all</string>
+    <string name="om_sort_active">Selected</string>
 </resources>

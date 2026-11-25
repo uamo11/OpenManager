@@ -2512,4 +2512,5 @@
     <string name="om_editor_key_enter">Новая строка</string>
     <string name="om_editor_key_paste">Вставить</string>
     <string name="om_editor_key_select_all">Выделить всё</string>
+    <string name="om_sort_active">Выбрано</string>
 </resources>
