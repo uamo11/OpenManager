@@ -54,7 +54,6 @@ import io.github.rosemoe.sora.event.ContentChangeEvent
 import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.event.SelectionChangeEvent
 import io.github.rosemoe.sora.event.TextSizeChangeEvent
-import io.github.rosemoe.sora.widget.CodeEditor
 import io.github.rosemoe.sora.widget.EditorSearcher
 import io.github.rosemoe.sora.widget.SelectionMovement
 import me.zhanghai.android.files.R
@@ -96,7 +95,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private var isSettingText = false
 
     /** The editor engine: draws only what is on screen, with its own undo, search and zoom. */
-    private val editor: CodeEditor
+    private val editor: OmCodeEditor
         get() = binding.codeEditor
 
     private var currentLanguage = SyntaxLanguage.PLAIN_TEXT
@@ -293,6 +292,15 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             spToPx(TextEditorSettings.MIN_FONT_SIZE), spToPx(TextEditorSettings.MAX_FONT_SIZE)
         )
         editor.isScalable = TextEditorSettings.isPinchToZoom(ctx)
+        // Android decides about the on-screen keyboard (some phones wrongly report a hardware one).
+        editor.setDisableSoftKbdIfHardKbdAvailable(false)
+        // A jump made while a long text was still being laid out lands in the right place.
+        editor.onLayoutReady = {
+            if (this::binding.isInitialized && revealWhenLaidOut) {
+                revealWhenLaidOut = false
+                runCatching { editor.ensureSelectionVisible() }
+            }
+        }
 
         editor.subscribeAlways(ContentChangeEvent::class.java) { event ->
             if (isSettingText || event.action == ContentChangeEvent.ACTION_SET_NEW_TEXT) {
@@ -309,6 +317,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             currentCursorCol = cursor.leftColumn + 1
             updateSubtitle()
             checkRecordCursorJump(cursor.left)
+            if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+                android.util.Log.d("OMEditor", "cursor=$currentCursorLine:$currentCursorCol")
+            }
         }
         editor.subscribeAlways(PublishSearchResultEvent::class.java) { _ -> updateSearchCount() }
         // Pinch to zoom is done by the editor; we keep the size and show it.
@@ -321,6 +332,22 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             binding.zoomIndicator.postDelayed(saveFontSizeRunnable, 600)
         }
     }
+
+    // Set when the cursor was moved while the editor was still laying out a long text.
+    private var revealWhenLaidOut = false
+
+    /** Puts the cursor at [line]:[column] and keeps it in view, also after a pending layout. */
+    private fun selectAndReveal(line: Int, column: Int) {
+        editor.setSelection(line, column, true)
+        // The background layout of a long wrapped text may start just after this call.
+        if (editor.isLayingOut || (editor.isWordwrap && editor.text.length > LONG_TEXT_CHARS)) {
+            revealWhenLaidOut = true
+            binding.zoomIndicator.removeCallbacks(forgetRevealRunnable)
+            binding.zoomIndicator.postDelayed(forgetRevealRunnable, 15_000)
+        }
+    }
+
+    private val forgetRevealRunnable = Runnable { revealWhenLaidOut = false }
 
     private val saveFontSizeRunnable = Runnable {
         context?.let { TextEditorSettings.setFontSize(it, currentFontSizeSp) }
@@ -393,6 +420,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         if (this::binding.isInitialized) {
             binding.zoomIndicator.removeCallbacks(hideZoomIndicatorRunnable)
             binding.zoomIndicator.removeCallbacks(saveFontSizeRunnable)
+            binding.zoomIndicator.removeCallbacks(forgetRevealRunnable)
             // Rotation or theme change: the new view continues with this document and its undo
             // history. Leaving the editor: nothing to keep.
             if (viewModel.textState.value is DataState.Success && activity?.isFinishing != true) {
@@ -1151,14 +1179,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private fun moveCursorToOffset(offset: Int) {
         val content = editor.text
         val position = content.indexer.getCharPosition(offset.coerceIn(0, content.length))
-        editor.setSelection(position.line, position.column, true)
+        selectAndReveal(position.line, position.column)
     }
 
     private fun jumpToLine(targetLine: Int) {
         val lineCount = editor.text.lineCount
         if (lineCount <= 0) return
         val line = (targetLine - 1).coerceIn(0, lineCount - 1)
-        editor.setSelection(line, 0, true)
+        selectAndReveal(line, 0)
     }
 
     private fun updateNavigationHistoryMenuItems() {
@@ -1596,7 +1624,7 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         if (content.lineCount == 0) return
         val l = line.coerceIn(0, content.lineCount - 1)
         val c = column.coerceIn(0, content.getColumnCount(l))
-        editor.post { if (this::binding.isInitialized) editor.setSelection(l, c, true) }
+        editor.post { if (this::binding.isInitialized) selectAndReveal(l, c) }
     }
 
     private fun describeLoadError(throwable: Throwable): String {
@@ -1814,6 +1842,11 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
             return
         }
         menuBinding.saveItem.isEnabled = viewModel.writeFileState.value.isReady && viewModel.isTextChanged.value
+    }
+
+    private companion object {
+        // Above this size word wrap is laid out in the background.
+        const val LONG_TEXT_CHARS = 100_000
     }
 
     @Parcelize

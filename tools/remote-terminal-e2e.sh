@@ -1960,7 +1960,10 @@ if [ "$editor_ok" = 1 ]; then
     adb shell input text "hello%sfrom%sOpenManager"; sleep 1
     adb shell input keyevent KEYCODE_ENTER
     adb shell input text "second%sline"; sleep 1
-    adb shell input keyevent KEYCODE_BACK; sleep 1   # first BACK only hides the keyboard
+    # Hide the on-screen keyboard if it is up (a BACK without it would ask to discard the text).
+    if adb shell dumpsys input_method 2>/dev/null | grep -q "mInputShown=true"; then
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+    fi
     pos=$(node_text_by_id statusCursorPosText || true)
     log "      cursor after typing two lines: $pos"
     case "$pos" in
@@ -2043,12 +2046,12 @@ t0=$(date +%s%N)
 adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
     --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_editor_test/om_big.txt" \
     --ei EXTRA_GOTO_LINE 149990 >/dev/null
-# Wait until the editor shows the line (or 30 s).
+# Wait until the cursor is on the line (debug OMEditor log, no screen dumps), at most 30 s.
 pos=""
-for i in $(seq 1 30); do
-    pos=$(node_text_by_id statusCursorPosText || true)
+for i in $(seq 1 60); do
+    pos=$(adb logcat -d -s OMEditor 2>/dev/null | grep -o "cursor=[0-9:]*" | tail -1 | sed 's/cursor=//')
     case "$pos" in 149990:*) break ;; esac
-    sleep 1
+    sleep 0.5
 done
 t1=$(date +%s%N)
 log "      9 MB / 150 000 lines ready at line 149990 in $(( (t1 - t0) / 1000000 )) ms (adb and dumps included)"
@@ -2059,9 +2062,17 @@ case "$pos" in
     *) fail "the cursor shows '$pos' instead of line 149990" ;;
 esac
 adb logcat -d 2>/dev/null | grep -E "Choreographer.*Skipped|Davey" | grep -v "^--" | tail -4 | sed 's/^/      /' | tee -a "$REPORT"
+sleep 3
+# The jump must also be on screen (word wrap lays out long texts in the background).
+visible=$(node_text_by_id codeEditor || true)
+if printf '%s' "$visible" | grep -q "line 149990"; then
+    pass "after the jump, line 149990 is on screen"
+else
+    fail "line 149990 is not on screen after the jump ($(printf '%s' "$visible" | head -c 60))"
+fi
 # New lines from the symbol bar (no keyboard needed): the line number follows.
 for n in 1 2; do pos=$(find_text "↵") && adb shell input tap $pos; sleep 1; done
-pos=$(node_text_by_id statusCursorPosText || true)
+pos=$(adb logcat -d -s OMEditor 2>/dev/null | grep -o "cursor=[0-9:]*" | tail -1 | sed 's/cursor=//')
 log "      cursor after two new lines: $pos"
 case "$pos" in
     149992:1) pass "new lines deep in a big file update the line number" ;;
