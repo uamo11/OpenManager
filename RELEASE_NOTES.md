@@ -1,4 +1,4 @@
-# OpenManager v2.0.39: Herramientas en Filas y Copias de Apps con Shizuku
+# OpenManager v2.0.39: Herramientas en Filas, Backup de Apps con Shizuku y Carpeta OM2
 
 ### 🧭 Barra lateral
 - Las **herramientas** vuelven a ser **filas** con su nombre al lado (la cuadrícula de círculos de la v2.0.38 no convencía). La lista es más corta que antes: Ajustes sigue siendo el engranaje de arriba, y **Acerca de** y **Salir** siguen **fijos abajo**, siempre visibles.
