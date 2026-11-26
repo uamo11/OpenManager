@@ -2637,4 +2637,19 @@
     <string name="om_usb_working">Đang xử lý…</string>
     <string name="om_usb_progress">%1$d%%</string>
     <string name="open_as_other_apps">Ứng dụng khác…</string>
+    <string name="om_long_press_title">Nhấn giữ thanh dưới</string>
+    <string name="om_long_press_summary">Chọn chức năng khi nhấn giữ từng nút dưới</string>
+    <string name="om_long_press_choose_format">Giữ “%1$s” để…</string>
+    <string name="om_long_press_set_format">Giữ %1$s giờ là: %2$s</string>
+    <string name="om_long_press_action_none">Không làm gì</string>
+    <string name="om_long_press_action_search">Tìm theo tên</string>
+    <string name="om_long_press_action_bookmarks">Dấu trang</string>
+    <string name="om_long_press_action_new">Tệp hoặc thư mục mới</string>
+    <string name="om_long_press_action_refresh">Làm mới</string>
+    <string name="om_long_press_button_back">Quay lại</string>
+    <string name="om_long_press_button_forward">Tiến</string>
+    <string name="om_long_press_button_add">Mới</string>
+    <string name="om_long_press_button_swap">Đổi bảng</string>
+    <string name="om_long_press_button_home">Trang chủ</string>
+    <string name="om_long_press_no_search">Chưa có tìm kiếm</string>
 </resources>

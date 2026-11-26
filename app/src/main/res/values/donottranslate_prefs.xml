@@ -143,6 +143,7 @@
         <item>2</item>
     </string-array>
     <string name="pref_key_max_lines_file_name">key_max_lines_file_name</string>
+    <string name="pref_key_bottom_bar_long_press">key_bottom_bar_long_press</string>
     <string name="pref_default_value_max_lines_file_name">2</string>
     <string-array name="pref_entry_values_max_lines_file_name">
         <item>1</item>

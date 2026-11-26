@@ -225,6 +225,12 @@
             android:defaultValue="@bool/pref_default_value_file_list_dividers"
             app:iconSpaceReserved="true" />
 
+        <Preference
+            android:key="@string/pref_key_bottom_bar_long_press"
+            android:title="@string/om_long_press_title"
+            android:summary="@string/om_long_press_summary"
+            app:iconSpaceReserved="true" />
+
         <me.zhanghai.android.files.settings.IconMenuPreference
             android:key="@string/pref_key_max_lines_file_name"
             android:title="@string/settings_max_lines_file_name_title"

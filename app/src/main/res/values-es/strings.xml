@@ -3356,4 +3356,19 @@
     <string name="om_usb_working">Trabajando…</string>
     <string name="om_usb_progress">%1$d%%</string>
     <string name="open_as_other_apps">Otras apps…</string>
+    <string name="om_long_press_title">Pulsación larga de la barra inferior</string>
+    <string name="om_long_press_summary">Elige qué hace mantener pulsado cada botón de abajo</string>
+    <string name="om_long_press_choose_format">Mantener «%1$s» para…</string>
+    <string name="om_long_press_set_format">Mantener %1$s ahora: %2$s</string>
+    <string name="om_long_press_action_none">Nada</string>
+    <string name="om_long_press_action_search">Buscar por nombre</string>
+    <string name="om_long_press_action_bookmarks">Marcadores</string>
+    <string name="om_long_press_action_new">Nuevo archivo o carpeta</string>
+    <string name="om_long_press_action_refresh">Actualizar</string>
+    <string name="om_long_press_button_back">Atrás</string>
+    <string name="om_long_press_button_forward">Adelante</string>
+    <string name="om_long_press_button_add">Nuevo</string>
+    <string name="om_long_press_button_swap">Intercambiar paneles</string>
+    <string name="om_long_press_button_home">Inicio</string>
+    <string name="om_long_press_no_search">Todavía no hay búsqueda</string>
 </resources>

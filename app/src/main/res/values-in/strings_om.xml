@@ -2543,4 +2543,19 @@
     <string name="om_usb_working">Memproses…</string>
     <string name="om_usb_progress">%1$d%%</string>
     <string name="open_as_other_apps">Aplikasi lain…</string>
+    <string name="om_long_press_title">Tekan lama bilah bawah</string>
+    <string name="om_long_press_summary">Pilih fungsi menahan setiap tombol bawah</string>
+    <string name="om_long_press_choose_format">Tahan “%1$s” untuk…</string>
+    <string name="om_long_press_set_format">Menahan %1$s sekarang: %2$s</string>
+    <string name="om_long_press_action_none">Tidak ada</string>
+    <string name="om_long_press_action_search">Cari berdasarkan nama</string>
+    <string name="om_long_press_action_bookmarks">Penanda</string>
+    <string name="om_long_press_action_new">File atau folder baru</string>
+    <string name="om_long_press_action_refresh">Muat ulang</string>
+    <string name="om_long_press_button_back">Kembali</string>
+    <string name="om_long_press_button_forward">Maju</string>
+    <string name="om_long_press_button_add">Baru</string>
+    <string name="om_long_press_button_swap">Tukar panel</string>
+    <string name="om_long_press_button_home">Beranda</string>
+    <string name="om_long_press_no_search">Belum ada pencarian</string>
 </resources>

@@ -3263,6 +3263,54 @@ if app_crashed "$OUT/logcat_openwith.txt"; then fail "crash in Open with"; fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_oa
 
+log "=== Back clears a selection; long press on bottom buttons is customizable (user requests) ==="
+adb shell rm -rf /sdcard/om_bk; adb shell mkdir -p /sdcard/om_bk
+adb shell "echo a > /sdcard/om_bk/one.txt"; adb shell "echo b > /sdcard/om_bk/two.txt"
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_bk" >/dev/null; sleep 5
+if pos=$(wait_text 15 "one.txt"); then
+    adb shell input swipe $pos $pos 1200; sleep 2
+    # Close the file menu that opens with the selection.
+    find_text "Open with…" >/dev/null && { adb shell input keyevent KEYCODE_BACK; sleep 1; }
+    selected=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)
+    adb shell input keyevent KEYCODE_BACK; sleep 2
+    after=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)
+    still_here=$(find_text "two.txt" >/dev/null && echo yes || echo no)
+    log "      selection before Back: $selected, after Back: $after, still in the folder: $still_here"
+    if [ "$selected" = yes ] && [ "$after" = no ] && [ "$still_here" = yes ]; then
+        pass "Back clears the selection instead of going up a folder"
+    else
+        fail "Back with a selection: selection $selected -> $after, still in folder: $still_here"
+    fi
+else
+    fail "om_bk not listed"
+fi
+# Long press on ⇄ with nothing assigned asks what it should do; then it does it.
+if pos=$(node_center_by_id btnBottomSwap); then
+    adb shell input swipe $pos $pos 1000; sleep 2
+    shot 83_long_press_choose
+    if pos2=$(find_text "Filter" "Filtro"); then
+        adb shell input tap $pos2; sleep 1
+        pos=$(node_center_by_id btnBottomSwap) && adb shell input swipe $pos $pos 1000; sleep 2
+        ran=$(adb logcat -d -s OMBottomBar 2>/dev/null | grep -c "Long press action quick_filter" || true)
+        if [ "${ran:-0}" -ge 1 ] && node_center_by_id etQuickFilter >/dev/null; then
+            pass "holding ⇄ runs the action chosen for it (quick filter)"
+        else
+            fail "holding ⇄ did not run the chosen action (ran=$ran)"
+        fi
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+    else
+        fail "holding an unassigned bottom button did not ask what it should do"
+    fi
+else
+    fail "no ⇄ button"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_bk
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

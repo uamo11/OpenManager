@@ -1,3 +1,12 @@
+# OpenManager v2.0.34: Pulsación Larga Personalizable y Atrás que Quita la Selección
+
+### 👆 Pulsación larga personalizable en la barra inferior
+- Cada botón de abajo (atrás, adelante, nuevo, ⇄, inicio) puede tener su **acción al mantenerlo pulsado**: filtro rápido, buscar por nombre, resultados de búsqueda, marcadores, nuevo archivo, actualizar, terminal, mostrar ocultos u ordenar.
+- Si un botón no tiene acción, al mantenerlo pulsado pregunta cuál quieres. Para cambiarlas: **Ajustes → Pulsación larga de la barra inferior**. Inicio sigue abriendo los marcadores por defecto.
+
+### ↩️ Atrás con archivos seleccionados
+- Con archivos seleccionados, **Atrás quita la selección** en lugar de subir de carpeta.
+
 # OpenManager v2.0.33: OpenManager en el Selector de Archivos y ADB/fastboot por OTG
 
 ### 📂 OpenManager en el selector de archivos del sistema

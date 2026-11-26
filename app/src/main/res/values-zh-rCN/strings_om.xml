@@ -2542,4 +2542,19 @@
     <string name="om_usb_working">处理中…</string>
     <string name="om_usb_progress">%1$d%%</string>
     <string name="open_as_other_apps">其他应用…</string>
+    <string name="om_long_press_title">底部栏长按</string>
+    <string name="om_long_press_summary">设置长按底部每个按钮的功能</string>
+    <string name="om_long_press_choose_format">长按“%1$s”来…</string>
+    <string name="om_long_press_set_format">长按 %1$s 现在：%2$s</string>
+    <string name="om_long_press_action_none">无</string>
+    <string name="om_long_press_action_search">按名称搜索</string>
+    <string name="om_long_press_action_bookmarks">书签</string>
+    <string name="om_long_press_action_new">新建文件或文件夹</string>
+    <string name="om_long_press_action_refresh">刷新</string>
+    <string name="om_long_press_button_back">后退</string>
+    <string name="om_long_press_button_forward">前进</string>
+    <string name="om_long_press_button_add">新建</string>
+    <string name="om_long_press_button_swap">交换面板</string>
+    <string name="om_long_press_button_home">主页</string>
+    <string name="om_long_press_no_search">还没有搜索</string>
 </resources>

@@ -1899,10 +1899,33 @@ class FileListActivity : AppActivity() {
                 activeFragment.navigateTo(home)
             }
         }
-        // Long press on home: the bookmarks, the other places worth jumping to.
-        btnBottomHome.setOnLongClickListener {
-            showBookmarks()
-            true
+        // Long press: what the user chose for each button (Home: bookmarks by default); a button
+        // without one asks what it should do.
+        for ((view, button) in listOf(
+            btnBottomBack to BottomBarLongPress.Button.BACK,
+            btnBottomForward to BottomBarLongPress.Button.FORWARD,
+            btnBottomAdd to BottomBarLongPress.Button.ADD,
+            btnBottomSwap to BottomBarLongPress.Button.SWAP,
+            btnBottomHome to BottomBarLongPress.Button.HOME
+        )) {
+            view.setOnLongClickListener {
+                it.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                val action = BottomBarLongPress.actionFor(this, button)
+                if (action == BottomBarLongPress.Action.NONE) {
+                    BottomBarLongPress.choose(this, button) { chosen ->
+                        if (chosen != BottomBarLongPress.Action.NONE) {
+                            Toast.makeText(
+                                this,
+                                getString(R.string.om_long_press_set_format, getString(button.labelRes), getString(chosen.labelRes)),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                } else {
+                    runBottomBarAction(action)
+                }
+                true
+            }
         }
 
         // Selection Mode: 5 Icon Buttons (MT Manager Style matching bottomBarNormal)
@@ -2085,6 +2108,16 @@ class FileListActivity : AppActivity() {
                 }
                 if (isQuickFilterOpen) {
                     closeQuickFilter()
+                    return
+                }
+                // Selected files: Back clears the selection first (it went up a folder instead).
+                if (activeFragment.selectedFiles.isNotEmpty()) {
+                    activeFragment.clearSelectedFiles()
+                    return
+                }
+                val otherPanel = if (activeFragment === fragmentA) fragmentB else fragmentA
+                if (otherPanel.isAdded && otherPanel.selectedFiles.isNotEmpty()) {
+                    otherPanel.clearSelectedFiles()
                     return
                 }
                 // Only the active panel: its search, selection, paste bar or folder.
@@ -2891,6 +2924,28 @@ class FileListActivity : AppActivity() {
         etQuickFilter.setText("")
         findViewById<View>(R.id.layoutPathTitle)?.isVisible = true
         updateTopBarInfo()
+    }
+
+    private fun runBottomBarAction(action: BottomBarLongPress.Action) {
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) android.util.Log.d("OMBottomBar", "Long press action ${action.id}")
+        when (action) {
+            BottomBarLongPress.Action.NONE -> Unit
+            BottomBarLongPress.Action.QUICK_FILTER -> openQuickFilter()
+            BottomBarLongPress.Action.SEARCH -> showFileNameSearchPrompt()
+            BottomBarLongPress.Action.SEARCH_RESULTS -> if (activeFragment.canShowLastSearchResults) {
+                closeQuickFilter()
+                activeFragment.showLastSearchResults()
+            } else {
+                Toast.makeText(this, R.string.om_long_press_no_search, Toast.LENGTH_SHORT).show()
+            }
+            BottomBarLongPress.Action.BOOKMARKS -> showBookmarks()
+            BottomBarLongPress.Action.NEW_ITEM -> showCreateDialog()
+            BottomBarLongPress.Action.REFRESH -> activeFragment.reload()
+            BottomBarLongPress.Action.TERMINAL -> activeFragment.openTerminal()
+            BottomBarLongPress.Action.HIDDEN_FILES ->
+                Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(!Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat)
+            BottomBarLongPress.Action.SORT -> activeFragment.showSortOptionsDialog()
+        }
     }
 
     fun showSearchDialog() {

@@ -78,6 +78,11 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             }
         }
 
+        findPreference<Preference>(getString(R.string.pref_key_bottom_bar_long_press))?.setOnPreferenceClickListener {
+            me.zhanghai.android.files.filelist.BottomBarLongPress.showEditor(requireActivity())
+            true
+        }
+
         findPreference<Preference>(getString(R.string.pref_key_install_shizuku))?.setOnPreferenceClickListener {
             me.zhanghai.android.files.provider.root.ShizukuManager.openShizukuApp(requireContext())
             true
