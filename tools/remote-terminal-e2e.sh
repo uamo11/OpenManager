@@ -2469,14 +2469,14 @@ else
     fail "no theme button in the side bar header"
 fi
 demo drawer; sleep 2
-# User request: the whole side bar without scrolling; Exit and About pinned at the bottom.
-if find_text "Exit" "Salir" >/dev/null && find_text "Connections" "Conexiones" >/dev/null; then
-    pass "the side bar shows Exit and every tool without scrolling"
+# User request: Exit and About pinned at the bottom, on screen without scrolling.
+if find_text "Exit" "Salir" >/dev/null && find_text "About" "Acerca de" >/dev/null; then
+    pass "the side bar shows About and Exit without scrolling"
 else
     shot 41c_drawer_needs_scroll
     fail "the side bar still needs scrolling to reach Exit"
 fi
-shot 41d_drawer_grid
+shot 41d_drawer_rows
 pos=""
 for _ in 1 2 3 4; do
     pos=$(find_text "Exit" "Salir") && break

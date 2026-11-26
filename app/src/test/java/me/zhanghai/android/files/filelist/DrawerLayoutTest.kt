@@ -10,7 +10,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
-/** The side bar fits without scrolling: tools in a grid, About and Exit pinned at the bottom. */
+/** The side bar: one row per tool (the owner did not want a grid of circles), About and Exit
+ *  pinned at the bottom so Exit always shows. */
 class DrawerLayoutTest {
 
     private val main = File("src/main").takeIf { it.isDirectory } ?: File("app/src/main")
@@ -19,15 +20,16 @@ class DrawerLayoutTest {
         File(main, "java/me/zhanghai/android/files/filelist/FileListActivity.kt").readText()
 
     @Test
-    fun toolsAreAGridOfFourAcross() {
-        val grid = layout.substringAfter("@+id/drawerToolsGrid").substringBefore("</GridLayout>")
-        assertTrue(grid.contains("android:columnCount=\"4\""))
+    fun toolsAreFullRowsInTheScrollingList() {
+        assertFalse("no grid of tiles", layout.contains("<GridLayout"))
+        val scroll = layout.substringAfter("@+id/drawerScrollView").substringBefore("</ScrollView>")
         for (id in listOf(
             "drawerItemApktool", "drawerItemInstalledApps", "drawerItemRunningApps",
             "drawerItemTextEditor", "drawerItemTerminal", "drawerItemConnections",
             "drawerItemRecycleBin"
         )) {
-            assertTrue("$id is a tile of the tools grid", grid.contains("@+id/$id\""))
+            val row = scroll.substringAfter("@+id/$id\"").substringBefore("</LinearLayout>")
+            assertTrue("$id is a full-width row", row.contains("android:layout_width=\"match_parent\""))
         }
     }
 
