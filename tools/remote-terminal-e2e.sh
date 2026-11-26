@@ -2367,7 +2367,8 @@ if pos=$(node_center_by_id btnDrawerNightMode); then
     shot 41c_theme_switched
     lb=$(lum_of "$before"); la=$(lum_of "$after")
     log "      theme switch: toolbar ${before:-?} (lum $lb) -> ${after:-?} (lum $la)"
-    if [ "$lb" -ge 0 ] && [ "$la" -ge 0 ] && { [ "$lb" -lt 100 ] && [ "$la" -gt 150 ] || [ "$lb" -gt 150 ] && [ "$la" -lt 100 ]; }; then
+    # Dark to light or light to dark (bash && and || have the same precedence: decided in python).
+    if python3 -c "import sys; b, a = $lb, $la; sys.exit(0 if b >= 0 and a >= 0 and ((b < 100 and a > 150) or (b > 150 and a < 100)) else 1)"; then
         pass "the side bar's theme button switches between light and dark at once"
     else
         fail "the theme button did not switch the theme (${before:-?} -> ${after:-?})"
