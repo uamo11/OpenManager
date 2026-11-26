@@ -18,11 +18,19 @@ object VideoGestures {
     /** A swipe over this share of the height goes from minimum to maximum. */
     private const val FULL_RANGE_HEIGHT = 0.7f
 
+    /**
+     * Volume only starts after a longer, clearly vertical swipe: a brush of the thumb on the right
+     * half must not turn the sound up (owner request; also for people watching without sound).
+     */
+    private const val VOLUME_START_SLOPS = 2.5f
+
     /** Horizontal wins only when clearly horizontal; left half = brightness, right = volume. */
     fun classify(dx: Float, dy: Float, slop: Float, startX: Float, width: Int): VideoDrag = when {
         abs(dx) < slop && abs(dy) < slop -> VideoDrag.NONE
         abs(dx) > abs(dy) * 1.2f -> VideoDrag.SEEK
-        abs(dy) > abs(dx) -> if (startX < width / 2f) VideoDrag.BRIGHTNESS else VideoDrag.VOLUME
+        abs(dy) > abs(dx) && startX < width / 2f -> VideoDrag.BRIGHTNESS
+        // Right half: wait until the swipe is long and straight enough to mean "volume".
+        abs(dy) >= slop * VOLUME_START_SLOPS && abs(dy) > abs(dx) * 1.5f -> VideoDrag.VOLUME
         else -> VideoDrag.NONE
     }
 
@@ -40,11 +48,22 @@ object VideoGestures {
         return (start - dy / (height * FULL_RANGE_HEIGHT)).coerceIn(MIN_BRIGHTNESS, 1f)
     }
 
-    /** Stream volume step after dragging [dy] pixels. */
+    /**
+     * Stream volume step after dragging [dy] pixels. Slower than brightness (the whole height for
+     * the whole range), and from silence the first [MUTED_DEAD_ZONE] of the height does nothing,
+     * so a muted video does not start playing aloud by accident.
+     */
     fun volume(start: Int, dy: Float, height: Int, max: Int): Int {
         if (height <= 0 || max <= 0) return start
-        return (start - dy / (height * FULL_RANGE_HEIGHT) * max).roundToInt().coerceIn(0, max)
+        var travel = -dy
+        if (start == 0 && travel > 0) {
+            travel = (travel - height * MUTED_DEAD_ZONE).coerceAtLeast(0f)
+        }
+        return (start + travel / height * max).roundToInt().coerceIn(0, max)
     }
+
+    /** Share of the height to swipe up from silence before the sound comes on. */
+    const val MUTED_DEAD_ZONE = 0.15f
 
     /** `+0:15  1:23 / 45:00` */
     fun seekLabel(startMs: Long, targetMs: Long, durationMs: Long): String {

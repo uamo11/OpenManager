@@ -1022,6 +1022,18 @@ PY2
         else
             fail "swiping up on the left did not raise the brightness (${bright:-no brightness gesture})"
         fi
+        # Muted: a short swipe up on the right (10% of the height) keeps the sound off.
+        adb shell media volume --stream 3 --set 0 >/dev/null 2>&1 || true
+        adb shell input swipe $((vx1 + vw * 4 / 5)) $((vy1 + vh * 6 / 10)) $((vx1 + vw * 4 / 5)) $((vy1 + vh / 2)) 500; sleep 1
+        shot 12h_video_volume_icon
+        muted=$(adb shell media volume --stream 3 --get 2>/dev/null | grep -o "volume is [0-9]*" | grep -o "[0-9]*$")
+        log "      muted, short swipe up on the right: volume ${muted:-?}"
+        if [ "${muted:-x}" = 0 ]; then
+            pass "a short swipe does not turn up a muted video"
+        else
+            fail "a short swipe turned up a muted video (volume ${muted:-?})"
+        fi
+        adb shell media volume --stream 3 --set 5 >/dev/null 2>&1 || true
         if grep -q "Gesture speed hold 2.0" "$OUT/video_gestures.log" && grep -q "Gesture speed back 1.0" "$OUT/video_gestures.log"; then
             pass "holding the finger plays at 2x and lifting it goes back to 1x"
         else

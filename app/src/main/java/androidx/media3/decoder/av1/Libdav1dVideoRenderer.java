@@ -80,25 +80,14 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
   /** Debug comparisons on the emulator can turn the skipping off. */
   public static volatile boolean skipLateNonReferenceFrames = true;
 
-  /**
-   * OpenManager: once late, keep skipping the frames nothing depends on for this long. Skipping
-   * only while late made the decoder catch up, stop skipping, fall behind again and decode frames
-   * that were then dropped as late (215 of 779 on a Galaxy A07 with 4K60): holding it gives an even
-   * half frame rate (30 of 60 fps) with every decoded frame shown on time.
-   */
-  private static final long SKIP_HOLD_US = 8_000_000;
+  /** OpenManager: how many frames nothing depends on are left undecoded. */
+  private final NonReferenceSkipController skipController = new NonReferenceSkipController();
 
-  /** Debug comparisons: 0 skips only while late (the v2.0.29 behaviour). */
-  public static volatile long skipHoldUs = SKIP_HOLD_US;
+  /** Debug comparisons: false skips only while late (the v2.0.30 behaviour). */
+  public static volatile boolean adaptiveSkip = true;
 
-  /** Until when frames nothing depends on are skipped even if on time (elapsed realtime, µs). */
-  private long skipNonReferenceUntilUs = Long.MIN_VALUE;
-
-  /**
-   * Late outputs in a row. The hold starts after a few, so one late frame (a seek, a hiccup) on a
-   * phone that keeps up does not halve its frame rate.
-   */
-  private int consecutiveLateOutputs;
+  /** The share of frames nothing depends on currently left undecoded, for the statistics. */
+  public static volatile double skipShare;
 
   /** OpenManager: no film grain synthesis (dav1d {@code apply_grain = 0}). */
   public static final int SPEED_NO_GRAIN = 1;
@@ -266,13 +255,8 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
   @Override
   protected boolean shouldDropOutputBuffer(long earlyUs, long elapsedRealtimeUs) {
     lastOutputEarlyUs = earlyUs;
-    if (earlyUs <= -LATE_THRESHOLD_TO_SKIP_INPUT_US) {
-      if (++consecutiveLateOutputs >= 4) {
-        skipNonReferenceUntilUs = elapsedRealtimeUs + skipHoldUs;
-      }
-    } else {
-      consecutiveLateOutputs = 0;
-    }
+    skipController.onOutput(earlyUs);
+    skipShare = skipController.skipFraction();
     return super.shouldDropOutputBuffer(earlyUs, elapsedRealtimeUs);
   }
 
@@ -288,8 +272,9 @@ public class Libdav1dVideoRenderer extends DecoderVideoRenderer {
       return;
     }
     if (!skipLateNonReferenceFrames
-        || (lastOutputEarlyUs > -LATE_THRESHOLD_TO_SKIP_INPUT_US
-            && android.os.SystemClock.elapsedRealtime() * 1000 >= skipNonReferenceUntilUs)
+        || (adaptiveSkip
+            ? !skipController.shouldSkip()
+            : lastOutputEarlyUs > -LATE_THRESHOLD_TO_SKIP_INPUT_US)
         || buffer.isLastSample()
         || buffer.hasSupplementalData()) {
       return;

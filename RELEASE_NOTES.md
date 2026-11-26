@@ -1,3 +1,14 @@
+# OpenManager v2.0.32: AV1 4K60 Corregido y Gestos del Reproductor con Iconos
+
+### 🎞️ AV1 4K60: se corrige el retroceso de la v2.0.31
+- La v2.0.31, al atrasarse, dejaba de decodificar **todos** los cuadros prescindibles durante 8 s. En videos donde 7 de cada 10 cuadros lo son, eso bajaba un 4K60 AV1 en un Galaxy A07 de ~26 a ~16 fps aunque el procesador podía con más.
+- Ahora se salta solo **la parte necesaria**: uno en seguida si el último cuadro llegó tarde, y además una proporción que sube un poco con cada cuadro tarde y baja despacio mientras todo llega a tiempo. El decodificador se acomoda a lo que da el procesador y casi no tira cuadros ya decodificados. En la simulación con los números del A07 muestra más cuadros que la v2.0.30 y la v2.0.31 en todos los casos (por ejemplo 32,6 fps frente a 29,4 y 19,1); una prueba automática lo vigila.
+- El panel de estadísticas muestra qué parte se está saltando («skip 45%»).
+
+### 👆 Gestos del reproductor
+- **Iconos** en los indicadores: brillo, volumen (alto, bajo, silencio), adelantar/atrasar y 2×.
+- **Volumen sin toques accidentales:** el gesto de volumen necesita un deslizamiento más largo y recto para empezar, recorre el rango en toda la altura de la pantalla (antes en el 70 %), y desde **silencio** el primer 15 % del recorrido no hace nada: un video en silencio no se pone a sonar por rozar la pantalla.
+
 # OpenManager v2.0.31: Filtro Rápido, Nombres en Varias Líneas, AV1 4K60 más Fluido y Visor sin Cierres
 
 ### 🎞️ Reproductor: 4K60 AV1 a ritmo parejo

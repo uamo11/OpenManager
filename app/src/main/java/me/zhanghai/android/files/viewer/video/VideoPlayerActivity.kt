@@ -599,7 +599,11 @@ class VideoPlayerActivity : AppActivity() {
                 dragTargetMs = VideoGestures.seekTarget(
                     dragStartPositionMs, event.x - dragStartX, videoRoot.width, duration
                 )
-                showGestureFeedback(VideoGestures.seekLabel(dragStartPositionMs, dragTargetMs, duration))
+                showGestureFeedback(
+                    VideoGestures.seekLabel(dragStartPositionMs, dragTargetMs, duration),
+                    if (dragTargetMs < dragStartPositionMs) R.drawable.ic_gesture_fast_rewind_32dp
+                    else R.drawable.ic_gesture_fast_forward_32dp
+                )
                 val now = System.currentTimeMillis()
                 if (now - lastGestureSeekAtMs >= SCRUB_INTERVAL_MS) {
                     lastGestureSeekAtMs = now
@@ -609,7 +613,10 @@ class VideoPlayerActivity : AppActivity() {
             VideoDrag.BRIGHTNESS -> {
                 val value = VideoGestures.brightness(dragStartBrightness, event.y - dragStartY, videoRoot.height)
                 window.attributes = window.attributes.apply { screenBrightness = value }
-                showGestureFeedback(getString(R.string.om_video_brightness, (value * 100).roundToInt()))
+                showGestureFeedback(
+                    getString(R.string.om_video_brightness, (value * 100).roundToInt()),
+                    R.drawable.ic_gesture_brightness_32dp
+                )
             }
             VideoDrag.VOLUME -> {
                 val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
@@ -617,7 +624,14 @@ class VideoPlayerActivity : AppActivity() {
                 if (value != audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)) {
                     audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, value, 0)
                 }
-                showGestureFeedback(getString(R.string.om_video_volume, value * 100 / max.coerceAtLeast(1)))
+                showGestureFeedback(
+                    getString(R.string.om_video_volume, value * 100 / max.coerceAtLeast(1)),
+                    when {
+                        value == 0 -> R.drawable.ic_gesture_volume_off_32dp
+                        value * 2 < max -> R.drawable.ic_gesture_volume_down_32dp
+                        else -> R.drawable.ic_gesture_volume_up_32dp
+                    }
+                )
             }
             VideoDrag.NONE -> Unit
         }
@@ -652,8 +666,13 @@ class VideoPlayerActivity : AppActivity() {
         0.5f
     }
 
-    private fun showGestureFeedback(text: String) {
+    /** The value of a gesture, with its icon above it (brightness, volume, seek, speed). */
+    private fun showGestureFeedback(text: String, iconRes: Int = 0) {
         tvSeekFeedback.text = text
+        if (tvSeekFeedback.tag != iconRes) {
+            tvSeekFeedback.tag = iconRes
+            tvSeekFeedback.setCompoundDrawablesRelativeWithIntrinsicBounds(0, iconRes, 0, 0)
+        }
         tvSeekFeedback.visibility = View.VISIBLE
     }
 
@@ -665,7 +684,7 @@ class VideoPlayerActivity : AppActivity() {
         p.setPlaybackSpeed(VideoGestures.HOLD_SPEED)
         videoRoot.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
         handler.removeCallbacks(hideSeekFeedbackRunnable)
-        showGestureFeedback(formatSpeed(VideoGestures.HOLD_SPEED) + " ▶▶")
+        showGestureFeedback(formatSpeed(VideoGestures.HOLD_SPEED), R.drawable.ic_gesture_fast_forward_32dp)
         if (me.zhanghai.android.files.BuildConfig.DEBUG) Log.i(TAG, "Gesture speed hold ${VideoGestures.HOLD_SPEED}")
     }
 
@@ -768,6 +787,8 @@ class VideoPlayerActivity : AppActivity() {
             append(" / rendered ").append(rendered)
             if (isDav1d) {
                 append(" / not decoded ").append(androidx.media3.decoder.av1.Libdav1dVideoRenderer.skippedNonReferenceInputs)
+                val share = androidx.media3.decoder.av1.Libdav1dVideoRenderer.skipShare
+                if (share > 0.005) append(String.format(Locale.ROOT, " (skip %.0f%%)", share * 100))
             }
             // When the processor is the limit, say it plainly instead of leaving a low number.
             val target = (format?.frameRate ?: 0f) * SPEEDS[speedIndex]
