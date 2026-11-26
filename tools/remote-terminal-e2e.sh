@@ -2906,8 +2906,10 @@ if pos=$(find_text "Filter" "Filtro"); then
         else
             fail "quick filter did not filter as typed ($shown)"
         fi
+        # Back (a second one if the first only hid the keyboard) closes the filter.
         adb shell input keyevent KEYCODE_BACK; sleep 1
-        adb shell input keyevent KEYCODE_BACK; sleep 2
+        node_center_by_id etQuickFilter >/dev/null && { adb shell input keyevent KEYCODE_BACK; sleep 1; }
+        sleep 1
         if find_text "beta.txt" >/dev/null && ! node_center_by_id etQuickFilter >/dev/null; then
             pass "quick filter: Back closes it and the whole folder is back"
         else
@@ -2929,6 +2931,7 @@ if pos=$(find_text "Search files..." "Buscar archivos..."); then
     adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
         --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_qf/sub" >/dev/null; sleep 4
     demo more_menu; sleep 2
+    shot 76a_menu_after_search
     if pos=$(find_text "Search results" "Resultados de búsqueda"); then
         adb shell input tap $pos; sleep 6
         shot 76_search_results_again

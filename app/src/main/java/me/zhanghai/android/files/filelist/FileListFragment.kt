@@ -1025,10 +1025,17 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         }
     }
 
+    /**
+     * Called when the panel goes to another folder: the search ends too. In the dual-panel UI
+     * the search comes from a dialog, so there was no search view to collapse and the panel kept
+     * "searching" inside every folder opened from the results. The last search stays available
+     * from the ⋮ menu ("Search results").
+     */
     private fun collapseSearchView() {
         if (this::menuBinding.isInitialized && menuBinding.searchItem.isActionViewExpanded) {
             menuBinding.searchItem.collapseActionView()
         }
+        viewModel.stopSearching()
     }
 
     override fun onPrepareOptionsMenu(menu: Menu) {
