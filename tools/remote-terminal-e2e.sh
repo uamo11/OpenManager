@@ -1035,10 +1035,14 @@ PY2
         fi
         adb shell media volume --stream 3 --set 5 >/dev/null 2>&1 || true
         # Rotation button: automatic -> landscape -> portrait.
+        # While the video plays the controls hide after 3.5 s, and uiautomator waits longer than
+        # that for a still screen. The first tap shows the controls, the second hits the centre
+        # play/pause button: paused, the controls stay on screen for the dump.
+        adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1
         adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1
         if rpos=$(node_center_by_id btnVideoRotate); then
             adb shell input tap $rpos; sleep 2
-            rpos=$(node_center_by_id btnVideoRotate) || { adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1; rpos=$(node_center_by_id btnVideoRotate); }
+            rpos=$(node_center_by_id btnVideoRotate) || { adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1; adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1; rpos=$(node_center_by_id btnVideoRotate); }
             [ -n "$rpos" ] && adb shell input tap $rpos; sleep 2
             shot 12i_video_portrait
             rot=$(adb logcat -d -s OMVideoPlayer 2>/dev/null | grep "Rotation mode" | sed 's/.*Rotation mode //' | tr '\n' ';')
