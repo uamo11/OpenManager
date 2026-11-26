@@ -2115,11 +2115,6 @@ class FileListActivity : AppActivity() {
                     activeFragment.clearSelectedFiles()
                     return
                 }
-                val otherPanel = if (activeFragment === fragmentA) fragmentB else fragmentA
-                if (otherPanel.isAdded && otherPanel.selectedFiles.isNotEmpty()) {
-                    otherPanel.clearSelectedFiles()
-                    return
-                }
                 // Only the active panel: its search, selection, paste bar or folder.
                 if (activeFragment.handleBackInPanel()) {
                     return
