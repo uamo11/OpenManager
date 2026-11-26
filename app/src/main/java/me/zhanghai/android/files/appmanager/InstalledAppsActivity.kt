@@ -95,6 +95,19 @@ class InstalledAppsActivity : AppActivity() {
         }
     }
 
+    /** When the screen was created, to log how long the list takes to show (debug). */
+    private val createdAtMs = android.os.SystemClock.elapsedRealtime()
+    private var listShownLogged = false
+
+    private fun logListShown(source: String) {
+        if (listShownLogged || !me.zhanghai.android.files.BuildConfig.DEBUG) return
+        listShownLogged = true
+        android.util.Log.d(
+            "OMApps", "List shown source=$source count=${allApps.size} " +
+                "ms=${android.os.SystemClock.elapsedRealtime() - createdAtMs}"
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityInstalledAppsBinding.inflate(layoutInflater)
@@ -239,24 +252,8 @@ class InstalledAppsActivity : AppActivity() {
             updateTabCounts()
             filterApps()
             binding.progressBar.visibility = View.GONE
+            logListShown("memory")
             return
-        }
-
-        // 2. Persistent disk cache (5-10 ms)
-        if (!forceRefresh) {
-            val diskCached = AppDiskCache.load(this)
-            if (diskCached != null && diskCached.isNotEmpty()) {
-                allApps.clear()
-                allApps.addAll(diskCached)
-                sAppCache = diskCached
-                applySort()
-                updateTabCounts()
-                filterApps()
-                binding.progressBar.visibility = View.GONE
-                // Trigger background refresh silently to catch new installs/updates
-                syncAppsInBackground(diskCached)
-                return
-            }
         }
 
         if (allApps.isEmpty()) {
@@ -264,8 +261,26 @@ class InstalledAppsActivity : AppActivity() {
         }
         binding.emptyText.visibility = View.GONE
 
-        // 3. Full scan with progressive emission
         lifecycleScope.launch(Dispatchers.IO) {
+            // 2. Persistent disk cache, read off the main thread (a JSON of every app: it held
+            //    the screen while it opened).
+            val diskCached = if (!forceRefresh) AppDiskCache.load(this@InstalledAppsActivity) else null
+            if (diskCached != null && diskCached.isNotEmpty()) {
+                withContext(Dispatchers.Main) {
+                    allApps.clear()
+                    allApps.addAll(diskCached)
+                    sAppCache = diskCached
+                    applySort()
+                    updateTabCounts()
+                    filterApps()
+                    binding.progressBar.visibility = View.GONE
+                    logListShown("disk")
+                }
+                // Then catch new installs and updates quietly.
+                syncAppsInBackground(diskCached)
+                return@launch
+            }
+            // 3. Full scan with progressive emission
             scanAndEmitApps()
         }
     }
@@ -304,8 +319,12 @@ class InstalledAppsActivity : AppActivity() {
                     updateTabCounts()
                     filterApps()
                     binding.progressBar.visibility = View.GONE
+                    logListShown("scan")
                 }
             }
+        }
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            android.util.Log.d("OMApps", "Scan done count=${parsedList.size} ms=${android.os.SystemClock.elapsedRealtime() - createdAtMs}")
         }
 
         sAppCache = parsedList
@@ -476,6 +495,7 @@ class InstalledAppsActivity : AppActivity() {
     }
 
     private fun showAppDetails(app: AppModel) {
+        val detailsStart = android.os.SystemClock.elapsedRealtime()
         val dialogBinding = DialogInstalledAppDetailsBinding.inflate(layoutInflater)
         val cachedIcon = NativeAppIconLoader.getCached(app.packageName)
         if (cachedIcon != null) {
@@ -756,6 +776,9 @@ class InstalledAppsActivity : AppActivity() {
         }
 
         dialog.show()
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            android.util.Log.d("OMApps", "Details shown ms=${android.os.SystemClock.elapsedRealtime() - detailsStart}")
+        }
     }
 
     private fun openPathInExplorer(path: String) {
@@ -1120,7 +1143,7 @@ class InstalledAppsActivity : AppActivity() {
     }
 
     private fun formatDate(timestamp: Long): String {
-        return if (timestamp > 0) dateFormat.format(Date(timestamp)) else "Desconocida"
+        return if (timestamp > 0) dateFormat.format(Date(timestamp)) else "—"
     }
 
     inner class AppsAdapter(

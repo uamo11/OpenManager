@@ -3312,6 +3312,61 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_bk
 
+log "=== Applications: how long the list and an app's details take (owner: the section feels slow) ==="
+apps_open() {
+    adb logcat -c
+    adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.appmanager.InstalledAppsActivity" >/dev/null 2>&1
+    for _ in $(seq 1 30); do
+        line=$(adb logcat -d -s OMApps 2>/dev/null | grep "List shown" | tail -1 | sed 's/.*OMApps: //')
+        [ -n "$line" ] && break
+        sleep 1
+    done
+    sleep 3
+    printf '%s' "$line"
+}
+adb shell am force-stop $PKG; sleep 1
+adb shell run-as $PKG rm -f cache/installed_apps_v2.json 2>/dev/null
+cold=$(apps_open)
+scan=$(adb logcat -d -s OMApps 2>/dev/null | grep "Scan done" | tail -1 | sed 's/.*OMApps: //')
+shot 84_apps_cold
+adb shell input keyevent KEYCODE_BACK; sleep 1
+adb shell am force-stop $PKG; sleep 1
+disk=$(apps_open)
+adb shell input keyevent KEYCODE_BACK; sleep 1
+memory=$(apps_open)
+# Details of the first app in the list.
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_apps.xml" 2>/dev/null
+first=$(python3 - "$OUT/ui_apps.xml" <<'PY2'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for n in re.findall(r"<node [^>]*>", xml):
+    if re.search(r':id/appName"', n):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2); break
+PY2
+)
+details=""
+if [ -n "$first" ]; then
+    adb logcat -c
+    adb shell input tap $first; sleep 3
+    details=$(adb logcat -d -s OMApps 2>/dev/null | grep "Details shown" | tail -1 | sed 's/.*OMApps: //')
+    shot 85_app_details
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+fi
+log "      first open (no cache): $cold; $scan"
+log "      next open (disk cache): $disk"
+log "      open again (memory): $memory"
+log "      app details: ${details:-not opened}"
+ms_of() { printf '%s' "$1" | grep -o "ms=[0-9]*" | head -1 | cut -d= -f2; }
+c=$(ms_of "$cold"); d=$(ms_of "$disk"); m=$(ms_of "$memory"); t=$(ms_of "$details")
+if [ -n "$c" ] && [ -n "$d" ] && [ -n "$m" ] && [ "${d:-99999}" -lt 1500 ] && [ "${m:-99999}" -lt 1000 ] && [ "${t:-99999}" -lt 800 ]; then
+    pass "Applications: list in ${d} ms from cache (${c} ms first time), details in ${t} ms"
+else
+    fail "Applications is slow or did not open (first $c ms, cache $d ms, memory $m ms, details $t ms)"
+fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib
