@@ -2636,4 +2636,5 @@
     <string name="om_usb_flashed">Đã flash %1$s.</string>
     <string name="om_usb_working">Đang xử lý…</string>
     <string name="om_usb_progress">%1$d%%</string>
+    <string name="open_as_other_apps">Ứng dụng khác…</string>
 </resources>

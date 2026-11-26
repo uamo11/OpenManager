@@ -274,7 +274,8 @@ object MtFileMenuHelper {
         } else {
             btnOpenWith.setOnClickListener {
                 dialog.dismissSafely()
-                fragment.openFileWith(file)
+                // The built-in viewers first (as MT); "Other apps" at the end of that grid.
+                OpenFileAsDialogFragment.show(file.path, fragment.childFragmentManager)
             }
         }
 

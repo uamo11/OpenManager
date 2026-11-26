@@ -2561,4 +2561,5 @@
     <string name="om_usb_flashed">%1$s прошит.</string>
     <string name="om_usb_working">Выполняется…</string>
     <string name="om_usb_progress">%1$d%%</string>
+    <string name="open_as_other_apps">Другие приложения…</string>
 </resources>

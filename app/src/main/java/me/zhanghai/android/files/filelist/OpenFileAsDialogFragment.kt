@@ -23,6 +23,7 @@ import me.zhanghai.android.files.file.asMimeType
 import me.zhanghai.android.files.file.fileProviderUri
 import me.zhanghai.android.files.filejob.FileJobService
 import me.zhanghai.android.files.provider.archive.isArchivePath
+import me.zhanghai.android.files.provider.archive.createArchiveRootPath
 import me.zhanghai.android.files.provider.common.newInputStream
 import me.zhanghai.android.files.util.ParcelableArgs
 import me.zhanghai.android.files.util.ParcelableParceler
@@ -169,16 +170,14 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
 
             // 2. Archive Viewer
             ToolItem("archive_viewer", R.string.open_as_archive_viewer, R.drawable.ic_open_as_archive) {
-                val isZip = try {
-                    path.newInputStream().use { it.read() == 0x50 && it.read() == 0x4B }
-                } catch (e: Exception) { false }
-                if (isZip || path.isArchivePath || fileName.endsWith(".zip", true) || fileName.endsWith(".7z", true) || fileName.endsWith(".tar", true) || fileName.endsWith(".apk", true) || fileName.endsWith(".jar", true)) {
-                    FileJobService.open(path, "application/zip".asMimeType(), false, requireContext())
+                // Inside OpenManager's own archive browser (zip, 7z, rar, tar, apk…), whatever
+                // the file is called; it used to hand the file to another app.
+                val root = path.createArchiveRootPath()
+                val panel = parentFragment as? FileListFragment
+                if (panel != null) {
+                    panel.navigateTo(root)
                 } else {
-                    val intent = path.fileProviderUri.createViewIntent("application/zip".asMimeType())
-                        .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                        .apply { extraPath = path }
-                    startActivitySafe(intent)
+                    startActivitySafe(FileListActivity.createViewIntent(root))
                 }
                 dismissOrFinishActivity()
             },
@@ -295,7 +294,7 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
 
             // 16. HTML Functions
             ToolItem("html_functions", R.string.open_as_html_functions, R.drawable.ic_open_as_html) {
-                HtmlViewerDialogFragment.show(path, parentFragmentManager)
+                me.zhanghai.android.files.viewer.html.HtmlViewerActivity.start(requireContext(), path)
                 dismissOrFinishActivity()
             },
 
@@ -312,6 +311,13 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
                     .apply { extraPath = path }
                 startActivitySafe(intent)
                 dismissOrFinishActivity()
+            }
+            ,
+            // Last: any app on the phone, through the system chooser (as MT's "Other apps").
+            ToolItem("other_apps", R.string.open_as_other_apps, R.drawable.ic_apps_white_24dp) {
+                val ext = fileName.substringAfterLast('.', "").lowercase()
+                val mime = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext) ?: "*/*"
+                openWithMimeType(mime)
             }
         ).let { list ->
             if (isTxt) list.filter { it.id != "script_executor" } else list

@@ -3355,4 +3355,5 @@
     <string name="om_usb_flashed">%1$s flasheado.</string>
     <string name="om_usb_working">Trabajando…</string>
     <string name="om_usb_progress">%1$d%%</string>
+    <string name="open_as_other_apps">Otras apps…</string>
 </resources>

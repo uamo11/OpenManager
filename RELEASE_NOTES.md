@@ -4,6 +4,11 @@
 - Ahora OpenManager aparece en **«Abrir desde…» / «Guardar en…»** de cualquier app (el selector de archivos de Android), con el almacenamiento interno y las tarjetas SD. Desde ahí otras apps pueden abrir, guardar, renombrar y borrar archivos. Tiene búsqueda y miniaturas de imágenes.
 - Solo muestra el almacenamiento compartido: las carpetas privadas de `/data` quedan fuera. Requiere que OpenManager tenga acceso al almacenamiento.
 
+### 📂 «Abrir con…» como en MT
+- **«Abrir con…»** del menú de un archivo ahora muestra primero los **visores internos** (texto, comprimidos, imágenes, HEX, PDF, HTML…) para abrir cualquier archivo, tenga la extensión que tenga, con el que quieras. Al final, **«Otras apps…»** abre el selector del sistema.
+- **Visor de comprimidos:** abre el archivo dentro de OpenManager (zip, 7z, rar, tar, apk… aunque se llame `.bin`); antes lo mandaba a otra app.
+- **HTML** desde ese menú usa el visor de HTML nuevo.
+
 ### 🔌 USB: ADB y fastboot por OTG (en Conexiones)
 - Conecta **otro teléfono** con un cable OTG y manéjalo desde OpenManager, sin PC:
   - **ADB** (Android encendido con depuración USB): información del dispositivo, ejecutar comandos de shell, **instalar un APK** y reiniciar (sistema, bootloader, recovery, fastbootd). La primera vez el otro teléfono pregunta «¿Permitir depuración USB?».

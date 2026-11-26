@@ -3221,6 +3221,47 @@ adb logcat -d > "$OUT/logcat_usb.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_usb.txt"; then fail "crash on the USB screen"; fi
 adb shell am force-stop $PKG; sleep 1
 
+log "=== Open with: built-in viewers first, Other apps, archive viewer in the app (user request) ==="
+python3 - "$OUT/om_oa_pack.bin" <<'PY2'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1], "w") as z:
+    z.writestr("inside_marker.txt", "hello")
+PY2
+adb shell rm -rf /sdcard/om_oa; adb shell mkdir -p /sdcard/om_oa
+adb push "$OUT/om_oa_pack.bin" /sdcard/om_oa/pack.bin >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_oa" >/dev/null; sleep 5
+if pos=$(wait_text 15 "pack.bin"); then
+    adb shell input swipe $pos $pos 1200; sleep 2
+    if pos2=$(find_text "Open with…" "Abrir con…"); then
+        adb shell input tap $pos2; sleep 2
+        shot 81_open_with_grid
+        if find_text "Archive viewer" >/dev/null && find_text "Other apps…" >/dev/null; then
+            pass "Open with shows the built-in viewers, with Other apps at the end"
+        else
+            fail "Open with did not show the built-in viewers grid"
+        fi
+        if pos3=$(find_text "Archive viewer"); then
+            adb shell input tap $pos3; sleep 4
+            shot 82_archive_inside
+            if find_text "inside_marker.txt" >/dev/null; then
+                pass "the archive viewer opens a zip named .bin inside OpenManager"
+            else
+                fail "the archive viewer did not open the archive inside OpenManager"
+            fi
+        fi
+    else
+        fail "no Open with in the file menu"
+    fi
+else
+    fail "pack.bin not listed"
+fi
+adb logcat -d > "$OUT/logcat_openwith.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_openwith.txt"; then fail "crash in Open with"; fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_oa
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

@@ -2541,4 +2541,5 @@
     <string name="om_usb_flashed">已刷入 %1$s。</string>
     <string name="om_usb_working">处理中…</string>
     <string name="om_usb_progress">%1$d%%</string>
+    <string name="open_as_other_apps">其他应用…</string>
 </resources>
