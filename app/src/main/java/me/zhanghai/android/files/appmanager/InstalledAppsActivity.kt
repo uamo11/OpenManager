@@ -676,12 +676,12 @@ class InstalledAppsActivity : AppActivity() {
         dialogBinding.btnActionForceStop.setOnClickListener {
             dialog.dismiss()
             lifecycleScope.launch(Dispatchers.IO) {
-                val result = Shell.cmd("am force-stop ${app.packageName.escapeShellArg()}").exec()
+                val result = PrivilegedCommand.run("am force-stop ${app.packageName.escapeShellArg()}")
                 withContext(Dispatchers.Main) {
                     if (result.isSuccess) {
                         Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_stopped_root, Toast.LENGTH_SHORT).show()
                     } else {
-                        Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_force_stop_error, Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@InstalledAppsActivity, if (result.via == PrivilegedCommand.Via.NONE) R.string.om_apps_needs_root_or_shizuku else R.string.om_apps_force_stop_error, Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -695,12 +695,12 @@ class InstalledAppsActivity : AppActivity() {
                 .setMessage(getString(R.string.om_apps_clear_data_msg_format, app.label))
                 .setPositiveButton(R.string.om_apps_clear_btn) { _, _ ->
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val result = Shell.cmd("pm clear ${app.packageName.escapeShellArg()}").exec()
+                        val result = PrivilegedCommand.run("pm clear ${app.packageName.escapeShellArg()}")
                         withContext(Dispatchers.Main) {
                             if (result.isSuccess) {
                                 Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_clear_data_success, Toast.LENGTH_SHORT).show()
                             } else {
-                                Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_clear_data_error, Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@InstalledAppsActivity, if (result.via == PrivilegedCommand.Via.NONE) R.string.om_apps_needs_root_or_shizuku else R.string.om_apps_clear_data_error, Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -737,17 +737,17 @@ class InstalledAppsActivity : AppActivity() {
                 val cmdStr = if (newEnable) {
                     "pm enable ${app.packageName.escapeShellArg()}"
                 } else {
-                    "pm disable-user ${app.packageName.escapeShellArg()}"
+                    "pm disable-user --user 0 ${app.packageName.escapeShellArg()}"
                 }
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val result = Shell.cmd(cmdStr).exec()
+                    val result = PrivilegedCommand.run(cmdStr)
                     withContext(Dispatchers.Main) {
                         if (result.isSuccess) {
                             val msgRes = if (newEnable) R.string.om_apps_enabled_toast else R.string.om_apps_disabled_toast
                             Toast.makeText(this@InstalledAppsActivity, msgRes, Toast.LENGTH_SHORT).show()
                             loadApps(forceRefresh = true)
                         } else {
-                            Toast.makeText(this@InstalledAppsActivity, R.string.om_apps_toggle_state_error, Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@InstalledAppsActivity, if (result.via == PrivilegedCommand.Via.NONE) R.string.om_apps_needs_root_or_shizuku else R.string.om_apps_toggle_state_error, Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

@@ -1283,7 +1283,7 @@
     <string name="om_apps_share_chooser_format">Chia sẻ %1$s</string>
     <string name="om_apps_share_error_format">Lỗi chia sẻ APK: %1$s</string>
     <string name="om_apps_extract_first_to_share">Cần trích xuất APK trước khi chia sẻ</string>
-    <string name="om_apps_stopped_root">Đã dừng ứng dụng (Root)</string>
+    <string name="om_apps_stopped_root">Đã dừng ứng dụng</string>
     <string name="om_apps_force_stop_error">Lỗi khi buộc dừng ứng dụng</string>
     <string name="om_apps_clear_data_title">Xóa dữ liệu?</string>
     <string name="om_apps_clear_data_msg_format">Toàn bộ dữ liệu và cài đặt của %1$s sẽ bị xóa.</string>
@@ -2652,4 +2652,5 @@
     <string name="om_long_press_button_swap">Đổi bảng</string>
     <string name="om_long_press_button_home">Trang chủ</string>
     <string name="om_long_press_no_search">Chưa có tìm kiếm</string>
+    <string name="om_apps_needs_root_or_shizuku">Cần root hoặc Shizuku</string>
 </resources>

@@ -2167,7 +2167,7 @@
     <string name="om_apps_share_chooser_format">Share %1$s</string>
     <string name="om_apps_share_error_format">Error sharing APK: %1$s</string>
     <string name="om_apps_extract_first_to_share">APK must be extracted first to share</string>
-    <string name="om_apps_stopped_root">App stopped (Root)</string>
+    <string name="om_apps_stopped_root">App stopped</string>
     <string name="om_apps_force_stop_error">Error force-stopping app</string>
     <string name="om_apps_clear_data_title">Clear data?</string>
     <string name="om_apps_clear_data_msg_format">All data and settings for %1$s will be deleted.</string>
@@ -3474,4 +3474,5 @@
     <string name="om_long_press_button_swap">Swap panels</string>
     <string name="om_long_press_button_home">Home</string>
     <string name="om_long_press_no_search">No search yet</string>
+    <string name="om_apps_needs_root_or_shizuku">This needs root or Shizuku</string>
 </resources>

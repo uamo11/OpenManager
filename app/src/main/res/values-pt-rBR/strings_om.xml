@@ -1283,7 +1283,7 @@
     <string name="om_apps_share_chooser_format">Compartilhar %1$s</string>
     <string name="om_apps_share_error_format">Erro ao compartilhar o APK: %1$s</string>
     <string name="om_apps_extract_first_to_share">Extraia o APK antes de compartilhar</string>
-    <string name="om_apps_stopped_root">App parado (Root)</string>
+    <string name="om_apps_stopped_root">App parado</string>
     <string name="om_apps_force_stop_error">Erro ao forçar a parada do app</string>
     <string name="om_apps_clear_data_title">Limpar dados?</string>
     <string name="om_apps_clear_data_msg_format">Todos os dados e configurações de %1$s serão excluídos.</string>
@@ -2563,4 +2563,5 @@
     <string name="om_long_press_button_swap">Trocar painéis</string>
     <string name="om_long_press_button_home">Início</string>
     <string name="om_long_press_no_search">Nenhuma pesquisa ainda</string>
+    <string name="om_apps_needs_root_or_shizuku">Isto precisa de root ou Shizuku</string>
 </resources>

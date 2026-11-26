@@ -1284,7 +1284,7 @@
     <string name="om_apps_share_chooser_format">分享 %1$s</string>
     <string name="om_apps_share_error_format">分享 APK 出错：%1$s</string>
     <string name="om_apps_extract_first_to_share">必须先提取 APK 才能分享</string>
-    <string name="om_apps_stopped_root">应用已停止 (Root)</string>
+    <string name="om_apps_stopped_root">应用已停止</string>
     <string name="om_apps_force_stop_error">强行停止应用出错</string>
     <string name="om_apps_clear_data_title">清除数据？</string>
     <string name="om_apps_clear_data_msg_format">%1$s 的所有数据和设置都将被删除。</string>
@@ -2557,4 +2557,5 @@
     <string name="om_long_press_button_swap">交换面板</string>
     <string name="om_long_press_button_home">主页</string>
     <string name="om_long_press_no_search">还没有搜索</string>
+    <string name="om_apps_needs_root_or_shizuku">此操作需要 root 或 Shizuku</string>
 </resources>
