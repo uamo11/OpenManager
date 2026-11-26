@@ -1,3 +1,10 @@
+# OpenManager v2.0.35: Aplicaciones más Rápida
+
+### ⚡ Aplicaciones: abre más rápido
+- Los **iconos** de las apps se guardan en una copia pequeña en disco (se renueva cuando la app se actualiza). Antes, cada vez que Android liberaba memoria se perdían y se volvían a pedir al sistema uno por uno, algo lento en algunos teléfonos (Huawei/Honor aplican el tema a cada icono).
+- La lista guardada se lee **fuera del hilo principal**: la pantalla ya no se queda esperando al abrir.
+- **Detener**, **Borrar datos** y **Desactivar** ahora aparecen también con **Shizuku** (en la v2.0.34 solo se veían con root) y ya no dicen «(Root)».
+
 # OpenManager v2.0.34: Pulsación Larga Personalizable, Apps con Shizuku y Atrás que Quita la Selección
 
 ### 👆 Pulsación larga personalizable en la barra inferior

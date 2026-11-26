@@ -503,7 +503,7 @@ class InstalledAppsActivity : AppActivity() {
         } else {
             dialogBinding.dialogAppIcon.setImageResource(R.drawable.file_apk_icon)
             lifecycleScope.launch(Dispatchers.IO) {
-                val icon = NativeAppIconLoader.loadIcon(this@InstalledAppsActivity, app.packageName)
+                val icon = NativeAppIconLoader.loadIcon(this@InstalledAppsActivity, app.packageName, app.lastUpdateTime)
                 if (icon != null) {
                     withContext(Dispatchers.Main) {
                         dialogBinding.dialogAppIcon.setImageDrawable(icon)
@@ -1202,7 +1202,7 @@ class InstalledAppsActivity : AppActivity() {
                     val tag = app.packageName
                     appIcon.tag = tag
                     holder.iconJob = lifecycleScope.launch(Dispatchers.IO) {
-                        val drawable = NativeAppIconLoader.loadIcon(this@InstalledAppsActivity, app.packageName)
+                        val drawable = NativeAppIconLoader.loadIcon(this@InstalledAppsActivity, app.packageName, app.lastUpdateTime)
                         if (drawable != null) {
                             withContext(Dispatchers.Main) {
                                 if (appIcon.tag == tag) {

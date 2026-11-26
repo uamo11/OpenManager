@@ -3328,10 +3328,16 @@ adb shell am force-stop $PKG; sleep 1
 adb shell run-as $PKG rm -f cache/installed_apps_v2.json 2>/dev/null
 cold=$(apps_open)
 scan=$(adb logcat -d -s OMApps 2>/dev/null | grep "Scan done" | tail -1 | sed 's/.*OMApps: //')
+icon_avg() {  # <source>: average ms of the icons loaded from it, and how many
+    adb logcat -d -s OMAppIcons 2>/dev/null | grep "source=$1 " | grep -o "ms=[0-9]*" | cut -d= -f2 | \
+        python3 -c "import sys; v=[int(x) for x in sys.stdin.read().split()]; print('%.1f ms x%d' % (sum(v)/len(v), len(v)) if v else 'none')"
+}
+icons_cold=$(icon_avg system)
 shot 84_apps_cold
 adb shell input keyevent KEYCODE_BACK; sleep 1
 adb shell am force-stop $PKG; sleep 1
 disk=$(apps_open)
+icons_disk=$(icon_avg disk)
 adb shell input keyevent KEYCODE_BACK; sleep 1
 memory=$(apps_open)
 # Details of the first app in the list.
@@ -3358,6 +3364,12 @@ log "      first open (no cache): $cold; $scan"
 log "      next open (disk cache): $disk"
 log "      open again (memory): $memory"
 log "      app details: ${details:-not opened}"
+log "      icons: from the system $icons_cold (first open); from the disk copy $icons_disk (next open)"
+if printf '%s' "$icons_disk" | grep -q " x"; then
+    pass "app icons come from their disk copy after the first open ($icons_disk vs $icons_cold)"
+else
+    fail "app icons were not read from the disk copy ($icons_disk)"
+fi
 ms_of() { printf '%s' "$1" | grep -o "ms=[0-9]*" | head -1 | cut -d= -f2; }
 c=$(ms_of "$cold"); d=$(ms_of "$disk"); m=$(ms_of "$memory"); t=$(ms_of "$details")
 if [ -n "$c" ] && [ -n "$d" ] && [ -n "$m" ] && [ "${d:-99999}" -lt 1500 ] && [ "${m:-99999}" -lt 1000 ] && [ "${t:-99999}" -lt 800 ]; then
