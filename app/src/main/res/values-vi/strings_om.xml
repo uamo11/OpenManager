@@ -2612,4 +2612,5 @@
     <string name="om_theme_switch_dark">Chuyển sang giao diện tối</string>
     <string name="om_theme_switch_light">Chuyển sang giao diện sáng</string>
     <string name="om_search_results_count">%1$d kết quả</string>
+    <string name="om_documents_internal_storage">Bộ nhớ trong</string>
 </resources>

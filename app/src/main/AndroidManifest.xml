@@ -621,6 +621,18 @@
             android:authorities="@string/app_provider_authority"
             android:exported="false" />
 
+        <!-- OpenManager in the system file picker ("Open from…") of every app. -->
+        <provider
+            android:name="me.zhanghai.android.files.provider.saf.StorageDocumentsProvider"
+            android:authorities="${applicationId}.documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+
         <provider
             android:name="me.zhanghai.android.files.file.FileProvider"
             android:authorities="@string/file_provider_authority"

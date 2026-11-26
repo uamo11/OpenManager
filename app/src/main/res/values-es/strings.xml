@@ -3331,4 +3331,5 @@
     <string name="om_theme_switch_dark">Cambiar a tema oscuro</string>
     <string name="om_theme_switch_light">Cambiar a tema claro</string>
     <string name="om_search_results_count">%1$d resultados</string>
+    <string name="om_documents_internal_storage">Almacenamiento interno</string>
 </resources>

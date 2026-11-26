@@ -2518,4 +2518,5 @@
     <string name="om_theme_switch_dark">Beralih ke tema gelap</string>
     <string name="om_theme_switch_light">Beralih ke tema terang</string>
     <string name="om_search_results_count">%1$d hasil</string>
+    <string name="om_documents_internal_storage">Penyimpanan internal</string>
 </resources>

@@ -2537,4 +2537,5 @@
     <string name="om_theme_switch_dark">Переключить на тёмную тему</string>
     <string name="om_theme_switch_light">Переключить на светлую тему</string>
     <string name="om_search_results_count">Результатов: %1$d</string>
+    <string name="om_documents_internal_storage">Внутренняя память</string>
 </resources>

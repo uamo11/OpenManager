@@ -3178,6 +3178,30 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -f /sdcard/Pictures/om_transparent.png
 
+log "=== System file picker: OpenManager as a documents provider (user request) ==="
+adb shell rm -rf /sdcard/om_dp; adb shell mkdir -p /sdcard/om_dp
+adb shell "echo 'OM DOCS OK' > /sdcard/om_dp/hello.txt"
+auth="$PKG.documents"
+roots=$(adb shell "su 0 content query --uri content://$auth/root" 2>&1 | tr -d '\r')
+kids=$(adb shell "su 0 content query --uri content://$auth/document/%2Fstorage%2Femulated%2F0%2Fom_dp/children" 2>&1 | tr -d '\r')
+body=$(adb shell "su 0 content read --uri content://$auth/document/%2Fstorage%2Femulated%2F0%2Fom_dp%2Fhello.txt" 2>&1 | tr -d '\r')
+outside=$(adb shell "su 0 content query --uri content://$auth/document/%2Fdata%2Fdata/children" 2>&1 | tr -d '\r' | head -c 300)
+log "      roots: $(printf '%s' "$roots" | grep -o 'title=[^,]*' | head -2 | tr '\n' ' ')"
+log "      om_dp children: $(printf '%s' "$kids" | grep -o '_display_name=[^,]*' | tr '\n' ' ')"
+log "      hello.txt read through the picker: ${body:-nothing}"
+if printf '%s' "$roots" | grep -q "title=OpenManager" && printf '%s' "$kids" | grep -q "_display_name=hello.txt" \
+    && [ "$body" = "OM DOCS OK" ]; then
+    pass "other apps can browse and open files through OpenManager in the system file picker"
+else
+    fail "the documents provider did not list or open files (roots: ${roots:0:120})"
+fi
+if printf '%s' "$outside" | grep -q "_display_name="; then
+    fail "the documents provider lists app-private /data folders"
+else
+    pass "the documents provider refuses paths outside the storage"
+fi
+adb shell rm -rf /sdcard/om_dp
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib
