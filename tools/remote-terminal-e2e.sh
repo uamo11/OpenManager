@@ -3541,7 +3541,8 @@ adb shell rm -rf /sdcard/om_backup_test
 
 log "=== A long copy or extraction shows its progress on screen (user request, MT style) ==="
 adb shell rm -rf /sdcard/om_job; adb shell mkdir -p /sdcard/om_job/dst
-adb shell "dd if=/dev/zero of=/sdcard/om_job/big.bin bs=1048576 count=300" >/dev/null 2>&1
+# 600 MB: a faster runner copied 300 MB in under the 0.5 s after which the dialog appears.
+adb shell "dd if=/dev/zero of=/sdcard/om_job/big.bin bs=1048576 count=600" >/dev/null 2>&1
 adb shell am force-stop $PKG; sleep 1
 adb logcat -c
 adb shell am start -W -n "$MAIN" >/dev/null 2>&1; sleep 4
@@ -3562,8 +3563,8 @@ for _ in $(seq 1 60); do
 done
 copied=$(adb shell stat -c %s /sdcard/om_job/dst/big.bin 2>/dev/null | tr -d '\r')
 log "      ${shown:-no dialog} · ${done_line:-not finished} · copied $copied bytes"
-if [ -n "$shown" ] && printf '%s' "$done_line" | grep -q "failed=false" && [ "$copied" = 314572800 ]; then
-    pass "a 300 MB copy shows a progress dialog and says when it is done"
+if [ -n "$shown" ] && printf '%s' "$done_line" | grep -q "failed=false" && [ "$copied" = 629145600 ]; then
+    pass "a 600 MB copy shows a progress dialog and says when it is done"
 else
     fail "no progress dialog or no end notice for a long copy ($shown; $done_line; $copied)"
 fi

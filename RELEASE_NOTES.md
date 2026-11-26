@@ -13,6 +13,12 @@
 - Los hilos que cargan carpetas (locales y remotas) y los nombres de las apps ahora **se cierran solos tras 20 s sin trabajo**. Antes se quedaban vivos para siempre: tras abrir una carpeta remota grande (SFTP/SMB) quedaban **24 hilos parados** ocupando memoria. La velocidad de carga es la misma.
 - La pantalla principal ya no crea los botones flotantes ocultos de «Nuevo archivo / Nueva carpeta» (nunca se ven en doble panel): eran 4 botones con sus sombras y ~80 animaciones en memoria.
 
+### 🚀 Arranque más ligero
+- Abrir la app ya no prepara el formato de fechas de FTP (se carga la primera vez que usas FTP): eran unos 40 ms en cada arranque. De los 6 formatos de fecha de la lista solo se prepara el que elegiste.
+
+### 📊 Diálogo de progreso más fiable
+- Una copia o extracción que pasa de medio segundo muestra su diálogo aunque todavía no haya mandado un nuevo avance (un archivo grande avisa pocas veces).
+
 ### 📦 Resaltado más suave al volver
 - Al salir de un zip (o al localizar un archivo), la fila de la que vienes se marca con un tono **mucho más suave** que una selección, con su rayita lateral. Ya no parece que esté seleccionada.
 

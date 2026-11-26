@@ -30,10 +30,13 @@ import org.apache.commons.net.ftp.FTPReply
 import org.apache.commons.net.ftp.FTPSClient
 
 object Client {
-    private val TIMESTAMP_FORMATTER =
+    // Lazy: building a DateTimeFormatter loads java.time and its locale data (~40 ms), and this
+    // object is touched at every start-up to set its authenticator, FTP used or not.
+    private val TIMESTAMP_FORMATTER by lazy {
         DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ROOT)
             .withChronology(IsoChronology.INSTANCE)
             .withZone(ZoneOffset.UTC)
+    }
 
     @Volatile
     lateinit var authenticator: Authenticator

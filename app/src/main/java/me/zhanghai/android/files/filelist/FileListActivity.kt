@@ -415,6 +415,7 @@ class FileListActivity : AppActivity() {
     }
 
     override fun onDestroy() {
+        jobRecheckHandler.removeCallbacks(jobRecheck)
         // Leaving the explorer: its VPS file connections go too (a terminal keeps its own SSH).
         if (isFinishing && !isChangingConfigurations) {
             listOfNotNull(
@@ -2987,10 +2988,17 @@ class FileListActivity : AppActivity() {
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
-                        if (BuildConfig.DEBUG) android.util.Log.d("OMFileJob", "Finished failed=${finished.failed} title=${finished.title}")
+                        if (BuildConfig.DEBUG) android.util.Log.d("OMFileJob", "Finished failed=${finished.failed} ms=${finished.durationMs} title=${finished.title}")
                     }
                 }
             }
+        }
+    }
+
+    private val jobRecheckHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val jobRecheck = Runnable {
+        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) {
+            onJobsProgress(me.zhanghai.android.files.filejob.FileJobProgress.running.value)
         }
     }
 
@@ -3001,6 +3009,13 @@ class FileListActivity : AppActivity() {
         }
         if (job == null) {
             if (jobDialogId != null && jobDialogId !in running) dismissJobDialog()
+            // A job that has not reached 0.5 s yet gets the dialog at 0.5 s even if it sends no
+            // new progress by then (a single big file may report rarely).
+            val young = running.values.filter { it.jobId !in hiddenJobs }.minOfOrNull {
+                500 - (System.currentTimeMillis() - it.startedAtMs)
+            }
+            jobRecheckHandler.removeCallbacks(jobRecheck)
+            if (young != null && young > 0) jobRecheckHandler.postDelayed(jobRecheck, young + 20)
             return
         }
         if (jobDialog == null || jobDialogId != job.jobId) {

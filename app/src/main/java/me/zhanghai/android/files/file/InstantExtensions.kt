@@ -35,19 +35,26 @@ fun Instant.formatLong(): String =
         .withZone(ZoneId.systemDefault())
         .format(this)
 
-private val MT_DATE_FULL_ISO = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-    .withZone(ZoneId.systemDefault())
-private val MT_DATE_FULL_DMY = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")
-    .withZone(ZoneId.systemDefault())
-private val MT_DATE_FULL_MDY = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
-    .withZone(ZoneId.systemDefault())
+// Lazy: only the format chosen in the settings is ever built.
+private val MT_DATE_FULL_ISO by lazy {
+    DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault())
+}
+private val MT_DATE_FULL_DMY by lazy {
+    DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss").withZone(ZoneId.systemDefault())
+}
+private val MT_DATE_FULL_MDY by lazy {
+    DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss").withZone(ZoneId.systemDefault())
+}
 
-private val MT_DATE_SHORT_ISO = DateTimeFormatter.ofPattern("yy-MM-dd HH:mm")
-    .withZone(ZoneId.systemDefault())
-private val MT_DATE_SHORT_DMY = DateTimeFormatter.ofPattern("dd/MM/yy HH:mm")
-    .withZone(ZoneId.systemDefault())
-private val MT_DATE_SHORT_MDY = DateTimeFormatter.ofPattern("MM/dd/yy HH:mm")
-    .withZone(ZoneId.systemDefault())
+private val MT_DATE_SHORT_ISO by lazy {
+    DateTimeFormatter.ofPattern("yy-MM-dd HH:mm").withZone(ZoneId.systemDefault())
+}
+private val MT_DATE_SHORT_DMY by lazy {
+    DateTimeFormatter.ofPattern("dd/MM/yy HH:mm").withZone(ZoneId.systemDefault())
+}
+private val MT_DATE_SHORT_MDY by lazy {
+    DateTimeFormatter.ofPattern("MM/dd/yy HH:mm").withZone(ZoneId.systemDefault())
+}
 
 fun Instant.formatMtDateWithOptions(
     timePref: String,

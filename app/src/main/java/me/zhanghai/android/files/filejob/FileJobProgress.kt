@@ -27,7 +27,13 @@ object FileJobProgress {
     )
 
     /** How a job ended; [failed] when it threw. */
-    data class Finished(val jobId: Int, val title: CharSequence?, val failed: Boolean, val atMs: Long)
+    data class Finished(
+        val jobId: Int,
+        val title: CharSequence?,
+        val failed: Boolean,
+        val atMs: Long,
+        val durationMs: Long = 0
+    )
 
     private val _running = MutableStateFlow<Map<Int, Progress>>(emptyMap())
     val running: StateFlow<Map<Int, Progress>> = _running
@@ -48,6 +54,9 @@ object FileJobProgress {
         val last = _running.value[jobId]
         startTimes.remove(jobId)
         _running.value = _running.value - jobId
-        if (last != null) _finished.value = Finished(jobId, last.title, failed, System.currentTimeMillis())
+        if (last != null) {
+            val now = System.currentTimeMillis()
+            _finished.value = Finished(jobId, last.title, failed, now, now - last.startedAtMs)
+        }
     }
 }
