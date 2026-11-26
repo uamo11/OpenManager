@@ -59,7 +59,13 @@ scroll_to() {
         fi
         adb shell input swipe 540 1800 540 700 250; sleep 1
     done
-    find_contains "$@"
+    # Still only reachable under the navigation bar (end of the list): let the caller use the
+    # settings search instead of tapping the bar.
+    if pos=$(find_contains "$@"); then
+        y=${pos#* }
+        if [ "$y" -lt $((height - 400)) ]; then echo "$pos"; return 0; fi
+    fi
+    return 1
 }
 
 log "Android $(adb shell getprop ro.build.version.release | tr -d '\r') (API $(adb shell getprop ro.build.version.sdk | tr -d '\r'))"
