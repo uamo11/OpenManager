@@ -1094,11 +1094,11 @@
     <string name="om_app_enable_confirm2_msg">Confirmar a ativação de %1$s (%2$s)?</string>
     <string name="om_app_enable_btn">Ativar</string>
     <string name="om_app_continue_btn">Continuar</string>
-    <string name="om_app_force_stop_root">Forçar parada (Root)</string>
+    <string name="om_app_force_stop_root">Forçar parada</string>
     <string name="om_app_force_stop_root_desc">Parar os processos do app com am force-stop</string>
-    <string name="om_app_disable_root">Desativar / congelar (Root)</string>
+    <string name="om_app_disable_root">Desativar / congelar</string>
     <string name="om_app_disable_root_desc">Desativar o pacote com pm disable</string>
-    <string name="om_app_clear_data_root">Limpar dados (Root)</string>
+    <string name="om_app_clear_data_root">Limpar dados</string>
     <string name="om_app_clear_data_root_desc">Restaurar o app ao estado inicial com pm clear</string>
     <string name="om_app_uninstall">Desinstalar app</string>
     <string name="om_app_uninstall_desc">Remover do dispositivo</string>
@@ -1277,7 +1277,7 @@
     <string name="om_apps_sort_target_sdk">SDK alvo (maior primeiro)</string>
     <string name="om_apps_sort_title">Ordenar apps</string>
     <string name="om_apps_splits_count_format">APKS: %1$d arquivos split</string>
-    <string name="om_apps_enable_root">Ativar / descongelar (Root)</string>
+    <string name="om_apps_enable_root">Ativar / descongelar</string>
     <string name="om_apps_enable_root_desc">Ativar o pacote com pm enable</string>
     <string name="om_apps_prepare_apk_error">Não foi possível preparar o APK para edição</string>
     <string name="om_apps_share_chooser_format">Compartilhar %1$s</string>

@@ -512,7 +512,8 @@ class InstalledAppsActivity : AppActivity() {
         dialogBinding.tvLocateDataSubtitle.text =
             "/data/data/${app.packageName} • Android/data/${app.packageName}"
 
-        if (isRoot) {
+        // Root or Shizuku: both run these commands (PrivilegedCommand).
+        if (isRoot || me.zhanghai.android.files.provider.root.ShizukuManager.ready()) {
             dialogBinding.layoutRootActions.visibility = View.VISIBLE
             dialogBinding.tvToggleEnableTitle.text = getString(
                 if (app.isEnabled) R.string.om_app_disable_root else R.string.om_apps_enable_root

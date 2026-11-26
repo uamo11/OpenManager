@@ -1969,11 +1969,11 @@
     <string name="om_app_enable_confirm2_msg">Confirm enabling %1$s (%2$s)?</string>
     <string name="om_app_enable_btn">Enable</string>
     <string name="om_app_continue_btn">Continue</string>
-    <string name="om_app_force_stop_root">Force stop (Root)</string>
+    <string name="om_app_force_stop_root">Force stop</string>
     <string name="om_app_force_stop_root_desc">Stop app processes with am force-stop</string>
-    <string name="om_app_disable_root">Disable / Freeze (Root)</string>
+    <string name="om_app_disable_root">Disable / Freeze</string>
     <string name="om_app_disable_root_desc">Disable package with pm disable</string>
-    <string name="om_app_clear_data_root">Clear data (Root)</string>
+    <string name="om_app_clear_data_root">Clear data</string>
     <string name="om_app_clear_data_root_desc">Reset app to initial state with pm clear</string>
     <string name="om_app_uninstall">Uninstall app</string>
     <string name="om_app_uninstall_desc">Remove from device</string>
@@ -2161,7 +2161,7 @@
     <string name="om_apps_sort_target_sdk">Target SDK (Highest first)</string>
     <string name="om_apps_sort_title">Sort apps</string>
     <string name="om_apps_splits_count_format">APKS: %1$d split files</string>
-    <string name="om_apps_enable_root">Enable / Unfreeze (Root)</string>
+    <string name="om_apps_enable_root">Enable / Unfreeze</string>
     <string name="om_apps_enable_root_desc">Enable package with pm enable</string>
     <string name="om_apps_prepare_apk_error">Could not prepare APK for editing</string>
     <string name="om_apps_share_chooser_format">Share %1$s</string>

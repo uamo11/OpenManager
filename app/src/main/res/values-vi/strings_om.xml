@@ -1094,11 +1094,11 @@
     <string name="om_app_enable_confirm2_msg">Xác nhận bật %1$s (%2$s)?</string>
     <string name="om_app_enable_btn">Bật</string>
     <string name="om_app_continue_btn">Tiếp tục</string>
-    <string name="om_app_force_stop_root">Buộc dừng (Root)</string>
+    <string name="om_app_force_stop_root">Buộc dừng</string>
     <string name="om_app_force_stop_root_desc">Dừng tiến trình ứng dụng bằng am force-stop</string>
-    <string name="om_app_disable_root">Tắt / đóng băng (Root)</string>
+    <string name="om_app_disable_root">Tắt / đóng băng</string>
     <string name="om_app_disable_root_desc">Tắt gói bằng pm disable</string>
-    <string name="om_app_clear_data_root">Xóa dữ liệu (Root)</string>
+    <string name="om_app_clear_data_root">Xóa dữ liệu</string>
     <string name="om_app_clear_data_root_desc">Đưa ứng dụng về trạng thái ban đầu bằng pm clear</string>
     <string name="om_app_uninstall">Gỡ ứng dụng</string>
     <string name="om_app_uninstall_desc">Xóa khỏi thiết bị</string>
@@ -1277,7 +1277,7 @@
     <string name="om_apps_sort_target_sdk">SDK mục tiêu (cao trước)</string>
     <string name="om_apps_sort_title">Sắp xếp ứng dụng</string>
     <string name="om_apps_splits_count_format">APKS: %1$d tệp split</string>
-    <string name="om_apps_enable_root">Bật / bỏ đóng băng (Root)</string>
+    <string name="om_apps_enable_root">Bật / bỏ đóng băng</string>
     <string name="om_apps_enable_root_desc">Bật gói bằng pm enable</string>
     <string name="om_apps_prepare_apk_error">Không thể chuẩn bị APK để sửa</string>
     <string name="om_apps_share_chooser_format">Chia sẻ %1$s</string>

@@ -1094,11 +1094,11 @@
     <string name="om_app_enable_confirm2_msg">Konfirmasi mengaktifkan %1$s (%2$s)?</string>
     <string name="om_app_enable_btn">Aktifkan</string>
     <string name="om_app_continue_btn">Lanjutkan</string>
-    <string name="om_app_force_stop_root">Paksa berhenti (Root)</string>
+    <string name="om_app_force_stop_root">Paksa berhenti</string>
     <string name="om_app_force_stop_root_desc">Hentikan proses aplikasi dengan am force-stop</string>
-    <string name="om_app_disable_root">Nonaktifkan / bekukan (Root)</string>
+    <string name="om_app_disable_root">Nonaktifkan / bekukan</string>
     <string name="om_app_disable_root_desc">Nonaktifkan paket dengan pm disable</string>
-    <string name="om_app_clear_data_root">Hapus data (Root)</string>
+    <string name="om_app_clear_data_root">Hapus data</string>
     <string name="om_app_clear_data_root_desc">Kembalikan aplikasi ke kondisi awal dengan pm clear</string>
     <string name="om_app_uninstall">Copot aplikasi</string>
     <string name="om_app_uninstall_desc">Hapus dari perangkat</string>
@@ -1277,7 +1277,7 @@
     <string name="om_apps_sort_target_sdk">SDK target (tertinggi dulu)</string>
     <string name="om_apps_sort_title">Urutkan aplikasi</string>
     <string name="om_apps_splits_count_format">APKS: %1$d file split</string>
-    <string name="om_apps_enable_root">Aktifkan / cairkan (Root)</string>
+    <string name="om_apps_enable_root">Aktifkan / cairkan</string>
     <string name="om_apps_enable_root_desc">Aktifkan paket dengan pm enable</string>
     <string name="om_apps_prepare_apk_error">Gagal menyiapkan APK untuk diedit</string>
     <string name="om_apps_share_chooser_format">Bagikan %1$s</string>
