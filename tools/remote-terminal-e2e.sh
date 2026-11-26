@@ -2963,6 +2963,12 @@ if pos=$(find_text "Search files..." "Buscar archivos..."); then
     pos=$(find_text "Search files by name or extension") && adb shell input tap $pos; sleep 2
     adb shell input text alpha; sleep 1
     pos=$(find_text "Search") && adb shell input tap $pos; sleep 6
+    shot 76b_search_results_count
+    if find_contains "3 results" >/dev/null; then
+        pass "the search shows how many results it found (3 results)"
+    else
+        fail "the search does not show its number of results"
+    fi
     # Leaving to another screen and coming back must not search again (user report).
     adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity >/dev/null 2>&1; sleep 2
     adb shell input keyevent KEYCODE_BACK; sleep 3
@@ -2986,6 +2992,17 @@ if pos=$(find_text "Search files..." "Buscar archivos..."); then
             pass "the search runs once: coming back and 'Search results' reuse its results"
         else
             fail "the search ran again ($starts_after_back after coming back, $starts in all, memory $memory)"
+        fi
+        # Tapping a result goes to its folder with it highlighted (as MT).
+        if pos=$(find_text "alpha_deep.txt"); then
+            adb shell input tap $pos; sleep 3
+            shot 76c_result_opens_folder
+            went=$(adb logcat -d -s OMSearch 2>/dev/null | grep -c "Result opens its folder" || true)
+            if [ "${went:-0}" -ge 1 ] && find_contains "om_qf/sub" >/dev/null; then
+                pass "tapping a search result opens its folder (as MT)"
+            else
+                fail "tapping a search result did not open its folder"
+            fi
         fi
     else
         fail "no 'Search results' entry after a search"

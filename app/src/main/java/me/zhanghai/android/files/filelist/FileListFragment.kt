@@ -1217,6 +1217,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val subtitle = when {
             stateful is Failure -> getString(R.string.error)
             isLoading && (files == null || !isSearching) -> getString(R.string.loading)
+            // Search: how many found (as MT shows), with "…" while still searching.
+            isSearching && files != null ->
+                getString(R.string.om_search_results_count, files.size) + if (isLoading) "…" else ""
             files != null -> getSubtitle(files)
             else -> getString(R.string.empty)
         }
@@ -2731,6 +2734,21 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             }
             navigateTo(file.path)
             return
+        }
+        // In search results a file opens its folder with it highlighted (as MT): the results
+        // stay one tap away in ⋮ > Search results, from memory. Videos keep their choice dialog.
+        if (viewModel.searchState.isSearching && !file.path.isArchivePath &&
+            !(file.mimeType.isVideo ||
+                SmartFileOpenEngine.classifySmartOpen(file.mimeType.value, fileName) == SmartOpenKind.VIDEO)
+        ) {
+            val parent = file.path.parent
+            if (parent != null) {
+                if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+                    android.util.Log.d("OMSearch", "Result opens its folder: ${file.path}")
+                }
+                navigateToAndHighlight(parent, file.path.toString())
+                return
+            }
         }
         // An OTA payload.bin: its partitions at once, without extracting gigabytes.
         if (me.zhanghai.android.files.fileproperties.PayloadInfoDialog.isPayloadName(fileName)) {

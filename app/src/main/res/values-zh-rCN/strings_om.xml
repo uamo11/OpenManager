@@ -2516,4 +2516,5 @@
     <string name="om_payload_not_payload">不是 Android OTA payload</string>
     <string name="om_theme_switch_dark">切换到深色主题</string>
     <string name="om_theme_switch_light">切换到浅色主题</string>
+    <string name="om_search_results_count">%1$d 个结果</string>
 </resources>

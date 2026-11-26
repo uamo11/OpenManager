@@ -22,6 +22,8 @@
 ### 🔎 La búsqueda no se repite
 - Al abrir un archivo de los resultados y volver, la búsqueda **empezaba de nuevo**: cada vez que se volvía a la pantalla principal se recargaban los dos paneles. Ahora solo se recargan cuando se acaba de dar el permiso de almacenamiento, y una búsqueda hecha se queda como está.
 - **«Resultados de búsqueda»** muestra la última búsqueda **al instante desde la memoria**, sin recorrer las carpetas otra vez (era lento y gastaba batería).
+- La barra superior muestra **cuántos resultados** hay («12 resultados…» mientras busca).
+- Como en MT: **tocar un resultado abre su carpeta** con el archivo resaltado; volver a la lista es un toque en «Resultados de búsqueda». Los videos mantienen su diálogo (ver o ir a la ubicación).
 
 ### 🧾 Subtítulos que no se cortan
 - El subtítulo del **visor DOCX** (palabras y tiempo de lectura) quedaba cortado bajo la barra; igual en el editor **ARSC**, el visor **SQLite** y el **informe de cierres**. Ahora la barra crece lo necesario.

@@ -3433,4 +3433,5 @@
     <string name="om_payload_not_payload">Not an Android OTA payload</string>
     <string name="om_theme_switch_dark">Switch to dark theme</string>
     <string name="om_theme_switch_light">Switch to light theme</string>
+    <string name="om_search_results_count">%1$d results</string>
 </resources>

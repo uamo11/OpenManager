@@ -2522,4 +2522,5 @@
     <string name="om_payload_not_payload">Não é um payload de OTA do Android</string>
     <string name="om_theme_switch_dark">Mudar para o tema escuro</string>
     <string name="om_theme_switch_light">Mudar para o tema claro</string>
+    <string name="om_search_results_count">%1$d resultados</string>
 </resources>
