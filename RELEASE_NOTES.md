@@ -13,6 +13,10 @@
 - Dentro de un **.gz** (un solo archivo comprimido), el archivo ya no sale con **0 B**: muestra su tamaño real, leído del final del .gz sin descomprimirlo.
 - Al **extraer, copiar o mover**, la carpeta ya no parpadea recargándose cada segundo mientras aparecen los archivos: se actualiza **una vez, al terminar**.
 
+### 📄 Lista de archivos más ajustada
+- El nombre y la fecha quedan **más pegados al icono** (como MT), así cabe la fecha completa en paneles estrechos.
+- Dentro de un archivo comprimido ya **no se muestran los permisos** (rwx…): ahí no sirven para nada.
+
 ### 📁 La carpeta de la app ahora es OM2
 - Lo que la app guarda en el almacenamiento (backups, registros de errores, actualizaciones, proyectos de Apktool, APK extraídos y la papelera) va ahora a **`OM2/`** en lugar de `OpenManager/`. Al abrir la app, la carpeta vieja se **renombra sola** con todo dentro (si ya existe `OM2`, no se mezclan).
 

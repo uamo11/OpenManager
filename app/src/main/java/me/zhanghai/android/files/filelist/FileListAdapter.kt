@@ -734,7 +734,9 @@ class FileListAdapter(
                 } else {
                     currentPathIsSharedStorage
                 }
-                val permStr = if (!disablePermissionInFileList && !isSharedStorage) {
+                // Inside an archive the mode bits are only what the archive recorded: no use for
+                // browsing (user report), so they are left out there too.
+                val permStr = if (!disablePermissionInFileList && !isSharedStorage && !path.isArchivePath) {
                     (attributes as? PosixFileAttributes)?.mode()?.toModeString()
                 } else {
                     null

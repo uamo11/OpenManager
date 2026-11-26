@@ -19,8 +19,8 @@
         android:id="@+id/iconLayout"
         android:layout_width="36dp"
         android:layout_height="36dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="6dp"
+        android:layout_marginEnd="4dp"
         android:clipToPadding="false"
         android:duplicateParentState="true"
         android:padding="2dp">
