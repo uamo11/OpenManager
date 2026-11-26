@@ -92,7 +92,15 @@ pos=$(scroll_to 30 "Language" "Idioma") || {
     pos=$(scroll_to 6 "Language" "Idioma")
 }
 if [ -n "$pos" ]; then
-    adb shell input tap $pos; sleep 2
+    # A tap while the list is still settling after a fling only stops it: retry until the
+    # language dialog (the only screen here with Cancel) is open.
+    for _ in 1 2 3; do
+        adb shell input tap $pos; sleep 2
+        find_contains "Cancel" "Cancelar" >/dev/null && break
+        log "      the tap on Language did not open the list, trying again"
+        sleep 1
+        pos=$(scroll_to 4 "Language" "Idioma") || break
+    done
     shot 01_language_list
     # The list is sorted by language tag: Chinese is near the end.
     if pos=$(scroll_to 12 "中文"); then

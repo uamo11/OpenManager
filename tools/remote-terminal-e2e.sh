@@ -56,6 +56,8 @@ EOF
 
 # node_center_by_id <resource-id suffix>: center of the first node with that id.
 node_center_by_id() {
+    # A failed dump (no idle screen) must not leave the previous one to be read.
+    adb shell rm -f /data/local/tmp/ui.xml
     adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
     adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
     python3 - "$OUT/ui.xml" "$1" <<'PY'
@@ -1053,6 +1055,8 @@ PY2
                 fail "the rotation button did not switch orientation ($rot)"
             fi
         else
+            shot 12i_video_no_rotate_button
+            cp "$OUT/ui.xml" "$OUT/ui_video_controls.xml" 2>/dev/null || true
             fail "no rotation button in the player"
         fi
         if grep -q "Gesture speed hold 2.0" "$OUT/video_gestures.log" && grep -q "Gesture speed back 1.0" "$OUT/video_gestures.log"; then

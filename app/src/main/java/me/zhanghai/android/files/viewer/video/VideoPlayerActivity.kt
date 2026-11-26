@@ -134,7 +134,10 @@ class VideoPlayerActivity : AppActivity() {
                 val position = p.currentPosition
                 seekBarVideo.progress = position.toInt()
                 seekBarVideo.secondaryProgress = p.bufferedPosition.toInt()
-                tvVideoElapsed.text = formatTime(position)
+                // Only when the second changes: rewriting the same text every tick keeps the
+                // window busy (accessibility events), so it never goes idle while paused.
+                val elapsed = formatTime(position)
+                if (tvVideoElapsed.text.toString() != elapsed) tvVideoElapsed.text = elapsed
             }
             if (tvStats.visibility == View.VISIBLE) updateStats()
             checkDecoderKeepsUp(p)
