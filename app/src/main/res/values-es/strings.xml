@@ -1702,7 +1702,7 @@
     <string name="om_nav_android_data_subtitle">Datos de aplicaciones (Android/data)</string>
     <string name="om_nav_add_storage">Añadir almacenamiento</string>
     <string name="om_nav_tools">Herramientas</string>
-    <string name="om_nav_apktool_tools">Herramientas APK / Apktool</string>
+    <string name="om_nav_apktool_tools">Apktool</string>
     <string name="om_nav_text_editor">Editor de Texto</string>
     <string name="om_nav_remote_ftp">Administrador Remoto (FTP)</string>
     <string name="om_nav_terminal">Terminal</string>
@@ -3378,6 +3378,9 @@
     <string name="om_backup_restore">Restaurar</string>
     <string name="om_backup_restore_desc">Reinstala si falta y devuelve sus datos</string>
     <string name="om_backup_working">Copiando…</string>
+    <string name="om_backup_needs_access">Hacer copia de una app necesita root. Sin root, Shizuku puede copiar sus APK y sus datos compartidos (Android/data, obb, media), pero no sus datos privados. Concede root o inicia Shizuku y vuelve a intentarlo.</string>
+    <string name="om_backup_shizuku_partial">Copia hecha con Shizuku: los APK y los datos compartidos (Android/data, obb, media). Los datos privados de la app necesitan root.</string>
+    <string name="om_backup_restore_needs_root">Restaurar los datos de una app necesita root.</string>
     <string name="om_backup_restoring">Restaurando…</string>
     <string name="om_backup_done">Copia guardada</string>
     <string name="om_backup_failed">La copia falló</string>

@@ -1,7 +1,13 @@
-# OpenManager v2.0.39: Herramientas en Filas
+# OpenManager v2.0.39: Herramientas en Filas y Copias de Apps con Shizuku
 
 ### 🧭 Barra lateral
 - Las **herramientas** vuelven a ser **filas** con su nombre al lado (la cuadrícula de círculos de la v2.0.38 no convencía). La lista es más corta que antes: Ajustes sigue siendo el engranaje de arriba, y **Acerca de** y **Salir** siguen **fijos abajo**, siempre visibles.
+- «Herramientas APK / Apktool» ahora se llama solo **Apktool**.
+
+### 💾 Copia de seguridad de apps: siempre visible
+- En el detalle de una app, **Copiar app y datos** aparece siempre. Al tocarlo **pide root**; si no hay root, usa **Shizuku** (pidiendo su permiso si hace falta).
+- Con Shizuku se copian los **APK** y los **datos compartidos** (Android/data, obb, media). Los datos privados de la app solo se pueden leer con root, y así lo avisa al terminar.
+- **Restaurar** pide root al tocarlo; la lista de copias se puede ver y borrar sin root.
 
 # OpenManager v2.0.38: Barra Lateral sin Desplazar y Selección más Precisa
 

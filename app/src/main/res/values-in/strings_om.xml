@@ -931,7 +931,7 @@
     <string name="om_nav_android_data_subtitle">Data aplikasi (Android/data)</string>
     <string name="om_nav_add_storage">Tambah penyimpanan</string>
     <string name="om_nav_tools">Alat</string>
-    <string name="om_nav_apktool_tools">Alat APK / Apktool</string>
+    <string name="om_nav_apktool_tools">Apktool</string>
     <string name="om_nav_text_editor">Editor teks</string>
     <string name="om_nav_remote_ftp">Pengelola jarak jauh (FTP)</string>
     <string name="om_nav_terminal">Terminal</string>
@@ -2565,6 +2565,9 @@
     <string name="om_backup_restore">Pulihkan</string>
     <string name="om_backup_restore_desc">Pasang ulang bila tidak ada dan kembalikan datanya</string>
     <string name="om_backup_working">Mencadangkan…</string>
+    <string name="om_backup_needs_access">Mencadangkan aplikasi memerlukan root. Tanpa root, Shizuku dapat menyalin APK dan data bersamanya (Android/data, obb, media), tetapi tidak data pribadinya. Berikan root atau jalankan Shizuku, lalu coba lagi.</string>
+    <string name="om_backup_shizuku_partial">Dicadangkan dengan Shizuku: APK dan data bersama (Android/data, obb, media). Data pribadi aplikasi memerlukan root.</string>
+    <string name="om_backup_restore_needs_root">Memulihkan data aplikasi memerlukan root.</string>
     <string name="om_backup_restoring">Memulihkan…</string>
     <string name="om_backup_done">Cadangan disimpan</string>
     <string name="om_backup_failed">Pencadangan gagal</string>

@@ -932,7 +932,7 @@
     <string name="om_nav_android_data_subtitle">应用数据 (Android/data)</string>
     <string name="om_nav_add_storage">添加存储</string>
     <string name="om_nav_tools">工具</string>
-    <string name="om_nav_apktool_tools">APK / Apktool 工具</string>
+    <string name="om_nav_apktool_tools">Apktool</string>
     <string name="om_nav_text_editor">文本编辑器</string>
     <string name="om_nav_remote_ftp">远程管理 (FTP)</string>
     <string name="om_nav_terminal">终端</string>
@@ -2564,6 +2564,9 @@
     <string name="om_backup_restore">恢复</string>
     <string name="om_backup_restore_desc">缺失时重新安装并恢复其数据</string>
     <string name="om_backup_working">正在备份…</string>
+    <string name="om_backup_needs_access">备份应用需要 Root。没有 Root 时，Shizuku 可以复制其 APK 和共享数据（Android/data、obb、media），但不能复制其私有数据。请授予 Root 或启动 Shizuku 后重试。</string>
+    <string name="om_backup_shizuku_partial">已通过 Shizuku 备份：APK 和共享数据（Android/data、obb、media）。应用的私有数据需要 Root。</string>
+    <string name="om_backup_restore_needs_root">恢复应用数据需要 Root。</string>
     <string name="om_backup_restoring">正在恢复…</string>
     <string name="om_backup_done">备份已保存</string>
     <string name="om_backup_failed">备份失败</string>

@@ -559,8 +559,9 @@ class InstalledAppsActivity : AppActivity() {
         } else {
             dialogBinding.layoutRootActions.visibility = View.GONE
         }
-        // Backups read the app's private data: root only (Shizuku cannot).
-        dialogBinding.layoutBackupActions.visibility = if (isRoot) View.VISIBLE else View.GONE
+        // Always offered (owner request): a tap asks for root, then for Shizuku (see
+        // acquireBackupAccess). Shizuku cannot read the app's private data.
+        dialogBinding.layoutBackupActions.visibility = View.VISIBLE
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogBinding.root)
@@ -794,10 +795,13 @@ class InstalledAppsActivity : AppActivity() {
 
         dialogBinding.btnActionBackup.setOnClickListener {
             dialog.dismiss()
-            backupApp(app)
+            acquireBackupAccess(allowShizuku = true) { via ->
+                if (via == PrivilegedCommand.Via.NONE) showBackupNeedsAccess() else backupApp(app, via)
+            }
         }
         dialogBinding.btnActionRestore.setOnClickListener {
             dialog.dismiss()
+            // The list also deletes backups, which needs no root: restoring asks for it.
             showBackups(app)
         }
 
@@ -814,15 +818,66 @@ class InstalledAppsActivity : AppActivity() {
             .setCancelable(false)
             .show()
 
-    private fun backupApp(app: AppModel) {
+    /**
+     * Root if the app has it or is granted it now, else Shizuku if it runs (asking for its
+     * permission when needed), else NONE. [allowShizuku] false: root or NONE.
+     */
+    private fun acquireBackupAccess(allowShizuku: Boolean, onResult: (PrivilegedCommand.Via) -> Unit) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val root = runCatching {
+                if (Shell.isAppGrantedRoot() != true) {
+                    // A shell cached without root would never ask again: let libsu try su anew.
+                    Shell.getCachedShell()?.let { if (!it.isRoot) it.close() }
+                    me.zhanghai.android.files.provider.root.LibSuFileServiceLauncher.initBuilder()
+                    Shell.cmd("id").exec()
+                }
+                Shell.isAppGrantedRoot() == true
+            }.getOrDefault(false)
+            withContext(Dispatchers.Main) {
+                val shizuku = me.zhanghai.android.files.provider.root.ShizukuManager
+                when {
+                    root -> onResult(PrivilegedCommand.Via.ROOT)
+                    !allowShizuku -> onResult(PrivilegedCommand.Via.NONE)
+                    shizuku.ready() -> onResult(PrivilegedCommand.Via.SHIZUKU)
+                    shizuku.isAvailable() -> shizuku.requestPermission(this@InstalledAppsActivity) { granted ->
+                        onResult(if (granted) PrivilegedCommand.Via.SHIZUKU else PrivilegedCommand.Via.NONE)
+                    }
+                    else -> onResult(PrivilegedCommand.Via.NONE)
+                }
+            }
+        }
+    }
+
+    private fun showBackupNeedsAccess() {
+        val shizuku = me.zhanghai.android.files.provider.root.ShizukuManager
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_backup_failed)
+            .setMessage(R.string.om_backup_needs_access)
+            .setPositiveButton(android.R.string.ok, null)
+            .apply {
+                if (shizuku.isInstalled(this@InstalledAppsActivity)) {
+                    setNeutralButton(R.string.action_open_shizuku) { _, _ ->
+                        shizuku.openShizukuApp(this@InstalledAppsActivity)
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun backupApp(app: AppModel, via: PrivilegedCommand.Via) {
         val progress = progressDialog(R.string.om_backup_working)
         lifecycleScope.launch(Dispatchers.IO) {
-            val result = AppBackupManager.backup(app)
+            val result = AppBackupManager.backup(app, via)
             withContext(Dispatchers.Main) {
                 progress.dismiss()
+                val message = if (result.isSuccess && !result.privateData) {
+                    getString(R.string.om_backup_shizuku_partial) + "\n\n" + result.message
+                } else {
+                    result.message
+                }
                 MaterialAlertDialogBuilder(this@InstalledAppsActivity)
                     .setTitle(if (result.isSuccess) R.string.om_backup_done else R.string.om_backup_failed)
-                    .setMessage(result.message)
+                    .setMessage(message)
                     .setPositiveButton(android.R.string.ok, null)
                     .apply {
                         if (result.isSuccess) {
@@ -860,16 +915,14 @@ class InstalledAppsActivity : AppActivity() {
             .setTitle(R.string.om_backup_restore)
             .setMessage(getString(R.string.om_backup_restore_confirm, app.label))
             .setPositiveButton(R.string.om_backup_restore) { _, _ ->
-                val progress = progressDialog(R.string.om_backup_restoring)
-                lifecycleScope.launch(Dispatchers.IO) {
-                    val result = AppBackupManager.restore(app.packageName, backup)
-                    withContext(Dispatchers.Main) {
-                        progress.dismiss()
-                        Toast.makeText(
-                            this@InstalledAppsActivity,
-                            if (result.isSuccess) getString(R.string.om_backup_restored) else getString(R.string.om_backup_restore_failed, result.message),
-                            Toast.LENGTH_LONG
-                        ).show()
+                acquireBackupAccess(allowShizuku = false) { via ->
+                    if (via == PrivilegedCommand.Via.ROOT) {
+                        restoreBackup(app, backup)
+                    } else {
+                        MaterialAlertDialogBuilder(this@InstalledAppsActivity)
+                            .setMessage(R.string.om_backup_restore_needs_root)
+                            .setPositiveButton(android.R.string.ok, null)
+                            .show()
                     }
                 }
             }
@@ -878,6 +931,21 @@ class InstalledAppsActivity : AppActivity() {
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    private fun restoreBackup(app: AppModel, backup: AppBackupManager.Backup) {
+        val progress = progressDialog(R.string.om_backup_restoring)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = AppBackupManager.restore(app.packageName, backup)
+            withContext(Dispatchers.Main) {
+                progress.dismiss()
+                Toast.makeText(
+                    this@InstalledAppsActivity,
+                    if (result.isSuccess) getString(R.string.om_backup_restored) else getString(R.string.om_backup_restore_failed, result.message),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private fun openPathInExplorer(path: String) {

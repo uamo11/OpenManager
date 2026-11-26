@@ -931,7 +931,7 @@
     <string name="om_nav_android_data_subtitle">Dữ liệu ứng dụng (Android/data)</string>
     <string name="om_nav_add_storage">Thêm bộ nhớ</string>
     <string name="om_nav_tools">Công cụ</string>
-    <string name="om_nav_apktool_tools">Công cụ APK / Apktool</string>
+    <string name="om_nav_apktool_tools">Apktool</string>
     <string name="om_nav_text_editor">Trình soạn thảo văn bản</string>
     <string name="om_nav_remote_ftp">Quản lý từ xa (FTP)</string>
     <string name="om_nav_terminal">Terminal</string>
@@ -2659,6 +2659,9 @@
     <string name="om_backup_restore">Khôi phục</string>
     <string name="om_backup_restore_desc">Cài lại nếu thiếu và trả lại dữ liệu</string>
     <string name="om_backup_working">Đang sao lưu…</string>
+    <string name="om_backup_needs_access">Sao lưu ứng dụng cần root. Không có root, Shizuku có thể sao chép APK và dữ liệu dùng chung (Android/data, obb, media), nhưng không sao chép được dữ liệu riêng tư. Hãy cấp root hoặc khởi động Shizuku rồi thử lại.</string>
+    <string name="om_backup_shizuku_partial">Đã sao lưu bằng Shizuku: APK và dữ liệu dùng chung (Android/data, obb, media). Dữ liệu riêng tư của ứng dụng cần root.</string>
+    <string name="om_backup_restore_needs_root">Khôi phục dữ liệu ứng dụng cần root.</string>
     <string name="om_backup_restoring">Đang khôi phục…</string>
     <string name="om_backup_done">Đã lưu bản sao lưu</string>
     <string name="om_backup_failed">Sao lưu thất bại</string>

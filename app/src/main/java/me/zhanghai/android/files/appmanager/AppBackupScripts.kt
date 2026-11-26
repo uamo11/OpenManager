@@ -27,13 +27,30 @@ object AppBackupScripts {
         Part("media", "/data/media/$user/Android/media", private = false)
     )
 
+    /**
+     * Without root (Shizuku, the shell user): only the shared folders, read through
+     * /storage/emulated, since /data/media and the app-private folders are closed to the shell.
+     * The names match [parts], so [restore] (root) handles these backups too.
+     */
+    fun sharedParts(user: Int = 0): List<Part> = listOf(
+        Part("external", "/storage/emulated/$user/Android/data", private = false),
+        Part("obb", "/storage/emulated/$user/Android/obb", private = false),
+        Part("media", "/storage/emulated/$user/Android/media", private = false)
+    )
+
     private fun q(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
     /**
      * Copies the APKs of [packageName] (from [apkDir]) and archives each data folder into
      * [backupDir]. Prints `OM_BACKUP_OK` at the end; a part that does not exist is skipped.
      */
-    fun backup(packageName: String, apkDir: String, backupDir: String, user: Int = 0): String = buildString {
+    fun backup(
+        packageName: String,
+        apkDir: String,
+        backupDir: String,
+        user: Int = 0,
+        privateData: Boolean = true
+    ): String = buildString {
         appendLine("set -u")
         appendLine("P=${q(packageName)}")
         appendLine("OUT=${q(backupDir)}")
@@ -41,7 +58,7 @@ object AppBackupScripts {
         appendLine("cp ${q(apkDir)}/*.apk \"\$OUT/apk/\" || exit 11")
         // The app stops writing while it is copied: a consistent backup.
         appendLine("am force-stop \"\$P\"")
-        for (part in parts(user)) {
+        for (part in if (privateData) parts(user) else sharedParts(user)) {
             appendLine("if [ -d ${q(part.parent)}/\"\$P\" ]; then")
             val exclude = if (part.name == "data" || part.name == "user_de") {
                 " --exclude=\"\$P/cache\" --exclude=\"\$P/code_cache\""
