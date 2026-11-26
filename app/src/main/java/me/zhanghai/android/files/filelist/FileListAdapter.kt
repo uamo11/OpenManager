@@ -57,6 +57,9 @@ class FileListAdapter(
 ) : AnimatedListAdapter<FileItem, FileListAdapter.ViewHolder>(CALLBACK), PopupTextProvider {
     private var isSearching = false
 
+    /** Folder the search started from: results show where they are, relative to it (as MT). */
+    var searchRoot: java8.nio.file.Path? = null
+
     private lateinit var _viewType: FileViewType
     var viewType: FileViewType
         get() = _viewType
@@ -732,7 +735,17 @@ class FileListAdapter(
                 } else {
                     null
                 }
-                val baseDesc = if (isDirectory) {
+                val root = searchRoot
+                val parent = path.parent
+                val baseDesc = if (isSearching && root != null && parent != null) {
+                    // "./Pictures/WeiXin/": where the result is, which a list of names alone hides.
+                    val relative = try {
+                        root.relativize(parent).toString()
+                    } catch (e: Exception) {
+                        parent.toString()
+                    }
+                    if (relative.isEmpty()) "./" else "./$relative/"
+                } else if (isDirectory) {
                     if (appLabel != null) "$lastModificationTime  $appLabel" else lastModificationTime
                 } else if (holder.sizeText != null) {
                     // The size has its own view on the right, so it is never the part cut off.

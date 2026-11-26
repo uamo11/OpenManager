@@ -2969,6 +2969,11 @@ if pos=$(find_text "Search files..." "Buscar archivos..."); then
     else
         fail "the search does not show its number of results"
     fi
+    if find_text "./sub/" >/dev/null; then
+        pass "each search result shows its folder (./sub/), as MT"
+    else
+        fail "search results do not show their folder"
+    fi
     # Leaving to another screen and coming back must not search again (user report).
     adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity >/dev/null 2>&1; sleep 2
     adb shell input keyevent KEYCODE_BACK; sleep 3

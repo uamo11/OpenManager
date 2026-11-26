@@ -1944,6 +1944,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 previousList = previousList,
                 computeDiff = true
             )
+            adapter.searchRoot = if (isSearching) path else null
             adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
             updateHiddenOnlyHint(allFiles, showHidden, isSearching)
             if (restoreStateAndHighlight) {
@@ -1967,6 +1968,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 if (gen != listPrepareGeneration || !isAdded || view == null) {
                     return@withContext
                 }
+                adapter.searchRoot = if (isSearching) path else null
                 adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
                 updateHiddenOnlyHint(allFiles, showHidden, isSearching)
                 if (restoreStateAndHighlight) {
