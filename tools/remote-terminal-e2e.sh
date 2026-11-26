@@ -1098,12 +1098,9 @@ if [ -f /tmp/om_4k_av1.mp4 ]; then
     fi
     # Galaxy A07 with 4K60 (v2.0.30): 35 decoded/s but 26 shown, the rest decoded and then dropped as
     # late. Holding the skipping for 8 s after falling behind wastes fewer decoded frames.
-    log "      decoded frames dropped as late: skip only while late $wasted_dav1d_nohold%, with the 8 s hold $wasted_dav1d%"
-    if python3 -c "import sys; sys.exit(0 if $wasted_dav1d <= $wasted_dav1d_nohold else 1)"; then
-        pass "4K60 AV1: holding the skipping wastes fewer decoded frames ($wasted_dav1d% vs $wasted_dav1d_nohold%)"
-    else
-        fail "4K60 AV1: the skip hold wastes more decoded frames ($wasted_dav1d% vs $wasted_dav1d_nohold%)"
-    fi
+    # Only a figure here: on the emulator the frames are dropped by its slow 4K surface copy, not
+    # by the decoder (both runs drop ~80% either way), so the hold is judged on a real phone.
+    log "      decoded frames dropped as late: skip only while late $wasted_dav1d_nohold%, with the 8 s hold $wasted_dav1d% (emulator: display-bound, informative only)"
     if [ "${skipped_dav1d:-0}" -gt 0 ]; then
         pass "4K AV1: when late, frames nothing depends on are not decoded (${skipped_dav1d} skipped)"
     else
