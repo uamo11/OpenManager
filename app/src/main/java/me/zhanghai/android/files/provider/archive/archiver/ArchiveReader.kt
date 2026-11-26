@@ -90,7 +90,53 @@ object ArchiveReader {
     }
 
     @Throws(IOException::class)
-    private fun readEntries(file: Path, passwords: List<String>): List<ReadArchive.Entry> {
+    private fun readEntries(file: Path, passwords: List<String>): List<ReadArchive.Entry> =
+        withGzipOriginalSize(file, readEntriesUnsized(file, passwords))
+
+    /**
+     * A bare .gz holds one file and libarchive cannot know its size without decompressing it all,
+     * so it showed 0 B (user report). Gzip keeps the original size modulo 4 GiB in its last four
+     * bytes (ISIZE): that, lifted by 4 GiB steps until it is at least the compressed size.
+     */
+    private fun withGzipOriginalSize(file: Path, entries: List<ReadArchive.Entry>): List<ReadArchive.Entry> {
+        val entry = entries.singleOrNull() ?: return entries
+        if (entry.isDirectory || entry.size > 0) return entries
+        val name = file.fileName?.toString()?.lowercase() ?: return entries
+        if (!name.endsWith(".gz") || name.endsWith(".tar.gz")) return entries
+        val size = try {
+            file.newByteChannel().use { channel ->
+                val compressed = channel.size()
+                if (compressed < 18) return entries
+                val buffer = java.nio.ByteBuffer.allocate(4).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                channel.position(compressed - 4)
+                while (buffer.hasRemaining()) {
+                    if (channel.read(buffer) < 0) return entries
+                }
+                buffer.flip()
+                gzipOriginalSize(buffer.int.toLong() and 0xFFFFFFFFL, compressed)
+            }
+        } catch (e: Exception) {
+            return entries
+        }
+        return listOf(
+            ReadArchive.Entry(
+                entry.name, entry.isEncrypted, entry.lastModifiedTime, entry.lastAccessTime,
+                entry.creationTime, entry.type, size, entry.owner, entry.group, entry.mode,
+                entry.symbolicLinkTarget
+            )
+        )
+    }
+
+    /** [isize] is the size modulo 2^32; the real size is never below the compressed size minus
+     *  the gzip header and trailer. */
+    internal fun gzipOriginalSize(isize: Long, compressedSize: Long): Long {
+        var size = isize
+        val floor = compressedSize - 64
+        while (size < floor) size += 1L shl 32
+        return size
+    }
+
+    private fun readEntriesUnsized(file: Path, passwords: List<String>): List<ReadArchive.Entry> {
         val charset = archiveFileNameCharset
         return try {
             val (archive, closeable) = openArchive(file, passwords)

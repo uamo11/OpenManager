@@ -251,10 +251,32 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
     }
 
     private fun onChangeObserved() {
-        if (hasActiveObservers()) {
-            loadValue()
-        } else {
+        if (!hasActiveObservers()) {
             isChangedWhileInactive = true
+            return
+        }
+        // While OM copies, moves or extracts, files appear one by one: reloading the folder each
+        // second made it flicker (user report). It reloads once, when the jobs are done.
+        if (me.zhanghai.android.files.filejob.FileJobProgress.running.value.isNotEmpty()) {
+            if (!reloadAfterJobsPending) {
+                reloadAfterJobsPending = true
+                mainHandler.postDelayed(reloadAfterJobs, JOB_CHECK_INTERVAL_MILLIS)
+            }
+            return
+        }
+        loadValue()
+    }
+
+    private var reloadAfterJobsPending = false
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val reloadAfterJobs: Runnable = object : Runnable {
+        override fun run() {
+            if (me.zhanghai.android.files.filejob.FileJobProgress.running.value.isNotEmpty()) {
+                mainHandler.postDelayed(this, JOB_CHECK_INTERVAL_MILLIS)
+                return
+            }
+            reloadAfterJobsPending = false
+            if (hasActiveObservers()) loadValue() else isChangedWhileInactive = true
         }
     }
 
@@ -266,12 +288,14 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
     }
 
     override fun close() {
+        mainHandler.removeCallbacks(reloadAfterJobs)
         observer.close()
         future?.cancel(true)
     }
 
     companion object {
         private const val PARALLEL_LOAD_THRESHOLD = 256
+        private const val JOB_CHECK_INTERVAL_MILLIS = 500L
         private val PARALLEL_WORKER_COUNT =
             Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
         // Threads end when idle (IdleThreadPools): fixed pools kept them for the whole process.

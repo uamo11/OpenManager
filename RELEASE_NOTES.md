@@ -9,6 +9,10 @@
 - Al tocarlo **pide root**; si no hay root, usa **Shizuku** (pidiendo su permiso si hace falta). Con Shizuku se guardan los **APK** y los **datos compartidos** (Android/data, obb, media); los datos privados de la app solo se pueden leer con root, y así lo avisa al terminar.
 - **Restaurar** pide root al tocarlo; la lista de backups se puede ver y borrar sin root.
 
+### 📦 Archivos comprimidos
+- Dentro de un **.gz** (un solo archivo comprimido), el archivo ya no sale con **0 B**: muestra su tamaño real, leído del final del .gz sin descomprimirlo.
+- Al **extraer, copiar o mover**, la carpeta ya no parpadea recargándose cada segundo mientras aparecen los archivos: se actualiza **una vez, al terminar**.
+
 ### 📁 La carpeta de la app ahora es OM2
 - Lo que la app guarda en el almacenamiento (backups, registros de errores, actualizaciones, proyectos de Apktool, APK extraídos y la papelera) va ahora a **`OM2/`** en lugar de `OpenManager/`. Al abrir la app, la carpeta vieja se **renombra sola** con todo dentro (si ya existe `OM2`, no se mezclan).
 
