@@ -3490,4 +3490,11 @@
     <string name="om_backup_restore_confirm">Restore this backup of %1$s? Its current data will be replaced.</string>
     <string name="om_backup_restored">Restored</string>
     <string name="om_backup_restore_failed">Restore failed: %1$s</string>
+    <string name="om_job_hide">Hide</string>
+    <string name="om_job_done_format">Done: %1$s</string>
+    <string name="om_job_failed_format">Failed: %1$s</string>
+    <string name="om_video_rotation">Rotation</string>
+    <string name="om_video_rotation_auto">Rotation: automatic</string>
+    <string name="om_video_rotation_landscape">Landscape</string>
+    <string name="om_video_rotation_portrait">Portrait</string>
 </resources>

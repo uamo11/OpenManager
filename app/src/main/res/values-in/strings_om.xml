@@ -2574,4 +2574,11 @@
     <string name="om_backup_restore_confirm">Pulihkan cadangan %1$s ini? Data saat ini akan diganti.</string>
     <string name="om_backup_restored">Dipulihkan</string>
     <string name="om_backup_restore_failed">Gagal memulihkan: %1$s</string>
+    <string name="om_job_hide">Sembunyikan</string>
+    <string name="om_job_done_format">Selesai: %1$s</string>
+    <string name="om_job_failed_format">Gagal: %1$s</string>
+    <string name="om_video_rotation">Rotasi</string>
+    <string name="om_video_rotation_auto">Rotasi: otomatis</string>
+    <string name="om_video_rotation_landscape">Lanskap</string>
+    <string name="om_video_rotation_portrait">Potret</string>
 </resources>

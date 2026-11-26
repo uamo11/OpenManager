@@ -18,13 +18,14 @@ abstract class FileJob {
 
     fun runOn(service: FileJobService) {
         this.service = service
+        var failed = false
         try {
             run()
-            // TODO: Toast
         } catch (e: InterruptedIOException) {
-            // TODO
+            // Canceled by the user.
             e.printStackTrace()
         } catch (e: Exception) {
+            failed = true
             e.printStackTrace()
             val logFile = me.zhanghai.android.files.app.CrashHandler.logHandledException(e, "FileJob")
             val msg = if (logFile != null) {
@@ -35,6 +36,7 @@ abstract class FileJob {
             service.showToast(msg)
         } finally {
             service.notificationManager.cancel(id)
+            FileJobProgress.finish(id, failed)
         }
     }
 

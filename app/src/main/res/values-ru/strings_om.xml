@@ -2593,4 +2593,11 @@
     <string name="om_backup_restore_confirm">Восстановить эту копию %1$s? Текущие данные будут заменены.</string>
     <string name="om_backup_restored">Восстановлено</string>
     <string name="om_backup_restore_failed">Не удалось восстановить: %1$s</string>
+    <string name="om_job_hide">Скрыть</string>
+    <string name="om_job_done_format">Готово: %1$s</string>
+    <string name="om_job_failed_format">Ошибка: %1$s</string>
+    <string name="om_video_rotation">Поворот</string>
+    <string name="om_video_rotation_auto">Поворот: авто</string>
+    <string name="om_video_rotation_landscape">Альбомная</string>
+    <string name="om_video_rotation_portrait">Портретная</string>
 </resources>

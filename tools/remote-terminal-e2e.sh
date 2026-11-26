@@ -1034,6 +1034,23 @@ PY2
             fail "a short swipe turned up a muted video (volume ${muted:-?})"
         fi
         adb shell media volume --stream 3 --set 5 >/dev/null 2>&1 || true
+        # Rotation button: automatic -> landscape -> portrait.
+        adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1
+        if rpos=$(node_center_by_id btnVideoRotate); then
+            adb shell input tap $rpos; sleep 2
+            rpos=$(node_center_by_id btnVideoRotate) || { adb shell input tap $((vx1 + vw / 2)) $((vy1 + vh / 2)); sleep 1; rpos=$(node_center_by_id btnVideoRotate); }
+            [ -n "$rpos" ] && adb shell input tap $rpos; sleep 2
+            shot 12i_video_portrait
+            rot=$(adb logcat -d -s OMVideoPlayer 2>/dev/null | grep "Rotation mode" | sed 's/.*Rotation mode //' | tr '\n' ';')
+            log "      rotation button: $rot"
+            if printf '%s' "$rot" | grep -q "^1 orientation=6;2 orientation=7"; then
+                pass "the rotation button switches the player to landscape, then portrait"
+            else
+                fail "the rotation button did not switch orientation ($rot)"
+            fi
+        else
+            fail "no rotation button in the player"
+        fi
         if grep -q "Gesture speed hold 2.0" "$OUT/video_gestures.log" && grep -q "Gesture speed back 1.0" "$OUT/video_gestures.log"; then
             pass "holding the finger plays at 2x and lifting it goes back to 1x"
         else
@@ -3130,6 +3147,38 @@ if pos=$(wait_text 15 "payload.bin"); then
 else
     fail "payload.bin not listed"
 fi
+# Inside an OTA zip: payload.bin stored uncompressed, ZIP64 (as real OTAs are, at several GB).
+python3 - "$OUT/payload.bin" "$OUT/om_ota.zip" <<'PY2'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[2], "w", compression=zipfile.ZIP_STORED, allowZip64=True) as z:
+    with z.open("payload.bin", "w", force_zip64=True) as f:
+        f.write(open(sys.argv[1], "rb").read())
+    z.writestr("payload_properties.txt", "FILE_HASH=x\n")
+PY2
+adb push "$OUT/om_ota.zip" /sdcard/om_ota/ota.zip >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_ota" >/dev/null; sleep 5
+if pos=$(wait_text 15 "ota.zip"); then
+    adb shell input tap $pos; sleep 3
+    if pos=$(wait_text 10 "payload.bin"); then
+        adb shell input tap $pos; sleep 3
+        shot 79b_payload_in_zip
+        parsed=$(adb logcat -d -s OMPayload 2>/dev/null | grep "Payload v" | tail -1 | sed 's/.*OMPayload: //')
+        log "      inside ota.zip (ZIP64): ${parsed:-$(adb logcat -d -s OMPayload 2>/dev/null | tail -2 | tr '\n' ' ')}"
+        if printf '%s' "$parsed" | grep -q "partitions=3 "; then
+            pass "payload.bin inside an OTA zip (ZIP64, stored) lists its partitions"
+        else
+            fail "payload.bin inside an OTA zip is not read"
+        fi
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+    else
+        fail "payload.bin not listed inside ota.zip"
+    fi
+else
+    fail "ota.zip not listed"
+fi
 adb logcat -d > "$OUT/logcat_payload.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_payload.txt"; then fail "crash opening payload.bin"; fi
 adb shell am force-stop $PKG; sleep 1
@@ -3410,6 +3459,37 @@ else
     fail "restore failed ($rs_out; marker '$back'; label $label)"
 fi
 adb shell rm -rf /sdcard/om_backup_test
+
+log "=== A long copy or extraction shows its progress on screen (user request, MT style) ==="
+adb shell rm -rf /sdcard/om_job; adb shell mkdir -p /sdcard/om_job/dst
+adb shell "dd if=/dev/zero of=/sdcard/om_job/big.bin bs=1048576 count=300" >/dev/null 2>&1
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" >/dev/null 2>&1; sleep 4
+adb shell am start -n "$MAIN" --es DEMO_COPY_FROM "file:///storage/emulated/0/om_job/big.bin" \
+    --es DEMO_COPY_TO "file:///storage/emulated/0/om_job/dst" >/dev/null 2>&1
+shown=""
+for _ in $(seq 1 20); do
+    shown=$(adb logcat -d -s OMFileJob 2>/dev/null | grep "Dialog shown" | tail -1 | sed 's/.*OMFileJob: //')
+    [ -n "$shown" ] && break
+    sleep 0.5
+done
+shot 86_job_progress_dialog
+done_line=""
+for _ in $(seq 1 60); do
+    done_line=$(adb logcat -d -s OMFileJob 2>/dev/null | grep "Finished" | tail -1 | sed 's/.*OMFileJob: //')
+    [ -n "$done_line" ] && break
+    sleep 1
+done
+copied=$(adb shell stat -c %s /sdcard/om_job/dst/big.bin 2>/dev/null | tr -d '\r')
+log "      ${shown:-no dialog} · ${done_line:-not finished} · copied $copied bytes"
+if [ -n "$shown" ] && printf '%s' "$done_line" | grep -q "failed=false" && [ "$copied" = 314572800 ]; then
+    pass "a 300 MB copy shows a progress dialog and says when it is done"
+else
+    fail "no progress dialog or no end notice for a long copy ($shown; $done_line; $copied)"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_job
 
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'

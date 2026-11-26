@@ -164,6 +164,7 @@ class VideoPlayerActivity : AppActivity() {
         ivVideoPlayPause = findViewById(R.id.ivVideoPlayPause)
         btnVideoPlayPause = findViewById(R.id.btnVideoPlayPause)
         btnVideoAspect = findViewById(R.id.btnVideoAspect)
+        findViewById<ImageButton>(R.id.btnVideoRotate).setOnClickListener { cycleRotation() }
 
         if (me.zhanghai.android.files.BuildConfig.DEBUG) {
             Av1SoftwareDecoder.debugOverride = intent.getStringExtra("DEMO_AV1_DECODER")
@@ -330,7 +331,7 @@ class VideoPlayerActivity : AppActivity() {
         override fun onVideoSizeChanged(videoSize: VideoSize) {
             if (videoSize.width == 0 || videoSize.height == 0) return
             videoAspect = videoSize.width * videoSize.pixelWidthHeightRatio / videoSize.height
-            if (!orientationChosen) {
+            if (!orientationChosen && rotationMode == 0) {
                 orientationChosen = true
                 requestedOrientation = if (videoAspect > 1.05f) {
                     ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
@@ -667,6 +668,25 @@ class VideoPlayerActivity : AppActivity() {
     }
 
     /** The value of a gesture, with its icon above it (brightness, volume, seek, speed). */
+    /** 0 = automatic (by the video's shape), 1 = landscape, 2 = portrait. */
+    private var rotationMode = 0
+
+    /** The rotate button: automatic → landscape → portrait → automatic. */
+    private fun cycleRotation() {
+        rotationMode = (rotationMode + 1) % 3
+        val (orientation, label) = when (rotationMode) {
+            1 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE to R.string.om_video_rotation_landscape
+            2 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT to R.string.om_video_rotation_portrait
+            else -> (if (videoAspect > 1.05f) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                else ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) to R.string.om_video_rotation_auto
+        }
+        requestedOrientation = orientation
+        handler.removeCallbacks(hideSeekFeedbackRunnable)
+        showGestureFeedback(getString(label), R.drawable.ic_screen_rotation_24dp)
+        handler.postDelayed(hideSeekFeedbackRunnable, 1200)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) Log.i(TAG, "Rotation mode $rotationMode orientation=$orientation")
+    }
+
     private fun showGestureFeedback(text: String, iconRes: Int = 0) {
         tvSeekFeedback.text = text
         if (tvSeekFeedback.tag != iconRes) {

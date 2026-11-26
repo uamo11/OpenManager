@@ -1,3 +1,14 @@
+# OpenManager v2.0.37: Progreso en Pantalla, payload.bin en OTAs y Rotación del Video
+
+### 📊 Copiar, mover y extraer: progreso en pantalla
+- Una copia, extracción o compresión que tarda más de medio segundo muestra un **diálogo con su progreso**, **Ocultar** y **Cancelar** (como MT). Al terminar avisa «Terminado» o «Falló». Antes solo se veía en la barra de notificaciones, y con un archivo grande no se sabía si había terminado.
+
+### 📦 payload.bin dentro del zip de una OTA
+- Un `payload.bin` **dentro del zip de la OTA** decía «No es un payload de OTA de Android»: en una OTA real va sin comprimir y, por sus GB, en formato ZIP64, que la lectura por flujo no manejaba. Ahora se lee directamente del zip (solo su índice).
+
+### 🔄 Reproductor: botón de rotación
+- Nuevo botón en la barra superior del reproductor: **automática** (según la forma del video) → **horizontal** → **vertical**.
+
 # OpenManager v2.0.36: Copias de Seguridad de Apps
 
 ### 💾 Copia de seguridad y restauración de apps (root)

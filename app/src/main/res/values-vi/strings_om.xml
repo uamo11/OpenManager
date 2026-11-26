@@ -2668,4 +2668,11 @@
     <string name="om_backup_restore_confirm">Khôi phục bản sao lưu này của %1$s? Dữ liệu hiện tại sẽ bị thay thế.</string>
     <string name="om_backup_restored">Đã khôi phục</string>
     <string name="om_backup_restore_failed">Khôi phục thất bại: %1$s</string>
+    <string name="om_job_hide">Ẩn</string>
+    <string name="om_job_done_format">Đã xong: %1$s</string>
+    <string name="om_job_failed_format">Thất bại: %1$s</string>
+    <string name="om_video_rotation">Xoay</string>
+    <string name="om_video_rotation_auto">Xoay: tự động</string>
+    <string name="om_video_rotation_landscape">Ngang</string>
+    <string name="om_video_rotation_portrait">Dọc</string>
 </resources>

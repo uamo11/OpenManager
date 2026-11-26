@@ -3387,4 +3387,11 @@
     <string name="om_backup_restore_confirm">¿Restaurar esta copia de %1$s? Sus datos actuales se reemplazarán.</string>
     <string name="om_backup_restored">Restaurada</string>
     <string name="om_backup_restore_failed">Falló la restauración: %1$s</string>
+    <string name="om_job_hide">Ocultar</string>
+    <string name="om_job_done_format">Terminado: %1$s</string>
+    <string name="om_job_failed_format">Falló: %1$s</string>
+    <string name="om_video_rotation">Rotación</string>
+    <string name="om_video_rotation_auto">Rotación: automática</string>
+    <string name="om_video_rotation_landscape">Horizontal</string>
+    <string name="om_video_rotation_portrait">Vertical</string>
 </resources>

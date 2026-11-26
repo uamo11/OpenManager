@@ -120,6 +120,17 @@
                 android:src="@drawable/directory_icon_white_24dp"
                 app:tint="#FFFFFF" />
 
+            <!-- Rotation: automatic (by the video's shape), landscape or portrait. -->
+            <ImageButton
+                android:id="@+id/btnVideoRotate"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/om_video_rotation"
+                android:src="@drawable/ic_screen_rotation_24dp"
+                app:tint="#FFFFFF" />
+
             <ImageButton
                 android:id="@+id/btnVideoAspect"
                 android:layout_width="40dp"

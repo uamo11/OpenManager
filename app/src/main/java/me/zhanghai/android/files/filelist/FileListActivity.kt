@@ -49,6 +49,7 @@ import androidx.core.widget.ImageViewCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.commit
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
@@ -379,6 +380,7 @@ class FileListActivity : AppActivity() {
         }
 
         setupDrawerControls()
+        observeFileJobs()
         setupBottomBarControls()
         setupBackPressedHandler()
         checkAutoCleanRecycleBin()
@@ -739,6 +741,15 @@ class FileListActivity : AppActivity() {
 
     private fun handleDemoIntent(intent: Intent?) {
         if (!BuildConfig.DEBUG) return
+        // E2E: a copy job (an extraction when the source is inside an archive), to see its dialog.
+        intent?.getStringExtra("DEMO_COPY_FROM")?.let { from ->
+            val to = intent.getStringExtra("DEMO_COPY_TO") ?: return@let
+            intent.removeExtra("DEMO_COPY_FROM")
+            val source = java8.nio.file.Paths.get(java.net.URI.create(from))
+            me.zhanghai.android.files.filejob.FileJobService.copy(
+                listOf(source), java8.nio.file.Paths.get(java.net.URI.create(to)), this
+            )
+        }
         val action = intent?.getStringExtra("SHOW_DEMO_DIALOG") ?: return
         intent.removeExtra("SHOW_DEMO_DIALOG")
         handleDemoAction(action)
@@ -2941,6 +2952,113 @@ class FileListActivity : AppActivity() {
                 Settings.FILE_LIST_SHOW_HIDDEN_FILES.putValue(!Settings.FILE_LIST_SHOW_HIDDEN_FILES.valueCompat)
             BottomBarLongPress.Action.SORT -> activeFragment.showSortOptionsDialog()
         }
+    }
+
+    // ---- progress of file jobs on screen (copy, move, extract…) ----
+
+    private var jobDialog: androidx.appcompat.app.AlertDialog? = null
+    private var jobDialogId: Int? = null
+    private var jobDialogProgress: com.google.android.material.progressindicator.LinearProgressIndicator? = null
+    private var jobDialogText: TextView? = null
+    private val hiddenJobs = mutableSetOf<Int>()
+
+    /**
+     * A file job that runs for more than half a second shows a dialog with its progress, Hide and
+     * Cancel (as MT): a big extraction used to show nothing outside the notification shade, so
+     * there was no way to know whether it had finished (user report).
+     */
+    private fun observeFileJobs() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                launch {
+                    me.zhanghai.android.files.filejob.FileJobProgress.running.collect { onJobsProgress(it) }
+                }
+                launch {
+                    me.zhanghai.android.files.filejob.FileJobProgress.finished.collect { finished ->
+                        if (finished == null) return@collect
+                        if (finished.jobId in hiddenJobs || System.currentTimeMillis() - finished.atMs > 3000) return@collect
+                        if (finished.jobId != jobDialogId && jobDialogId != null) return@collect
+                        dismissJobDialog()
+                        if (finished.title != null) {
+                            Toast.makeText(
+                                this@FileListActivity,
+                                getString(
+                                    if (finished.failed) R.string.om_job_failed_format else R.string.om_job_done_format,
+                                    finished.title
+                                ),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        if (BuildConfig.DEBUG) android.util.Log.d("OMFileJob", "Finished failed=${finished.failed} title=${finished.title}")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun onJobsProgress(running: Map<Int, me.zhanghai.android.files.filejob.FileJobProgress.Progress>) {
+        val shown = jobDialogId?.let { running[it] }
+        val job = shown ?: running.values.firstOrNull {
+            it.jobId !in hiddenJobs && System.currentTimeMillis() - it.startedAtMs >= 500
+        }
+        if (job == null) {
+            if (jobDialogId != null && jobDialogId !in running) dismissJobDialog()
+            return
+        }
+        if (jobDialog == null || jobDialogId != job.jobId) {
+            dismissJobDialog()
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            val text = TextView(this).apply { setPadding(0, pad / 2, 0, 0) }
+            val bar = com.google.android.material.progressindicator.LinearProgressIndicator(this)
+            val content = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
+                setPadding(pad, pad / 2, pad, 0)
+                addView(bar)
+                addView(text)
+            }
+            val jobId = job.jobId
+            jobDialog = MaterialAlertDialogBuilder(this)
+                .setTitle(job.title)
+                .setView(content)
+                .setCancelable(false)
+                .setNeutralButton(R.string.om_job_hide) { _, _ ->
+                    hiddenJobs += jobId
+                    jobDialog = null
+                    jobDialogId = null
+                }
+                .apply {
+                    if (job.cancellable) {
+                        setNegativeButton(android.R.string.cancel) { _, _ ->
+                            me.zhanghai.android.files.filejob.FileJobService.cancelJob(jobId)
+                            hiddenJobs += jobId
+                            jobDialog = null
+                            jobDialogId = null
+                        }
+                    }
+                }
+                .show()
+            jobDialogId = jobId
+            jobDialogProgress = bar
+            jobDialogText = text
+            if (BuildConfig.DEBUG) android.util.Log.d("OMFileJob", "Dialog shown title=${job.title}")
+        }
+        jobDialog?.setTitle(job.title)
+        jobDialogProgress?.apply {
+            isIndeterminate = job.indeterminate || job.max <= 0
+            if (!isIndeterminate) {
+                max = job.max
+                setProgressCompat(job.progress, true)
+            }
+        }
+        jobDialogText?.text = job.text
+    }
+
+    private fun dismissJobDialog() {
+        jobDialog?.dismiss()
+        jobDialog = null
+        jobDialogId = null
+        jobDialogProgress = null
+        jobDialogText = null
     }
 
     fun showSearchDialog() {

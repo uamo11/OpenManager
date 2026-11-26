@@ -20,6 +20,8 @@ import kotlinx.coroutines.withContext
 import me.zhanghai.android.files.BuildConfig
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.provider.common.newInputStream
+import me.zhanghai.android.files.provider.archive.archiveFile
+import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.util.copyText
 import androidx.core.content.getSystemService
 import android.content.ClipboardManager
@@ -28,6 +30,22 @@ import me.zhanghai.android.files.util.showToast
 /** What an OTA `payload.bin` contains, without extracting anything. */
 object PayloadInfoDialog {
 
+    /**
+     * payload.bin inside an OTA zip: it is stored uncompressed and, at several GB, in ZIP64 form,
+     * which the archive layer's streaming read did not handle. Java's zip reader opens the entry
+     * directly and only its first bytes are read.
+     */
+    private fun readFromZip(path: Path): PayloadManifest? {
+        if (!path.isArchivePath) return null
+        val zipFile = runCatching { path.archiveFile.toFile() }.getOrNull() ?: return null
+        if (!zipFile.canRead()) return null
+        val name = path.toString().removePrefix("/")
+        java.util.zip.ZipFile(zipFile).use { zip ->
+            val entry = zip.getEntry(name) ?: return null
+            return zip.getInputStream(entry).buffered().use { PayloadManifest.read(it) }
+        }
+    }
+
     fun isPayloadName(name: String): Boolean = name.equals("payload.bin", ignoreCase = true)
 
     fun show(fragment: Fragment, path: Path) {
@@ -35,7 +53,12 @@ object PayloadInfoDialog {
         fragment.viewLifecycleOwner.lifecycleScope.launch {
             val manifest = withContext(Dispatchers.IO) {
                 runCatching { path.newInputStream().buffered().use { PayloadManifest.read(it) } }
+                    .recoverCatching { first ->
+                        Log.w("OMPayload", "Archive stream failed, trying the zip directly", first)
+                        readFromZip(path) ?: throw first
+                    }
             }.getOrElse {
+                Log.w("OMPayload", "Not readable as a payload", it)
                 fragment.showToast(context.getString(R.string.om_payload_not_payload))
                 return@launch
             }
