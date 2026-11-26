@@ -5,4 +5,9 @@
 
 package me.zhanghai.android.files.filelist
 
-class SearchState(val isSearching: Boolean, val query: String)
+class SearchState(
+    val isSearching: Boolean,
+    val query: String,
+    /** Show the results kept from the last search instead of searching again. */
+    val reuseResults: Boolean = false
+)

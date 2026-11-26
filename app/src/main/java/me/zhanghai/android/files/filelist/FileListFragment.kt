@@ -3397,11 +3397,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     val canShowLastSearchResults: Boolean
         get() = isAdded && viewModel.lastSearch != null && !viewModel.searchState.isSearching
 
-    /** Shows the last search's results again (MT's "Search results"), searching its folder anew. */
+    /** Shows the last search's results again (MT's "Search results"), from memory when it finished. */
     fun showLastSearchResults() {
-        val (path, query) = viewModel.lastSearch ?: return
+        val (path, _) = viewModel.lastSearch ?: return
         if (currentPath != path) navigateTo(path)
-        viewModel.search(query)
+        viewModel.showLastSearchResults()
     }
 
     /**

@@ -972,6 +972,7 @@ class FileListActivity : AppActivity() {
     private fun checkAndRequestStoragePermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
+                storageAccessGranted = false
                 if (!hasRequestedPermissionThisSession) {
                     hasRequestedPermissionThisSession = true
                     showAllFilesPermissionDialog()
@@ -979,16 +980,14 @@ class FileListActivity : AppActivity() {
             } else {
                 allFilesDialog?.dismiss()
                 allFilesDialog = null
-                if (::fragmentA.isInitialized && ::fragmentB.isInitialized) {
-                    fragmentA.reload()
-                    fragmentB.reload()
-                }
+                reloadPanelsIfAccessJustGranted()
                 checkAndRequestNotificationPermission()
             }
         } else {
             if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
                 checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
             ) {
+                storageAccessGranted = false
                 if (!hasRequestedPermissionThisSession) {
                     hasRequestedPermissionThisSession = true
                     requestPermissions(
@@ -1000,12 +999,26 @@ class FileListActivity : AppActivity() {
                     )
                 }
             } else {
-                if (::fragmentA.isInitialized && ::fragmentB.isInitialized) {
-                    fragmentA.reload()
-                    fragmentB.reload()
-                }
+                reloadPanelsIfAccessJustGranted()
                 checkAndRequestNotificationPermission()
             }
+        }
+    }
+
+    /** Whether storage access was granted at the last resume (null before the first one). */
+    private var storageAccessGranted: Boolean? = null
+
+    /**
+     * The panels are listed again only when storage access has just been granted. Doing it at
+     * every resume re-listed both panels each time a viewer was closed, and a panel showing
+     * search results searched all over again (slow, and a drain on the battery).
+     */
+    private fun reloadPanelsIfAccessJustGranted() {
+        val wasGranted = storageAccessGranted
+        storageAccessGranted = true
+        if (wasGranted == false && ::fragmentA.isInitialized && ::fragmentB.isInitialized) {
+            fragmentA.reload()
+            fragmentB.reload()
         }
     }
 

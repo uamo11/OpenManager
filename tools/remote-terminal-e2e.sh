@@ -2956,23 +2956,36 @@ else
     fail "no Filter entry in the ⋮ menu"
 fi
 # Search, open a folder from elsewhere, then show the results again from the ⋮ menu.
+adb logcat -c
 demo more_menu; sleep 2
 if pos=$(find_text "Search files..." "Buscar archivos..."); then
     adb shell input tap $pos; sleep 2
     pos=$(find_text "Search files by name or extension") && adb shell input tap $pos; sleep 2
     adb shell input text alpha; sleep 1
     pos=$(find_text "Search") && adb shell input tap $pos; sleep 6
+    # Leaving to another screen and coming back must not search again (user report).
+    adb shell am start -W -n $PKG/me.zhanghai.android.files.settings.SettingsActivity >/dev/null 2>&1; sleep 2
+    adb shell input keyevent KEYCODE_BACK; sleep 3
+    starts_after_back=$(adb logcat -d -s OMSearch 2>/dev/null | grep -c "Search start" || true)
     adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
         --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_qf/sub" >/dev/null; sleep 4
     demo more_menu; sleep 2
     shot 76a_menu_after_search
     if pos=$(find_text "Search results" "Resultados de búsqueda"); then
-        adb shell input tap $pos; sleep 6
+        adb shell input tap $pos; sleep 4
         shot 76_search_results_again
+        starts=$(adb logcat -d -s OMSearch 2>/dev/null | grep -c "Search start" || true)
+        memory=$(adb logcat -d -s OMSearch 2>/dev/null | grep -c "from memory" || true)
+        log "      searches started: $starts_after_back after leaving and coming back, $starts in all; results from memory: $memory"
         if find_text "alpha_deep.txt" >/dev/null && find_text "alphabet.log" >/dev/null; then
             pass "'Search results' in the ⋮ menu shows the last search again"
         else
             fail "'Search results' did not show the last search's results"
+        fi
+        if [ "$starts_after_back" = 1 ] && [ "$starts" = 1 ] && [ "${memory:-0}" -ge 1 ]; then
+            pass "the search runs once: coming back and 'Search results' reuse its results"
+        else
+            fail "the search ran again ($starts_after_back after coming back, $starts in all, memory $memory)"
         fi
     else
         fail "no 'Search results' entry after a search"

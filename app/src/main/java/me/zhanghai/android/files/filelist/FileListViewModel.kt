@@ -18,6 +18,7 @@ import me.zhanghai.android.files.filelist.FileSortOptions.Order
 import me.zhanghai.android.files.provider.archive.archiveRefresh
 import me.zhanghai.android.files.provider.archive.isArchivePath
 import me.zhanghai.android.files.util.CloseableLiveData
+import me.zhanghai.android.files.util.Success
 import me.zhanghai.android.files.util.Stateful
 import me.zhanghai.android.files.util.valueCompat
 import java.io.Closeable
@@ -66,6 +67,20 @@ class FileListViewModel : ViewModel() {
     var lastSearch: Pair<Path, String>? = null
         private set
 
+    /**
+     * Results of the last finished search (folder, text, files). "Search results" shows them at
+     * once instead of walking the folders again, which was slow and drained the battery.
+     */
+    private var lastSearchResults: Triple<Path, String, List<FileItem>>? = null
+
+    /** Shows the last search's results again, from memory when it finished; false if none. */
+    fun showLastSearchResults(): Boolean {
+        val (path, query) = lastSearch ?: return false
+        val cached = lastSearchResults?.takeIf { it.first == path && it.second == query } != null
+        _searchStateLiveData.value = SearchState(true, query, reuseResults = cached)
+        return true
+    }
+
     fun search(query: String) {
         val searchState = _searchStateLiveData.valueCompat
         if (searchState.isSearching && searchState.query == query) {
@@ -84,7 +99,13 @@ class FileListViewModel : ViewModel() {
     }
 
     private val _fileListLiveData =
-        FileListSwitchMapLiveData(currentPathLiveData, _searchStateLiveData)
+        FileListSwitchMapLiveData(
+            currentPathLiveData, _searchStateLiveData,
+            cachedResults = { path, query ->
+                lastSearchResults?.takeIf { it.first == path && it.second == query }?.third
+            },
+            onSearchFinished = { path, query, files -> lastSearchResults = Triple(path, query, files) }
+        )
     val fileListLiveData: LiveData<Stateful<List<FileItem>>>
         get() = _fileListLiveData
     val fileListStateful: Stateful<List<FileItem>>
@@ -265,7 +286,9 @@ class FileListViewModel : ViewModel() {
 
     private class FileListSwitchMapLiveData(
         private val pathLiveData: LiveData<Path>,
-        private val searchStateLiveData: LiveData<SearchState>
+        private val searchStateLiveData: LiveData<SearchState>,
+        private val cachedResults: (Path, String) -> List<FileItem>?,
+        private val onSearchFinished: (Path, String, List<FileItem>) -> Unit
     ) : MediatorLiveData<Stateful<List<FileItem>>>(), Closeable {
         private var liveData: CloseableLiveData<Stateful<List<FileItem>>>? = null
 
@@ -281,13 +304,28 @@ class FileListViewModel : ViewModel() {
             }
             val path = pathLiveData.valueCompat
             val searchState = searchStateLiveData.valueCompat
-            val liveData = if (searchState.isSearching) {
-                SearchFileListLiveData(path, searchState.query)
+            val cached = if (searchState.isSearching && searchState.reuseResults) {
+                cachedResults(path, searchState.query)
             } else {
-                FileListLiveData(path)
+                null
+            }
+            if (cached != null && me.zhanghai.android.files.BuildConfig.DEBUG) {
+                android.util.Log.d("OMSearch", "Search results from memory: ${cached.size}")
+            }
+            val liveData = when {
+                cached != null -> object : CloseableLiveData<Stateful<List<FileItem>>>(Success(cached)) {
+                    override fun close() {}
+                }
+                searchState.isSearching -> SearchFileListLiveData(path, searchState.query)
+                else -> FileListLiveData(path)
             }
             this.liveData = liveData
-            addSource(liveData) { value = it }
+            addSource(liveData) {
+                value = it
+                if (liveData is SearchFileListLiveData && it is Success) {
+                    onSearchFinished(path, searchState.query, it.value)
+                }
+            }
         }
 
         fun reload() {

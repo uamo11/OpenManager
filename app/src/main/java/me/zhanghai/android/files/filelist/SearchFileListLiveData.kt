@@ -32,6 +32,7 @@ class SearchFileListLiveData(
 
     fun loadValue() {
         future?.cancel(true)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) android.util.Log.d("OMSearch", "Search start query=$query")
         value = Loading(emptyList())
         future = (AsyncTask.THREAD_POOL_EXECUTOR as ExecutorService).submit<Unit> {
             val fileList = mutableListOf<FileItem>()

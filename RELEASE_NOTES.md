@@ -19,6 +19,10 @@
 ### 🌙 Cambio rápido de tema
 - Nuevo botón de **luna/sol** junto al engranaje en la cabecera del menú lateral (como el modo noche de MT Manager): un toque cambia entre tema **claro** y **oscuro** al instante, sin entrar a Ajustes. Si usas negro AMOLED, se mantiene en el modo oscuro.
 
+### 🔎 La búsqueda no se repite
+- Al abrir un archivo de los resultados y volver, la búsqueda **empezaba de nuevo**: cada vez que se volvía a la pantalla principal se recargaban los dos paneles. Ahora solo se recargan cuando se acaba de dar el permiso de almacenamiento, y una búsqueda hecha se queda como está.
+- **«Resultados de búsqueda»** muestra la última búsqueda **al instante desde la memoria**, sin recorrer las carpetas otra vez (era lento y gastaba batería).
+
 ### 🧾 Subtítulos que no se cortan
 - El subtítulo del **visor DOCX** (palabras y tiempo de lectura) quedaba cortado bajo la barra; igual en el editor **ARSC**, el visor **SQLite** y el **informe de cierres**. Ahora la barra crece lo necesario.
 
