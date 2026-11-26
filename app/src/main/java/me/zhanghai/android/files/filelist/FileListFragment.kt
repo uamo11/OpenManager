@@ -3181,8 +3181,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     private fun shareFiles(paths: List<Path>, mimeTypes: List<MimeType>) {
         val uris = paths.map { it.fileProviderUri }
+        // Straight to the phone's own share sheet: wrapping it in Android's chooser hid the
+        // maker's panel (Huawei Share, Samsung Quick Share…). Android still asks which app.
         val intent = uris.createSendStreamIntent(mimeTypes)
-            .withChooser()
         startActivitySafe(intent)
     }
 

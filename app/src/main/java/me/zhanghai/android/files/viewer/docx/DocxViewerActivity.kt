@@ -626,7 +626,6 @@ class DocxViewerActivity : AppActivity() {
                 val mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document".asMimeType()
                 val intent = path.fileProviderUri.createSendStreamIntent(mime)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    .withChooser()
                 startActivitySafe(intent)
                 return
             } catch (e: Exception) {

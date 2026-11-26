@@ -780,7 +780,6 @@ class PdfViewerActivity : AppActivity() {
             try {
                 val intent = path.fileProviderUri.createSendStreamIntent(MimeType.PDF)
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    .withChooser()
                 startActivitySafe(intent)
                 return
             } catch (e: Exception) {

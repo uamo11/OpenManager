@@ -9,6 +9,9 @@
 - **Visor de comprimidos:** abre el archivo dentro de OpenManager (zip, 7z, rar, tar, apk… aunque se llame `.bin`); antes lo mandaba a otra app.
 - **HTML** desde ese menú usa el visor de HTML nuevo.
 
+### 📤 Compartir con el panel del teléfono
+- **Compartir** ahora abre el panel para compartir **propio del teléfono**, con **Huawei Share**, Quick Share de Samsung, etc., como las demás apps. Antes se usaba el selector genérico de Android, que en Huawei no mostraba Huawei Share («无法使用直接分享功能»). Aplica al explorador, al visor de imágenes, al PDF y al DOCX.
+
 ### 🔌 USB: ADB y fastboot por OTG (en Conexiones)
 - Conecta **otro teléfono** con un cable OTG y manéjalo desde OpenManager, sin PC:
   - **ADB** (Android encendido con depuración USB): información del dispositivo, ejecutar comandos de shell, **instalar un APK** y reiniciar (sistema, bootloader, recovery, fastbootd). La primera vez el otro teléfono pregunta «¿Permitir depuración USB?».

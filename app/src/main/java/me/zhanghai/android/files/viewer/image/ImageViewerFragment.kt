@@ -212,7 +212,7 @@ class ImageViewerFragment : Fragment(), ConfirmDeleteDialogFragment.Listener {
         val path = currentPath
         val intent = path.fileProviderUri.createSendImageIntent()
             .apply { extraPath = path }
-            .withChooser()
+        // The phone's own share sheet (Huawei Share, Quick Share…), not Android's generic one.
         startActivitySafe(intent)
     }
 
