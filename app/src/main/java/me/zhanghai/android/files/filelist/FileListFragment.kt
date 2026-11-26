@@ -571,7 +571,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 }
                 if (highlightPos >= 0) {
                     val accent = activePalette.accentColor
-                    highlightFillPaint.color = (accent and 0x00FFFFFF) or 0x2E000000
+                    // About 8%: clearly lighter than a selected row (24%), so the file you came
+                    // back from (an archive, a located file) is not mistaken for a selection.
+                    highlightFillPaint.color = (accent and 0x00FFFFFF) or 0x14000000
                     highlightBarPaint.color = accent
                 }
                 val left = parent.paddingLeft.toFloat()
@@ -669,7 +671,9 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 isCurrentlyActive: Boolean
             ) {
                 val density = recyclerView.resources.displayMetrics.density
-                val triggerDxPx = 22f * density
+                // Gallery tiles fill the screen and a slanted scroll can start a swipe on one:
+                // there it takes a longer, deliberate swipe to select.
+                val triggerDxPx = (if (adapter.isGalleryTile(viewHolder)) 56f else 22f) * density
                 val maxDx = 32f * density
                 val position = viewHolder.bindingAdapterPosition
 
@@ -3291,9 +3295,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     }
 
     override fun showMtMenu(file: FileItem) {
-        if (viewModel.selectedFiles.isEmpty()) {
-            viewModel.selectFile(file, true)
-        }
+        // The menu acts on this file (or on the selection when the file is part of it): a long
+        // press no longer selects, so the file is not left selected after the menu closes.
         MtFileMenuHelper.show(this, file)
     }
 

@@ -25,6 +25,7 @@ class IconSwipeSelectHelper(
     private var startX = 0f
     private var startY = 0f
     private var candidate = false
+    private var strict = false
     private var active = false
     private var anchorPosition = RecyclerView.NO_POSITION
     private var lastPosition = RecyclerView.NO_POSITION
@@ -39,16 +40,24 @@ class IconSwipeSelectHelper(
                 startY = e.y
                 val child = rv.findChildViewUnder(e.x, e.y)
                 val holder = child?.let { rv.getChildViewHolder(it) }
-                candidate = holder != null && adapter()?.isOnIcon(rv, holder, e.x, e.y) == true
+                // A touch on a list that is still moving only stops it: never a selection.
+                val listMoving = rv.scrollState != RecyclerView.SCROLL_STATE_IDLE
+                candidate = !listMoving && holder != null &&
+                    adapter()?.isOnIcon(rv, holder, e.x, e.y) == true
+                strict = candidate && adapter()?.isGalleryTile(holder!!) == true
                 anchorPosition = holder?.bindingAdapterPosition ?: RecyclerView.NO_POSITION
             }
             MotionEvent.ACTION_MOVE -> {
                 if (!candidate || active) return active
                 val dx = abs(e.x - startX)
                 val dy = abs(e.y - startY)
-                if (dy > touchSlop && dy >= dx) {
+                // Gallery tiles fill the screen, so a slightly slanted scroll starts on one:
+                // there the swipe must be longer and mostly sideways.
+                val slop = if (strict) touchSlop * 3 else touchSlop
+                val ratio = if (strict) 2f else 1f
+                if (dy > touchSlop && dy * ratio >= dx) {
                     candidate = false // a scroll
-                } else if (dx > touchSlop && dx > dy) {
+                } else if (dx > slop && dx > dy * ratio) {
                     if (adapter()?.selectAt(anchorPosition) == true) {
                         active = true
                         lastPosition = anchorPosition

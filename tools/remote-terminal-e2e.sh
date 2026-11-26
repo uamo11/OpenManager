@@ -2017,6 +2017,51 @@ PY
     else
         fail "videos are not wide tiles in the gallery"
     fi
+    # Gallery tiles are all picture: a slanted scroll that starts on one must not select it
+    # (user report), while a deliberate sideways swipe still does.
+    tc=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for x1, y1, x2, y2 in re.findall(r'resource-id="[^"]*:id/thumbnailFrame"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
+    x1, y1, x2, y2 = map(int, (x1, y1, x2, y2))
+    if y2 - y1 > 100 and x2 - x1 > 360:   # a video tile (wide, no name bar)
+        print((x1 + x2) // 2, (y1 + y2) // 2); break
+PY
+    )
+    if [ -n "$tc" ]; then
+        read -r tx ty <<< "$tc"
+        adb shell input swipe $tx $ty $((tx + 100)) $((ty - 90)) 250; sleep 2
+        if node_center_by_id btnSelectionClose >/dev/null; then
+            shot 48b_gallery_slanted_selected
+            fail "a slanted scroll over a gallery tile selected it"
+            adb shell input keyevent KEYCODE_BACK; sleep 1
+        else
+            pass "a slanted scroll over a gallery tile does not select it"
+        fi
+        node_center_by_id thumbnailFrame >/dev/null
+        tc=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for x1, y1, x2, y2 in re.findall(r'resource-id="[^"]*:id/thumbnailFrame"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', xml):
+    x1, y1, x2, y2 = map(int, (x1, y1, x2, y2))
+    if y2 - y1 > 100 and x2 - x1 > 360:
+        print((x1 + x2) // 2, (y1 + y2) // 2); break
+PY
+        )
+        if [ -n "$tc" ]; then
+            read -r tx ty <<< "$tc"
+            adb shell input swipe $((tx - 150)) $ty $((tx + 150)) $ty 300; sleep 2
+            if node_center_by_id btnSelectionClose >/dev/null; then
+                pass "a deliberate sideways swipe on a gallery tile selects it"
+                adb shell input keyevent KEYCODE_BACK; sleep 1
+            else
+                shot 48c_gallery_swipe_not_selected
+                fail "a sideways swipe on a gallery tile did not select it"
+            fi
+        fi
+    else
+        fail "no gallery tile found to swipe on"
+    fi
     # Only this folder: Pictures keeps the normal list.
     adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
         --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Pictures" >/dev/null; sleep 4
@@ -2087,6 +2132,24 @@ if pos=$(node_in_half left bm_marker.txt); then
         else
             fail "a swipe across the icon did not select the file"
         fi
+    fi
+    # Holding a file opens its menu but does not select it (user request): only a swipe does.
+    if pos=$(node_in_half left bm_marker.txt); then
+        for hold_x in 68 300; do   # on the icon, then on the name
+            ry=${pos#* }
+            adb shell input swipe $hold_x $ry $hold_x $ry 1000; sleep 2
+            menu=$(find_text "Open with…" >/dev/null && echo yes || echo no)
+            [ "$menu" = yes ] && { adb shell input keyevent KEYCODE_BACK; sleep 1; }
+            sel=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)
+            log "      hold at x=$hold_x: menu $menu, selected after closing it: $sel"
+            if [ "$menu" = yes ] && [ "$sel" = no ]; then
+                pass "holding the file (x=$hold_x) opens its menu without selecting it"
+            else
+                shot 49b_hold_selects
+                fail "holding the file (x=$hold_x): menu $menu, selected $sel"
+                [ "$sel" = yes ] && { adb shell input keyevent KEYCODE_BACK; sleep 1; }
+            fi
+        done
     fi
 else
     fail "no bm_marker.txt in the left panel"
@@ -3329,9 +3392,9 @@ adb logcat -c
 adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
     --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_bk" >/dev/null; sleep 5
 if pos=$(wait_text 15 "one.txt"); then
-    adb shell input swipe $pos $pos 1200; sleep 2
-    # Close the file menu that opens with the selection.
-    find_text "Open with…" >/dev/null && { adb shell input keyevent KEYCODE_BACK; sleep 1; }
+    # Select it with a swipe to the right (holding only opens the menu).
+    y=${pos#* }
+    adb shell input swipe 40 $y 320 $y 300; sleep 2
     selected=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)
     adb shell input keyevent KEYCODE_BACK; sleep 2
     after=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)

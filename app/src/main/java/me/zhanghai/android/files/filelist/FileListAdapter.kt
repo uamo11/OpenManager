@@ -439,6 +439,10 @@ class FileListAdapter(
         return rect.contains(x.toInt(), y.toInt())
     }
 
+    /** A gallery tile: no name bar, the picture fills the cell. */
+    fun isGalleryTile(holder: RecyclerView.ViewHolder): Boolean =
+        (holder as? ViewHolder)?.nameBar?.isVisible == false
+
     /** Adds the item at [position] to the selection (swipe selection); false if not selectable. */
     fun selectAt(position: Int): Boolean {
         if (position !in 0 until itemCount) return false
@@ -575,15 +579,15 @@ class FileListAdapter(
                     true
                 }
             }
-            // A tap on the icon is a tap on the row (open, or toggle while selecting): selecting
-            // by a mere touch of the icon was too easy to do by accident. Selection is a swipe
-            // across the icon (see IconSwipeSelectHelper) or holding the icon.
+            // A tap on the icon is a tap on the row (open, or toggle while selecting), and holding
+            // it is holding the row (the file menu). Selection is only a swipe to the right
+            // (across the icon, see IconSwipeSelectHelper, or across the row).
             iconLayout.setOnClickListener { itemLayout.performClick() }
             iconLayout.setOnLongClickListener {
                 val owner = bindingAdapter as? FileListAdapter ?: return@setOnLongClickListener false
                 if (isParentItem) return@setOnLongClickListener false
                 val bound = boundFile ?: return@setOnLongClickListener false
-                owner.selectFile(bound)
+                owner.listener.showMtMenu(bound)
                 true
             }
             menuButton.setOnClickListener {

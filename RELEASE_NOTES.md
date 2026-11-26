@@ -1,3 +1,12 @@
+# OpenManager v2.0.38: Selección más Precisa
+
+### 👆 Seleccionar solo deslizando
+- **Mantener presionado** un archivo (en el nombre o en el icono) abre su menú, pero **ya no lo selecciona**: al cerrar el menú no queda nada marcado. Para seleccionar se **desliza hacia la derecha**.
+- En la **vista galería** (miniaturas de video y fotos sin nombre), desplazar la lista con un gesto algo inclinado ya no selecciona sin querer. Tampoco selecciona tocar la lista mientras se sigue moviendo. Un deslizamiento claro hacia la derecha sigue seleccionando.
+
+### 📦 Resaltado más suave al volver
+- Al salir de un zip (o al localizar un archivo), la fila de la que vienes se marca con un tono **mucho más suave** que una selección, con su rayita lateral. Ya no parece que esté seleccionada.
+
 # OpenManager v2.0.37: Progreso en Pantalla, payload.bin en OTAs y Rotación del Video
 
 ### 📊 Copiar, mover y extraer: progreso en pantalla
