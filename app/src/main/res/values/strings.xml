@@ -3435,4 +3435,27 @@
     <string name="om_theme_switch_light">Switch to light theme</string>
     <string name="om_search_results_count">%1$d results</string>
     <string name="om_documents_internal_storage">Internal storage</string>
+    <string name="om_usb_title">USB: ADB / fastboot</string>
+    <string name="om_usb_caption">Another phone on an OTG cable</string>
+    <string name="om_usb_none">No phone in ADB or fastboot mode on the USB port.</string>
+    <string name="om_usb_help">Connect another phone with an OTG cable.\n• Android running: turn on USB debugging in its Developer options.\n• Bootloader: start it in fastboot mode.</string>
+    <string name="om_usb_permission_denied">USB access was not allowed.</string>
+    <string name="om_usb_connecting">Connecting to %1$s…</string>
+    <string name="om_usb_accept_on_device">Accept “Allow USB debugging?” on the other phone.</string>
+    <string name="om_usb_connected_adb">ADB: %1$s</string>
+    <string name="om_usb_connected_fastboot">Fastboot: %1$s</string>
+    <string name="om_usb_failed">Could not connect over USB.</string>
+    <string name="om_usb_run">Run</string>
+    <string name="om_usb_device_info">Device info</string>
+    <string name="om_usb_install_apk">Install APK…</string>
+    <string name="om_usb_reboot">Reboot…</string>
+    <string name="om_usb_reboot_system">System</string>
+    <string name="om_usb_rebooting">Rebooting…</string>
+    <string name="om_usb_variables">Bootloader variables</string>
+    <string name="om_usb_flash">Flash</string>
+    <string name="om_usb_flash_partition">Partition to flash</string>
+    <string name="om_usb_flash_confirm">Write the image to “%1$s” on the other phone? A wrong image can stop it from starting.</string>
+    <string name="om_usb_flashed">Flashed %1$s.</string>
+    <string name="om_usb_working">Working…</string>
+    <string name="om_usb_progress">%1$d%%</string>
 </resources>

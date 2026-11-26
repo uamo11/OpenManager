@@ -48,6 +48,11 @@
       ~ resizable.
       ~ TODO: Remove this attribute once Samsung respects the default value for it.
       -->
+    <!-- OTG: ADB and fastboot to another phone. Optional: phones without USB host still install. -->
+    <uses-feature
+        android:name="android.hardware.usb.host"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
         android:banner="@drawable/banner"
@@ -534,6 +539,13 @@
             android:label="@string/pdf_viewer_title"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.MaterialFiles.Immersive" />
+
+        <activity
+            android:name="me.zhanghai.android.files.usb.UsbToolsActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:label="@string/om_usb_title"
+            android:theme="@style/Theme.MaterialFiles" />
 
         <activity
             android:name="me.zhanghai.android.files.viewer.html.HtmlViewerActivity"

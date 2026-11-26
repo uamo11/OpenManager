@@ -3202,6 +3202,25 @@ else
 fi
 adb shell rm -rf /sdcard/om_dp
 
+log "=== Connections: USB ADB / fastboot screen (OTG, owner request) ==="
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.terminal.remote.ConnectionsActivity" >/dev/null 2>&1; sleep 4
+if pos=$(find_text "USB: ADB / fastboot"); then
+    adb shell input tap $pos; sleep 3
+    shot 80_usb_tools
+    if find_contains "No phone in ADB or fastboot mode" >/dev/null && find_contains "OTG cable" >/dev/null; then
+        pass "Connections has USB ADB/fastboot; with nothing plugged in it explains how to connect"
+    else
+        fail "the USB ADB/fastboot screen did not show its help"
+    fi
+else
+    fail "no USB ADB/fastboot entry in Connections"
+fi
+adb logcat -d > "$OUT/logcat_usb.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_usb.txt"; then fail "crash on the USB screen"; fi
+adb shell am force-stop $PKG; sleep 1
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

@@ -1,3 +1,15 @@
+# OpenManager v2.0.33: OpenManager en el Selector de Archivos y ADB/fastboot por OTG
+
+### 📂 OpenManager en el selector de archivos del sistema
+- Ahora OpenManager aparece en **«Abrir desde…» / «Guardar en…»** de cualquier app (el selector de archivos de Android), con el almacenamiento interno y las tarjetas SD. Desde ahí otras apps pueden abrir, guardar, renombrar y borrar archivos. Tiene búsqueda y miniaturas de imágenes.
+- Solo muestra el almacenamiento compartido: las carpetas privadas de `/data` quedan fuera. Requiere que OpenManager tenga acceso al almacenamiento.
+
+### 🔌 USB: ADB y fastboot por OTG (en Conexiones)
+- Conecta **otro teléfono** con un cable OTG y manéjalo desde OpenManager, sin PC:
+  - **ADB** (Android encendido con depuración USB): información del dispositivo, ejecutar comandos de shell, **instalar un APK** y reiniciar (sistema, bootloader, recovery, fastbootd). La primera vez el otro teléfono pregunta «¿Permitir depuración USB?».
+  - **Fastboot** (bootloader): ver sus variables, **flashear una imagen** en una partición (con confirmación) y reiniciar.
+- Hecho con la API USB que ya trae Android y los protocolos ADB/fastboot escritos a mano: **sin librerías**, unos pocos KB.
+
 # OpenManager v2.0.32: Visor de HTML, Contenido de payload.bin, AV1 4K60 Corregido y Gestos con Iconos
 
 ### 🎞️ AV1 4K60: se corrige el retroceso de la v2.0.31

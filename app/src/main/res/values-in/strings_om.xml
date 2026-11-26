@@ -2519,4 +2519,27 @@
     <string name="om_theme_switch_light">Beralih ke tema terang</string>
     <string name="om_search_results_count">%1$d hasil</string>
     <string name="om_documents_internal_storage">Penyimpanan internal</string>
+    <string name="om_usb_title">USB: ADB / fastboot</string>
+    <string name="om_usb_caption">Ponsel lain lewat kabel OTG</string>
+    <string name="om_usb_none">Tidak ada ponsel dalam mode ADB atau fastboot di port USB.</string>
+    <string name="om_usb_help">Hubungkan ponsel lain dengan kabel OTG.\n• Android menyala: aktifkan debugging USB di Opsi pengembang.\n• Bootloader: mulai dalam mode fastboot.</string>
+    <string name="om_usb_permission_denied">Akses USB tidak diizinkan.</string>
+    <string name="om_usb_connecting">Menghubungkan ke %1$s…</string>
+    <string name="om_usb_accept_on_device">Terima “Izinkan debugging USB?” di ponsel lain.</string>
+    <string name="om_usb_connected_adb">ADB: %1$s</string>
+    <string name="om_usb_connected_fastboot">Fastboot: %1$s</string>
+    <string name="om_usb_failed">Tidak dapat terhubung lewat USB.</string>
+    <string name="om_usb_run">Jalankan</string>
+    <string name="om_usb_device_info">Info perangkat</string>
+    <string name="om_usb_install_apk">Pasang APK…</string>
+    <string name="om_usb_reboot">Mulai ulang…</string>
+    <string name="om_usb_reboot_system">Sistem</string>
+    <string name="om_usb_rebooting">Memulai ulang…</string>
+    <string name="om_usb_variables">Variabel bootloader</string>
+    <string name="om_usb_flash">Flash</string>
+    <string name="om_usb_flash_partition">Partisi untuk di-flash</string>
+    <string name="om_usb_flash_confirm">Tulis image ke “%1$s” di ponsel lain? Image yang salah bisa membuatnya tidak bisa menyala.</string>
+    <string name="om_usb_flashed">%1$s berhasil di-flash.</string>
+    <string name="om_usb_working">Memproses…</string>
+    <string name="om_usb_progress">%1$d%%</string>
 </resources>

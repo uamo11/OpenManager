@@ -118,6 +118,7 @@ class ConnectionsActivity : AppActivity() {
         rows += Row.Header(getString(R.string.om_connections_section_device))
         rows += Row.LocalFtpServer
         rows += Row.LocalWebAccess
+        rows += Row.UsbTools
         adapter.submit(rows)
         emptyView.visibility = if (profiles.isEmpty() && storages.isEmpty()) View.VISIBLE else View.GONE
     }
@@ -188,6 +189,7 @@ class ConnectionsActivity : AppActivity() {
         data class Server(val storage: Storage) : Row()
         object LocalFtpServer : Row()
         object LocalWebAccess : Row()
+        object UsbTools : Row()
     }
 
     private inner class ConnectionsAdapter : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -222,6 +224,7 @@ class ConnectionsActivity : AppActivity() {
                 is Row.Server -> (holder as ItemHolder).bindServer(row.storage)
                 Row.LocalFtpServer -> (holder as ItemHolder).bindLocalFtp()
                 Row.LocalWebAccess -> (holder as ItemHolder).bindLocalWebAccess()
+                Row.UsbTools -> (holder as ItemHolder).bindUsbTools()
             }
         }
     }
@@ -277,6 +280,19 @@ class ConnectionsActivity : AppActivity() {
             itemView.setOnLongClickListener(null)
         }
 
+        /** Another phone on an OTG cable: ADB or fastboot. */
+        fun bindUsbTools() {
+            applyType(tile, icon, ConnectionType.USB_TOOLS)
+            name.setText(R.string.om_usb_title)
+            endpoint.setText(R.string.om_usb_caption)
+            detail.visibility = View.GONE
+            menu.visibility = View.GONE
+            itemView.setOnClickListener {
+                startActivitySafe(Intent(this@ConnectionsActivity, me.zhanghai.android.files.usb.UsbToolsActivity::class.java))
+            }
+            itemView.setOnLongClickListener(null)
+        }
+
         fun bindLocalFtp() {
             applyType(tile, icon, ConnectionType.FTP_SERVER)
             name.setText(R.string.om_connections_type_ftp_server)
@@ -312,7 +328,9 @@ class ConnectionsActivity : AppActivity() {
         FTP_SERVER(R.drawable.shared_directory_icon_white_24dp, 0xFF14B8A6.toInt(),
             R.string.om_connections_type_ftp_server, R.string.om_connections_type_ftp_server_caption),
         WEB_ACCESS(R.drawable.computer_icon_white_24dp, 0xFF4F8CFF.toInt(),
-            R.string.om_web_access_title, R.string.om_web_access_caption);
+            R.string.om_web_access_title, R.string.om_web_access_caption),
+        USB_TOOLS(R.drawable.ic_usb_white_24dp, 0xFF64748B.toInt(),
+            R.string.om_usb_title, R.string.om_usb_caption);
 
         companion object {
             fun forProtocol(protocol: RemoteProtocol): ConnectionType =
@@ -409,6 +427,7 @@ class ConnectionsActivity : AppActivity() {
                     EditWebDavServerActivity::class.createIntent().putArgs(EditWebDavServerFragment.Args())
                 ConnectionType.FTP_SERVER -> Intent(activity, FtpServerActivity::class.java)
                 ConnectionType.WEB_ACCESS -> Intent(activity, WebAccessActivity::class.java)
+                ConnectionType.USB_TOOLS -> Intent(activity, me.zhanghai.android.files.usb.UsbToolsActivity::class.java)
             }
             activity.startActivitySafe(intent)
         }

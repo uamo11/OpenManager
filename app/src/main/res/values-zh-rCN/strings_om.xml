@@ -2518,4 +2518,27 @@
     <string name="om_theme_switch_light">切换到浅色主题</string>
     <string name="om_search_results_count">%1$d 个结果</string>
     <string name="om_documents_internal_storage">内部存储</string>
+    <string name="om_usb_title">USB：ADB / fastboot</string>
+    <string name="om_usb_caption">通过 OTG 线连接的另一部手机</string>
+    <string name="om_usb_none">USB 端口上没有处于 ADB 或 fastboot 模式的手机。</string>
+    <string name="om_usb_help">用 OTG 线连接另一部手机。\n• 已开机：在开发者选项中开启 USB 调试。\n• Bootloader：启动到 fastboot 模式。</string>
+    <string name="om_usb_permission_denied">未允许 USB 访问。</string>
+    <string name="om_usb_connecting">正在连接 %1$s…</string>
+    <string name="om_usb_accept_on_device">请在另一部手机上允许“USB 调试”。</string>
+    <string name="om_usb_connected_adb">ADB：%1$s</string>
+    <string name="om_usb_connected_fastboot">Fastboot：%1$s</string>
+    <string name="om_usb_failed">无法通过 USB 连接。</string>
+    <string name="om_usb_run">运行</string>
+    <string name="om_usb_device_info">设备信息</string>
+    <string name="om_usb_install_apk">安装 APK…</string>
+    <string name="om_usb_reboot">重启…</string>
+    <string name="om_usb_reboot_system">系统</string>
+    <string name="om_usb_rebooting">正在重启…</string>
+    <string name="om_usb_variables">Bootloader 变量</string>
+    <string name="om_usb_flash">刷入</string>
+    <string name="om_usb_flash_partition">要刷入的分区</string>
+    <string name="om_usb_flash_confirm">要将镜像写入另一部手机的“%1$s”吗？错误的镜像可能导致无法开机。</string>
+    <string name="om_usb_flashed">已刷入 %1$s。</string>
+    <string name="om_usb_working">处理中…</string>
+    <string name="om_usb_progress">%1$d%%</string>
 </resources>

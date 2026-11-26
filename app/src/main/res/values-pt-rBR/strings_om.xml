@@ -2524,4 +2524,27 @@
     <string name="om_theme_switch_light">Mudar para o tema claro</string>
     <string name="om_search_results_count">%1$d resultados</string>
     <string name="om_documents_internal_storage">Armazenamento interno</string>
+    <string name="om_usb_title">USB: ADB / fastboot</string>
+    <string name="om_usb_caption">Outro celular pelo cabo OTG</string>
+    <string name="om_usb_none">Nenhum celular em modo ADB ou fastboot na porta USB.</string>
+    <string name="om_usb_help">Conecte outro celular com um cabo OTG.\n• Android ligado: ative a depuração USB nas Opções do desenvolvedor.\n• Bootloader: inicie no modo fastboot.</string>
+    <string name="om_usb_permission_denied">O acesso USB não foi permitido.</string>
+    <string name="om_usb_connecting">Conectando a %1$s…</string>
+    <string name="om_usb_accept_on_device">Aceite “Permitir depuração USB?” no outro celular.</string>
+    <string name="om_usb_connected_adb">ADB: %1$s</string>
+    <string name="om_usb_connected_fastboot">Fastboot: %1$s</string>
+    <string name="om_usb_failed">Não foi possível conectar por USB.</string>
+    <string name="om_usb_run">Executar</string>
+    <string name="om_usb_device_info">Informações do dispositivo</string>
+    <string name="om_usb_install_apk">Instalar APK…</string>
+    <string name="om_usb_reboot">Reiniciar…</string>
+    <string name="om_usb_reboot_system">Sistema</string>
+    <string name="om_usb_rebooting">Reiniciando…</string>
+    <string name="om_usb_variables">Variáveis do bootloader</string>
+    <string name="om_usb_flash">Gravar</string>
+    <string name="om_usb_flash_partition">Partição a gravar</string>
+    <string name="om_usb_flash_confirm">Gravar a imagem em “%1$s” no outro celular? Uma imagem errada pode impedir que ele inicie.</string>
+    <string name="om_usb_flashed">%1$s gravado.</string>
+    <string name="om_usb_working">Trabalhando…</string>
+    <string name="om_usb_progress">%1$d%%</string>
 </resources>

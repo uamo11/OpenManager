@@ -2613,4 +2613,27 @@
     <string name="om_theme_switch_light">Chuyển sang giao diện sáng</string>
     <string name="om_search_results_count">%1$d kết quả</string>
     <string name="om_documents_internal_storage">Bộ nhớ trong</string>
+    <string name="om_usb_title">USB: ADB / fastboot</string>
+    <string name="om_usb_caption">Điện thoại khác qua cáp OTG</string>
+    <string name="om_usb_none">Không có điện thoại ở chế độ ADB hoặc fastboot trên cổng USB.</string>
+    <string name="om_usb_help">Kết nối điện thoại khác bằng cáp OTG.\n• Android đang chạy: bật gỡ lỗi USB trong Tùy chọn nhà phát triển.\n• Bootloader: khởi động ở chế độ fastboot.</string>
+    <string name="om_usb_permission_denied">Không được phép truy cập USB.</string>
+    <string name="om_usb_connecting">Đang kết nối với %1$s…</string>
+    <string name="om_usb_accept_on_device">Chấp nhận “Cho phép gỡ lỗi USB?” trên điện thoại kia.</string>
+    <string name="om_usb_connected_adb">ADB: %1$s</string>
+    <string name="om_usb_connected_fastboot">Fastboot: %1$s</string>
+    <string name="om_usb_failed">Không thể kết nối qua USB.</string>
+    <string name="om_usb_run">Chạy</string>
+    <string name="om_usb_device_info">Thông tin thiết bị</string>
+    <string name="om_usb_install_apk">Cài APK…</string>
+    <string name="om_usb_reboot">Khởi động lại…</string>
+    <string name="om_usb_reboot_system">Hệ thống</string>
+    <string name="om_usb_rebooting">Đang khởi động lại…</string>
+    <string name="om_usb_variables">Biến bootloader</string>
+    <string name="om_usb_flash">Flash</string>
+    <string name="om_usb_flash_partition">Phân vùng cần flash</string>
+    <string name="om_usb_flash_confirm">Ghi ảnh vào “%1$s” trên điện thoại kia? Ảnh sai có thể khiến máy không khởi động.</string>
+    <string name="om_usb_flashed">Đã flash %1$s.</string>
+    <string name="om_usb_working">Đang xử lý…</string>
+    <string name="om_usb_progress">%1$d%%</string>
 </resources>
