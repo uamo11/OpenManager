@@ -2509,4 +2509,9 @@
     <string name="om_html_edit_source">编辑源代码</string>
     <string name="om_html_open_browser">在浏览器中打开</string>
     <string name="om_html_open_failed">无法打开页面</string>
+    <string name="om_payload_summary">%1$s · %2$d 个分区 · %3$s</string>
+    <string name="om_payload_full">完整 OTA</string>
+    <string name="om_payload_incremental">增量 OTA</string>
+    <string name="om_payload_copy">复制列表</string>
+    <string name="om_payload_not_payload">不是 Android OTA payload</string>
 </resources>

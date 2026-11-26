@@ -2604,4 +2604,9 @@
     <string name="om_html_edit_source">Sửa mã nguồn</string>
     <string name="om_html_open_browser">Mở trong trình duyệt</string>
     <string name="om_html_open_failed">Không thể mở trang</string>
+    <string name="om_payload_summary">%1$s · %2$d phân vùng · %3$s</string>
+    <string name="om_payload_full">OTA đầy đủ</string>
+    <string name="om_payload_incremental">OTA gia tăng</string>
+    <string name="om_payload_copy">Sao chép danh sách</string>
+    <string name="om_payload_not_payload">Không phải payload OTA Android</string>
 </resources>

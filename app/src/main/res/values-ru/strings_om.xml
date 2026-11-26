@@ -2529,4 +2529,9 @@
     <string name="om_html_edit_source">Изменить исходный код</string>
     <string name="om_html_open_browser">Открыть в браузере</string>
     <string name="om_html_open_failed">Не удалось открыть страницу</string>
+    <string name="om_payload_summary">%1$s · разделов: %2$d · %3$s</string>
+    <string name="om_payload_full">Полная OTA</string>
+    <string name="om_payload_incremental">Инкрементальная OTA</string>
+    <string name="om_payload_copy">Копировать список</string>
+    <string name="om_payload_not_payload">Это не payload OTA для Android</string>
 </resources>

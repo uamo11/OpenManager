@@ -80,7 +80,7 @@ class HtmlViewerActivity : AppActivity() {
             setSubtitleTextColor(palette.textSecondary)
             setNavigationIcon(R.drawable.arrow_back_icon_white_24dp)
             navigationIcon?.setTint(palette.iconTint)
-            setNavigationContentDescription(R.string.abc_action_bar_up_description)
+            setNavigationContentDescription(R.string.file_list_action_navigate_up)
             setNavigationOnClickListener { finish() }
             overflowIcon?.setTint(palette.iconTint)
             minimumHeight = (56 * resources.displayMetrics.density).toInt()

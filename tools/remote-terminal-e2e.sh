@@ -3027,6 +3027,52 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_html
 
+log "=== payload.bin: its partitions without extracting (user request) ==="
+python3 - "$OUT/payload.bin" <<'PY2'
+import struct, sys
+def varint(v):
+    out = bytearray()
+    while v > 0x7F:
+        out.append((v & 0x7F) | 0x80); v >>= 7
+    out.append(v); return bytes(out)
+def field_int(f, v): return varint(f << 3) + varint(v)
+def field_bytes(f, b): return varint((f << 3) | 2) + varint(len(b)) + b
+def part(name, size, ops):
+    p = field_bytes(1, name.encode()) + field_bytes(7, field_int(1, size))
+    for t in ops: p += field_bytes(8, field_int(1, t) + field_int(3, 10))
+    return p
+manifest = field_int(3, 4096) + field_bytes(13, part("boot", 100663296, [8, 8])) + \
+    field_bytes(13, part("system", 2147483648, [14, 14, 0])) + field_bytes(13, part("vendor_boot", 67108864, [8]))
+data = b"CrAU" + struct.pack(">QQI", 2, len(manifest), 0) + manifest + b"\0" * 4096
+open(sys.argv[1], "wb").write(data)
+PY2
+adb shell rm -rf /sdcard/om_ota; adb shell mkdir -p /sdcard/om_ota
+adb push "$OUT/payload.bin" /sdcard/om_ota/payload.bin >/dev/null
+adb shell "echo 'FILE_HASH=x' > /sdcard/om_ota/payload_properties.txt"
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_ota" >/dev/null; sleep 5
+if pos=$(wait_text 15 "payload.bin"); then
+    adb shell input tap $pos; sleep 3
+    shot 79_payload_contents
+    parsed=$(adb logcat -d -s OMPayload 2>/dev/null | grep "Payload v" | tail -1 | sed 's/.*OMPayload: //')
+    log "      $parsed"
+    if printf '%s' "$parsed" | grep -q "partitions=3 boot:100663296:xz,system:2147483648:zstd,vendor_boot:67108864:xz" \
+        && find_text "OK" >/dev/null; then
+        pass "tapping payload.bin lists its partitions, sizes and compression without extracting"
+    else
+        fail "payload.bin contents not shown (${parsed:-nothing})"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+else
+    fail "payload.bin not listed"
+fi
+adb logcat -d > "$OUT/logcat_payload.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_payload.txt"; then fail "crash opening payload.bin"; fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_ota
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

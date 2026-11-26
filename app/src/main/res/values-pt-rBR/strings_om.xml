@@ -2515,4 +2515,9 @@
     <string name="om_html_edit_source">Editar código-fonte</string>
     <string name="om_html_open_browser">Abrir no navegador</string>
     <string name="om_html_open_failed">Não foi possível abrir a página</string>
+    <string name="om_payload_summary">%1$s · %2$d partições · %3$s</string>
+    <string name="om_payload_full">OTA completa</string>
+    <string name="om_payload_incremental">OTA incremental</string>
+    <string name="om_payload_copy">Copiar lista</string>
+    <string name="om_payload_not_payload">Não é um payload de OTA do Android</string>
 </resources>

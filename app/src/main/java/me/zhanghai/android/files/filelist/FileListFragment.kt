@@ -2732,6 +2732,11 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             navigateTo(file.path)
             return
         }
+        // An OTA payload.bin: its partitions at once, without extracting gigabytes.
+        if (me.zhanghai.android.files.fileproperties.PayloadInfoDialog.isPayloadName(fileName)) {
+            me.zhanghai.android.files.fileproperties.PayloadInfoDialog.show(this, file.path)
+            return
+        }
         if (file.isListable) {
             navigateTo(file.listablePath)
             return

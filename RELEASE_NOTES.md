@@ -1,4 +1,4 @@
-# OpenManager v2.0.32: Visor de HTML, AV1 4K60 Corregido y Gestos con Iconos
+# OpenManager v2.0.32: Visor de HTML, Contenido de payload.bin, AV1 4K60 Corregido y Gestos con Iconos
 
 ### 🎞️ AV1 4K60: se corrige el retroceso de la v2.0.31
 - La v2.0.31, al atrasarse, dejaba de decodificar **todos** los cuadros prescindibles durante 8 s. En videos donde 7 de cada 10 cuadros lo son, eso bajaba un 4K60 AV1 en un Galaxy A07 de ~26 a ~16 fps aunque el procesador podía con más.
@@ -9,6 +9,9 @@
 - Los archivos `.html`, `.htm`, `.xhtml` y `.shtml` se abren **renderizados**, con el WebView del sistema: **no agrega peso** a la app. Una página guardada en el teléfono carga su CSS, scripts e imágenes de la misma carpeta; las páginas en SFTP/SMB o dentro de archivos comprimidos también se ven.
 - Seguro: la página no puede leer otros archivos del teléfono, y los enlaces a la web, correo o teléfono se abren en su app.
 - Menú ⋮: **Recargar**, **Editar código fuente** (editor de texto) y **Abrir en el navegador**. Atrás vuelve a la página anterior si seguiste un enlace. Zoom con dos dedos.
+
+### 📦 payload.bin: ver su contenido sin extraer
+- Al tocar un **`payload.bin`** de una OTA de Android se ven sus **particiones** (boot, system, vendor…), el tamaño de cada una, cómo está comprimida (xz, zstd, bz2…) y cuántas operaciones tiene, además de si la OTA es completa o incremental. Solo se lee el índice del principio del archivo (unos KB), nunca los gigabytes de datos: es instantáneo, también dentro del zip de la OTA. Botón para copiar la lista.
 
 ### 🧾 Subtítulos que no se cortan
 - El subtítulo del **visor DOCX** (palabras y tiempo de lectura) quedaba cortado bajo la barra; igual en el editor **ARSC**, el visor **SQLite** y el **informe de cierres**. Ahora la barra crece lo necesario.

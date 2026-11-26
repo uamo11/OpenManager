@@ -3426,4 +3426,9 @@
     <string name="om_html_edit_source">Edit source</string>
     <string name="om_html_open_browser">Open in browser</string>
     <string name="om_html_open_failed">Could not open the page</string>
+    <string name="om_payload_summary">%1$s · %2$d partitions · %3$s</string>
+    <string name="om_payload_full">Full OTA</string>
+    <string name="om_payload_incremental">Incremental OTA</string>
+    <string name="om_payload_copy">Copy list</string>
+    <string name="om_payload_not_payload">Not an Android OTA payload</string>
 </resources>
