@@ -2505,4 +2505,8 @@
     <string name="om_quick_filter_hint">筛选当前文件夹…</string>
     <string name="om_quick_filter_close">关闭筛选</string>
     <string name="om_menu_search_results">搜索结果</string>
+    <string name="om_html_viewer_title">HTML 查看器</string>
+    <string name="om_html_edit_source">编辑源代码</string>
+    <string name="om_html_open_browser">在浏览器中打开</string>
+    <string name="om_html_open_failed">无法打开页面</string>
 </resources>

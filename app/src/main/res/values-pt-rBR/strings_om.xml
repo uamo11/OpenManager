@@ -2511,4 +2511,8 @@
     <string name="om_quick_filter_hint">Filtrar esta pasta…</string>
     <string name="om_quick_filter_close">Fechar filtro</string>
     <string name="om_menu_search_results">Resultados da pesquisa</string>
+    <string name="om_html_viewer_title">Visualizador de HTML</string>
+    <string name="om_html_edit_source">Editar código-fonte</string>
+    <string name="om_html_open_browser">Abrir no navegador</string>
+    <string name="om_html_open_failed">Não foi possível abrir a página</string>
 </resources>

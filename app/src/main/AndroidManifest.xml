@@ -536,6 +536,13 @@
             android:theme="@style/Theme.MaterialFiles.Immersive" />
 
         <activity
+            android:name="me.zhanghai.android.files.viewer.html.HtmlViewerActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:exported="false"
+            android:label="@string/om_html_viewer_title"
+            android:theme="@style/Theme.MaterialFiles" />
+
+        <activity
             android:name="me.zhanghai.android.files.viewer.docx.DocxViewerActivity"
             android:exported="true"
             android:label="@string/docx_viewer_title"

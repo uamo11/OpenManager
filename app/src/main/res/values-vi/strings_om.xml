@@ -2600,4 +2600,8 @@
     <string name="om_quick_filter_hint">Lọc thư mục này…</string>
     <string name="om_quick_filter_close">Đóng bộ lọc</string>
     <string name="om_menu_search_results">Kết quả tìm kiếm</string>
+    <string name="om_html_viewer_title">Trình xem HTML</string>
+    <string name="om_html_edit_source">Sửa mã nguồn</string>
+    <string name="om_html_open_browser">Mở trong trình duyệt</string>
+    <string name="om_html_open_failed">Không thể mở trang</string>
 </resources>

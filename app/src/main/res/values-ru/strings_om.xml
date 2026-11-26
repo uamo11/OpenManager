@@ -2525,4 +2525,8 @@
     <string name="om_quick_filter_hint">Фильтр этой папки…</string>
     <string name="om_quick_filter_close">Закрыть фильтр</string>
     <string name="om_menu_search_results">Результаты поиска</string>
+    <string name="om_html_viewer_title">Просмотр HTML</string>
+    <string name="om_html_edit_source">Изменить исходный код</string>
+    <string name="om_html_open_browser">Открыть в браузере</string>
+    <string name="om_html_open_failed">Не удалось открыть страницу</string>
 </resources>

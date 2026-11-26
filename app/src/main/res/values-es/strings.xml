@@ -3319,4 +3319,8 @@
     <string name="om_quick_filter_hint">Filtrar esta carpeta…</string>
     <string name="om_quick_filter_close">Cerrar filtro</string>
     <string name="om_menu_search_results">Resultados de búsqueda</string>
+    <string name="om_html_viewer_title">Visor de HTML</string>
+    <string name="om_html_edit_source">Editar código fuente</string>
+    <string name="om_html_open_browser">Abrir en el navegador</string>
+    <string name="om_html_open_failed">No se pudo abrir la página</string>
 </resources>

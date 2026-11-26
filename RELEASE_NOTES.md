@@ -1,9 +1,17 @@
-# OpenManager v2.0.32: AV1 4K60 Corregido y Gestos del Reproductor con Iconos
+# OpenManager v2.0.32: Visor de HTML, AV1 4K60 Corregido y Gestos con Iconos
 
 ### 🎞️ AV1 4K60: se corrige el retroceso de la v2.0.31
 - La v2.0.31, al atrasarse, dejaba de decodificar **todos** los cuadros prescindibles durante 8 s. En videos donde 7 de cada 10 cuadros lo son, eso bajaba un 4K60 AV1 en un Galaxy A07 de ~26 a ~16 fps aunque el procesador podía con más.
 - Ahora se salta solo **la parte necesaria**: uno en seguida si el último cuadro llegó tarde, y además una proporción que sube un poco con cada cuadro tarde y baja despacio mientras todo llega a tiempo. El decodificador se acomoda a lo que da el procesador y casi no tira cuadros ya decodificados. En la simulación con los números del A07 muestra más cuadros que la v2.0.30 y la v2.0.31 en todos los casos (por ejemplo 32,6 fps frente a 29,4 y 19,1); una prueba automática lo vigila.
 - El panel de estadísticas muestra qué parte se está saltando («skip 45%»).
+
+### 🌐 Visor de HTML
+- Los archivos `.html`, `.htm`, `.xhtml` y `.shtml` se abren **renderizados**, con el WebView del sistema: **no agrega peso** a la app. Una página guardada en el teléfono carga su CSS, scripts e imágenes de la misma carpeta; las páginas en SFTP/SMB o dentro de archivos comprimidos también se ven.
+- Seguro: la página no puede leer otros archivos del teléfono, y los enlaces a la web, correo o teléfono se abren en su app.
+- Menú ⋮: **Recargar**, **Editar código fuente** (editor de texto) y **Abrir en el navegador**. Atrás vuelve a la página anterior si seguiste un enlace. Zoom con dos dedos.
+
+### 🧾 Subtítulos que no se cortan
+- El subtítulo del **visor DOCX** (palabras y tiempo de lectura) quedaba cortado bajo la barra; igual en el editor **ARSC**, el visor **SQLite** y el **informe de cierres**. Ahora la barra crece lo necesario.
 
 ### 👆 Gestos del reproductor
 - **Iconos** en los indicadores: brillo, volumen (alto, bajo, silencio), adelantar/atrasar y 2×.

@@ -2959,6 +2959,74 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_qf
 
+log "=== HTML viewer: a page with its CSS and script, and the DOCX subtitle (user requests) ==="
+mkdir -p "$OUT/om_html"
+cat > "$OUT/om_html/page.html" <<'HTML'
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>loading</title>
+<link rel="stylesheet" href="style.css"></head>
+<body><h1 id="t">OM HTML OK</h1><p>Second line.</p>
+<script>
+  var c = getComputedStyle(document.getElementById('t')).color;
+  document.title = 'JS OK ' + (c === 'rgb(0, 128, 0)' ? 'CSS OK' : 'CSS MISSING ' + c);
+</script></body></html>
+HTML
+echo '#t { color: rgb(0, 128, 0); }' > "$OUT/om_html/style.css"
+python3 - "$OUT/om_html/notes.docx" <<'PY2'
+import sys, zipfile
+words = " ".join("word%d" % i for i in range(300))
+doc = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+       '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'
+       '<w:p><w:r><w:t>OM DOCX</w:t></w:r></w:p><w:p><w:r><w:t>%s</w:t></w:r></w:p></w:body></w:document>') % words
+with zipfile.ZipFile(sys.argv[1], "w") as z:
+    z.writestr("[Content_Types].xml", '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
+    z.writestr("_rels/.rels", '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>')
+    z.writestr("word/document.xml", doc)
+PY2
+adb shell rm -rf /sdcard/om_html; adb push "$OUT/om_html" /sdcard/ >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.viewer.html.HtmlViewerActivity \
+    --es $PKG.extra.PATH_URI file:///storage/emulated/0/om_html/page.html" >/dev/null 2>&1
+sleep 6
+shot 77_html_viewer
+title=$(adb logcat -d -s OMHtml 2>/dev/null | grep "Title=" | tail -1 | sed 's/.*Title=//')
+log "      page title after its script ran: ${title:-none}"
+if [ "$title" = "JS OK CSS OK" ]; then
+    pass "the HTML viewer renders a page with its CSS and runs its script"
+else
+    fail "the HTML viewer did not run the page (title: ${title:-none})"
+fi
+adb logcat -d > "$OUT/logcat_html.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_html.txt"; then fail "crash in the HTML viewer"; fi
+# DOCX: the subtitle (words, reading time) is not cut by the toolbar.
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.docx.DocxViewerActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_html/notes.docx" >/dev/null 2>&1
+sleep 6
+shot 78_docx_subtitle
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_docx.xml" 2>/dev/null
+density=$(adb shell wm density | grep -o '[0-9]*' | tail -1)
+sub=$(python3 - "$OUT/ui_docx.xml" "${density:-420}" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+d = int(sys.argv[2]) / 160
+for n in re.findall(r"<node [^>]*>", xml):
+    t = re.search(r' text="([^"]*)"', n)
+    if t and "words" in html.unescape(t.group(1)):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups())
+        print(round((y2 - y1) / d, 1), html.unescape(t.group(1)).replace(" ", "_")); break
+PY2
+)
+log "      DOCX subtitle: ${sub:-none} (dp tall)"
+if [ -n "$sub" ] && python3 -c "import sys; sys.exit(0 if float('${sub%% *}') >= 15 else 1)"; then
+    pass "the DOCX viewer's subtitle is shown whole"
+else
+    fail "the DOCX viewer's subtitle is cut or missing (${sub:-none})"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_html
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

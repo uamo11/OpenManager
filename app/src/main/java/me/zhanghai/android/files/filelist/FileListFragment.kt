@@ -2748,6 +2748,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             return
         }
         val fileExtension = file.extension.lowercase()
+        // Web pages open rendered (the source is one tap away in the viewer's menu, and
+        // "Open with" still offers the text editor).
+        if (fileExtension in me.zhanghai.android.files.viewer.html.HtmlViewerActivity.EXTENSIONS) {
+            me.zhanghai.android.files.viewer.html.HtmlViewerActivity.start(requireContext(), file.path)
+            return
+        }
         val isTxtOrTextDoc = fileExtension in setOf(
             "txt", "text", "log", "md", "markdown", "json", "xml", "html", "htm", "css", "csv",
             "properties", "ini", "conf", "yaml", "yml", "toml", "java", "kt", "smali", "c", "cpp", "h",
