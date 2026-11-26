@@ -2520,4 +2520,6 @@
     <string name="om_payload_incremental">OTA incremental</string>
     <string name="om_payload_copy">Copiar lista</string>
     <string name="om_payload_not_payload">Não é um payload de OTA do Android</string>
+    <string name="om_theme_switch_dark">Mudar para o tema escuro</string>
+    <string name="om_theme_switch_light">Mudar para o tema claro</string>
 </resources>

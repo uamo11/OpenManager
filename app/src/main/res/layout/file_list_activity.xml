@@ -342,6 +342,16 @@
                     android:textSize="10.5sp" />
             </LinearLayout>
 
+            <!-- One tap between the light and the dark theme (as MT Manager's night mode). -->
+            <ImageButton
+                android:id="@+id/btnDrawerNightMode"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_night_mode_24dp"
+                app:tint="@android:color/white"
+                android:contentDescription="@string/om_theme_switch_dark" />
+
             <ImageButton
                 android:id="@+id/btnDrawerSettings"
                 android:layout_width="44dp"

@@ -2609,4 +2609,6 @@
     <string name="om_payload_incremental">OTA gia tăng</string>
     <string name="om_payload_copy">Sao chép danh sách</string>
     <string name="om_payload_not_payload">Không phải payload OTA Android</string>
+    <string name="om_theme_switch_dark">Chuyển sang giao diện tối</string>
+    <string name="om_theme_switch_light">Chuyển sang giao diện sáng</string>
 </resources>

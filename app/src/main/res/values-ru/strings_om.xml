@@ -2534,4 +2534,6 @@
     <string name="om_payload_incremental">Инкрементальная OTA</string>
     <string name="om_payload_copy">Копировать список</string>
     <string name="om_payload_not_payload">Это не payload OTA для Android</string>
+    <string name="om_theme_switch_dark">Переключить на тёмную тему</string>
+    <string name="om_theme_switch_light">Переключить на светлую тему</string>
 </resources>

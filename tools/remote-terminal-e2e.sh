@@ -2354,6 +2354,31 @@ if [ "${header%% *}" = ok ]; then
 else
     fail "side bar header: logo not aligned ($header)"
 fi
+# Theme switch in the side bar header (MT style): one tap from light to dark or back.
+lum_of() { python3 -c "r,g,b=map(int,'$1'.split()); print(int(0.299*r+0.587*g+0.114*b))" 2>/dev/null || echo -1; }
+adb shell input keyevent KEYCODE_BACK; sleep 1
+adb exec-out screencap > "$OUT/theme_before.raw" 2>/dev/null
+before=$(dominant_color "$OUT/theme_before.raw" mainToolbar || true)
+demo drawer; sleep 2
+if pos=$(node_center_by_id btnDrawerNightMode); then
+    adb shell input tap $pos; sleep 5
+    adb exec-out screencap > "$OUT/theme_after.raw" 2>/dev/null
+    after=$(dominant_color "$OUT/theme_after.raw" mainToolbar || true)
+    shot 41c_theme_switched
+    lb=$(lum_of "$before"); la=$(lum_of "$after")
+    log "      theme switch: toolbar ${before:-?} (lum $lb) -> ${after:-?} (lum $la)"
+    if [ "$lb" -ge 0 ] && [ "$la" -ge 0 ] && { [ "$lb" -lt 100 ] && [ "$la" -gt 150 ] || [ "$lb" -gt 150 ] && [ "$la" -lt 100 ]; }; then
+        pass "the side bar's theme button switches between light and dark at once"
+    else
+        fail "the theme button did not switch the theme (${before:-?} -> ${after:-?})"
+    fi
+    # And back, for the rest of the run.
+    demo drawer; sleep 2
+    pos=$(node_center_by_id btnDrawerNightMode) && adb shell input tap $pos; sleep 5
+else
+    fail "no theme button in the side bar header"
+fi
+demo drawer; sleep 2
 pos=""
 for _ in 1 2 3 4; do
     pos=$(find_text "Exit" "Salir") && break

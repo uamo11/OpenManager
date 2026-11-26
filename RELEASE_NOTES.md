@@ -16,6 +16,9 @@
 ### 🖼️ PNG transparentes
 - Las imágenes **PNG y WebP con transparencia** se muestran sobre un **fondo de cuadritos** (como en los editores de imagen) en lugar de negro, así se ve qué parte es transparente. Solo detrás de la imagen, no en los bordes, y también en imágenes enormes.
 
+### 🌙 Cambio rápido de tema
+- Nuevo botón de **luna/sol** junto al engranaje en la cabecera del menú lateral (como el modo noche de MT Manager): un toque cambia entre tema **claro** y **oscuro** al instante, sin entrar a Ajustes. Si usas negro AMOLED, se mantiene en el modo oscuro.
+
 ### 🧾 Subtítulos que no se cortan
 - El subtítulo del **visor DOCX** (palabras y tiempo de lectura) quedaba cortado bajo la barra; igual en el editor **ARSC**, el visor **SQLite** y el **informe de cierres**. Ahora la barra crece lo necesario.
 

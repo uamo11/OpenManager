@@ -1069,7 +1069,25 @@ class FileListActivity : AppActivity() {
         }
     }
 
+    private val isDarkThemeShown: Boolean
+        get() = (resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
+            android.content.res.Configuration.UI_MODE_NIGHT_YES
+
     private fun setupDrawerControls() {
+        findViewById<ImageView>(R.id.btnDrawerNightMode)?.apply {
+            val dark = isDarkThemeShown
+            setImageResource(if (dark) R.drawable.ic_light_mode_24dp else R.drawable.ic_night_mode_24dp)
+            contentDescription = getString(if (dark) R.string.om_theme_switch_light else R.string.om_theme_switch_dark)
+            setOnClickListener {
+                // The other one of what is on screen now ("follow system" becomes a fixed choice);
+                // the AMOLED black setting is kept for the dark theme.
+                val next = if (isDarkThemeShown) me.zhanghai.android.files.theme.night.NightMode.OFF
+                else me.zhanghai.android.files.theme.night.NightMode.ON
+                drawerLayout.closeDrawer(GravityCompat.START)
+                Settings.NIGHT_MODE.putValue(next)
+                me.zhanghai.android.files.theme.night.NightModeHelper.sync()
+            }
+        }
         findViewById<View>(R.id.btnDrawerSettings).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -2259,12 +2277,15 @@ class FileListActivity : AppActivity() {
         findViewById<ImageView>(R.id.btnDrawerSettings)?.let {
             ImageViewCompat.setImageTintList(it, ColorStateList.valueOf(palette.iconTint))
         }
+        findViewById<ImageView>(R.id.btnDrawerNightMode)?.let {
+            ImageViewCompat.setImageTintList(it, ColorStateList.valueOf(palette.iconTint))
+        }
         applyPaletteToDrawerTree(drawerView, palette)
     }
 
     private fun applyPaletteToDrawerTree(view: View, palette: OpenManagerPalette) {
         val id = view.id
-        if (id == R.id.btnDrawerSettings) {
+        if (id == R.id.btnDrawerSettings || id == R.id.btnDrawerNightMode) {
             return
         }
         if (view is android.widget.ProgressBar) {
