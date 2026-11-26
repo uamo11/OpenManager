@@ -720,7 +720,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.recyclerView.setOnApplyWindowInsetsListener(
             ScrollingViewOnApplyWindowInsetsListener(binding.recyclerView, fastScroller)
         )
-        binding.speedDialView.inflate(R.menu.file_list_speed_dial)
+        // The main screen is always in dual-pane mode, where the speed dial stays hidden: its
+        // action buttons (two more FABs with labels, elevation animators and shadow renderers
+        // per panel) are only built where the speed dial can be seen.
+        if (requireActivity() !is FileListActivity) {
+            binding.speedDialView.inflate(R.menu.file_list_speed_dial)
+        }
         binding.speedDialView.setOnActionSelectedListener {
             when (it.id) {
                 R.id.action_create_file -> showCreateFileDialog()

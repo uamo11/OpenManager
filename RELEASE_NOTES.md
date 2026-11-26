@@ -11,6 +11,7 @@
 
 ### ⚡ Menos hilos dormidos
 - Los hilos que cargan carpetas (locales y remotas) y los nombres de las apps ahora **se cierran solos tras 20 s sin trabajo**. Antes se quedaban vivos para siempre: tras abrir una carpeta remota grande (SFTP/SMB) quedaban **24 hilos parados** ocupando memoria. La velocidad de carga es la misma.
+- La pantalla principal ya no crea los botones flotantes ocultos de «Nuevo archivo / Nueva carpeta» (nunca se ven en doble panel): eran 4 botones con sus sombras y ~80 animaciones en memoria.
 
 ### 📦 Resaltado más suave al volver
 - Al salir de un zip (o al localizar un archivo), la fila de la que vienes se marca con un tono **mucho más suave** que una selección, con su rayita lateral. Ya no parece que esté seleccionada.
