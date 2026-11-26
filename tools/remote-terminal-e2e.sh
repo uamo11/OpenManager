@@ -3379,6 +3379,38 @@ else
 fi
 adb shell am force-stop $PKG; sleep 1
 
+log "=== App backup and restore with root (Android-DataBackup style, owner request) ==="
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_backup_test
+adb shell "run-as $PKG sh -c 'mkdir -p files && echo OMBK > files/om_backup_marker'"
+adb logcat -c
+adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.appmanager.InstalledAppsActivity --es DEMO_BACKUP_SCRIPTS $PKG" >/dev/null 2>&1
+sleep 4
+adb shell am force-stop $PKG; sleep 1
+bk_out=$(adb shell "su 0 sh /sdcard/om_backup_test/backup.sh" 2>&1 | tr -d '\r' | tail -3)
+bk_files=$(adb shell "su 0 ls /sdcard/om_backup_test/bk /sdcard/om_backup_test/bk/apk" 2>/dev/null | tr -d '\r' | tr '\n' ' ')
+adb shell "run-as $PKG rm -f files/om_backup_marker"
+gone=$(adb shell "run-as $PKG cat files/om_backup_marker" 2>/dev/null | tr -d '\r')
+rs_out=$(adb shell "su 0 sh /sdcard/om_backup_test/restore.sh" 2>&1 | tr -d '\r' | tail -3)
+back=$(adb shell "run-as $PKG cat files/om_backup_marker" 2>/dev/null | tr -d '\r')
+label=$(adb shell "su 0 ls -Z /data/user/0/$PKG/files/om_backup_marker" 2>/dev/null | tr -d '\r')
+log "      backup: $(printf '%s' "$bk_out" | tail -1) · files: $bk_files"
+log "      marker after deleting: '${gone}' · restore: $(printf '%s' "$rs_out" | tail -1) · marker after restore: '${back}'"
+log "      SELinux label: $label"
+if printf '%s' "$bk_out" | grep -q OM_BACKUP_OK && printf '%s' "$bk_files" | grep -q "data.tar.gz" \
+    && printf '%s' "$bk_files" | grep -q "\.apk"; then
+    pass "backup saves the APK and the app's data (tar.gz)"
+else
+    fail "backup failed ($bk_out)"
+fi
+if printf '%s' "$rs_out" | grep -q OM_RESTORE_OK && [ -z "$gone" ] && [ "$back" = OMBK ] \
+    && printf '%s' "$label" | grep -q "app_data_file"; then
+    pass "restore puts the data back, readable by the app, with its SELinux label"
+else
+    fail "restore failed ($rs_out; marker '$back'; label $label)"
+fi
+adb shell rm -rf /sdcard/om_backup_test
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

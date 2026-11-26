@@ -3475,4 +3475,19 @@
     <string name="om_long_press_button_home">Home</string>
     <string name="om_long_press_no_search">No search yet</string>
     <string name="om_apps_needs_root_or_shizuku">This needs root or Shizuku</string>
+    <string name="om_backup_section">BACKUP</string>
+    <string name="om_backup_app">Back up app and data</string>
+    <string name="om_backup_app_desc">APK, data, Android/data, obb and media to OpenManager/Backups</string>
+    <string name="om_backup_restore">Restore</string>
+    <string name="om_backup_restore_desc">Reinstall if missing and put its data back</string>
+    <string name="om_backup_working">Backing up…</string>
+    <string name="om_backup_restoring">Restoring…</string>
+    <string name="om_backup_done">Backup saved</string>
+    <string name="om_backup_failed">Backup failed</string>
+    <string name="om_backup_show_folder">Show folder</string>
+    <string name="om_backup_none">No backups of this app yet</string>
+    <string name="om_backup_list_title">Backups of %1$s</string>
+    <string name="om_backup_restore_confirm">Restore this backup of %1$s? Its current data will be replaced.</string>
+    <string name="om_backup_restored">Restored</string>
+    <string name="om_backup_restore_failed">Restore failed: %1$s</string>
 </resources>

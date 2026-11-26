@@ -110,6 +110,21 @@ class InstalledAppsActivity : AppActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (me.zhanghai.android.files.BuildConfig.DEBUG) {
+            // E2E: write the backup and restore scripts of a package, to run them with su.
+            intent.getStringExtra("DEMO_BACKUP_SCRIPTS")?.let { pkg ->
+                runCatching {
+                    val apkDir = File(packageManager.getApplicationInfo(pkg, 0).sourceDir).parent!!
+                    val dir = File(android.os.Environment.getExternalStorageDirectory(), "om_backup_test").apply { mkdirs() }
+                    val out = File(dir, "bk").absolutePath
+                    File(dir, "backup.sh").writeText(AppBackupScripts.backup(pkg, apkDir, out))
+                    File(dir, "restore.sh").writeText(AppBackupScripts.restore(pkg, out))
+                    android.util.Log.d("OMBackup", "Scripts written for $pkg")
+                }.onFailure { android.util.Log.e("OMBackup", "Scripts failed", it) }
+                finish()
+                return
+            }
+        }
         binding = ActivityInstalledAppsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -544,6 +559,8 @@ class InstalledAppsActivity : AppActivity() {
         } else {
             dialogBinding.layoutRootActions.visibility = View.GONE
         }
+        // Backups read the app's private data: root only (Shizuku cannot).
+        dialogBinding.layoutBackupActions.visibility = if (isRoot) View.VISIBLE else View.GONE
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogBinding.root)
@@ -775,10 +792,92 @@ class InstalledAppsActivity : AppActivity() {
             }
         }
 
+        dialogBinding.btnActionBackup.setOnClickListener {
+            dialog.dismiss()
+            backupApp(app)
+        }
+        dialogBinding.btnActionRestore.setOnClickListener {
+            dialog.dismiss()
+            showBackups(app)
+        }
+
         dialog.show()
         if (me.zhanghai.android.files.BuildConfig.DEBUG) {
             android.util.Log.d("OMApps", "Details shown ms=${android.os.SystemClock.elapsedRealtime() - detailsStart}")
         }
+    }
+
+    /** A modal "working…" dialog while a root job runs. */
+    private fun progressDialog(messageRes: Int): androidx.appcompat.app.AlertDialog =
+        MaterialAlertDialogBuilder(this)
+            .setMessage(messageRes)
+            .setCancelable(false)
+            .show()
+
+    private fun backupApp(app: AppModel) {
+        val progress = progressDialog(R.string.om_backup_working)
+        lifecycleScope.launch(Dispatchers.IO) {
+            val result = AppBackupManager.backup(app)
+            withContext(Dispatchers.Main) {
+                progress.dismiss()
+                MaterialAlertDialogBuilder(this@InstalledAppsActivity)
+                    .setTitle(if (result.isSuccess) R.string.om_backup_done else R.string.om_backup_failed)
+                    .setMessage(result.message)
+                    .setPositiveButton(android.R.string.ok, null)
+                    .apply {
+                        if (result.isSuccess) {
+                            setNeutralButton(R.string.om_backup_show_folder) { _, _ -> openPathInExplorer(result.message) }
+                        }
+                    }
+                    .show()
+            }
+        }
+    }
+
+    private fun showBackups(app: AppModel) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val backups = AppBackupManager.list(app.packageName)
+            withContext(Dispatchers.Main) {
+                if (backups.isEmpty()) {
+                    Toast.makeText(this@InstalledAppsActivity, R.string.om_backup_none, Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+                val dateFormat = java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                val rows = backups.map {
+                    dateFormat.format(Date(it.date)) + "\nv" + it.versionName + " · " + formatSize(it.sizeBytes)
+                }.toTypedArray()
+                MaterialAlertDialogBuilder(this@InstalledAppsActivity)
+                    .setTitle(getString(R.string.om_backup_list_title, app.label))
+                    .setItems(rows) { _, which -> chooseBackupAction(app, backups[which]) }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+        }
+    }
+
+    private fun chooseBackupAction(app: AppModel, backup: AppBackupManager.Backup) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_backup_restore)
+            .setMessage(getString(R.string.om_backup_restore_confirm, app.label))
+            .setPositiveButton(R.string.om_backup_restore) { _, _ ->
+                val progress = progressDialog(R.string.om_backup_restoring)
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val result = AppBackupManager.restore(app.packageName, backup)
+                    withContext(Dispatchers.Main) {
+                        progress.dismiss()
+                        Toast.makeText(
+                            this@InstalledAppsActivity,
+                            if (result.isSuccess) getString(R.string.om_backup_restored) else getString(R.string.om_backup_restore_failed, result.message),
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+            .setNeutralButton(R.string.delete) { _, _ ->
+                lifecycleScope.launch(Dispatchers.IO) { AppBackupManager.delete(backup) }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun openPathInExplorer(path: String) {

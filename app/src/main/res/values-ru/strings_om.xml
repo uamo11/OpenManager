@@ -2578,4 +2578,19 @@
     <string name="om_long_press_button_home">Домой</string>
     <string name="om_long_press_no_search">Поиска ещё не было</string>
     <string name="om_apps_needs_root_or_shizuku">Нужен root или Shizuku</string>
+    <string name="om_backup_section">РЕЗЕРВНАЯ КОПИЯ</string>
+    <string name="om_backup_app">Резервная копия приложения и данных</string>
+    <string name="om_backup_app_desc">APK, данные, Android/data, obb и media в OpenManager/Backups</string>
+    <string name="om_backup_restore">Восстановить</string>
+    <string name="om_backup_restore_desc">Переустанавливает при отсутствии и возвращает данные</string>
+    <string name="om_backup_working">Резервное копирование…</string>
+    <string name="om_backup_restoring">Восстановление…</string>
+    <string name="om_backup_done">Копия сохранена</string>
+    <string name="om_backup_failed">Не удалось создать копию</string>
+    <string name="om_backup_show_folder">Показать папку</string>
+    <string name="om_backup_none">Копий этого приложения пока нет</string>
+    <string name="om_backup_list_title">Копии %1$s</string>
+    <string name="om_backup_restore_confirm">Восстановить эту копию %1$s? Текущие данные будут заменены.</string>
+    <string name="om_backup_restored">Восстановлено</string>
+    <string name="om_backup_restore_failed">Не удалось восстановить: %1$s</string>
 </resources>

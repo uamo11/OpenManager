@@ -2558,4 +2558,19 @@
     <string name="om_long_press_button_home">主页</string>
     <string name="om_long_press_no_search">还没有搜索</string>
     <string name="om_apps_needs_root_or_shizuku">此操作需要 root 或 Shizuku</string>
+    <string name="om_backup_section">备份</string>
+    <string name="om_backup_app">备份应用和数据</string>
+    <string name="om_backup_app_desc">APK、数据、Android/data、obb 和 media 保存到 OpenManager/Backups</string>
+    <string name="om_backup_restore">恢复</string>
+    <string name="om_backup_restore_desc">缺失时重新安装并恢复其数据</string>
+    <string name="om_backup_working">正在备份…</string>
+    <string name="om_backup_restoring">正在恢复…</string>
+    <string name="om_backup_done">备份已保存</string>
+    <string name="om_backup_failed">备份失败</string>
+    <string name="om_backup_show_folder">打开文件夹</string>
+    <string name="om_backup_none">此应用还没有备份</string>
+    <string name="om_backup_list_title">%1$s 的备份</string>
+    <string name="om_backup_restore_confirm">要恢复 %1$s 的这个备份吗？当前数据将被替换。</string>
+    <string name="om_backup_restored">已恢复</string>
+    <string name="om_backup_restore_failed">恢复失败：%1$s</string>
 </resources>

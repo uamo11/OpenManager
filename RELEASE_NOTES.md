@@ -1,3 +1,10 @@
+# OpenManager v2.0.36: Copias de Seguridad de Apps
+
+### 💾 Copia de seguridad y restauración de apps (root)
+- En el detalle de una app (Aplicaciones), **Copiar app y datos** guarda en `OpenManager/Backups/<app>/<fecha>/`: los **APK** (también los split), los **datos internos** sin sus cachés, los datos protegidos del dispositivo, **Android/data**, **Android/obb** y **Android/media**, cada uno en un `.tar.gz` (el mismo método que Android-DataBackup). La app se detiene mientras se copia, para que la copia quede consistente.
+- **Restaurar** reinstala la app si falta (con todos sus split) y devuelve sus datos: los archivos pasan al usuario de la app (aunque haya cambiado al reinstalar) y recuperan su etiqueta SELinux, sin lo cual la app no podría leerlos. Desde la misma lista se puede borrar una copia.
+- Necesita root: Shizuku no puede leer los datos privados de otras apps.
+
 # OpenManager v2.0.35: Aplicaciones más Rápida
 
 ### ⚡ Aplicaciones: abre más rápido

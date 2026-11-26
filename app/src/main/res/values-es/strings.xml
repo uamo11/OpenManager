@@ -3372,4 +3372,19 @@
     <string name="om_long_press_button_home">Inicio</string>
     <string name="om_long_press_no_search">Todavía no hay búsqueda</string>
     <string name="om_apps_needs_root_or_shizuku">Esto necesita root o Shizuku</string>
+    <string name="om_backup_section">COPIA DE SEGURIDAD</string>
+    <string name="om_backup_app">Copiar app y datos</string>
+    <string name="om_backup_app_desc">APK, datos, Android/data, obb y media en OpenManager/Backups</string>
+    <string name="om_backup_restore">Restaurar</string>
+    <string name="om_backup_restore_desc">Reinstala si falta y devuelve sus datos</string>
+    <string name="om_backup_working">Copiando…</string>
+    <string name="om_backup_restoring">Restaurando…</string>
+    <string name="om_backup_done">Copia guardada</string>
+    <string name="om_backup_failed">La copia falló</string>
+    <string name="om_backup_show_folder">Ver carpeta</string>
+    <string name="om_backup_none">Aún no hay copias de esta app</string>
+    <string name="om_backup_list_title">Copias de %1$s</string>
+    <string name="om_backup_restore_confirm">¿Restaurar esta copia de %1$s? Sus datos actuales se reemplazarán.</string>
+    <string name="om_backup_restored">Restaurada</string>
+    <string name="om_backup_restore_failed">Falló la restauración: %1$s</string>
 </resources>

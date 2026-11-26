@@ -2653,4 +2653,19 @@
     <string name="om_long_press_button_home">Trang chủ</string>
     <string name="om_long_press_no_search">Chưa có tìm kiếm</string>
     <string name="om_apps_needs_root_or_shizuku">Cần root hoặc Shizuku</string>
+    <string name="om_backup_section">SAO LƯU</string>
+    <string name="om_backup_app">Sao lưu ứng dụng và dữ liệu</string>
+    <string name="om_backup_app_desc">APK, dữ liệu, Android/data, obb và media vào OpenManager/Backups</string>
+    <string name="om_backup_restore">Khôi phục</string>
+    <string name="om_backup_restore_desc">Cài lại nếu thiếu và trả lại dữ liệu</string>
+    <string name="om_backup_working">Đang sao lưu…</string>
+    <string name="om_backup_restoring">Đang khôi phục…</string>
+    <string name="om_backup_done">Đã lưu bản sao lưu</string>
+    <string name="om_backup_failed">Sao lưu thất bại</string>
+    <string name="om_backup_show_folder">Xem thư mục</string>
+    <string name="om_backup_none">Chưa có bản sao lưu của ứng dụng này</string>
+    <string name="om_backup_list_title">Bản sao lưu của %1$s</string>
+    <string name="om_backup_restore_confirm">Khôi phục bản sao lưu này của %1$s? Dữ liệu hiện tại sẽ bị thay thế.</string>
+    <string name="om_backup_restored">Đã khôi phục</string>
+    <string name="om_backup_restore_failed">Khôi phục thất bại: %1$s</string>
 </resources>
