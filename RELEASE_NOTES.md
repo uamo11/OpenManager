@@ -1,4 +1,9 @@
-# OpenManager v2.0.38: Selección más Precisa
+# OpenManager v2.0.38: Barra Lateral sin Desplazar y Selección más Precisa
+
+### 🧭 Barra lateral más compacta
+- Las **herramientas** (APK, Aplicaciones, Apps en ejecución, Editor, Terminal, Conexiones y Papelera) son ahora una **cuadrícula de iconos**, 4 por fila, en lugar de una fila cada una: la barra cabe en pantalla sin bajar.
+- **Acerca de** y **Salir** quedan **fijos abajo**, siempre visibles.
+- **Ajustes** ya no aparece repetido: es el engranaje de arriba.
 
 ### 👆 Seleccionar solo deslizando
 - **Mantener presionado** un archivo (en el nombre o en el icono) abre su menú, pero **ya no lo selecciona**: al cerrar el menú no queda nada marcado. Para seleccionar se **desliza hacia la derecha**.

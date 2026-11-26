@@ -1274,11 +1274,6 @@ class FileListActivity : AppActivity() {
             }
         }
 
-        findViewById<View>(R.id.drawerItemSettings).setOnClickListener {
-            drawerLayout.closeDrawer(GravityCompat.START)
-            startActivity(Intent(this, SettingsActivity::class.java))
-        }
-
         findViewById<View>(R.id.drawerItemAbout).setOnClickListener {
             drawerLayout.closeDrawer(GravityCompat.START)
             startActivity(Intent(this, AboutActivity::class.java))
@@ -1853,7 +1848,9 @@ class FileListActivity : AppActivity() {
                     left = drawerHeaderBasePadding[0] + insetLeft,
                     top = drawerHeaderBasePadding[1] + statusBarInset
                 )
-                findViewById<View>(R.id.drawerScrollView)?.updatePadding(
+                findViewById<View>(R.id.drawerScrollView)?.updatePadding(left = insetLeft)
+                // About and Exit are pinned below the list: they sit above the navigation bar.
+                findViewById<View>(R.id.drawerFooter)?.updatePadding(
                     left = insetLeft,
                     bottom = newNavBarBottom
                 )
@@ -2326,6 +2323,7 @@ class FileListActivity : AppActivity() {
         val drawerView = findViewById<View>(R.id.navigationDrawerView) ?: return
         drawerView.setBackgroundColor(palette.drawerBg)
         findViewById<View>(R.id.layoutDrawerHeader)?.setBackgroundColor(palette.drawerHeaderBg)
+        findViewById<View>(R.id.drawerFooterDivider)?.setBackgroundColor(palette.dividerLineColor)
         findViewById<ImageView>(R.id.btnDrawerSettings)?.let {
             ImageViewCompat.setImageTintList(it, ColorStateList.valueOf(palette.iconTint))
         }

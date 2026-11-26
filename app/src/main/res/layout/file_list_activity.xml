@@ -660,7 +660,9 @@
                     android:layout_height="wrap_content"
                     android:orientation="vertical" />
 
-                <!-- Section: Tools -->
+                <!-- Section: Tools. A grid of tiles (4 across) instead of one row each, so the whole
+                     drawer fits without scrolling; Settings is the gear in the header, and About
+                     and Exit stay pinned at the bottom. -->
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="32dp"
@@ -673,328 +675,367 @@
                     android:textSize="11.5sp"
                     android:textStyle="bold" />
 
-                <!-- APK Tools / Apktool -->
-                <LinearLayout
-                    android:id="@+id/drawerItemApktool"
+                <GridLayout
+                    android:id="@+id/drawerToolsGrid"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                    android:layout_height="wrap_content"
+                    android:columnCount="4"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:useDefaultMargins="false">
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_apktool"
-                            app:tint="#4CAF50" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- APK Tools / Apktool -->
+                    <LinearLayout
+                        android:id="@+id/drawerItemApktool"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_nav_apktool_tools"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
-                <!-- Installed Apps (MT Manager Extractor) -->
-                <LinearLayout
-                    android:id="@+id/drawerItemInstalledApps"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_apktool"
+                                app:tint="#4CAF50" />
+                        </FrameLayout>
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_apps_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/om_nav_apktool_tools"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Installed Apps -->
+                    <LinearLayout
+                        android:id="@+id/drawerItemInstalledApps"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/navigation_installed_apps"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
-                <!-- Running Apps (App Manager System) -->
-                <LinearLayout
-                    android:id="@+id/drawerItemRunningApps"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_apps_white_24dp"
+                                app:tint="#DCDCDC" />
+                        </FrameLayout>
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="22dp"
-                            android:layout_height="22dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_running_apps_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/navigation_installed_apps"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Running Apps -->
+                    <LinearLayout
+                        android:id="@+id/drawerItemRunningApps"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/navigation_running_apps"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
-                <!-- Text Editor -->
-                <LinearLayout
-                    android:id="@+id/drawerItemTextEditor"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_running_apps_white_24dp"
+                                app:tint="#DCDCDC" />
+                        </FrameLayout>
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/file_text_icon"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/navigation_running_apps"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:id="@+id/drawerItemTextEditor"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_nav_text_editor"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
-                <!-- Terminal -->
-                <LinearLayout
-                    android:id="@+id/drawerItemTerminal"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/file_text_icon"
+                                app:tint="#DCDCDC" />
+                        </FrameLayout>
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/terminal_icon_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/om_nav_text_editor"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Terminal (long press: SSH/Telnet profiles) -->
+                    <LinearLayout
+                        android:id="@+id/drawerItemTerminal"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_nav_terminal"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
-                <!-- Connections hub (SSH, Telnet, FTP, SFTP, SMB, WebDAV, FTP server) -->
-                <LinearLayout
-                    android:id="@+id/drawerItemConnections"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/ic_conn_hub"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/terminal_icon_white_24dp"
+                                app:tint="#DCDCDC" />
+                        </FrameLayout>
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/om_nav_terminal"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Connections hub (SSH, Telnet, FTP, SFTP, SMB, WebDAV, FTP server) -->
+                    <LinearLayout
+                        android:id="@+id/drawerItemConnections"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_connections_title"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_conn_hub"
+                                app:tint="#DCDCDC" />
+                        </FrameLayout>
 
-                <!-- Recycle Bin (Papelera de reciclaje) -->
-                <LinearLayout
-                    android:id="@+id/drawerItemRecycleBin"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/om_connections_title"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/delete_icon_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Recycle Bin (hidden while it is turned off) -->
+                    <LinearLayout
+                        android:id="@+id/drawerItemRecycleBin"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/drawer_item_recycle_bin_title"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        android:layout_columnWeight="1"
+                        android:background="?selectableItemBackground"
+                        android:gravity="center_horizontal"
+                        android:minHeight="76dp"
+                        android:orientation="vertical"
+                        android:paddingStart="2dp"
+                        android:paddingTop="8dp"
+                        android:paddingEnd="2dp"
+                        android:paddingBottom="6dp">
 
-                <!-- Settings -->
-                <LinearLayout
-                    android:id="@+id/drawerItemSettings"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
+                        <FrameLayout
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:background="@drawable/drawer_icon_circle">
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/delete_icon_white_24dp"
+                                app:tint="#DCDCDC" />
+                        </FrameLayout>
 
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/settings_icon_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_nav_settings"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
-
-                <!-- About -->
-                <LinearLayout
-                    android:id="@+id/drawerItemAbout"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
-
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/about_icon_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_nav_about"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
-
-                <!-- Exit -->
-                <LinearLayout
-                    android:id="@+id/drawerItemExit"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:background="?selectableItemBackground"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp">
-
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/drawer_icon_circle">
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:layout_gravity="center"
-                            android:src="@drawable/exit_to_app_icon_white_24dp"
-                            app:tint="#DCDCDC" />
-                    </FrameLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="14dp"
-                        android:text="@string/om_menu_exit"
-                        android:textColor="#FFFFFF"
-                        android:textSize="13.5sp" />
-                </LinearLayout>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp"
+                            android:ellipsize="end"
+                            android:gravity="center_horizontal"
+                            android:lineSpacingMultiplier="0.95"
+                            android:maxLines="2"
+                            android:text="@string/drawer_item_recycle_bin_title"
+                            android:textColor="#FFFFFF"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </GridLayout>
 
             </LinearLayout>
         </ScrollView>
+
+        <!-- Always visible, whatever the drawer holds above. -->
+        <View
+            android:id="@+id/drawerFooterDivider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#3D3D3D" />
+
+        <LinearLayout
+            android:id="@+id/drawerFooter"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:id="@+id/drawerItemAbout"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="?selectableItemBackground"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/about_icon_white_24dp"
+                    app:tint="#DCDCDC" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/om_nav_about"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13.5sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/drawerItemExit"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="?selectableItemBackground"
+                android:gravity="center"
+                android:orientation="horizontal"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/exit_to_app_icon_white_24dp"
+                    app:tint="#DCDCDC" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/om_menu_exit"
+                    android:textColor="#FFFFFF"
+                    android:textSize="13.5sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>
