@@ -13,6 +13,9 @@
 ### 📦 payload.bin: ver su contenido sin extraer
 - Al tocar un **`payload.bin`** de una OTA de Android se ven sus **particiones** (boot, system, vendor…), el tamaño de cada una, cómo está comprimida (xz, zstd, bz2…) y cuántas operaciones tiene, además de si la OTA es completa o incremental. Solo se lee el índice del principio del archivo (unos KB), nunca los gigabytes de datos: es instantáneo, también dentro del zip de la OTA. Botón para copiar la lista.
 
+### 🖼️ PNG transparentes
+- Las imágenes **PNG y WebP con transparencia** se muestran sobre un **fondo de cuadritos** (como en los editores de imagen) en lugar de negro, así se ve qué parte es transparente. Solo detrás de la imagen, no en los bordes, y también en imágenes enormes.
+
 ### 🧾 Subtítulos que no se cortan
 - El subtítulo del **visor DOCX** (palabras y tiempo de lectura) quedaba cortado bajo la barra; igual en el editor **ARSC**, el visor **SQLite** y el **informe de cierres**. Ahora la barra crece lo necesario.
 

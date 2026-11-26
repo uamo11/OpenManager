@@ -116,8 +116,23 @@ class ImageViewerAdapter(
         } else {
             0
         }
+        val transparent = try {
+            newInputStream().use { input ->
+                val header = ByteArray(64 * 1024)
+                var read = 0
+                while (read < header.size) {
+                    val n = input.read(header, read, header.size - read)
+                    if (n < 0) break
+                    read += n
+                }
+                ImageDisplayPlan.hasTransparency(header.copyOf(read))
+            }
+        } catch (e: Exception) {
+            false
+        }
         return ImageInfo(
-            attributes, bitmapOptions.outWidth, bitmapOptions.outHeight, actualMimeType, rotation
+            attributes, bitmapOptions.outWidth, bitmapOptions.outHeight, actualMimeType, rotation,
+            transparent
         )
     }
 
@@ -154,7 +169,22 @@ class ImageViewerAdapter(
                 precision(Precision.INEXACT)
                 fadeIn(context.shortAnimTime)
                 listener(
-                    onSuccess = { _, _ -> binding.progress.fadeOutUnsafe() },
+                    onSuccess = { _, result ->
+                        binding.progress.fadeOutUnsafe()
+                        if (imageInfo.hasTransparency) {
+                            // Under the image only (not the letterbox), zooming with it.
+                            val image = result.drawable
+                            val w = image.intrinsicWidth.coerceAtLeast(1)
+                            val h = image.intrinsicHeight.coerceAtLeast(1)
+                            val square = maxOf(w, h) / 48f
+                            binding.image.setImageDrawable(
+                                android.graphics.drawable.LayerDrawable(
+                                    arrayOf(me.zhanghai.android.files.ui.CheckerboardDrawable(w, h, square), image)
+                                )
+                            )
+                            Log.i(TAG, "transparent image: checkerboard behind it")
+                        }
+                    },
                     onError = { _, result -> showError(binding, result.throwable) }
                 )
             }
@@ -163,6 +193,7 @@ class ImageViewerAdapter(
 
     private fun loadAsTiles(binding: ImageViewerItemBinding, path: Path, imageInfo: ImageInfo) {
         binding.largeImage.apply {
+            transparencyBackground = imageInfo.hasTransparency
             setDoubleTapZoomDuration(300)
             orientation = imageInfo.rotation
             // Otherwise OnImageEventListener.onReady() is never called.
@@ -225,6 +256,8 @@ class ImageViewerAdapter(
         val height: Int,
         val mimeType: MimeType,
         /** Clockwise degrees from EXIF, as [SubsamplingScaleImageView] orientation. */
-        val rotation: Int
+        val rotation: Int,
+        /** PNG/WebP that can have transparent pixels: shown over a checkerboard. */
+        val hasTransparency: Boolean = false
     )
 }

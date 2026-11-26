@@ -18,6 +18,39 @@ import kotlin.math.max
  */
 object ImageDisplayPlan {
 
+    /**
+     * Whether the file can have transparent pixels, from its first bytes: PNG with an alpha color
+     * type or a tRNS chunk, WebP with the alpha flag. Those get a checkerboard behind them.
+     */
+    fun hasTransparency(header: ByteArray): Boolean {
+        fun u32(at: Int): Long =
+            if (at + 4 > header.size) -1 else ((header[at].toLong() and 0xFF) shl 24) or
+                ((header[at + 1].toLong() and 0xFF) shl 16) or ((header[at + 2].toLong() and 0xFF) shl 8) or
+                (header[at + 3].toLong() and 0xFF)
+        fun tag(at: Int): String =
+            if (at + 4 > header.size) "" else String(header, at, 4, Charsets.ISO_8859_1)
+        val png = byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte())
+        if (header.size >= 26 && header.copyOfRange(0, 4).contentEquals(png)) {
+            // IHDR color type: 4 = gray + alpha, 6 = RGBA.
+            val colorType = header[25].toInt() and 0xFF
+            if (colorType == 4 || colorType == 6) return true
+            var at = 8
+            while (at + 8 <= header.size) {
+                val length = u32(at)
+                val type = tag(at + 4)
+                if (length < 0 || type == "IDAT" || type == "IEND") return false
+                if (type == "tRNS") return true
+                at += 12 + length.toInt()
+            }
+            return false
+        }
+        if (tag(0) == "RIFF" && tag(8) == "WEBP" && tag(12) == "VP8X" && header.size > 20) {
+            return header[20].toInt() and 0x10 != 0
+        }
+        return false
+    }
+
+
     enum class Mode { BITMAP, TILES }
 
     /** @see android.graphics.RecordingCanvas.MAX_BITMAP_SIZE */

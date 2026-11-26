@@ -3073,6 +3073,51 @@ if app_crashed "$OUT/logcat_payload.txt"; then fail "crash opening payload.bin";
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_ota
 
+log "=== Transparent PNG: shown over a checkerboard (user request) ==="
+python3 - "$OUT/om_transparent.png" <<'PY2'
+import struct, sys, zlib
+w = h = 64
+rows = b"".join(b"\x00" + b"".join(bytes((255, 0, 0, 255 if (x - 32) ** 2 + (y - 32) ** 2 < 400 else 0)) for x in range(w)) for y in range(h))
+def chunk(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d) & 0xffffffff)
+png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)) + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b"")
+open(sys.argv[1], "wb").write(png)
+PY2
+adb push "$OUT/om_transparent.png" /sdcard/Pictures/om_transparent.png >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n $PKG/me.zhanghai.android.files.viewer.image.ImageViewerActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/Pictures/om_transparent.png" >/dev/null 2>&1
+sleep 5
+shot 21d_transparent_png
+adb exec-out screencap > "$OUT/transparent.raw" 2>/dev/null
+checker=$(adb logcat -d -s OMImageViewer 2>/dev/null | grep -c "checkerboard behind it" || true)
+# The center of the screen shows the red circle; around it, inside the image, light checker squares.
+read -r t_sat t_dark t_light <<< "$(python3 - "$OUT/transparent.raw" <<'PY2'
+import struct, sys
+raw = open(sys.argv[1], "rb").read()
+w, h = struct.unpack("<II", raw[:8]); hd = len(raw) - w * h * 4
+cx, cy = w // 2, h // 2
+# A band halfway between the circle and the image edge (image fills the width).
+sat = dark = light = 0
+for y in range(cy - w * 7 // 16, cy - w * 3 // 8, 2):
+    for x in range(w // 8, w * 7 // 8, 2):
+        o = hd + (y * w + x) * 4
+        r, g, b = raw[o], raw[o + 1], raw[o + 2]
+        lum = 0.299 * r + 0.587 * g + 0.114 * b
+        if lum < 90: dark += 1
+        if lum > 200: light += 1
+print(sat, dark, light)
+PY2
+)"
+log "      transparent PNG: checkerboard logged=$checker, light pixels around the circle=$t_light dark=$t_dark"
+if [ "${checker:-0}" -ge 1 ] && [ "${t_light:-0}" -gt "${t_dark:-0}" ]; then
+    pass "a transparent PNG is shown over a checkerboard, not black"
+else
+    fail "the transparent PNG has no checkerboard (logged=$checker light=$t_light dark=$t_dark)"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -f /sdcard/Pictures/om_transparent.png
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib
