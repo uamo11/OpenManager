@@ -9,6 +9,9 @@
 - **Mantener presionado** un archivo (en el nombre o en el icono) abre su menú, pero **ya no lo selecciona**: al cerrar el menú no queda nada marcado. Para seleccionar se **desliza hacia la derecha**.
 - En la **vista galería** (miniaturas de video y fotos sin nombre), desplazar la lista con un gesto algo inclinado ya no selecciona sin querer. Tampoco selecciona tocar la lista mientras se sigue moviendo. Un deslizamiento claro hacia la derecha sigue seleccionando.
 
+### ⚡ Menos hilos dormidos
+- Los hilos que cargan carpetas (locales y remotas) y los nombres de las apps ahora **se cierran solos tras 20 s sin trabajo**. Antes se quedaban vivos para siempre: tras abrir una carpeta remota grande (SFTP/SMB) quedaban **24 hilos parados** ocupando memoria. La velocidad de carga es la misma.
+
 ### 📦 Resaltado más suave al volver
 - Al salir de un zip (o al localizar un archivo), la fila de la que vienes se marca con un tono **mucho más suave** que una selección, con su rayita lateral. Ya no parece que esté seleccionada.
 

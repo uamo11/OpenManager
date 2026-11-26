@@ -34,20 +34,30 @@ object FileSystemProviders {
     var overflowWatchEvents = false
 
     fun install() {
-        FileSystemProvider.installDefaultProvider(LinuxFileSystemProvider)
-        FileSystemProvider.installProvider(ArchiveFileSystemProvider)
-        if (!isRunningAsRoot) {
-            FileSystemProvider.installProvider(ContentFileSystemProvider)
-            FileSystemProvider.installProvider(DocumentFileSystemProvider)
-            FileSystemProvider.installProvider(FtpFileSystemProvider)
-            FileSystemProvider.installProvider(FtpsFileSystemProvider)
-            FileSystemProvider.installProvider(FtpesFileSystemProvider)
-            FileSystemProvider.installProvider(SftpFileSystemProvider)
-            FileSystemProvider.installProvider(SmbFileSystemProvider)
-            FileSystemProvider.installProvider(WebDavFileSystemProvider)
-            FileSystemProvider.installProvider(WebDavsFileSystemProvider)
+        // Debug builds log what each provider costs (tag OMStartup): together they are most of
+        // the app's own start-up work on the main thread.
+        val timed = me.zhanghai.android.files.BuildConfig.DEBUG
+        fun step(name: String, block: () -> Unit) {
+            if (!timed) return block()
+            val start = android.os.SystemClock.elapsedRealtimeNanos()
+            block()
+            val us = (android.os.SystemClock.elapsedRealtimeNanos() - start) / 1_000
+            android.util.Log.i("OMStartup", "  provider $name: ${us / 1000}.${us % 1000 / 100} ms")
         }
-        Files.installFileTypeDetector(AndroidFileTypeDetector)
+        step("linux") { FileSystemProvider.installDefaultProvider(LinuxFileSystemProvider) }
+        step("archive") { FileSystemProvider.installProvider(ArchiveFileSystemProvider) }
+        if (!isRunningAsRoot) {
+            step("content") { FileSystemProvider.installProvider(ContentFileSystemProvider) }
+            step("document") { FileSystemProvider.installProvider(DocumentFileSystemProvider) }
+            step("ftp") { FileSystemProvider.installProvider(FtpFileSystemProvider) }
+            step("ftps") { FileSystemProvider.installProvider(FtpsFileSystemProvider) }
+            step("ftpes") { FileSystemProvider.installProvider(FtpesFileSystemProvider) }
+            step("sftp") { FileSystemProvider.installProvider(SftpFileSystemProvider) }
+            step("smb") { FileSystemProvider.installProvider(SmbFileSystemProvider) }
+            step("webdav") { FileSystemProvider.installProvider(WebDavFileSystemProvider) }
+            step("webdavs") { FileSystemProvider.installProvider(WebDavsFileSystemProvider) }
+        }
+        step("type detector") { Files.installFileTypeDetector(AndroidFileTypeDetector) }
     }
 
     operator fun get(scheme: String): FileSystemProvider {

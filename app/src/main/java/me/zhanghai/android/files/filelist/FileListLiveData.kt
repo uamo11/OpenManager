@@ -19,12 +19,12 @@ import me.zhanghai.android.files.provider.linux.LinuxPath
 import me.zhanghai.android.files.provider.linux.isLinuxPath
 import me.zhanghai.android.files.util.CloseableLiveData
 import me.zhanghai.android.files.util.Failure
+import me.zhanghai.android.files.util.IdleThreadPools
 import me.zhanghai.android.files.util.Loading
 import me.zhanghai.android.files.util.Stateful
 import me.zhanghai.android.files.util.Success
 import java.io.IOException
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -274,12 +274,14 @@ class FileListLiveData(private val path: Path) : CloseableLiveData<Stateful<List
         private const val PARALLEL_LOAD_THRESHOLD = 256
         private val PARALLEL_WORKER_COUNT =
             Runtime.getRuntime().availableProcessors().coerceIn(2, 4)
-        private val DIRECTORY_LOAD_EXECUTOR: ExecutorService = Executors.newFixedThreadPool(4)
+        // Threads end when idle (IdleThreadPools): fixed pools kept them for the whole process.
+        private val DIRECTORY_LOAD_EXECUTOR: ExecutorService =
+            IdleThreadPools.fixed("OMDirLoad", 4)
         private val ITEM_LOADER_EXECUTOR: ExecutorService =
-            Executors.newFixedThreadPool(PARALLEL_WORKER_COUNT)
+            IdleThreadPools.fixed("OMItemLoad", PARALLEL_WORKER_COUNT)
         private const val REMOTE_PARALLEL_LOAD_THRESHOLD = 24
         private const val REMOTE_WORKER_COUNT = 24
         private val REMOTE_ITEM_LOADER_EXECUTOR: ExecutorService =
-            Executors.newFixedThreadPool(REMOTE_WORKER_COUNT)
+            IdleThreadPools.fixed("OMRemoteLoad", REMOTE_WORKER_COUNT)
     }
 }

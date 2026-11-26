@@ -9,7 +9,6 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 
 object AppMetadataCache {
     private const val MAX_CACHE_ENTRIES = 2000
@@ -17,7 +16,8 @@ object AppMetadataCache {
     private val labelCache = ConcurrentHashMap<String, String>(256)
     private val installedCache = ConcurrentHashMap<String, Boolean>(256)
     private val inFlight = ConcurrentHashMap.newKeySet<String>()
-    private val lookupExecutor = Executors.newFixedThreadPool(2)
+    private val lookupExecutor =
+        me.zhanghai.android.files.util.IdleThreadPools.fixed("OMAppMeta", 2)
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
 
     @Volatile
