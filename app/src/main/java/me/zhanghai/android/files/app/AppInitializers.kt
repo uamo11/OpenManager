@@ -107,10 +107,20 @@ private fun disableHiddenApiChecks() {
 private fun initializeFileSystemProviders() {
     FileSystemProviders.install()
     FileSystemProviders.overflowWatchEvents = true
-    FtpClient.authenticator = FtpServerAuthenticator
-    SftpClient.authenticator = SftpServerAuthenticator
-    SmbClient.authenticator = SmbServerAuthenticator
-    WebDavClient.authenticator = WebDavServerAuthenticator
+    // Debug builds time each client (tag OMStartup): setting an authenticator loads the
+    // client object of that protocol, which may cost more than its provider.
+    val timed = me.zhanghai.android.files.BuildConfig.DEBUG
+    fun step(name: String, block: () -> Unit) {
+        if (!timed) return block()
+        val start = android.os.SystemClock.elapsedRealtimeNanos()
+        block()
+        val us = (android.os.SystemClock.elapsedRealtimeNanos() - start) / 1_000
+        android.util.Log.i("OMStartup", "  client $name: ${us / 1000}.${us % 1000 / 100} ms")
+    }
+    step("ftp") { FtpClient.authenticator = FtpServerAuthenticator }
+    step("sftp") { SftpClient.authenticator = SftpServerAuthenticator }
+    step("smb") { SmbClient.authenticator = SmbServerAuthenticator }
+    step("webdav") { WebDavClient.authenticator = WebDavServerAuthenticator }
 }
 
 private fun initializeLiveDataObjects() {
