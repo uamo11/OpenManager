@@ -778,7 +778,7 @@
     <string name="crash_report_system_info_title">Informações do sistema</string>
     <string name="crash_report_stacktrace_title">Stack trace da exceção</string>
     <string name="settings_view_error_logs_title">Logs de erro</string>
-    <string name="settings_view_error_logs_summary">Veja os relatórios de erros e falhas em /storage/emulated/0/OpenManager/logs</string>
+    <string name="settings_view_error_logs_summary">Veja os relatórios de erros e falhas em /storage/emulated/0/OM2/logs</string>
     <string name="notification_channel_apktool_name">Operações do Apktool</string>
     <string name="notification_channel_apktool_description">Mostra e controla a descompilação e recompilação do Apktool</string>
     <string name="apktool_cancel">Cancelar</string>
@@ -1215,7 +1215,7 @@
     <string name="om_pdf_page_error_format">Erro na página %1$d</string>
     <string name="om_update_installer_error_format">Erro ao abrir o instalador: %1$s</string>
     <string name="om_crash_unknown_error">Erro desconhecido</string>
-    <string name="om_crash_log_default_path">Log salvo em /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">Log salvo em /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">Dispositivo: %1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">Thread: %1$s</string>
     <string name="om_crash_error_format">Erro: %1$s</string>
@@ -2566,7 +2566,7 @@
     <string name="om_apps_needs_root_or_shizuku">Isto precisa de root ou Shizuku</string>
     <string name="om_backup_section">BACKUP</string>
     <string name="om_backup_app">Fazer backup do app e dados</string>
-    <string name="om_backup_app_desc">APK, dados, Android/data, obb e media em OpenManager/Backups</string>
+    <string name="om_backup_app_desc">APK, dados, Android/data, obb e media em OM2/Backups</string>
     <string name="om_backup_restore">Restaurar</string>
     <string name="om_backup_restore_desc">Reinstala se faltar e devolve os dados</string>
     <string name="om_backup_working">Fazendo backup…</string>

@@ -15,19 +15,19 @@ import java.util.zip.ZipInputStream
 object ApktoolPaths {
 
     /**
-     * Resolves the primary OpenManager/ApkTool base directory.
-     * Uses /storage/emulated/0/OpenManager/ApkTool if accessible, with fallback to external files.
+     * Resolves the primary OM2/ApkTool base directory.
+     * Uses /storage/emulated/0/OM2/ApkTool if accessible, with fallback to external files.
      */
     fun getApktoolBaseDir(): File {
         val candidates = mutableListOf<File>()
-        candidates.add(File("/storage/emulated/0/OpenManager/ApkTool"))
+        candidates.add(File("/storage/emulated/0/OM2/ApkTool"))
         try {
-            candidates.add(File(Environment.getExternalStorageDirectory(), "OpenManager/ApkTool"))
+            candidates.add(File(Environment.getExternalStorageDirectory(), "OM2/ApkTool"))
         } catch (ignored: Throwable) {}
         try {
             val ext = application.getExternalFilesDir(null)
             if (ext != null) {
-                candidates.add(File(ext, "OpenManager/ApkTool"))
+                candidates.add(File(ext, "OM2/ApkTool"))
             }
         } catch (ignored: Throwable) {}
 
@@ -41,7 +41,7 @@ object ApktoolPaths {
                 }
             } catch (ignored: Throwable) {}
         }
-        val fallback = File("/storage/emulated/0/OpenManager/ApkTool")
+        val fallback = File("/storage/emulated/0/OM2/ApkTool")
         try { fallback.mkdirs() } catch (ignored: Throwable) {}
         return fallback
     }
@@ -94,7 +94,7 @@ object ApktoolPaths {
     }
 
     /**
-     * Directory dedicated to a specific package under OpenManager/ApkTool/<packageName>
+     * Directory dedicated to a specific package under OM2/ApkTool/<packageName>
      */
     fun getPackageDir(packageName: String): File {
         val base = getApktoolBaseDir()
@@ -117,7 +117,7 @@ object ApktoolPaths {
 
     /**
      * Target directory for Java (JADX) decompilation:
-     * OpenManager/ApkTool/<packageName>/decomp_java
+     * OM2/ApkTool/<packageName>/decomp_java
      */
     fun getJavaDecompileDir(packageName: String): File {
         return File(getPackageDir(packageName), "decomp_java")
@@ -125,7 +125,7 @@ object ApktoolPaths {
 
     /**
      * Target directory for Apktool source decompilation:
-     * OpenManager/ApkTool/<packageName>/decomp_src
+     * OM2/ApkTool/<packageName>/decomp_src
      */
     fun getApktoolDecompileDir(packageName: String): File {
         return File(getPackageDir(packageName), "decomp_src")
@@ -133,7 +133,7 @@ object ApktoolPaths {
 
     /**
      * Target recompiled unsigned APK path:
-     * OpenManager/ApkTool/<packageName>/<packageName>_recompiled.apk
+     * OM2/ApkTool/<packageName>/<packageName>_recompiled.apk
      */
     fun getRecompiledApkFile(packageName: String): File {
         return File(getPackageDir(packageName), "${packageName}_recompiled.apk")
@@ -141,7 +141,7 @@ object ApktoolPaths {
 
     /**
      * Target signed APK path:
-     * OpenManager/ApkTool/<packageName>/<packageName>_recompiled_signed.apk
+     * OM2/ApkTool/<packageName>/<packageName>_recompiled_signed.apk
      */
     fun getSignedApkFile(packageName: String): File {
         return File(getPackageDir(packageName), "${packageName}_recompiled_signed.apk")

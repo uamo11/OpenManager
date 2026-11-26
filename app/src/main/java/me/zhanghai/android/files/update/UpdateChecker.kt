@@ -262,7 +262,7 @@ object UpdateChecker {
             val currentVersionCode = BuildConfig.VERSION_CODE.toLong()
             val now = System.currentTimeMillis()
             val updatesDirs = listOf(
-                File("/storage/emulated/0/OpenManager/updates"),
+                File("/storage/emulated/0/OM2/updates"),
                 File(context.cacheDir, "updates")
             )
 
@@ -1012,7 +1012,7 @@ object UpdateChecker {
     }
 
     private fun resolveUpdatesDir(context: Context): File {
-        val baseDir = File("/storage/emulated/0/OpenManager/updates")
+        val baseDir = File("/storage/emulated/0/OM2/updates")
         return if (baseDir.exists() || baseDir.mkdirs()) {
             baseDir
         } else {
@@ -1042,7 +1042,7 @@ object UpdateChecker {
         val fileName = releaseInfo.targetAsset.name
         val expectedSize = releaseInfo.targetAsset.size
         val candidates = listOf(
-            File("/storage/emulated/0/OpenManager/updates", fileName),
+            File("/storage/emulated/0/OM2/updates", fileName),
             File(File(context.cacheDir, "updates"), fileName)
         )
         return candidates.firstOrNull { isValidDownloadedApk(context, it, expectedSize) }

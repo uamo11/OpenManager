@@ -175,7 +175,7 @@
     <bool name="pref_default_value_enable_input_box_favorites">false</bool>
     <string name="pref_key_sort_file_menu">key_sort_file_menu</string>
     <string name="pref_key_custom_openmanager_dir">key_custom_openmanager_dir</string>
-    <string name="pref_default_value_custom_openmanager_dir">/storage/emulated/0/OpenManager</string>
+    <string name="pref_default_value_custom_openmanager_dir">/storage/emulated/0/OM2</string>
 
     <!-- MT Manager Recycle Bin Preferences -->
     <string name="pref_key_move_to_recycle_bin_on_delete">key_move_to_recycle_bin_on_delete</string>

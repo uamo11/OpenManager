@@ -779,7 +779,7 @@
     <string name="crash_report_system_info_title">系统信息</string>
     <string name="crash_report_stacktrace_title">异常堆栈</string>
     <string name="settings_view_error_logs_title">错误日志</string>
-    <string name="settings_view_error_logs_summary">查看 /storage/emulated/0/OpenManager/logs 中的错误和崩溃报告</string>
+    <string name="settings_view_error_logs_summary">查看 /storage/emulated/0/OM2/logs 中的错误和崩溃报告</string>
     <string name="notification_channel_apktool_name">Apktool 操作</string>
     <string name="notification_channel_apktool_description">显示和控制 Apktool 反编译与回编译</string>
     <string name="apktool_cancel">取消</string>
@@ -1216,7 +1216,7 @@
     <string name="om_pdf_page_error_format">第 %1$d 页出错</string>
     <string name="om_update_installer_error_format">启动安装程序出错：%1$s</string>
     <string name="om_crash_unknown_error">未知错误</string>
-    <string name="om_crash_log_default_path">日志已保存到 /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">日志已保存到 /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">设备：%1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">线程：%1$s</string>
     <string name="om_crash_error_format">错误：%1$s</string>
@@ -2560,7 +2560,7 @@
     <string name="om_apps_needs_root_or_shizuku">此操作需要 root 或 Shizuku</string>
     <string name="om_backup_section">备份</string>
     <string name="om_backup_app">备份应用和数据</string>
-    <string name="om_backup_app_desc">APK、数据、Android/data、obb 和 media 保存到 OpenManager/Backups</string>
+    <string name="om_backup_app_desc">APK、数据、Android/data、obb 和 media 保存到 OM2/Backups</string>
     <string name="om_backup_restore">恢复</string>
     <string name="om_backup_restore_desc">缺失时重新安装并恢复其数据</string>
     <string name="om_backup_working">正在备份…</string>

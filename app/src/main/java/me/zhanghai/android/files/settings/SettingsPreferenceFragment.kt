@@ -100,7 +100,7 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
 
         findPreference<Preference>(getString(R.string.pref_key_view_error_logs))?.setOnPreferenceClickListener {
             val logsDir = me.zhanghai.android.files.app.CrashHandler.ensureLogsDirectory()
-                ?: java.io.File("/storage/emulated/0/OpenManager/logs")
+                ?: java.io.File("/storage/emulated/0/OM2/logs")
             if (!logsDir.exists()) {
                 logsDir.mkdirs()
             }

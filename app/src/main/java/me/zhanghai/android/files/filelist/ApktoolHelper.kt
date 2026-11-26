@@ -74,7 +74,7 @@ object ApktoolHelper {
 
     /**
      * Decompiles an APK using Apktool into:
-     * OpenManager/ApkTool/<packageName>/decomp_src
+     * OM2/ApkTool/<packageName>/decomp_src
      */
     fun decompileApk(
         activity: Activity,
@@ -113,7 +113,7 @@ object ApktoolHelper {
 
     /**
      * Decompiles an APK directly to Java source files using JADX into:
-     * OpenManager/ApkTool/<packageName>/decomp_java
+     * OM2/ApkTool/<packageName>/decomp_java
      */
     fun decompileJava(
         activity: Activity,
@@ -152,7 +152,7 @@ object ApktoolHelper {
 
     /**
      * Recompiles an Apktool project folder into:
-     * OpenManager/ApkTool/<packageName>/<packageName>_recompiled.apk
+     * OM2/ApkTool/<packageName>/<packageName>_recompiled.apk
      */
     fun recompileApk(
         activity: Activity,

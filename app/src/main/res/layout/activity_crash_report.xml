@@ -77,7 +77,7 @@
                         android:textAppearance="?attr/textAppearanceBody2"
                         android:textColor="?android:attr/textColorSecondary"
                         android:textIsSelectable="true"
-                        tools:text="El informe de error se ha guardado en:\n/storage/emulated/0/OpenManager/logs/crash_20261030.log" />
+                        tools:text="El informe de error se ha guardado en:\n/storage/emulated/0/OM2/logs/crash_20261030.log" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

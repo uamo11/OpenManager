@@ -778,7 +778,7 @@
     <string name="crash_report_system_info_title">Сведения о системе</string>
     <string name="crash_report_stacktrace_title">Стек исключения</string>
     <string name="settings_view_error_logs_title">Журналы ошибок</string>
-    <string name="settings_view_error_logs_summary">Отчёты об ошибках и сбоях в /storage/emulated/0/OpenManager/logs</string>
+    <string name="settings_view_error_logs_summary">Отчёты об ошибках и сбоях в /storage/emulated/0/OM2/logs</string>
     <string name="notification_channel_apktool_name">Операции Apktool</string>
     <string name="notification_channel_apktool_description">Показ и управление декомпиляцией и пересборкой Apktool</string>
     <string name="apktool_cancel">Отмена</string>
@@ -1215,7 +1215,7 @@
     <string name="om_pdf_page_error_format">Ошибка на странице %1$d</string>
     <string name="om_update_installer_error_format">Ошибка запуска установщика: %1$s</string>
     <string name="om_crash_unknown_error">Неизвестная ошибка</string>
-    <string name="om_crash_log_default_path">Журнал сохранён в /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">Журнал сохранён в /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">Устройство: %1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">Поток: %1$s</string>
     <string name="om_crash_error_format">Ошибка: %1$s</string>
@@ -2580,7 +2580,7 @@
     <string name="om_apps_needs_root_or_shizuku">Нужен root или Shizuku</string>
     <string name="om_backup_section">РЕЗЕРВНАЯ КОПИЯ</string>
     <string name="om_backup_app">Резервная копия приложения и данных</string>
-    <string name="om_backup_app_desc">APK, данные, Android/data, obb и media в OpenManager/Backups</string>
+    <string name="om_backup_app_desc">APK, данные, Android/data, obb и media в OM2/Backups</string>
     <string name="om_backup_restore">Восстановить</string>
     <string name="om_backup_restore_desc">Переустанавливает при отсутствии и возвращает данные</string>
     <string name="om_backup_working">Резервное копирование…</string>

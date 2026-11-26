@@ -1641,7 +1641,7 @@
     <string name="crash_report_system_info_title">System Information</string>
     <string name="crash_report_stacktrace_title">Exception Stacktrace</string>
     <string name="settings_view_error_logs_title">Error Logs</string>
-    <string name="settings_view_error_logs_summary">View error and crash reports in /storage/emulated/0/OpenManager/logs</string>
+    <string name="settings_view_error_logs_summary">View error and crash reports in /storage/emulated/0/OM2/logs</string>
 
     <!-- Apktool Background Execution & Notifications -->
     <string name="notification_channel_apktool_name">Apktool operations</string>
@@ -2093,7 +2093,7 @@
     <string name="om_pdf_page_error_format">Page %1$d error</string>
     <string name="om_update_installer_error_format">Error starting installer: %1$s</string>
     <string name="om_crash_unknown_error">Unknown error</string>
-    <string name="om_crash_log_default_path">Log saved to /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">Log saved to /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">Device: %1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">Thread: %1$s</string>
     <string name="om_crash_error_format">Error: %1$s</string>
@@ -3477,7 +3477,7 @@
     <string name="om_apps_needs_root_or_shizuku">This needs root or Shizuku</string>
     <string name="om_backup_section">BACKUP</string>
     <string name="om_backup_app">Back up app and data</string>
-    <string name="om_backup_app_desc">APK, data, Android/data, obb and media to OpenManager/Backups</string>
+    <string name="om_backup_app_desc">APK, data, Android/data, obb and media to OM2/Backups</string>
     <string name="om_backup_restore">Restore</string>
     <string name="om_backup_restore_desc">Reinstall if missing and put its data back</string>
     <string name="om_backup_working">Backing up…</string>

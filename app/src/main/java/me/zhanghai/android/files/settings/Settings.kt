@@ -370,7 +370,7 @@ object Settings {
                     it.replaceFirst("/sdcard", Environment.getExternalStorageDirectory().absolutePath)
                 } else {
                     @Suppress("DEPRECATION")
-                    it.ifEmpty { Environment.getExternalStorageDirectory().absolutePath + "/OpenManager" }
+                    it.ifEmpty { Environment.getExternalStorageDirectory().absolutePath + "/OM2" }
                 }
             }
             return Paths.get(base, ".recycle")

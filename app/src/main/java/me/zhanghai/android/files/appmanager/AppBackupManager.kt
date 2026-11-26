@@ -14,7 +14,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * App backups: /sdcard/OpenManager/Backups/<package>/<date>/ with the APKs, one tar.gz per data
+ * App backups: /sdcard/OM2/Backups/<package>/<date>/ with the APKs, one tar.gz per data
  * folder and an info.json. The work is done by [AppBackupScripts] in a root shell, or through
  * Shizuku without root: then only the APKs and the shared folders (Android/data, obb, media),
  * since the app's private data cannot be read without root.
@@ -25,7 +25,7 @@ object AppBackupManager {
 
     class Result(val isSuccess: Boolean, val message: String, val privateData: Boolean = true)
 
-    val root: File get() = File(Environment.getExternalStorageDirectory(), "OpenManager/Backups")
+    val root: File get() = File(Environment.getExternalStorageDirectory(), "OM2/Backups")
 
     fun isAvailable(): Boolean = Shell.isAppGrantedRoot() == true
 

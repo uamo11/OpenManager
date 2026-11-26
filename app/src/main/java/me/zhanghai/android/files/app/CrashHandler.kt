@@ -64,7 +64,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
 
     /**
      * Public method to log handled exceptions (e.g. background tasks, file operations, editor errors)
-     * into /storage/emulated/0/OpenManager/logs/error_yyyyMMdd_HHmmss.log.
+     * into /storage/emulated/0/OM2/logs/error_yyyyMMdd_HHmmss.log.
      */
     fun logHandledException(throwable: Throwable, tag: String = "Error"): File? {
         return try {
@@ -167,7 +167,7 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
                 Log.i(TAG, "Log successfully written to: ${file.absolutePath}")
 
                 // Also maintain a copy in the base OpenManager directory for immediate visibility
-                val baseDir = File("/storage/emulated/0/OpenManager")
+                val baseDir = File("/storage/emulated/0/OM2")
                 if (baseDir.exists() && baseDir.canWrite() && targetDir != baseDir) {
                     val directFile = File(baseDir, fileName)
                     FileWriter(directFile).use { writer ->
@@ -238,18 +238,18 @@ object CrashHandler : Thread.UncaughtExceptionHandler {
                     custom
                 }
             } else {
-                "/storage/emulated/0/OpenManager"
+                "/storage/emulated/0/OM2"
             }
         } catch (t: Throwable) {
-            "/storage/emulated/0/OpenManager"
+            "/storage/emulated/0/OM2"
         }
 
         val candidates = listOf(
             File(basePath, "logs"),
-            File("/storage/emulated/0/OpenManager/logs"),
-            File(Environment.getExternalStorageDirectory(), "OpenManager/logs"),
+            File("/storage/emulated/0/OM2/logs"),
+            File(Environment.getExternalStorageDirectory(), "OM2/logs"),
             File(basePath),
-            File("/storage/emulated/0/OpenManager"),
+            File("/storage/emulated/0/OM2"),
             app.getExternalFilesDir("logs"),
             File(app.filesDir, "logs")
         )

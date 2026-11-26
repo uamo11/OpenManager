@@ -50,6 +50,7 @@ import me.zhanghai.android.files.provider.webdav.client.Client as WebDavClient
 
 val appInitializers = listOf(
     ::initializeCrashHandler,
+    ::migrateAppFolder,
     ::initializeLibSu,
     ::disableHiddenApiChecks,
     ::initializeFileSystemProviders,
@@ -102,6 +103,20 @@ private fun initializeLibSu() {
 
 private fun disableHiddenApiChecks() {
     HiddenApi.disableHiddenApiChecks()
+}
+
+private fun migrateAppFolder() {
+    // One stat when there is nothing to do; a single rename otherwise.
+    try {
+        @Suppress("DEPRECATION")
+        AppFolderMigration.migrate(android.os.Environment.getExternalStorageDirectory())
+        val key = application.getString(me.zhanghai.android.files.R.string.pref_key_custom_openmanager_dir)
+        val prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(application)
+        AppFolderMigration.migratedSetting(prefs.getString(key, null))?.let {
+            prefs.edit().putString(key, it).apply()
+        }
+    } catch (_: Throwable) {
+    }
 }
 
 private fun initializeFileSystemProviders() {

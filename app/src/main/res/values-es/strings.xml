@@ -1537,7 +1537,7 @@
     <string name="crash_report_system_info_title">Información del sistema</string>
     <string name="crash_report_stacktrace_title">Excepción / Traza de error</string>
     <string name="settings_view_error_logs_title">Registros de error (Logs)</string>
-    <string name="settings_view_error_logs_summary">Ver informes de error y fallos en /storage/emulated/0/OpenManager/logs</string>
+    <string name="settings_view_error_logs_summary">Ver informes de error y fallos en /storage/emulated/0/OM2/logs</string>
 
     <!-- Apktool Background Execution & Notifications -->
     <string name="notification_channel_apktool_name">Operaciones de Apktool</string>
@@ -1989,7 +1989,7 @@
     <string name="om_pdf_page_error_format">Error pág. %1$d</string>
     <string name="om_update_installer_error_format">Error al iniciar instalador: %1$s</string>
     <string name="om_crash_unknown_error">Error desconocido</string>
-    <string name="om_crash_log_default_path">Registro guardado en /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">Registro guardado en /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">Dispositivo: %1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">Hilo: %1$s</string>
     <string name="om_crash_error_format">Error: %1$s</string>
@@ -3372,23 +3372,23 @@
     <string name="om_long_press_button_home">Inicio</string>
     <string name="om_long_press_no_search">Todavía no hay búsqueda</string>
     <string name="om_apps_needs_root_or_shizuku">Esto necesita root o Shizuku</string>
-    <string name="om_backup_section">COPIA DE SEGURIDAD</string>
-    <string name="om_backup_app">Copiar app y datos</string>
-    <string name="om_backup_app_desc">APK, datos, Android/data, obb y media en OpenManager/Backups</string>
+    <string name="om_backup_section">BACKUP</string>
+    <string name="om_backup_app">Backup de la app y sus datos</string>
+    <string name="om_backup_app_desc">APK, datos, Android/data, obb y media en OM2/Backups</string>
     <string name="om_backup_restore">Restaurar</string>
     <string name="om_backup_restore_desc">Reinstala si falta y devuelve sus datos</string>
-    <string name="om_backup_working">Copiando…</string>
-    <string name="om_backup_needs_access">Hacer copia de una app necesita root. Sin root, Shizuku puede copiar sus APK y sus datos compartidos (Android/data, obb, media), pero no sus datos privados. Concede root o inicia Shizuku y vuelve a intentarlo.</string>
-    <string name="om_backup_shizuku_partial">Copia hecha con Shizuku: los APK y los datos compartidos (Android/data, obb, media). Los datos privados de la app necesitan root.</string>
+    <string name="om_backup_working">Haciendo backup…</string>
+    <string name="om_backup_needs_access">Hacer backup de una app necesita root. Sin root, Shizuku puede guardar sus APK y sus datos compartidos (Android/data, obb, media), pero no sus datos privados. Concede root o inicia Shizuku y vuelve a intentarlo.</string>
+    <string name="om_backup_shizuku_partial">Backup hecho con Shizuku: los APK y los datos compartidos (Android/data, obb, media). Los datos privados de la app necesitan root.</string>
     <string name="om_backup_restore_needs_root">Restaurar los datos de una app necesita root.</string>
     <string name="om_backup_restoring">Restaurando…</string>
-    <string name="om_backup_done">Copia guardada</string>
-    <string name="om_backup_failed">La copia falló</string>
+    <string name="om_backup_done">Backup guardado</string>
+    <string name="om_backup_failed">El backup falló</string>
     <string name="om_backup_show_folder">Ver carpeta</string>
-    <string name="om_backup_none">Aún no hay copias de esta app</string>
-    <string name="om_backup_list_title">Copias de %1$s</string>
-    <string name="om_backup_restore_confirm">¿Restaurar esta copia de %1$s? Sus datos actuales se reemplazarán.</string>
-    <string name="om_backup_restored">Restaurada</string>
+    <string name="om_backup_none">Aún no hay backups de esta app</string>
+    <string name="om_backup_list_title">Backups de %1$s</string>
+    <string name="om_backup_restore_confirm">¿Restaurar este backup de %1$s? Sus datos actuales se reemplazarán.</string>
+    <string name="om_backup_restored">Restaurado</string>
     <string name="om_backup_restore_failed">Falló la restauración: %1$s</string>
     <string name="om_job_hide">Ocultar</string>
     <string name="om_job_done_format">Terminado: %1$s</string>

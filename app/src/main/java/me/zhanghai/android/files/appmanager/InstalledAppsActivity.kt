@@ -1053,12 +1053,12 @@ class InstalledAppsActivity : AppActivity() {
     }
 
     private fun extractApk(app: AppModel) {
-        val baseDir = File("/storage/emulated/0/OpenManager/apks")
+        val baseDir = File("/storage/emulated/0/OM2/apks")
         baseDir.mkdirs()
         val targetDir = when {
             baseDir.exists() && baseDir.canWrite() -> baseDir
             else -> {
-                val downloads = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "OpenManager")
+                val downloads = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "OM2")
                 downloads.mkdirs()
                 if (downloads.exists() && downloads.canWrite()) downloads else (getExternalFilesDir(null) ?: filesDir)
             }

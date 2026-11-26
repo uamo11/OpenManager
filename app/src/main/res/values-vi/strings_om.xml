@@ -778,7 +778,7 @@
     <string name="crash_report_system_info_title">Thông tin hệ thống</string>
     <string name="crash_report_stacktrace_title">Stack trace ngoại lệ</string>
     <string name="settings_view_error_logs_title">Nhật ký lỗi</string>
-    <string name="settings_view_error_logs_summary">Xem báo cáo lỗi và crash trong /storage/emulated/0/OpenManager/logs</string>
+    <string name="settings_view_error_logs_summary">Xem báo cáo lỗi và crash trong /storage/emulated/0/OM2/logs</string>
     <string name="notification_channel_apktool_name">Thao tác Apktool</string>
     <string name="notification_channel_apktool_description">Hiển thị và điều khiển dịch ngược và biên dịch lại bằng Apktool</string>
     <string name="apktool_cancel">Hủy</string>
@@ -1215,7 +1215,7 @@
     <string name="om_pdf_page_error_format">Lỗi ở trang %1$d</string>
     <string name="om_update_installer_error_format">Lỗi khi mở trình cài đặt: %1$s</string>
     <string name="om_crash_unknown_error">Lỗi không xác định</string>
-    <string name="om_crash_log_default_path">Đã lưu nhật ký vào /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">Đã lưu nhật ký vào /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">Thiết bị: %1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">Luồng: %1$s</string>
     <string name="om_crash_error_format">Lỗi: %1$s</string>
@@ -2655,7 +2655,7 @@
     <string name="om_apps_needs_root_or_shizuku">Cần root hoặc Shizuku</string>
     <string name="om_backup_section">SAO LƯU</string>
     <string name="om_backup_app">Sao lưu ứng dụng và dữ liệu</string>
-    <string name="om_backup_app_desc">APK, dữ liệu, Android/data, obb và media vào OpenManager/Backups</string>
+    <string name="om_backup_app_desc">APK, dữ liệu, Android/data, obb và media vào OM2/Backups</string>
     <string name="om_backup_restore">Khôi phục</string>
     <string name="om_backup_restore_desc">Cài lại nếu thiếu và trả lại dữ liệu</string>
     <string name="om_backup_working">Đang sao lưu…</string>

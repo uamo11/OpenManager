@@ -778,7 +778,7 @@
     <string name="crash_report_system_info_title">Informasi sistem</string>
     <string name="crash_report_stacktrace_title">Stacktrace exception</string>
     <string name="settings_view_error_logs_title">Log error</string>
-    <string name="settings_view_error_logs_summary">Lihat laporan error dan crash di /storage/emulated/0/OpenManager/logs</string>
+    <string name="settings_view_error_logs_summary">Lihat laporan error dan crash di /storage/emulated/0/OM2/logs</string>
     <string name="notification_channel_apktool_name">Operasi Apktool</string>
     <string name="notification_channel_apktool_description">Tampilkan dan kendalikan dekompilasi dan rekompilasi Apktool</string>
     <string name="apktool_cancel">Batal</string>
@@ -1215,7 +1215,7 @@
     <string name="om_pdf_page_error_format">Error di halaman %1$d</string>
     <string name="om_update_installer_error_format">Error membuka penginstal: %1$s</string>
     <string name="om_crash_unknown_error">Error tidak diketahui</string>
-    <string name="om_crash_log_default_path">Log disimpan di /storage/emulated/0/OpenManager/logs/</string>
+    <string name="om_crash_log_default_path">Log disimpan di /storage/emulated/0/OM2/logs/</string>
     <string name="om_crash_device_format">Perangkat: %1$s %2$s (%3$s)</string>
     <string name="om_crash_thread_format">Thread: %1$s</string>
     <string name="om_crash_error_format">Error: %1$s</string>
@@ -2561,7 +2561,7 @@
     <string name="om_apps_needs_root_or_shizuku">Ini memerlukan root atau Shizuku</string>
     <string name="om_backup_section">CADANGAN</string>
     <string name="om_backup_app">Cadangkan aplikasi dan data</string>
-    <string name="om_backup_app_desc">APK, data, Android/data, obb, dan media ke OpenManager/Backups</string>
+    <string name="om_backup_app_desc">APK, data, Android/data, obb, dan media ke OM2/Backups</string>
     <string name="om_backup_restore">Pulihkan</string>
     <string name="om_backup_restore_desc">Pasang ulang bila tidak ada dan kembalikan datanya</string>
     <string name="om_backup_working">Mencadangkan…</string>
