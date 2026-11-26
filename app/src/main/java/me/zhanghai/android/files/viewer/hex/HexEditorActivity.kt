@@ -152,6 +152,8 @@ class HexEditorActivity : AppActivity() {
         binding.rvHex.layoutManager = LinearLayoutManager(this)
         binding.rvHex.adapter = adapter
         binding.rvHex.itemAnimator = null
+        // A thumb to drag through big files (millions of rows), as in the explorer.
+        me.zhanghai.android.files.ui.ThemedFastScroller.create(binding.rvHex)
         // 16 bytes per row when they fit the screen, 8 otherwise (portrait phones), so the ASCII
         // column is always visible without scrolling sideways.
         binding.hsvContent.addOnLayoutChangeListener { v, left, _, right, _, oldLeft, _, oldRight, _ ->

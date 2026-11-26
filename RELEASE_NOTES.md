@@ -6,6 +6,10 @@
 ### 📦 payload.bin dentro del zip de una OTA
 - Un `payload.bin` **dentro del zip de la OTA** decía «No es un payload de OTA de Android»: en una OTA real va sin comprimir y, por sus GB, en formato ZIP64, que la lectura por flujo no manejaba. Ahora se lee directamente del zip (solo su índice).
 
+### 🧭 Navegación más fluida y editor HEX con barra de desplazamiento
+- La barra de carga bajo la ruta solo aparece si una carpeta tarda en cargar (más de 0,2 s): en las carpetas rápidas ya no parpadea en cada toque.
+- El **editor HEX** tiene una **barra de desplazamiento rápido** para recorrer archivos enormes arrastrando el indicador.
+
 ### 🔄 Reproductor: botón de rotación
 - Nuevo botón en la barra superior del reproductor: **automática** (según la forma del video) → **horizontal** → **vertical**.
 

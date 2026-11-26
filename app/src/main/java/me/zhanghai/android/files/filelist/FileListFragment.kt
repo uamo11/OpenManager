@@ -238,6 +238,13 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     private var listPrepareGeneration: Long = 0L
     private var showFileListDividers: Boolean = true
     private var lastShowHiddenFiles: Boolean? = null
+    private var directoryProgressPending = false
+    private val showDirectoryProgressRunnable = Runnable {
+        directoryProgressPending = false
+        if (view != null && this::binding.isInitialized && viewModel.fileListLiveData.value is Loading) {
+            binding.directoryProgressBar.visibility = View.VISIBLE
+        }
+    }
     private val shizukuBinderListener: () -> Unit = {
         val hostActivity = activity
         if (hostActivity != null && isAdded && !isDetached && view != null) {
@@ -1230,8 +1237,19 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         binding.swipeRefreshLayout.isRefreshing = isLoading && (hasFiles || isSearching)
         binding.progress.fadeToVisibilityUnsafe(isLoading && !(hasFiles || isSearching))
         // Only while something runs: a finished filter (even one that found nothing) stops the bar.
+        // Shown only when loading takes a moment: on a quick folder it flashed at every tap (user
+        // report). The delay does not change how the folder loads.
         val showDirectoryProgress = isLoading
-        binding.directoryProgressBar.visibility = if (showDirectoryProgress) View.VISIBLE else View.GONE
+        if (showDirectoryProgress) {
+            if (binding.directoryProgressBar.visibility != View.VISIBLE && !directoryProgressPending) {
+                directoryProgressPending = true
+                binding.directoryProgressBar.postDelayed(showDirectoryProgressRunnable, DIRECTORY_PROGRESS_DELAY_MS)
+            }
+        } else {
+            directoryProgressPending = false
+            binding.directoryProgressBar.removeCallbacks(showDirectoryProgressRunnable)
+            binding.directoryProgressBar.visibility = View.GONE
+        }
         val isFailureWithoutFiles = stateful is Failure && !hasFiles
         val isAndroidDataOrObbCurrent = isAndroidDataOrObb(currentPath) && !currentPath.isDocumentPath
 
@@ -3807,6 +3825,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         private const val ACTION_VIEW_DOWNLOADS =
             "me.zhanghai.android.files.intent.action.VIEW_DOWNLOADS"
 
+        private const val DIRECTORY_PROGRESS_DELAY_MS = 200L
         private const val IMAGE_VIEWER_ACTIVITY_PATH_LIST_SIZE_MAX = 1000
     }
 
