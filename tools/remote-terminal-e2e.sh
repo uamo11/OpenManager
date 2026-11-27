@@ -3784,6 +3784,79 @@ if app_crashed "$OUT/logcat_hex2.txt"; then fail "crash editing a 60 MB file"; f
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -f /sdcard/om_editor_test/om_big.bin
 
+log "=== HTML preview, then Edit source: a 43 KB page of tables and box-drawing diagrams (user report: out of memory) ==="
+# A synthetic page shaped like the user's (their file is private): CSS variables, 19 tables with
+# ~700-character rows, and <pre> diagrams drawn with box-drawing characters and arrows.
+python3 - "$OUT/om_page.html" <<'PY2'
+import random, sys
+random.seed(7)
+words = "alpha beta gamma delta check verify session token result route queue client server cache".split()
+def sentence(n): return " ".join(random.choice(words) for _ in range(n))
+css = ":root{--ink:#1c2430;--muted:#536170;--bg:#f5f7fa;--card:#fff;--accent:#1759a6;--border:#d8dee6}\n" + "\n".join(
+    f".c{i}{{color:var(--ink);margin:{i}px 0;border:1px solid var(--border)}}" for i in range(25))
+diagram = "\n".join([
+    "  client ──► gateway ◄── worker",
+    "               │",
+    "   {ready?} ── no → retry/queue",
+    "      │ yes",
+    "      ↓",
+    "  step-1: verify ───────── 2 ─────────",
+    "         result   ──────┐   ┌──────────",
+    "                        └───┘  ×3 · ≈ ¬ ∨ ‾ ► ▼",
+] * 6)
+parts = ['<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="UTF-8">\n<title>Test page — tables</title>\n<style>\n', css, "\n</style>\n</head>\n<body>\n"]
+parts.append("<pre class=\"diagram\">" + diagram + "</pre>\n")
+for t in range(19):
+    parts.append(f'<h2>Section {t}</h2>\n<table class="c{t % 25}">\n')
+    for r in range(4):
+        parts.append("<tr><td>" + sentence(40) + ".</td><td>" + sentence(45) + " → " + sentence(20) + "</td></tr>\n")
+    parts.append("</table>\n")
+parts.append("<pre>" + diagram + "</pre>\n</body>\n</html>\n")
+html = "".join(parts)
+open(sys.argv[1], "w", encoding="utf-8").write(html)
+print(len(html.encode()))
+PY2
+adb shell rm -rf /sdcard/om_html2; adb shell mkdir -p /sdcard/om_html2
+adb push "$OUT/om_page.html" /sdcard/om_html2/om_page.html >/dev/null
+log "      page: $(stat -c %s "$OUT/om_page.html") bytes"
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_html2" >/dev/null; sleep 4
+if pos=$(wait_text 15 "om_page.html"); then
+    adb shell input tap $pos; sleep 5
+    shot 88_html_preview
+    if pos=$(find_text "More options" "Más opciones"); then
+        adb shell input tap $pos; sleep 1
+        if pos=$(find_text "Edit source" "Editar código fuente"); then
+            adb shell input tap $pos; sleep 15
+            shot 88b_html_edit_source
+            adb shell dumpsys meminfo $PKG > "$OUT/meminfo_html_source.txt" 2>/dev/null || true
+            heap=$(awk '/Java Heap:/{printf "%.1f", $3/1024; exit}' "$OUT/meminfo_html_source.txt")
+            top=$(adb shell dumpsys activity activities 2>/dev/null | grep -m1 -E "topResumedActivity|mResumedActivity" | grep -o "$PKG/[A-Za-z0-9_.]*")
+            adb logcat -d > "$OUT/logcat_html_source.txt" 2>/dev/null || true
+            oom=$(grep -c "OutOfMemoryError" "$OUT/logcat_html_source.txt")
+            log "      after 15 s in the editor: Java heap ${heap:-?} MB, top ${top:-?}, OutOfMemoryError lines $oom"
+            if [ "$oom" = 0 ] && echo "$top" | grep -q TextEditorActivity && python3 -c "import sys; sys.exit(0 if float('${heap:-999}') < 64 else 1)"; then
+                pass "HTML preview → Edit source opens the editor and stays small (${heap} MB)"
+            else
+                timeout 60 adb shell am dumpheap $PKG /data/local/tmp/om_html_source.hprof >/dev/null 2>&1 && sleep 3 && \
+                    adb pull /data/local/tmp/om_html_source.hprof "$OUT/html_source.hprof" >/dev/null 2>&1
+                fail "HTML preview → Edit source: heap ${heap:-?} MB, top ${top:-?}, OOM lines $oom"
+            fi
+        else
+            shot 88c_no_edit_source
+            fail "no Edit source entry in the HTML viewer menu"
+        fi
+    else
+        fail "no overflow menu in the HTML viewer"
+    fi
+else
+    fail "om_page.html not listed"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_html2
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then

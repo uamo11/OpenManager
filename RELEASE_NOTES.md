@@ -1,3 +1,8 @@
+# OpenManager v2.0.40: Gestos de Gboard en el Editor
+
+### ⌨️ Editor de texto
+- Los gestos de **Gboard** vuelven a funcionar: deslizar en la **barra espaciadora** mueve el cursor y deslizar en **borrar** quita palabras. El editor seguía sin sugerencias ni autocorrección, pero las desactivaba de una forma que también le ocultaba al teclado el texto alrededor del cursor.
+
 # OpenManager v2.0.39: Herramientas en Filas, Backup de Apps con Shizuku y Carpeta OM2
 
 ### 🧭 Barra lateral
