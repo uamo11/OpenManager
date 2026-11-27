@@ -106,15 +106,15 @@ class TextEditorViewModel(file: Path) : ViewModel() {
             val partial = isPartial.value
             val (bytes, size, modTime) = runInterruptible(Dispatchers.IO) {
                 val size = file.size()
-                if (size > MAX_FILE_SIZE && !partial) {
-                    throw FileTooLargeException(size, MAX_FILE_SIZE)
+                if (size > maxFileSize && !partial) {
+                    throw FileTooLargeException(size, maxFileSize)
                 }
                 val modTime = try {
                     if (file.isLinuxPath) file.toFile().lastModified() else file.getLastModifiedTime().toMillis()
                 } catch (_: Throwable) {
                     0L
                 }
-                val bytes = if (partial && size > MAX_FILE_SIZE) readHead(file) else file.readAllBytes()
+                val bytes = if (partial && size > maxFileSize) readHead(file) else file.readAllBytes()
                 Triple(bytes, size, modTime)
             }
             fileSize.value = size
@@ -154,15 +154,20 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                                         String(bytesState.data, encoding)
                                     }
                                 } else {
-                                    String(bytesState.data, encoding)
+                                    null
                                 }
-
-                                // Detect and normalize line endings
-                                val hasCrlf = rawText.contains("\r\n")
-                                isCrlf.value = hasCrlf
-                                val normalized = if (hasCrlf) rawText.replace("\r\n", "\n") else rawText
-
-                                normalized
+                                if (rawText == null) {
+                                    // Decoded and CRLF-normalized in one char array: a 20 MB binary
+                                    // file, as UTF-16 plus String.replace's copies, ran a 128 MB heap
+                                    // out of memory (user crash log, v2.0.42).
+                                    val (text, hadCrlf) = decodeNormalizingLineEndings(bytesState.data, encoding)
+                                    isCrlf.value = hadCrlf
+                                    text
+                                } else {
+                                    val hasCrlf = rawText.contains("\r\n")
+                                    isCrlf.value = hasCrlf
+                                    if (hasCrlf) rawText.replace("\r\n", "\n") else rawText
+                                }
                             }
                             currentCoroutineContext().ensureActive()
                             _textState.value = DataState.Success(highlighted)
@@ -170,6 +175,11 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                             e.printStackTrace()
                         } catch (e: Exception) {
                             _textState.value = _textState.value.toError(e)
+                        } catch (e: OutOfMemoryError) {
+                            // The big allocation failed on its own: say so instead of closing the app.
+                            _textState.value = _textState.value.toError(
+                                FileTooLargeException(fileSize.value, maxFileSize)
+                            )
                         }
                     }
                     is DataState.Error ->
@@ -295,9 +305,9 @@ class TextEditorViewModel(file: Path) : ViewModel() {
         return savedState
     }
 
-    /** The first [MAX_FILE_SIZE] bytes, cut after the last line break near the end when there is one. */
+    /** The first [maxFileSize] bytes, cut after the last line break near the end when there is one. */
     private fun readHead(file: Path): ByteArray {
-        val head = ByteArray(MAX_FILE_SIZE.toInt())
+        val head = ByteArray(maxFileSize.toInt())
         var read = 0
         file.newInputStream().use { input ->
             while (read < head.size) {
@@ -322,5 +332,46 @@ class TextEditorViewModel(file: Path) : ViewModel() {
 
     companion object {
         const val MAX_FILE_SIZE = 20 * 1024 * 1024L
+
+        /**
+         * What the editor loads at most on this phone: [MAX_FILE_SIZE], or a tenth of the heap when
+         * that is smaller (text takes up to 2 bytes a char, plus the editor's own copy).
+         */
+        val maxFileSize: Long
+            get() = maxFileSizeFor(Runtime.getRuntime().maxMemory())
+
+        internal fun maxFileSizeFor(maxHeap: Long): Long {
+            val mb = 1024 * 1024L
+            val byHeap = (maxHeap / 10 / mb).coerceAtLeast(2) * mb
+            return minOf(MAX_FILE_SIZE, byHeap)
+        }
+
+        /**
+         * [bytes] as text with every "\r\n" turned into "\n", in a single char array (no copy of
+         * the whole text per step); also whether there was any "\r\n".
+         */
+        internal fun decodeNormalizingLineEndings(bytes: ByteArray, charset: java.nio.charset.Charset): Pair<String, Boolean> {
+            val decoder = charset.newDecoder()
+                .onMalformedInput(java.nio.charset.CodingErrorAction.REPLACE)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPLACE)
+            val decoded = decoder.decode(java.nio.ByteBuffer.wrap(bytes))
+            val chars = decoded.array()
+            val start = decoded.arrayOffset() + decoded.position()
+            val end = start + decoded.remaining()
+            var out = start
+            var hadCrlf = false
+            var i = start
+            while (i < end) {
+                val c = chars[i]
+                if (c == '\r' && i + 1 < end && chars[i + 1] == '\n') {
+                    hadCrlf = true
+                    i++
+                    continue
+                }
+                chars[out++] = c
+                i++
+            }
+            return String(chars, start, out - start) to hadCrlf
+        }
     }
 }

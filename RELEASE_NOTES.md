@@ -1,4 +1,7 @@
-# OpenManager v2.0.44: Vibración Opcional
+# OpenManager v2.0.44: Vibración Opcional y Editor sin Cierres por Memoria
+
+### 🛠 Estabilidad
+- **Editor de texto:** abrir parcialmente un archivo binario grande (p. ej. 50 MB) cerraba la app en teléfonos con poca memoria. Ahora el límite se ajusta a la memoria del teléfono (20 MB en la mayoría, menos en los de 128 MB), el texto se carga sin copias intermedias (bastante menos memoria con saltos de línea de Windows) y, si aun así no cabe, el editor lo dice y ofrece el editor HEX en vez de cerrarse.
 
 ### 📳 Vibración (idea de usuarios de MP Manager)
 - **Nuevo grupo «📳 Vibración» en Ajustes**, con dos opciones:

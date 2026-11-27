@@ -639,9 +639,9 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         val changed = viewModel.isTextChanged.value
         val fileSize = viewModel.fileSize.value
         val formattedSize = when {
-            viewModel.isPartial.value && fileSize > TextEditorViewModel.MAX_FILE_SIZE -> " (" + getString(
+            viewModel.isPartial.value && fileSize > TextEditorViewModel.maxFileSize -> " (" + getString(
                 R.string.om_text_editor_partial_status,
-                Formatter.formatShortFileSize(requireContext(), TextEditorViewModel.MAX_FILE_SIZE),
+                Formatter.formatShortFileSize(requireContext(), TextEditorViewModel.maxFileSize),
                 Formatter.formatFileSize(requireContext(), fileSize)
             ) + ")"
             fileSize > 0 -> " (${Formatter.formatFileSize(requireContext(), fileSize)})"
@@ -1687,11 +1687,13 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
     private fun showLoadErrorActions(throwable: Throwable) {
         val tooLarge = throwable is TextEditorViewModel.FileTooLargeException && !isDraft
         binding.errorOpenHexButton.visibility = if (tooLarge) View.VISIBLE else View.GONE
-        binding.errorOpenPartialButton.visibility = if (tooLarge) View.VISIBLE else View.GONE
+        // Already partial and still too big for this phone's memory: only the HEX editor is left.
+        val canOpenPartial = tooLarge && !viewModel.isPartial.value
+        binding.errorOpenPartialButton.visibility = if (canOpenPartial) View.VISIBLE else View.GONE
         if (!tooLarge) return
         binding.errorOpenPartialButton.text = getString(
             R.string.om_text_editor_open_partial,
-            Formatter.formatShortFileSize(requireContext(), TextEditorViewModel.MAX_FILE_SIZE)
+            Formatter.formatShortFileSize(requireContext(), TextEditorViewModel.maxFileSize)
         )
         binding.errorOpenHexButton.setOnClickListener {
             me.zhanghai.android.files.viewer.hex.HexEditorActivity.start(requireContext(), argsFile)
