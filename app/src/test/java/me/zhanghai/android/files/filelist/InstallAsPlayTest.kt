@@ -28,8 +28,8 @@ class InstallAsPlayTest {
         val src = (File("src/main").takeIf { it.isDirectory } ?: File("app/src/main"))
             .resolve("java/me/zhanghai/android/files/filelist/ApkInstallHelper.kt").readText()
         // Root and Shizuku single-APK commands both carry the flag.
-        assertTrue(Regex("""pm install -r -d -t \$grantPermFlag\$bypassLowTargetFlag\$\{playInstallerFlag\(\)\}""")
-            .findAll(src).count() == 2)
+        val command = "pm install -r -d -t \$grantPermFlag\$bypassLowTargetFlag\${playInstallerFlag()}"
+        assertTrue(src.split(command).size - 1 == 2)
         assertTrue(src.contains("asPlay = installAsPlay()"))
     }
 }
