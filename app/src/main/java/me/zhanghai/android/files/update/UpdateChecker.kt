@@ -123,6 +123,7 @@ object UpdateChecker {
      * usually keeps the app in memory, so "opening" it again resumes the same activity.
      */
     fun checkOnForeground(activity: FragmentActivity) {
+        if (!isDownloadingUpdate && installDeferred(activity)) return
         ensureAutoUpdateDefaultMigrated(activity)
         if (!Settings.AUTO_CHECK_UPDATES.valueCompat || isDownloadingUpdate) return
         if (activeUpdateDialogRef?.get()?.isShowing == true) return
@@ -1493,24 +1494,48 @@ object UpdateChecker {
         while (!isNetworkAvailable(context) && SystemClock.elapsedRealtime() < end) delay(1000L)
     }
 
+    private const val PREF_INSTALL_WHEN_BACK = "pref_update_install_when_back"
+
     /**
      * Android only opens its installer from the app in front. Downloaded in the background: a
-     * notification, and the installer opens as soon as the app is back.
+     * notification, and the installer opens when the app is back ([installDeferred], from onStart;
+     * saved, because Android may have recreated the screen meanwhile).
      */
     private fun installWhenInFront(activity: FragmentActivity, apk: File, version: String) {
-        val lifecycle = activity.lifecycle
-        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+        if (activity.lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
             launchApkInstallation(activity, apk)
             return
         }
+        android.util.Log.i(TAG_DOWNLOAD, "In the background: installer deferred until the app is back")
+        PreferenceManager.getDefaultSharedPreferences(activity).edit()
+            .putString(PREF_INSTALL_WHEN_BACK, apk.absolutePath).apply()
         UpdateDownloadService.readyToInstall(activity, version)
-        lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
-            override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
-                lifecycle.removeObserver(this)
-                UpdateDownloadService.cancelReady(activity)
-                if (apk.isFile) launchApkInstallation(activity, apk)
-            }
-        })
+    }
+
+    /** An update downloaded in the background: its installer opens once this screen is resumed. */
+    private fun installDeferred(activity: FragmentActivity): Boolean {
+        val prefs = PreferenceManager.getDefaultSharedPreferences(activity)
+        val path = prefs.getString(PREF_INSTALL_WHEN_BACK, null) ?: return false
+        prefs.edit().remove(PREF_INSTALL_WHEN_BACK).apply()
+        val apk = File(path)
+        if (!apk.isFile) return false
+        UpdateDownloadService.cancelReady(activity)
+        val lifecycle = activity.lifecycle
+        val launch = {
+            android.util.Log.i(TAG_DOWNLOAD, "App back: opening the installer for ${apk.name}")
+            launchApkInstallation(activity, apk)
+        }
+        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            launch()
+        } else {
+            lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+                override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
+                    lifecycle.removeObserver(this)
+                    launch()
+                }
+            })
+        }
+        return true
     }
 
     private const val APK_MIME = "application/vnd.android.package-archive"

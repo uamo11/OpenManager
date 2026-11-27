@@ -169,6 +169,8 @@ if pos=$(wait_text 180 "Install" "INSTALL" "Update" "UPDATE" "Instalar" "Actuali
 else
     shot 02_no_installer
     fail "installer never opened"
+    adb logcat -d -s OMUpdate > "$OUT/logcat_update.txt" 2>/dev/null || true
+    tail -8 "$OUT/logcat_update.txt" | tee -a "$REPORT" >/dev/null
 fi
 end=$((SECONDS + 120))
 while [ $SECONDS -lt $end ]; do
