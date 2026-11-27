@@ -119,6 +119,14 @@ class FileListAdapter(
 
     /** Folders pinned to the top: their description starts with a pin. */
     var pinnedPaths: Set<String> = emptySet()
+        set(value) {
+            if (field == value) return
+            field = value
+            // A pinned row is the same item for the list diff: its description must be redone.
+            descriptionCache.evictAll()
+            pinsChanged = true
+        }
+    private var pinsChanged = false
 
     fun clearDescriptions() {
         descriptionCache.evictAll()
@@ -511,6 +519,10 @@ class FileListAdapter(
         filePositionMap.clear()
         filePositionMap.putAll(prepared.positionMap)
         super.replacePrecomputed(prepared.displayList, prepared.diffResult, clear)
+        if (pinsChanged) {
+            pinsChanged = false
+            if (itemCount > 0) notifyItemRangeChanged(0, itemCount, PAYLOAD_CONTENT_REFRESH)
+        }
     }
 
     private fun rebuildFilePositionMap() {

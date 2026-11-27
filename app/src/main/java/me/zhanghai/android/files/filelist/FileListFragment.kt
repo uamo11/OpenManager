@@ -2487,7 +2487,6 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     fun togglePinned(file: FileItem) {
         val pinned = PinnedFolders.toggle(requireContext(), file.path.toString())
         showToast(if (pinned) R.string.om_folder_pinned_toast else R.string.om_folder_unpinned_toast)
-        adapter.clearDescriptions()
         updateAdapterFileList()
     }
 
