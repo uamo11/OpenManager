@@ -4076,6 +4076,96 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_html2
 
+log "=== Music player: the folder as a playlist, keeps playing in the background (user request) ==="
+python3 - "$OUT/om_music" <<'PY2'
+import math, os, struct, sys, wave
+d = sys.argv[1]; os.makedirs(d, exist_ok=True)
+for name, freq in (("track1.wav", 330), ("track2.wav", 440), ("track10.wav", 550)):
+    with wave.open(os.path.join(d, name), "wb") as w:
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(8000)
+        w.writeframes(b"".join(struct.pack("<h", int(1500 * math.sin(2 * math.pi * freq * i / 8000)))
+                               for i in range(8000 * 30)))
+open(os.path.join(d, "notes.txt"), "w").write("not a song")
+PY2
+adb shell rm -rf /sdcard/om_music
+adb push "$OUT/om_music" /sdcard/ >/dev/null
+music_state() {
+    # 3 = playing, in our app's media session.
+    adb shell dumpsys media_session 2>/dev/null | tr -d '\r' > "$OUT/media_session.txt"
+    python3 - "$OUT/media_session.txt" "$PKG" <<'PY2'
+import re, sys
+text = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+i = text.find("package=" + sys.argv[2])
+if i >= 0:
+    m = re.search(r"PlaybackState \{state=(\d+)", text[i:])
+    if m:
+        print(m.group(1))
+PY2
+}
+music_subtitle() {
+    for _ in 1 2 3; do
+        adb shell rm -f /data/local/tmp/ui.xml
+        s=$(node_text_by_id tvAudioSubtitle || true)
+        [ -n "$s" ] && { printf '%s' "$s"; return; }
+        sleep 1
+    done
+}
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -n $PKG/me.zhanghai.android.files.viewer.audio.AudioPlayerActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_music/track2.wav" >/dev/null 2>&1
+sleep 5
+shot 90_music_player
+state=$(music_state); sub=$(music_subtitle)
+log "      playing state=${state:-none} · ${sub:-no subtitle}"
+if [ "$state" = 3 ] && printf '%s' "$sub" | grep -q "2 of 3"; then
+    pass "the music player plays the 2nd of the folder's 3 songs (track1, track2, track10; not the .txt)"
+else
+    fail "the music player did not play the folder as a list (state=$state, $sub)"
+fi
+if pos=$(node_center_by_id btnAudioNext); then
+    adb shell input tap $pos; sleep 3
+    sub=$(music_subtitle)
+    log "      after Next: $sub"
+    if printf '%s' "$sub" | grep -q "3 of 3"; then
+        pass "Next goes to the following song in natural order (track10 after track2)"
+    else
+        fail "Next did not go to the next song ($sub)"
+    fi
+else
+    fail "no Next button in the music player"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 4
+state=$(music_state)
+adb shell dumpsys notification --noredact 2>/dev/null | tr -d '\r' > "$OUT/notifications_music.txt"
+has_media_notice=$(grep -A40 "pkg=$PKG" "$OUT/notifications_music.txt" | grep -c "MediaStyle\|mediaSession\|media_session" || true)
+log "      window closed: state=${state:-none}, media notification lines=$has_media_notice"
+shot 91_music_background
+if [ "$state" = 3 ] && [ "${has_media_notice:-0}" -gt 0 ]; then
+    pass "closing the window keeps the music playing, with its notification"
+else
+    fail "the music stopped or had no notification after closing the window (state=$state)"
+fi
+# From the notification the window opens on what is playing; X stops it.
+adb shell am start -n $PKG/me.zhanghai.android.files.viewer.audio.AudioPlayerActivity \
+    --ez me.zhanghai.android.files.extra.AUDIO_ATTACH true >/dev/null 2>&1
+sleep 3
+title=$(node_text_by_id tvAudioTitle || true)
+if pos=$(node_center_by_id btnAudioClose); then
+    adb shell input tap $pos; sleep 3
+fi
+state=$(music_state)
+log "      reopened on: ${title:-?}; after X: state=${state:-none}"
+if printf '%s' "$title" | grep -q "track10" && [ "$state" != 3 ]; then
+    pass "the window reopens on the song playing, and X stops the music"
+else
+    fail "reopening showed ${title:-nothing} or X did not stop the music (state=$state)"
+fi
+adb logcat -d > "$OUT/logcat_music.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_music.txt"; then fail "crash in the music player"; else pass "no crash in the music player"; fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_music
+
 log "=== Every exported screen survives an empty or odd intent (as another app may send) ==="
 adb logcat -c
 for act in filelist.SmartOpenActivity viewer.saveas.SaveAsActivity viewer.text.TextEditorActivity \

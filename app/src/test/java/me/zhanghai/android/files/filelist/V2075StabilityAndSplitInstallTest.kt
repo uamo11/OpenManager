@@ -189,9 +189,9 @@ class V2075StabilityAndSplitInstallTest {
         }
 
         val buildGradle = resolveAppBuildGradle().readText()
-        assertTrue("app/build.gradle must default to versionCode 158", buildGradle.contains(": 158"))
-        assertTrue("app/build.gradle must default to versionName '2.0.44'", buildGradle.contains(": '2.0.44'"))
-        assertTrue(UpdateChecker.isVersionNewer("2.0.44", "2.0.43"))
-        assertTrue(UpdateChecker.isVersionNewer("2.0.44", "1.9.73"))
+        assertTrue("app/build.gradle must default to versionCode 159", buildGradle.contains(": 159"))
+        assertTrue("app/build.gradle must default to versionName '2.0.45'", buildGradle.contains(": '2.0.45'"))
+        assertTrue(UpdateChecker.isVersionNewer("2.0.45", "2.0.44"))
+        assertTrue(UpdateChecker.isVersionNewer("2.0.45", "1.9.73"))
     }
 }

@@ -1016,6 +1016,16 @@
     <string name="om_audio_title">音频</string>
     <string name="om_audio_player">音频播放器</string>
     <string name="om_audio_repeat">重复</string>
+    <string name="om_audio_previous">上一首（长按：后退 10 秒）</string>
+    <string name="om_audio_next">下一首（长按：前进 10 秒）</string>
+    <string name="om_audio_shuffle">随机播放</string>
+    <string name="om_audio_speed">速度</string>
+    <string name="om_audio_repeat_off">不重复</string>
+    <string name="om_audio_repeat_all">重复整个文件夹</string>
+    <string name="om_audio_repeat_one">单曲循环</string>
+    <string name="om_audio_shuffle_on">随机播放已开启</string>
+    <string name="om_audio_shuffle_off">随机播放已关闭</string>
+    <string name="om_audio_position_format">第 %1$d 首，共 %2$d 首</string>
     <string name="om_audio_rewind_10s">后退 10 秒</string>
     <string name="om_audio_forward_10s">快进 10 秒</string>
     <string name="om_docx_preview_text">文档文本预览。</string>

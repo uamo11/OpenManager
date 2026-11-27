@@ -1786,6 +1786,16 @@
     <string name="om_audio_title">Audio</string>
     <string name="om_audio_player">Reproductor de audio</string>
     <string name="om_audio_repeat">Repetir</string>
+    <string name="om_audio_previous">Anterior (mantener: atrás 10 s)</string>
+    <string name="om_audio_next">Siguiente (mantener: adelante 10 s)</string>
+    <string name="om_audio_shuffle">Aleatorio</string>
+    <string name="om_audio_speed">Velocidad</string>
+    <string name="om_audio_repeat_off">Sin repetir</string>
+    <string name="om_audio_repeat_all">Repetir la carpeta</string>
+    <string name="om_audio_repeat_one">Repetir esta canción</string>
+    <string name="om_audio_shuffle_on">Aleatorio activado</string>
+    <string name="om_audio_shuffle_off">Aleatorio desactivado</string>
+    <string name="om_audio_position_format">%1$d de %2$d</string>
     <string name="om_audio_rewind_10s">Retroceder 10s</string>
     <string name="om_audio_forward_10s">Avanzar 10s</string>
     <string name="om_docx_preview_text">Vista previa de texto en el documento.</string>

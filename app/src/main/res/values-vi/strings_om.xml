@@ -1015,6 +1015,16 @@
     <string name="om_audio_title">Âm thanh</string>
     <string name="om_audio_player">Trình phát âm thanh</string>
     <string name="om_audio_repeat">Lặp lại</string>
+    <string name="om_audio_previous">Trước (giữ: lùi 10 giây)</string>
+    <string name="om_audio_next">Tiếp (giữ: tới 10 giây)</string>
+    <string name="om_audio_shuffle">Trộn bài</string>
+    <string name="om_audio_speed">Tốc độ</string>
+    <string name="om_audio_repeat_off">Không lặp</string>
+    <string name="om_audio_repeat_all">Lặp cả thư mục</string>
+    <string name="om_audio_repeat_one">Lặp bài này</string>
+    <string name="om_audio_shuffle_on">Đã bật trộn bài</string>
+    <string name="om_audio_shuffle_off">Đã tắt trộn bài</string>
+    <string name="om_audio_position_format">%1$d / %2$d</string>
     <string name="om_audio_rewind_10s">Lùi 10 giây</string>
     <string name="om_audio_forward_10s">Tới 10 giây</string>
     <string name="om_docx_preview_text">Xem trước văn bản tài liệu.</string>

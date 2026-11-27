@@ -1890,6 +1890,16 @@
     <string name="om_audio_title">Audio</string>
     <string name="om_audio_player">Audio player</string>
     <string name="om_audio_repeat">Repeat</string>
+    <string name="om_audio_previous">Previous (hold: back 10 s)</string>
+    <string name="om_audio_next">Next (hold: forward 10 s)</string>
+    <string name="om_audio_shuffle">Shuffle</string>
+    <string name="om_audio_speed">Speed</string>
+    <string name="om_audio_repeat_off">Repeat off</string>
+    <string name="om_audio_repeat_all">Repeat the folder</string>
+    <string name="om_audio_repeat_one">Repeat this song</string>
+    <string name="om_audio_shuffle_on">Shuffle on</string>
+    <string name="om_audio_shuffle_off">Shuffle off</string>
+    <string name="om_audio_position_format">%1$d of %2$d</string>
     <string name="om_audio_rewind_10s">Rewind 10s</string>
     <string name="om_audio_forward_10s">Forward 10s</string>
     <string name="om_docx_preview_text">Document text preview.</string>

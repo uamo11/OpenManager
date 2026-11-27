@@ -1,3 +1,12 @@
+# OpenManager v2.0.45: Reproductor de Música
+
+### 🎵 Reproductor de música (petición de usuarios, como el de MT)
+- **Sigue sonando en segundo plano:** al cerrar la ventana con Atrás o tocando fuera, la música continúa, con notificación y controles en la pantalla de bloqueo. La ✕ la detiene. Tocar la notificación vuelve a abrir la ventana con la canción que suena.
+- **La carpeta es la lista:** las canciones de la misma carpeta, en orden natural (2 antes que 10); anterior/siguiente (mantener pulsado: ±10 s).
+- **Repetir** (no, la carpeta o esta canción), **aleatorio** y **velocidad** (0.5x a 2x).
+- **Título, artista y carátula** desde las etiquetas del archivo; si no tiene, se muestra el nombre.
+- Pausa sola al desconectar los auriculares y respeta llamadas u otras apps de audio.
+
 # OpenManager v2.0.44: Vibración Opcional y Editor sin Cierres por Memoria
 
 ### 🛠 Estabilidad

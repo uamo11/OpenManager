@@ -21,7 +21,9 @@ class AudioPlayerActivity : AppActivity() {
 
         findViewById<View>(android.R.id.content)
         if (savedInstanceState == null) {
-            val path = intent.extraPath ?: run {
+            val path = intent.extraPath
+            // The music notification opens the window on what is playing, without a file.
+            if (path == null && !intent.getBooleanExtra(EXTRA_ATTACH, false)) {
                 finish()
                 return
             }
@@ -33,6 +35,8 @@ class AudioPlayerActivity : AppActivity() {
     }
 
     companion object {
+        const val EXTRA_ATTACH = "me.zhanghai.android.files.extra.AUDIO_ATTACH"
+
         fun start(context: Context, path: Path) {
             val intent = Intent(context, AudioPlayerActivity::class.java).apply {
                 extraPath = path

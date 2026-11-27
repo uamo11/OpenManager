@@ -22,8 +22,8 @@ android {
         //noinspection OldTargetApi
         targetSdk 36
         // -PomVersionCode / -PomVersionName let CI build an "older" app to test self-updates.
-        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 158
-        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.44'
+        versionCode project.hasProperty('omVersionCode') ? project.property('omVersionCode').toInteger() : 159
+        versionName project.hasProperty('omVersionName') ? project.property('omVersionName').toString() : '2.0.45'
         resValue 'string', 'app_version', versionName + ' (' + versionCode + ')'
         buildConfigField 'String', 'FILE_PROVIDIER_AUTHORITY', 'APPLICATION_ID + ".file_provider"'
         resValue 'string', 'app_provider_authority', applicationId + '.app_provider'
@@ -125,6 +125,7 @@ dependencies {
     implementation 'com.github.chrisbanes:PhotoView:2.3.0'
     // Video player: hardware decoding with fallback, SurfaceView output (no UI module, own controls).
     implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-session:1.11.1'
     implementation 'com.github.topjohnwu.libsu:service:5.2.2'
 }
 
