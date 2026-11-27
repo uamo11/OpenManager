@@ -4047,6 +4047,25 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_html2
 
+log "=== Every exported screen survives an empty or odd intent (as another app may send) ==="
+adb logcat -c
+for act in filelist.SmartOpenActivity viewer.saveas.SaveAsActivity viewer.text.TextEditorActivity \
+    viewer.image.ImageViewerActivity viewer.video.VideoPlayerActivity viewer.audio.AudioPlayerActivity \
+    viewer.docx.DocxViewerActivity settings.SettingsActivity ftpserver.FtpServerActivity; do
+    adb shell am force-stop $PKG; sleep 1
+    adb shell am start -n "$PKG/me.zhanghai.android.files.$act" >/dev/null 2>&1; sleep 3
+    adb shell am start -n "$PKG/me.zhanghai.android.files.$act" -a android.intent.action.VIEW \
+        -d "file:///sdcard/om_does_not_exist.bin" -t application/octet-stream >/dev/null 2>&1; sleep 3
+done
+adb shell am force-stop $PKG; sleep 1
+adb logcat -d > "$OUT/logcat_odd_intents.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_odd_intents.txt"; then
+    grep -A6 "FATAL EXCEPTION" "$OUT/logcat_odd_intents.txt" | head -20 | tee -a "$REPORT" >/dev/null
+    fail "an exported screen crashed on an empty or odd intent"
+else
+    pass "every exported screen survives an empty intent and a missing file"
+fi
+
 log "=== Crash audit ==="
 adb logcat -d > "$OUT/logcat_end.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat.txt" "$OUT/logcat_end.txt" "$OUT/logcat_video.txt"; then
