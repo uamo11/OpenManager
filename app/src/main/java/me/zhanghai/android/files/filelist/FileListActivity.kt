@@ -133,6 +133,7 @@ class FileListActivity : AppActivity() {
     private lateinit var btnBottomHome: ImageButton
 
     private lateinit var btnSelectionClose: ImageButton
+    private lateinit var btnSelectAll: ImageButton
     private lateinit var btnCopyOpposite: ImageButton
     private lateinit var btnMoveOpposite: ImageButton
     private lateinit var btnDeleteSelection: ImageButton
@@ -322,6 +323,7 @@ class FileListActivity : AppActivity() {
         btnBottomHome = findViewById(R.id.btnBottomHome)
 
         btnSelectionClose = findViewById(R.id.btnSelectionClose)
+        btnSelectAll = findViewById(R.id.btnSelectAll)
         btnCopyOpposite = findViewById(R.id.btnCopyOpposite)
         btnMoveOpposite = findViewById(R.id.btnMoveOpposite)
         btnDeleteSelection = findViewById(R.id.btnDeleteSelection)
@@ -1948,6 +1950,15 @@ class FileListActivity : AppActivity() {
             Toast.makeText(this, R.string.om_all_files_selected, Toast.LENGTH_SHORT).show()
             true
         }
+        // Select all in one tap (user request); with everything already selected, it clears.
+        btnSelectAll.setOnClickListener {
+            val fragment = activeFragment
+            if (fragment.selectedFiles.size >= fragment.selectableItemCount && fragment.selectableItemCount > 0) {
+                fragment.clearSelectedFiles()
+            } else {
+                fragment.selectAllFiles()
+            }
+        }
 
         btnCopyOpposite.setOnClickListener {
             val selected = activeFragment.selectedFiles
@@ -2056,6 +2067,7 @@ class FileListActivity : AppActivity() {
         btnMoveOpposite.isEnabled = !moveDisabled
 
         TooltipCompat.setTooltipText(btnSelectionClose, getString(R.string.om_action_cancel_selection))
+        TooltipCompat.setTooltipText(btnSelectAll, getString(R.string.om_menu_select_all))
         TooltipCompat.setTooltipText(btnDeleteSelection, getString(R.string.om_action_delete_selected))
         TooltipCompat.setTooltipText(btnMoreSelection, getString(R.string.om_more_options))
 
@@ -2316,7 +2328,7 @@ class FileListActivity : AppActivity() {
         findViewById<View>(R.id.bottomBar)?.setBackgroundColor(palette.bottomBarBg)
         listOf(
             btnBottomBack, btnBottomForward, btnBottomAdd, btnBottomSwap, btnBottomHome,
-            btnSelectionClose, btnCopyOpposite, btnMoveOpposite, btnDeleteSelection, btnMoreSelection
+            btnSelectionClose, btnSelectAll, btnCopyOpposite, btnMoveOpposite, btnDeleteSelection, btnMoreSelection
         ).forEach { ImageViewCompat.setImageTintList(it, iconTintList) }
 
         applyDrawerPalette(palette)

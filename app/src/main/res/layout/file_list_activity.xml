@@ -243,6 +243,17 @@
                     android:contentDescription="@string/om_action_cancel_selection"
                     app:tint="@android:color/white" />
 
+                <!-- One tap to select everything (it used to be in ⋮ or a long press on ✕). -->
+                <ImageButton
+                    android:id="@+id/btnSelectAll"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:background="?selectableItemBackgroundBorderless"
+                    android:src="@drawable/select_all_icon_white_24dp"
+                    android:contentDescription="@string/om_menu_select_all"
+                    app:tint="@android:color/white" />
+
                 <ImageButton
                     android:id="@+id/btnCopyOpposite"
                     android:layout_width="0dp"

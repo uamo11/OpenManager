@@ -5,6 +5,9 @@
 - **Búsqueda avanzada**: filtrar por **tamaño** (mín./máx., p. ej. 500K o 2M) y por **texto que contiene el archivo**.
 - Las casillas se recuerdan para la próxima vez. Buscar y reemplazar texto y los duplicados siguen en el menú ⋮.
 
+### ☑️ Seleccionar todo en un toque
+- La barra de abajo, al seleccionar archivos, tiene ahora un botón **Seleccionar todo** (antes estaba en ⋮ o manteniendo pulsada la ✕). Si ya está todo seleccionado, el mismo botón quita la selección.
+
 ### 🖼 Imágenes dentro de comprimidos
 - Una imagen dentro de un zip/rar (al tocarla, o con «Abrir con → Visor de imágenes») se abre con el **visor de OM**, no con la galería del sistema.
 - La carpeta **open_cache** ya no crece sin fin: las copias de más de un día se borran solas y nunca pasa de 256 MB.

@@ -3462,6 +3462,18 @@ if pos=$(wait_text 15 "one.txt"); then
     # Select it with a swipe to the right (holding only opens the menu).
     y=${pos#* }
     adb shell input swipe 40 $y 320 $y 300; sleep 2
+    # Select all is a button of the selection bar now (user request).
+    if pos_all=$(node_center_by_id btnSelectAll); then
+        adb shell input tap $pos_all; sleep 2
+        shot 84a_select_all_button
+        if find_contains "Selected: 2 / 2" "Seleccionados: 2 / 2" >/dev/null; then
+            pass "the selection bar's Select all button selects every file (2 / 2)"
+        else
+            fail "Select all in the selection bar did not select both files"
+        fi
+    else
+        fail "no Select all button in the selection bar"
+    fi
     selected=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)
     adb shell input keyevent KEYCODE_BACK; sleep 2
     after=$(node_center_by_id btnSelectionClose >/dev/null && echo yes || echo no)
