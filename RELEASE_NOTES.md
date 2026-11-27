@@ -7,6 +7,7 @@
 
 ### 🎨 Detalles
 - En **Aplicaciones**, con el tema claro, el botón **Actualizar** era blanco sobre blanco: ahora toma el color del tema como los demás.
+- En el **detalle de una app**, con el tema claro, los títulos de cada opción (Abrir, Ajustes, carpetas, Extraer APK…) eran invisibles: ahora usan el color de texto del tema.
 
 ### ☑️ Seleccionar todo en un toque
 - La barra de abajo, al seleccionar archivos, tiene ahora un botón **Seleccionar todo** (antes estaba en ⋮ o manteniendo pulsada la ✕). Si ya está todo seleccionado, el mismo botón quita la selección.

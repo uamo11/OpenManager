@@ -512,6 +512,9 @@ class InstalledAppsActivity : AppActivity() {
     private fun showAppDetails(app: AppModel) {
         val detailsStart = android.os.SystemClock.elapsedRealtime()
         val dialogBinding = DialogInstalledAppDetailsBinding.inflate(layoutInflater)
+        // The layout's texts are written for a dark dialog; in the light theme the white titles
+        // vanished on the white surface (user report). Map them to the theme's text colors.
+        recolorTextsForTheme(dialogBinding.root, OpenManagerPalette.from(this))
         val cachedIcon = NativeAppIconLoader.getCached(app.packageName)
         if (cachedIcon != null) {
             dialogBinding.dialogAppIcon.setImageDrawable(cachedIcon)
@@ -808,6 +811,19 @@ class InstalledAppsActivity : AppActivity() {
         dialog.show()
         if (me.zhanghai.android.files.BuildConfig.DEBUG) {
             android.util.Log.d("OMApps", "Details shown ms=${android.os.SystemClock.elapsedRealtime() - detailsStart}")
+        }
+    }
+
+    /** White text → the theme's primary text color, greys → secondary; accent colors stay. */
+    private fun recolorTextsForTheme(view: View, palette: OpenManagerPalette) {
+        if (view is android.widget.TextView) {
+            when (view.currentTextColor and 0x00FFFFFF) {
+                0xFFFFFF -> view.setTextColor(palette.textPrimary)
+                0x888888, 0xBBBBBB, 0x666666 -> view.setTextColor(palette.textSecondary)
+            }
+        }
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) recolorTextsForTheme(view.getChildAt(i), palette)
         }
     }
 
