@@ -1,4 +1,8 @@
-# OpenManager v2.0.45: Reproductor de Música
+# OpenManager v2.0.45: Reproductor de Música y Actualizaciones que no se Cortan
+
+### 🛠 Actualizaciones de la app
+- **Minimizar la app ya no corta la descarga de una actualización** («Software caused connection abort»): mientras descarga, una notificación con el progreso mantiene la app activa, y si la conexión se cae sigue desde donde iba (hasta 3 intentos) en vez de mostrar el error.
+- Si termina con la app en segundo plano, aparece «Actualización descargada»: al tocarla o al volver a la app se abre el instalador.
 
 ### 🎵 Reproductor de música (petición de usuarios, como el de MT)
 - **Sigue sonando en segundo plano:** al cerrar la ventana con Atrás o tocando fuera, la música continúa, con notificación y controles en la pantalla de bloqueo. La ✕ la detiene. Tocar la notificación vuelve a abrir la ventana con la canción que suena.

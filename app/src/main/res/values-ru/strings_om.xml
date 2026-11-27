@@ -451,6 +451,11 @@
     <string name="update_download_success_title">Загрузка завершена</string>
     <string name="update_download_failed_title">Ошибка загрузки</string>
     <string name="update_download_failed_message">Не удалось скачать файл обновления: %1$s</string>
+    <string name="notification_channel_update_download_name">Обновления приложения</string>
+    <string name="notification_update_download_title">Загрузка обновления</string>
+    <string name="notification_update_ready_title">Обновление загружено</string>
+    <string name="notification_update_ready_text">Нажмите, чтобы установить OpenManager %1$s</string>
+    <string name="update_download_resuming">Соединение прервано, продолжаем…</string>
     <string name="update_corrupt_apk_error">Скачанный APK неполный или повреждён</string>
     <string name="update_check_error_title">Ошибка проверки</string>
     <string name="update_check_error_message">Не удалось получить данные об обновлении с GitHub: %1$s\nПроверьте подключение к интернету и повторите попытку.</string>

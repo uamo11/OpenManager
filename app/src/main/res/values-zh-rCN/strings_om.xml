@@ -452,6 +452,11 @@
     <string name="update_download_success_title">下载完成</string>
     <string name="update_download_failed_title">下载失败</string>
     <string name="update_download_failed_message">无法下载更新文件：%1$s</string>
+    <string name="notification_channel_update_download_name">应用更新</string>
+    <string name="notification_update_download_title">正在下载更新</string>
+    <string name="notification_update_ready_title">更新已下载</string>
+    <string name="notification_update_ready_text">点按以安装 OpenManager %1$s</string>
+    <string name="update_download_resuming">连接中断，正在继续…</string>
     <string name="update_corrupt_apk_error">下载的 APK 不完整或已损坏</string>
     <string name="update_check_error_title">检查失败</string>
     <string name="update_check_error_message">无法从 GitHub 获取更新信息：%1$s\n请检查网络连接后重试。</string>

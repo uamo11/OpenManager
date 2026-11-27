@@ -1240,6 +1240,7 @@ object UpdateChecker {
             var tempFile: File? = null
             var finalFile: File? = null
             isDownloadingUpdate = true
+            UpdateDownloadService.start(activity, releaseInfo.targetAsset.name)
             try {
                 withContext(Dispatchers.IO) {
                     val existingValid = findExistingValidUpdateApk(activity, releaseInfo)
@@ -1257,130 +1258,158 @@ object UpdateChecker {
 
                     val expectedSize = releaseInfo.targetAsset.size
                     var totalBytes = expectedSize
-                    var existingTempBytes = if (temporaryFile.exists() && temporaryFile.isFile) temporaryFile.length() else 0L
-                    if (expectedSize > 0L && existingTempBytes >= expectedSize) {
-                        temporaryFile.delete()
-                        existingTempBytes = 0L
-                    }
-
-                    var connection = openConnectionWithRedirects(
-                        releaseInfo.targetAsset.downloadUrl,
-                        rangeStartBytes = existingTempBytes
-                    )
-                    try {
-                        var decision = resolveDownloadResume(connection.responseCode, existingTempBytes)
-                        if (decision.resetTempBeforeRetry) {
-                            connection.disconnect()
-                            temporaryFile.delete()
-                            existingTempBytes = 0L
-                            connection = openConnectionWithRedirects(
-                                releaseInfo.targetAsset.downloadUrl,
-                                rangeStartBytes = 0L
-                            )
-                            decision = resolveDownloadResume(connection.responseCode, 0L)
-                        }
-
-                        val responseCode = connection.responseCode
-                        if (responseCode !in 200..299) {
-                            throw IOException("HTTP $responseCode")
-                        }
-
-                        val responseLen = connection.contentLength.toLong()
-                        totalBytes = when {
-                            decision.append && responseLen > 0L -> decision.startOffset + responseLen
-                            expectedSize > 0L -> expectedSize
-                            else -> responseLen
-                        }
-
-                        var downloadedBytes = decision.startOffset
-                        var lastUpdateTime = SystemClock.elapsedRealtime()
-                        var bytesSinceLastUpdate = 0L
-                        var smoothedSpeed = 0L
-                        var isResumedSession = decision.append
-
-                        if (isResumedSession && totalBytes > 0L) {
-                            val initPct = ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100)
-                            val curStr = formatSize(downloadedBytes)
-                            val totStr = formatSize(totalBytes)
-                            withContext(Dispatchers.Main) {
-                                if (activity.isUiAlive) {
-                                    pbDownloadProgress.progress = initPct
-                                    tvDownloadStats.text = activity.getString(
-                                        R.string.update_resuming_format,
-                                        curStr,
-                                        totStr,
-                                        initPct
-                                    )
-                                }
+                    // Phones cut the network of apps in the background (user report: "Software
+                    // caused connection abort" when minimizing): the service below keeps the app in
+                    // the foreground, and a dropped connection resumes where it stopped.
+                    var attempt = 0
+                    while (true) {
+                        try {
+                            var existingTempBytes = if (temporaryFile.exists() && temporaryFile.isFile) temporaryFile.length() else 0L
+                            if (expectedSize > 0L && existingTempBytes >= expectedSize) {
+                                temporaryFile.delete()
+                                existingTempBytes = 0L
                             }
-                        }
 
-                        connection.inputStream.use { input ->
-                            FileOutputStream(temporaryFile, decision.append).use { output ->
-                                val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
-                                var read: Int
-                                while (input.read(buffer).also { read = it } != -1) {
-                                    coroutineContext.ensureActive()
-                                    output.write(buffer, 0, read)
-                                    downloadedBytes += read
-                                    bytesSinceLastUpdate += read
+                            var connection = openConnectionWithRedirects(
+                                releaseInfo.targetAsset.downloadUrl,
+                                rangeStartBytes = existingTempBytes
+                            )
+                            try {
+                                var decision = resolveDownloadResume(connection.responseCode, existingTempBytes)
+                                if (decision.resetTempBeforeRetry) {
+                                    connection.disconnect()
+                                    temporaryFile.delete()
+                                    existingTempBytes = 0L
+                                    connection = openConnectionWithRedirects(
+                                        releaseInfo.targetAsset.downloadUrl,
+                                        rangeStartBytes = 0L
+                                    )
+                                    decision = resolveDownloadResume(connection.responseCode, 0L)
+                                }
 
-                                    val nowTime = SystemClock.elapsedRealtime()
-                                    val timeDiff = nowTime - lastUpdateTime
-                                    if (timeDiff >= 150L) {
-                                        val percent = if (totalBytes > 0L) ((downloadedBytes * 100) / totalBytes).toInt() else 0
-                                        val instantSpeed = (bytesSinceLastUpdate * 1000L) / timeDiff
-                                        smoothedSpeed = if (smoothedSpeed <= 0L) {
-                                            instantSpeed
-                                        } else {
-                                            (smoothedSpeed * 3L + instantSpeed) / 4L
+                                val responseCode = connection.responseCode
+                                if (responseCode !in 200..299) {
+                                    throw IOException("HTTP $responseCode")
+                                }
+
+                                val responseLen = connection.contentLength.toLong()
+                                totalBytes = when {
+                                    decision.append && responseLen > 0L -> decision.startOffset + responseLen
+                                    expectedSize > 0L -> expectedSize
+                                    else -> responseLen
+                                }
+
+                                var downloadedBytes = decision.startOffset
+                                var lastUpdateTime = SystemClock.elapsedRealtime()
+                                var lastNotifyTime = 0L
+                                var bytesSinceLastUpdate = 0L
+                                var smoothedSpeed = 0L
+                                var isResumedSession = decision.append
+
+                                if (isResumedSession && totalBytes > 0L) {
+                                    val initPct = ((downloadedBytes * 100) / totalBytes).toInt().coerceIn(0, 100)
+                                    val curStr = formatSize(downloadedBytes)
+                                    val totStr = formatSize(totalBytes)
+                                    withContext(Dispatchers.Main) {
+                                        if (activity.isUiAlive) {
+                                            pbDownloadProgress.progress = initPct
+                                            tvDownloadStats.text = activity.getString(
+                                                R.string.update_resuming_format,
+                                                curStr,
+                                                totStr,
+                                                initPct
+                                            )
                                         }
-                                        val curDownloaded = downloadedBytes
-                                        val etaStr = formatEtaSeconds(totalBytes - curDownloaded, smoothedSpeed)
-                                        val speedNow = smoothedSpeed
-                                        val resumedFlag = isResumedSession
-                                        isResumedSession = false
-                                        withContext(Dispatchers.Main) {
-                                            if (activity.isUiAlive) {
-                                                pbDownloadProgress.progress = percent.coerceIn(0, 100)
-                                                val statsRes = if (resumedFlag) {
-                                                    R.string.update_resuming_format
-                                                } else {
-                                                    R.string.update_downloading_format
-                                                }
-                                                tvDownloadStats.text = activity.getString(
-                                                    statsRes,
-                                                    formatSize(curDownloaded),
-                                                    formatSize(totalBytes),
-                                                    percent
-                                                )
-                                                tvDownloadSpeed.text = if (totalBytes > 0L && speedNow > 0L) {
-                                                    activity.getString(
-                                                        R.string.update_speed_eta_format,
-                                                        formatSize(speedNow),
-                                                        etaStr
-                                                    )
-                                                } else {
-                                                    activity.getString(
-                                                        R.string.update_download_speed_format,
-                                                        formatSize(speedNow)
-                                                    )
-                                                }
-                                            }
-                                        }
-                                        lastUpdateTime = nowTime
-                                        bytesSinceLastUpdate = 0L
                                     }
                                 }
-                                output.flush()
-                            }
-                        }
 
-                        if (totalBytes > 0L && (downloadedBytes != totalBytes || temporaryFile.length() != totalBytes)) {
-                            throw IOException("Incomplete download ($downloadedBytes / $totalBytes bytes)")
+                                connection.inputStream.use { input ->
+                                    FileOutputStream(temporaryFile, decision.append).use { output ->
+                                        val buffer = ByteArray(DOWNLOAD_BUFFER_SIZE)
+                                        var read: Int
+                                        while (input.read(buffer).also { read = it } != -1) {
+                                            coroutineContext.ensureActive()
+                                            output.write(buffer, 0, read)
+                                            downloadedBytes += read
+                                            bytesSinceLastUpdate += read
+                                            debugAbortOnce(activity, downloadedBytes - decision.startOffset)
+
+                                            val nowTime = SystemClock.elapsedRealtime()
+                                            val timeDiff = nowTime - lastUpdateTime
+                                            if (timeDiff >= 150L) {
+                                                val percent = if (totalBytes > 0L) ((downloadedBytes * 100) / totalBytes).toInt() else 0
+                                                val instantSpeed = (bytesSinceLastUpdate * 1000L) / timeDiff
+                                                smoothedSpeed = if (smoothedSpeed <= 0L) {
+                                                    instantSpeed
+                                                } else {
+                                                    (smoothedSpeed * 3L + instantSpeed) / 4L
+                                                }
+                                                val curDownloaded = downloadedBytes
+                                                val etaStr = formatEtaSeconds(totalBytes - curDownloaded, smoothedSpeed)
+                                                val speedNow = smoothedSpeed
+                                                val resumedFlag = isResumedSession
+                                                isResumedSession = false
+                                                withContext(Dispatchers.Main) {
+                                                    if (activity.isUiAlive) {
+                                                        pbDownloadProgress.progress = percent.coerceIn(0, 100)
+                                                        val statsRes = if (resumedFlag) {
+                                                            R.string.update_resuming_format
+                                                        } else {
+                                                            R.string.update_downloading_format
+                                                        }
+                                                        tvDownloadStats.text = activity.getString(
+                                                            statsRes,
+                                                            formatSize(curDownloaded),
+                                                            formatSize(totalBytes),
+                                                            percent
+                                                        )
+                                                        tvDownloadSpeed.text = if (totalBytes > 0L && speedNow > 0L) {
+                                                            activity.getString(
+                                                                R.string.update_speed_eta_format,
+                                                                formatSize(speedNow),
+                                                                etaStr
+                                                            )
+                                                        } else {
+                                                            activity.getString(
+                                                                R.string.update_download_speed_format,
+                                                                formatSize(speedNow)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                if (nowTime - lastNotifyTime >= 1000L) {
+                                                    lastNotifyTime = nowTime
+                                                    UpdateDownloadService.progress(
+                                                        activity, releaseInfo.targetAsset.name, percent.coerceIn(0, 100)
+                                                    )
+                                                }
+                                                lastUpdateTime = nowTime
+                                                bytesSinceLastUpdate = 0L
+                                            }
+                                        }
+                                        output.flush()
+                                    }
+                                }
+
+                                if (totalBytes > 0L && (downloadedBytes != totalBytes || temporaryFile.length() != totalBytes)) {
+                                    throw IOException("Incomplete download ($downloadedBytes / $totalBytes bytes)")
+                                }
+                            } finally {
+                                connection.disconnect()
+                            }
+                            break
+                        } catch (e: IOException) {
+                            attempt++
+                            if (attempt > DOWNLOAD_RETRIES || !isRetryableDownloadError(e)) throw e
+                            android.util.Log.w(TAG_DOWNLOAD, "Update download interrupted (try $attempt): $e; resuming")
+                            withContext(Dispatchers.Main) {
+                                if (activity.isUiAlive) {
+                                    tvDownloadSpeed.text = activity.getString(R.string.update_download_resuming)
+                                }
+                            }
+                            delay(1500L * attempt)
+                            waitForNetwork(activity, 30_000L)
                         }
-                    } finally {
-                        connection.disconnect()
                     }
 
                     val validationSize = if (totalBytes > 0L) totalBytes else expectedSize
@@ -1401,6 +1430,7 @@ object UpdateChecker {
 
                 dialog.dismissSafely()
                 if (!activity.isUiAlive) return@launch
+                UpdateDownloadService.stop(activity)
 
                 Toast.makeText(activity, activity.getString(R.string.update_download_success_title), Toast.LENGTH_SHORT).show()
 
@@ -1409,7 +1439,8 @@ object UpdateChecker {
                         .putString(PREF_PENDING_UPDATE_APK_PATH, installedFile.absolutePath)
                         .putString(PREF_PENDING_UPDATE_VERSION, releaseInfo.version)
                         .apply()
-                    launchApkInstallation(activity, installedFile)
+                    android.util.Log.i(TAG_DOWNLOAD, "Update downloaded: ${installedFile.name}")
+                    installWhenInFront(activity, installedFile, releaseInfo.version)
                 }
             } catch (e: CancellationException) {
                 dialog.dismissSafely()
@@ -1428,8 +1459,58 @@ object UpdateChecker {
                 }
             } finally {
                 isDownloadingUpdate = false
+                UpdateDownloadService.stop(activity)
             }
         }
+    }
+
+    private const val TAG_DOWNLOAD = "OMUpdate"
+    private const val DOWNLOAD_RETRIES = 3
+
+    /** Debug builds: while this file is in the app's files folder, the next download drops once. */
+    const val DEBUG_ABORT_FLAG = "om_update_abort_once"
+
+    private fun debugAbortOnce(context: Context, bytesThisTry: Long) {
+        if (!BuildConfig.DEBUG || bytesThisTry < 1_000_000L) return
+        val flag = File(context.filesDir, DEBUG_ABORT_FLAG)
+        if (flag.exists() && flag.delete()) {
+            throw java.net.SocketException("Software caused connection abort (debug)")
+        }
+    }
+
+    /** A dropped or timed-out connection is worth resuming; a 404 or a corrupt file is not. */
+    fun isRetryableDownloadError(e: IOException): Boolean {
+        val message = e.message.orEmpty()
+        if (message.startsWith("HTTP 4")) return false
+        return e is java.net.SocketException || e is java.net.SocketTimeoutException ||
+            e is java.io.EOFException || e is javax.net.ssl.SSLException ||
+            e is java.net.UnknownHostException || message.startsWith("Incomplete download") ||
+            message.startsWith("HTTP 5") || message.contains("unexpected end of stream", ignoreCase = true)
+    }
+
+    private suspend fun waitForNetwork(context: Context, maxMs: Long) {
+        val end = SystemClock.elapsedRealtime() + maxMs
+        while (!isNetworkAvailable(context) && SystemClock.elapsedRealtime() < end) delay(1000L)
+    }
+
+    /**
+     * Android only opens its installer from the app in front. Downloaded in the background: a
+     * notification, and the installer opens as soon as the app is back.
+     */
+    private fun installWhenInFront(activity: FragmentActivity, apk: File, version: String) {
+        val lifecycle = activity.lifecycle
+        if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) {
+            launchApkInstallation(activity, apk)
+            return
+        }
+        UpdateDownloadService.readyToInstall(activity, version)
+        lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
+            override fun onResume(owner: androidx.lifecycle.LifecycleOwner) {
+                lifecycle.removeObserver(this)
+                UpdateDownloadService.cancelReady(activity)
+                if (apk.isFile) launchApkInstallation(activity, apk)
+            }
+        })
     }
 
     private const val APK_MIME = "application/vnd.android.package-archive"

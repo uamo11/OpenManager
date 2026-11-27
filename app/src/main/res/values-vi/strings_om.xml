@@ -451,6 +451,11 @@
     <string name="update_download_success_title">Đã tải xong</string>
     <string name="update_download_failed_title">Tải xuống thất bại</string>
     <string name="update_download_failed_message">Không thể tải tệp cập nhật: %1$s</string>
+    <string name="notification_channel_update_download_name">Cập nhật ứng dụng</string>
+    <string name="notification_update_download_title">Đang tải bản cập nhật</string>
+    <string name="notification_update_ready_title">Đã tải bản cập nhật</string>
+    <string name="notification_update_ready_text">Chạm để cài OpenManager %1$s</string>
+    <string name="update_download_resuming">Mất kết nối, đang tiếp tục…</string>
     <string name="update_corrupt_apk_error">APK đã tải bị thiếu hoặc hỏng</string>
     <string name="update_check_error_title">Kiểm tra thất bại</string>
     <string name="update_check_error_message">Không lấy được thông tin cập nhật từ GitHub: %1$s\nHãy kiểm tra kết nối mạng rồi thử lại.</string>

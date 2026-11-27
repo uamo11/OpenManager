@@ -181,7 +181,8 @@ private fun createNotificationChannels() {
                 apktoolNotificationTemplate.channelTemplate,
                 scriptExecutionNotificationTemplate.channelTemplate,
                 me.zhanghai.android.files.terminal.tracer.commandGuardNotificationTemplate.channelTemplate,
-                me.zhanghai.android.files.webaccess.webAccessNotificationTemplate.channelTemplate
+                me.zhanghai.android.files.webaccess.webAccessNotificationTemplate.channelTemplate,
+                me.zhanghai.android.files.update.updateDownloadNotificationTemplate.channelTemplate
             ).map { it.create(application) }
         )
     }

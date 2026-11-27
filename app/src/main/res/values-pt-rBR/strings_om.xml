@@ -451,6 +451,11 @@
     <string name="update_download_success_title">Download concluído</string>
     <string name="update_download_failed_title">Falha no download</string>
     <string name="update_download_failed_message">Não foi possível baixar a atualização: %1$s</string>
+    <string name="notification_channel_update_download_name">Atualizações do app</string>
+    <string name="notification_update_download_title">Baixando a atualização</string>
+    <string name="notification_update_ready_title">Atualização baixada</string>
+    <string name="notification_update_ready_text">Toque para instalar o OpenManager %1$s</string>
+    <string name="update_download_resuming">A conexão caiu, retomando…</string>
     <string name="update_corrupt_apk_error">O APK baixado está incompleto ou corrompido</string>
     <string name="update_check_error_title">Falha na verificação</string>
     <string name="update_check_error_message">Não foi possível obter informações de atualização do GitHub: %1$s\nVerifique sua conexão com a internet e tente novamente.</string>

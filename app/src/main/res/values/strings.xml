@@ -1290,6 +1290,11 @@
     <string name="update_download_success_title">Download completed</string>
     <string name="update_download_failed_title">Download failed</string>
     <string name="update_download_failed_message">Could not download update file: %1$s</string>
+    <string name="notification_channel_update_download_name">App updates</string>
+    <string name="notification_update_download_title">Downloading the update</string>
+    <string name="notification_update_ready_title">Update downloaded</string>
+    <string name="notification_update_ready_text">Tap to install OpenManager %1$s</string>
+    <string name="update_download_resuming">Connection lost, resuming…</string>
     <string name="update_corrupt_apk_error">Downloaded APK is incomplete or corrupted</string>
     <string name="update_check_error_title">Check failed</string>
     <string name="update_check_error_message">Could not retrieve update info from GitHub: %1$s\nPlease check your internet connection and try again.</string>

@@ -451,6 +451,11 @@
     <string name="update_download_success_title">Unduhan selesai</string>
     <string name="update_download_failed_title">Unduhan gagal</string>
     <string name="update_download_failed_message">Tidak bisa mengunduh file pembaruan: %1$s</string>
+    <string name="notification_channel_update_download_name">Pembaruan aplikasi</string>
+    <string name="notification_update_download_title">Mengunduh pembaruan</string>
+    <string name="notification_update_ready_title">Pembaruan sudah diunduh</string>
+    <string name="notification_update_ready_text">Ketuk untuk memasang OpenManager %1$s</string>
+    <string name="update_download_resuming">Koneksi terputus, melanjutkan…</string>
     <string name="update_corrupt_apk_error">APK yang diunduh tidak lengkap atau rusak</string>
     <string name="update_check_error_title">Pemeriksaan gagal</string>
     <string name="update_check_error_message">Tidak bisa mengambil info pembaruan dari GitHub: %1$s\nPeriksa koneksi internet lalu coba lagi.</string>

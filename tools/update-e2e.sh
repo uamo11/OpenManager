@@ -120,7 +120,40 @@ if [ $BRANCH_BUILD -eq 1 ] && pos=$(find_text "Later" "LATER" "Más tarde" "MÁS
     fi
 fi
 if pos=$(find_text "Download & Install" "Descargar e instalar"); then
-    adb shell input tap $pos
+    if [ $BRANCH_BUILD -eq 1 ]; then
+        # User report: minimizing the app aborted the download ("Software caused connection
+        # abort"). The connection is dropped once on purpose and the app goes to the background.
+        adb shell run-as $PKG touch files/om_update_abort_once
+        adb logcat -c
+        adb shell input tap $pos
+        sleep 3
+        adb shell input keyevent KEYCODE_HOME
+        done_line=""
+        for _ in $(seq 1 90); do
+            done_line=$(adb logcat -d -s OMUpdate 2>/dev/null | grep "Update downloaded" | tail -1)
+            [ -n "$done_line" ] && break
+            sleep 2
+        done
+        resumed=$(adb logcat -d -s OMUpdate 2>/dev/null | grep -c "interrupted (try 1)" || true)
+        adb shell dumpsys notification --noredact 2>/dev/null | tr -d '\r' > "$OUT/notifications.txt"
+        ready=$(grep -c "Update downloaded" "$OUT/notifications.txt" || true)
+        shot 01d_downloaded_in_background
+        log "      background download: ${done_line:-not finished}; resumed after a cut: $resumed; ready notice: $ready"
+        if [ -n "$done_line" ] && [ "${resumed:-0}" -ge 1 ]; then
+            pass "a dropped connection with the app minimized resumes and the download finishes"
+        else
+            fail "the update download did not survive a dropped connection in the background"
+        fi
+        if [ "${ready:-0}" -ge 1 ]; then
+            pass "downloaded in the background: a notification says it is ready to install"
+        else
+            fail "no 'Update downloaded' notification after a background download"
+        fi
+        # Back to the app: Android's installer opens now.
+        adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1
+    else
+        adb shell input tap $pos
+    fi
 fi
 if pos=$(wait_text 180 "Install" "INSTALL" "Update" "UPDATE" "Instalar" "Actualizar" "Open with" "Abrir con"); then
     if find_text "Open with" "Abrir con" >/dev/null; then

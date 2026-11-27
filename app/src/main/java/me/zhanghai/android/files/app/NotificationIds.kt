@@ -11,4 +11,6 @@ object NotificationIds {
     const val SCRIPT_EXECUTION = 3
     const val COMMAND_GUARD = 4
     const val WEB_ACCESS = 5
+    const val UPDATE_DOWNLOAD = 6
+    const val UPDATE_READY = 7
 }
