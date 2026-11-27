@@ -2937,6 +2937,15 @@ fi
 adb logcat -d > "$OUT/logcat_editor.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_editor.txt"; then fail "crash in the text editor"; else pass "no crash in the text editor"; fi
 if grep -q "ANR in $PKG" "$OUT/logcat_editor.txt"; then fail "the text editor stopped responding (ANR)"; fi
+# A large file without highlighting used to give the renderer a span map of one line: it caught an
+# IndexOutOfBounds on every other line it drew (thousands while scrolling).
+span_errors=$(grep -c "EditorRenderer: java.lang.IndexOutOfBoundsException" "$OUT/logcat_editor.txt" || true)
+log "      renderer span errors while editing: ${span_errors:-0}"
+if [ "${span_errors:-0}" = 0 ]; then
+    pass "the editor draws large files without span errors"
+else
+    fail "the editor renderer failed to read spans $span_errors times"
+fi
 adb shell am force-stop $PKG; sleep 1
 
 log "=== File names: 2 lines by default, size never cut, marquee on 1 line (user report) ==="

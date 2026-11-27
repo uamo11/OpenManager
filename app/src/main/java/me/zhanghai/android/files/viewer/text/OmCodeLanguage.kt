@@ -60,9 +60,11 @@ class OmCodeLanguage(
             if (!highlighting || language == SyntaxLanguage.PLAIN_TEXT ||
                 !FastSyntaxScanner.isWithinHighlightLimit(text.length, isLive = true)
             ) {
-                builder.addNormalIfNull()
+                // Plain text on every line, at no memory per line. A span map holding only line 0
+                // made the renderer fail on each other line: thousands of caught exceptions while
+                // scrolling a large file (seen in the E2E logs).
                 debugLog(0, text.length)
-                return Styles(builder.build())
+                return Styles(PlainSpans(lineCountOf(text)))
             }
             val tokens = FastSyntaxScanner.scan(text, language, theme)
             if (delegate.isCancelled) return null
@@ -100,6 +102,24 @@ class OmCodeLanguage(
         }
     }
 
+    /** Lines as the editor counts them: '\n', '\r\n' and a lone '\r' each end one. */
+    private fun lineCountOf(text: CharSequence): Int {
+        var lines = 1
+        var i = 0
+        val n = text.length
+        while (i < n) {
+            val c = text[i]
+            if (c == '\n') {
+                lines++
+            } else if (c == '\r') {
+                lines++
+                if (i + 1 < n && text[i + 1] == '\n') i++
+            }
+            i++
+        }
+        return lines
+    }
+
     private fun debugLog(tokens: Int, chars: Int) {
         if (me.zhanghai.android.files.BuildConfig.DEBUG) {
             android.util.Log.d("OMEditor", "analyzed lang=$language tokens=$tokens chars=$chars")
@@ -128,4 +148,25 @@ class OmCodeLanguage(
         const val INDENT = 4
         private val PAIRS = SymbolPairMatch.DefaultSymbolPairs()
     }
+}
+
+/** Every line in the normal text style, without a span list per line (huge or plain files). */
+private class PlainSpans(private val lines: Int) : io.github.rosemoe.sora.lang.styling.Spans {
+    override fun adjustOnInsert(
+        start: io.github.rosemoe.sora.text.CharPosition, end: io.github.rosemoe.sora.text.CharPosition
+    ) = Unit
+
+    override fun adjustOnDelete(
+        start: io.github.rosemoe.sora.text.CharPosition, end: io.github.rosemoe.sora.text.CharPosition
+    ) = Unit
+
+    override fun read(): io.github.rosemoe.sora.lang.styling.Spans.Reader =
+        io.github.rosemoe.sora.lang.styling.EmptyReader.getInstance()
+
+    override fun supportsModify(): Boolean = false
+
+    override fun modify(): io.github.rosemoe.sora.lang.styling.Spans.Modifier =
+        throw UnsupportedOperationException("Plain text has no spans to modify")
+
+    override fun getLineCount(): Int = lines
 }

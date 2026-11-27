@@ -1,4 +1,7 @@
-# OpenManager v2.0.43: Carpetas Fijadas e Instalar como Google Play
+# OpenManager v2.0.43: Estabilidad, Carpetas Fijadas e Instalar como Google Play
+
+### 🛠 Estabilidad
+- **Editor de texto:** al abrir un archivo grande sin colores (o texto plano), el editor fallaba internamente en cada línea que dibujaba, miles de veces al desplazarse: ahora dibuja sin esos errores y sin gastar memoria extra por línea.
 
 ### 📌 Carpetas fijadas arriba
 - Mantén pulsada una carpeta → **Fijar arriba**: queda siempre al principio de su carpeta (las fijadas, por nombre), con un 📌. **Desfijar** la devuelve a su sitio. Idea de los usuarios de MP Manager.
