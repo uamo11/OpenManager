@@ -140,6 +140,15 @@ run_sections "perf-off"
 set_perf on
 run_sections "perf-on"
 
+# Heavy content everywhere, with Ultra RAM on and off (owner request: extreme tests).
+. tools/perf-extreme.sh
+extreme_prepare
+set_perf off
+run_extreme "perf-off"
+set_perf on
+run_extreme "perf-on"
+extreme_report
+
 log "Native heap attribution (malloc debug backtraces, Performance Mode ON)"
 adb shell setprop wrap.$PKG LIBC_DEBUG_MALLOC_OPTIONS=backtrace
 for target in filelist.FileListActivity settings.SettingsActivity terminal.TerminalActivity editor; do

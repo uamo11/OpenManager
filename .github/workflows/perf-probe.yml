@@ -37,7 +37,7 @@ jobs:
   probe:
     name: Build Debug & Profile Memory per Screen
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
     - uses: actions/checkout@v4
       with:
