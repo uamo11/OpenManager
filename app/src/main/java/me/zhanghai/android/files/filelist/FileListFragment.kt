@@ -1790,64 +1790,89 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         addBookmark(currentPath)
     }
 
+    /**
+     * Everything about the order in one dialog, applied with OK (as MT does): the list used to
+     * close after each tap, so changing the criterion and the direction took two trips (user
+     * report). View (list, grid, gallery) has its own button.
+     */
     fun showSortOptionsDialog() {
-        val options = arrayOf(
-            getString(R.string.om_sort_view_entry),
-            getString(R.string.om_sort_by_name),
-            getString(R.string.om_sort_by_type),
-            getString(R.string.om_sort_by_size),
-            getString(R.string.om_sort_by_date),
-            getString(R.string.om_sort_invert_order),
-            getString(R.string.om_sort_dirs_first)
-        )
-        val sort = viewModel.sortOptions
-        // Which rows carry a check mark: the active criterion and the switches that are on.
-        val checked = booleanArrayOf(
-            false,
-            sort.by == By.NAME,
-            sort.by == By.TYPE,
-            sort.by == By.SIZE,
-            sort.by == By.LAST_MODIFIED,
-            sort.order == Order.DESCENDING,
-            sort.isDirectoriesFirst
-        )
         val context = requireContext()
-        val adapter = object : android.widget.ArrayAdapter<String>(
-            context, R.layout.sort_option_item, android.R.id.text1, options
-        ) {
-            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-                val row = super.getView(position, convertView, parent)
-                row.findViewById<View>(R.id.sortOptionCheck).apply {
-                    visibility = if (checked[position]) View.VISIBLE else View.INVISIBLE
-                    // TalkBack says "selected" for the active choice.
-                    contentDescription = if (checked[position]) getString(R.string.om_sort_active) else null
-                }
-                row.findViewById<android.widget.TextView>(android.R.id.text1).setTypeface(
-                    null, if (checked[position]) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL
+        val density = resources.displayMetrics.density
+        val sort = viewModel.sortOptions
+        val criteria = listOf(
+            By.NAME to R.string.om_sort_by_name,
+            By.SIZE to R.string.om_sort_by_size,
+            By.LAST_MODIFIED to R.string.om_sort_by_date,
+            By.TYPE to R.string.om_sort_by_type
+        )
+        // Two columns of radio buttons, like MT; a RadioGroup only manages its direct children,
+        // so the four are kept exclusive by hand.
+        val radios = criteria.map { (by, label) ->
+            android.widget.RadioButton(context).apply {
+                id = SORT_BY_ID_BASE + by.ordinal
+                setText(label)
+                isChecked = sort.by == by
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f
                 )
-                return row
             }
         }
+        radios.forEach { radio ->
+            radio.setOnCheckedChangeListener { button, isChecked ->
+                if (isChecked) radios.filter { it !== button }.forEach { it.isChecked = false }
+            }
+        }
+        fun row(vararg views: View) = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            views.forEach { addView(it) }
+        }
+        val pathSpecific = android.widget.CheckBox(context).apply {
+            setText(R.string.file_list_action_view_sort_path_specific)
+            isChecked = viewModel.isViewSortPathSpecific
+        }
+        val descending = android.widget.CheckBox(context).apply {
+            setText(R.string.om_sort_invert_order)
+            isChecked = sort.order == Order.DESCENDING
+        }
+        val directoriesFirst = android.widget.CheckBox(context).apply {
+            setText(R.string.om_sort_dirs_first)
+            isChecked = sort.isDirectoriesFirst
+        }
+        val padding = (22 * density).toInt()
+        val content = android.widget.LinearLayout(context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(padding, (8 * density).toInt(), padding, 0)
+            addView(row(radios[0], radios[1]))
+            addView(row(radios[2], radios[3]))
+            addView(android.widget.Space(context), ViewGroup.LayoutParams(1, (8 * density).toInt()))
+            addView(pathSpecific)
+            addView(descending)
+            addView(directoriesFirst)
+        }
+        val host = activity as? FileListActivity
+        val title = when {
+            host == null || binding.toolbar.isVisible -> R.string.om_menu_sort
+            host.isFragmentA(this) -> R.string.om_sort_title_left
+            else -> R.string.om_sort_title_right
+        }
         com.google.android.material.dialog.MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.om_menu_sort)
-            .setAdapter(adapter) { _, which ->
-                when (which) {
-                    0 -> showViewOptionsDialog()
-                    1 -> viewModel.setSortBy(By.NAME)
-                    2 -> viewModel.setSortBy(By.TYPE)
-                    3 -> viewModel.setSortBy(By.SIZE)
-                    4 -> viewModel.setSortBy(By.LAST_MODIFIED)
-                    5 -> {
-                        val newOrder = if (viewModel.sortOptions.order == Order.ASCENDING) {
-                            Order.DESCENDING
-                        } else {
-                            Order.ASCENDING
-                        }
-                        viewModel.setSortOrder(newOrder)
-                    }
-                    6 -> viewModel.setSortDirectoriesFirst(!viewModel.sortOptions.isDirectoriesFirst)
+            .setTitle(title)
+            .setView(android.widget.ScrollView(context).apply { addView(content) })
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                // "Only for this folder" first: the order then goes where it says.
+                if (viewModel.isViewSortPathSpecific != pathSpecific.isChecked) {
+                    viewModel.isViewSortPathSpecific = pathSpecific.isChecked
+                }
+                val by = criteria.indices.firstOrNull { radios[it].isChecked }?.let { criteria[it].first }
+                if (by != null && by != viewModel.sortOptions.by) viewModel.setSortBy(by)
+                val order = if (descending.isChecked) Order.DESCENDING else Order.ASCENDING
+                if (order != viewModel.sortOptions.order) viewModel.setSortOrder(order)
+                if (directoriesFirst.isChecked != viewModel.sortOptions.isDirectoriesFirst) {
+                    viewModel.setSortDirectoriesFirst(directoriesFirst.isChecked)
                 }
             }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.om_sort_view_button) { _, _ -> showViewOptionsDialog() }
             .show()
     }
 
@@ -3828,6 +3853,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     companion object {
         private const val VIEW_TYPE_ID_BASE = 1000
+        private const val SORT_BY_ID_BASE = 1200
         private const val VIEW_SCOPE_FOLDER_ID = 1100
         private const val VIEW_SCOPE_ALL_ID = 1101
         private const val ACTION_VIEW_DOWNLOADS =

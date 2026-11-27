@@ -1351,6 +1351,9 @@
     <string name="om_sort_by_date">Дата изменения</string>
     <string name="om_sort_invert_order">Обратный порядок (по возр./убыв.)</string>
     <string name="om_sort_dirs_first">Сначала папки</string>
+    <string name="om_sort_title_left">Сортировка – левая панель</string>
+    <string name="om_sort_title_right">Сортировка – правая панель</string>
+    <string name="om_sort_view_button">Вид…</string>
     <string name="om_err_paste_into_archive">Нельзя вставить в сжатый архив</string>
     <string name="om_err_copy_into_self_format">Нельзя скопировать папку «%1$s» в саму себя или во вложенные папки</string>
     <string name="om_err_perm_denied_src_ro">Доступ запрещён: источник только для чтения (нужен Root или Shizuku)</string>

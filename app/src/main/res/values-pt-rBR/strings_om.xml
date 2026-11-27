@@ -1351,6 +1351,9 @@
     <string name="om_sort_by_date">Data de modificação</string>
     <string name="om_sort_invert_order">Ordem inversa (cresc./decresc.)</string>
     <string name="om_sort_dirs_first">Pastas primeiro</string>
+    <string name="om_sort_title_left">Ordenar – painel esquerdo</string>
+    <string name="om_sort_title_right">Ordenar – painel direito</string>
+    <string name="om_sort_view_button">Visualização…</string>
     <string name="om_err_paste_into_archive">Não é possível colar dentro de um arquivo compactado</string>
     <string name="om_err_copy_into_self_format">Não é possível copiar a pasta \"%1$s\" para dentro dela mesma ou de suas subpastas</string>
     <string name="om_err_perm_denied_src_ro">Permissão negada: a origem é somente leitura (requer Root ou Shizuku)</string>

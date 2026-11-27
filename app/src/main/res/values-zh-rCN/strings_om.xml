@@ -1352,6 +1352,9 @@
     <string name="om_sort_by_date">修改日期</string>
     <string name="om_sort_invert_order">倒序（升序/降序）</string>
     <string name="om_sort_dirs_first">文件夹优先</string>
+    <string name="om_sort_title_left">排序方式 – 左窗口</string>
+    <string name="om_sort_title_right">排序方式 – 右窗口</string>
+    <string name="om_sort_view_button">视图…</string>
     <string name="om_err_paste_into_archive">无法粘贴到压缩包中</string>
     <string name="om_err_copy_into_self_format">无法将文件夹“%1$s”复制到其自身或其子文件夹中</string>
     <string name="om_err_perm_denied_src_ro">权限被拒绝：源位置为只读（需要 Root 或 Shizuku）</string>

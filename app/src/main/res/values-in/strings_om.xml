@@ -1351,6 +1351,9 @@
     <string name="om_sort_by_date">Tanggal diubah</string>
     <string name="om_sort_invert_order">Urutan terbalik (naik/turun)</string>
     <string name="om_sort_dirs_first">Folder di atas</string>
+    <string name="om_sort_title_left">Urutkan – panel kiri</string>
+    <string name="om_sort_title_right">Urutkan – panel kanan</string>
+    <string name="om_sort_view_button">Tampilan…</string>
     <string name="om_err_paste_into_archive">Tidak bisa menempel ke dalam arsip terkompresi</string>
     <string name="om_err_copy_into_self_format">Tidak bisa menyalin folder \"%1$s\" ke dalam dirinya sendiri atau subfoldernya</string>
     <string name="om_err_perm_denied_src_ro">Izin ditolak: sumber hanya baca (perlu Root atau Shizuku)</string>

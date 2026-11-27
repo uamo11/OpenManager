@@ -1973,12 +1973,12 @@ else
 fi
 
 log "=== Gallery view for one folder: big tiles, no names, resolution label ==="
-# set_view <view label> <scope label>: ⋮ > Sort and view > View… > choice > OK.
+# set_view <view label> <scope label>: ⋮ > Sort and view > View… (button) > choice > OK.
 set_view() {
     demo more_menu; sleep 2
     pos=$(find_contains "Sort and view" "Ordenar y vista") || return 1
     adb shell input tap $pos; sleep 2
-    pos=$(find_contains "View: list" "Vista: lista") || return 1
+    pos=$(find_text "View…" "Vista…") || return 1
     adb shell input tap $pos; sleep 2
     pos=$(find_contains "$1") || return 1
     adb shell input tap $pos; sleep 1
@@ -2295,38 +2295,55 @@ case "$title" in
     *) fail "BACK went to '$title' instead of stopping at the internal storage" ;;
 esac
 
-log "=== Sort and view marks the active choice ==="
+log "=== Sort and view: one MT-style dialog, applied with OK (user request) ==="
 demo more_menu; sleep 2
 pos=$(find_contains "Sort and view" "Ordenar y vista") && adb shell input tap $pos; sleep 2
-shot 65_sort_checks
-# A fresh dump of the open dialog (the one above was taken before tapping).
+shot 65_sort_dialog
 adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
 adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
-marks=$(python3 - "$OUT/ui.xml" <<'PY'
+state=$(python3 - "$OUT/ui.xml" <<'PY'
 import re, sys, html
 xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
-nodes = re.findall(r"<node [^>]*>", xml)
-def box(n):
-    return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
-checks = [box(n) for n in nodes if re.search(r'resource-id="[^"]*:id/sortOptionCheck"', n)
-          or re.search(r'content-desc="(Selected|Seleccionado)"', n)]
-rows = {}
-for n in nodes:
+out = []
+for n in re.findall(r"<node [^>]*>", xml):
     t = re.search(r' text="([^"]*)"', n)
-    if t and re.search(r'resource-id="android:id/text1"', n):
-        rows[html.unescape(t.group(1))] = box(n)
-marked = [label for label, (x1, y1, x2, y2) in rows.items()
-          if any(cy1 < (y1 + y2) // 2 < cy2 for _, cy1, _, cy2 in checks)]
-print(" | ".join(marked))
+    if t and re.search(r'class="android.widget.(RadioButton|CheckBox)"', n):
+        out.append(html.unescape(t.group(1)) + ("=on" if 'checked="true"' in n else "=off"))
+print(" | ".join(out))
 PY
 )
-log "      marked: ${marks:-none}"
-if printf '%s' "$marks" | grep -qi "name\|nombre"; then
-    pass "Sort and view shows a check next to the active sort (Name)"
+log "      dialog: ${state:-nothing}"
+if printf '%s' "$state" | grep -q "Name=on" && printf '%s' "$state" | grep -q "Reverse order" && printf '%s' "$state" | grep -q "Folders first"; then
+    pass "Sort and view shows every choice at once, the active one (Name) checked"
 else
-    fail "Sort and view does not mark the active sort ($marks)"
+    fail "Sort and view is not one dialog with the active choice ($state)"
 fi
-adb shell input keyevent KEYCODE_BACK; sleep 1
+# Two changes in one trip: date + reverse order, then OK.
+pos=$(find_text "Date modified" "Fecha de modificación") && adb shell input tap $pos; sleep 1
+pos=$(find_contains "Reverse order" "Invertir orden") && adb shell input tap $pos; sleep 1
+pos=$(find_text "OK" "Aceptar") && adb shell input tap $pos; sleep 2
+demo more_menu; sleep 2
+pos=$(find_contains "Sort and view" "Ordenar y vista") && adb shell input tap $pos; sleep 2
+adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+after=$(python3 - "$OUT/ui.xml" <<'PY'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+on = [html.unescape(re.search(r' text="([^"]*)"', n).group(1)) for n in re.findall(r"<node [^>]*>", xml)
+      if re.search(r'class="android.widget.(RadioButton|CheckBox)"', n) and 'checked="true"' in n and ' text="' in n]
+print(" | ".join(on))
+PY
+)
+log "      after OK: ${after:-nothing}"
+if printf '%s' "$after" | grep -q "Date modified" && printf '%s' "$after" | grep -q "Reverse order"; then
+    pass "date and reverse order chosen together, applied with one OK"
+else
+    fail "the two changes were not both applied ($after)"
+fi
+# Back to name, ascending, for the tests after this one.
+pos=$(find_text "Name" "Nombre") && adb shell input tap $pos; sleep 1
+pos=$(find_contains "Reverse order" "Invertir orden") && adb shell input tap $pos; sleep 1
+pos=$(find_text "OK" "Aceptar") && adb shell input tap $pos; sleep 2
 
 log "=== Fast scroller: only its thumb drags, a swipe along the edge scrolls normally (user report) ==="
 adb shell 'mkdir -p /sdcard/om_scroll_test && cd /sdcard/om_scroll_test && i=0; while [ $i -lt 300 ]; do touch $(printf "f_%03d.txt" $i); i=$((i+1)); done'

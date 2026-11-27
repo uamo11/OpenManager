@@ -1351,6 +1351,9 @@
     <string name="om_sort_by_date">Ngày sửa đổi</string>
     <string name="om_sort_invert_order">Đảo thứ tự (tăng/giảm)</string>
     <string name="om_sort_dirs_first">Thư mục trước</string>
+    <string name="om_sort_title_left">Sắp xếp – bảng trái</string>
+    <string name="om_sort_title_right">Sắp xếp – bảng phải</string>
+    <string name="om_sort_view_button">Hiển thị…</string>
     <string name="om_err_paste_into_archive">Không thể dán vào trong tệp nén</string>
     <string name="om_err_copy_into_self_format">Không thể sao chép thư mục \"%1$s\" vào chính nó hoặc thư mục con của nó</string>
     <string name="om_err_perm_denied_src_ro">Bị từ chối: nguồn là chỉ đọc (cần Root hoặc Shizuku)</string>

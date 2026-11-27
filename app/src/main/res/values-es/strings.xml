@@ -2135,6 +2135,9 @@
     <string name="om_sort_by_date">Fecha de modificación</string>
     <string name="om_sort_invert_order">Invertir orden (Asc/Desc)</string>
     <string name="om_sort_dirs_first">Carpetas primero</string>
+    <string name="om_sort_title_left">Ordenar – panel izquierdo</string>
+    <string name="om_sort_title_right">Ordenar – panel derecho</string>
+    <string name="om_sort_view_button">Vista…</string>
     <string name="om_err_paste_into_archive">No se puede pegar dentro de un archivo comprimido</string>
     <string name="om_err_copy_into_self_format">No se puede copiar la carpeta "%1$s" dentro de sí misma o de sus subcarpetas</string>
     <string name="om_err_perm_denied_src_ro">Permiso denegado: origen de solo lectura (se requiere Root o Shizuku)</string>

@@ -179,7 +179,7 @@ log "=== Zones of the app ==="
 open_dir "DCIM/Camera"; sleep 3
 demo more_menu; sleep 2
 pos=$(find_text "Sort and view") && adb shell input tap $pos && sleep 2
-pos=$(find_text "View: list") && adb shell input tap $pos && sleep 2
+pos=$(find_text "View…") && adb shell input tap $pos && sleep 2
 pos=$(find_text "Gallery (large") && adb shell input tap $pos && sleep 1
 pos=$(find_text "Only this folder") && adb shell input tap $pos && sleep 1
 pos=$(find_text "OK") && adb shell input tap $pos

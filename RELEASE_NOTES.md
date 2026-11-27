@@ -1,4 +1,7 @@
-# OpenManager v2.0.40: Gestos de Gboard en el Editor
+# OpenManager v2.0.40: Gestos de Gboard en el Editor y Ordenar como MT
+
+### ↕️ Ordenar en un solo diálogo
+- **Ordenar y vista** muestra todo a la vez, como MT: criterio (nombre, tamaño, fecha, tipo) y las casillas «Solo esta carpeta», «Orden inverso» y «Carpetas primero». Se aplica todo con **Aceptar**; antes se cerraba tras cada toque y había que volver a abrirlo para cambiar otra cosa. El título dice si es el panel izquierdo o el derecho, y la vista (lista, cuadrícula, galería) está en el botón **Vista…**.
 
 ### ⌨️ Editor de texto
 - Los gestos de **Gboard** vuelven a funcionar: deslizar en la **barra espaciadora** mueve el cursor y deslizar en **borrar** quita palabras. El editor seguía sin sugerencias ni autocorrección, pero las desactivaba de una forma que también le ocultaba al teclado el texto alrededor del cursor.
