@@ -4102,6 +4102,14 @@ if i >= 0:
         print(m.group(1))
 PY2
 }
+# While the music plays the window redraws every second and one uiautomator dump can miss it.
+music_node() {
+    for _ in 1 2 3 4; do
+        p=$(node_center_by_id "$1") && { printf '%s' "$p"; return 0; }
+        sleep 1
+    done
+    return 1
+}
 music_subtitle() {
     for _ in 1 2 3; do
         adb shell rm -f /data/local/tmp/ui.xml
@@ -4123,7 +4131,7 @@ if [ "$state" = 3 ] && printf '%s' "$sub" | grep -q "2 of 3"; then
 else
     fail "the music player did not play the folder as a list (state=$state, $sub)"
 fi
-if pos=$(node_center_by_id btnAudioNext); then
+if pos=$(music_node btnAudioNext); then
     adb shell input tap $pos; sleep 3
     sub=$(music_subtitle)
     log "      after Next: $sub"
@@ -4150,8 +4158,14 @@ fi
 adb shell am start -n $PKG/me.zhanghai.android.files.viewer.audio.AudioPlayerActivity \
     --ez me.zhanghai.android.files.extra.AUDIO_ATTACH true >/dev/null 2>&1
 sleep 3
-title=$(node_text_by_id tvAudioTitle || true)
-if pos=$(node_center_by_id btnAudioClose); then
+title=""
+for _ in 1 2 3; do
+    adb shell rm -f /data/local/tmp/ui.xml
+    title=$(node_text_by_id tvAudioTitle || true)
+    [ -n "$title" ] && break
+    sleep 1
+done
+if pos=$(music_node btnAudioClose); then
     adb shell input tap $pos; sleep 3
 fi
 state=$(music_state)
