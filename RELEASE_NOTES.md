@@ -1,13 +1,15 @@
+# OpenManager v2.0.41: Tema Claro sin Huecos
+
+### 🎨 Tema claro
+- En **Aplicaciones**, con el tema claro, el botón **Actualizar** era blanco sobre blanco: ahora toma el color del tema como los demás.
+- En el **detalle de una app**, con el tema claro, los títulos de cada opción (Abrir, Ajustes, carpetas, Extraer APK…) eran invisibles: ahora usan el color de texto del tema.
+
 # OpenManager v2.0.40: Gestos de Gboard en el Editor y Ordenar como MT
 
 ### 🔍 Búsqueda en un solo diálogo, con historial
 - **Buscar archivos** abre directamente un diálogo como el de MT: nombre con comodines `*` y `?`, **historial** desplegable (mantén pulsada una búsqueda para **fijarla** arriba), **Buscar en subcarpetas**, **Distinguir mayúsculas** y **Expresión regular**.
 - **Búsqueda avanzada**: filtrar por **tamaño** (mín./máx., p. ej. 500K o 2M) y por **texto que contiene el archivo**.
 - Las casillas se recuerdan para la próxima vez. Buscar y reemplazar texto y los duplicados siguen en el menú ⋮.
-
-### 🎨 Detalles
-- En **Aplicaciones**, con el tema claro, el botón **Actualizar** era blanco sobre blanco: ahora toma el color del tema como los demás.
-- En el **detalle de una app**, con el tema claro, los títulos de cada opción (Abrir, Ajustes, carpetas, Extraer APK…) eran invisibles: ahora usan el color de texto del tema.
 
 ### ☑️ Seleccionar todo en un toque
 - La barra de abajo, al seleccionar archivos, tiene ahora un botón **Seleccionar todo** (antes estaba en ⋮ o manteniendo pulsada la ✕). Si ya está todo seleccionado, el mismo botón quita la selección.
