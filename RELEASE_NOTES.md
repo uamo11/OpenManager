@@ -1,5 +1,8 @@
 # OpenManager v2.0.46: Un Panel a la Vez
 
+### 🛠 Actualizaciones de la app
+- Si la actualización terminaba de descargarse con la app minimizada, a veces el instalador no se abría al volver: ahora se abre siempre al volver a la app (o desde la notificación «Actualización descargada»).
+
 ### 🪟 Paneles (petición de usuarios, como X-plore)
 - **Nueva opción «Un panel a la vez»** (Ajustes → Apariencia): cada panel ocupa toda la pantalla y se pasa al otro deslizando de lado sobre la lista, con una animación. Los dos paneles lado a lado siguen siendo lo normal.
 - En este modo se selecciona deslizando sobre el **icono** del archivo (deslizar sobre el resto de la fila cambia de panel). Desde los bordes de la pantalla sigue abriéndose el menú lateral.
