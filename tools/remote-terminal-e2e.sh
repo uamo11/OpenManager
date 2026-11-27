@@ -1054,6 +1054,23 @@ PY2
             else
                 fail "the rotation button did not switch orientation ($rot)"
             fi
+            # The choice is remembered: a new player starts in portrait (user request).
+            adb shell am force-stop $PKG; sleep 1
+            adb logcat -c
+            adb shell am start -n $PKG/me.zhanghai.android.files.viewer.video.VideoPlayerActivity \
+                -a android.intent.action.VIEW -d "file:///sdcard/Movies/om_gestures_720p.mp4" -t video/mp4 >/dev/null; sleep 6
+            shot 12j_video_remembered_portrait
+            # The screenshot's shape tells the rotation: taller than wide is portrait.
+            orient=$(adb exec-out screencap -p 2>/dev/null | python3 -c "import sys,struct; d=sys.stdin.buffer.read(); w,h=struct.unpack('>II', d[16:24]); print('portrait' if h > w else 'landscape', w, h)")
+            log "      reopened: $orient"
+            if printf '%s' "$orient" | grep -q "^portrait"; then
+                pass "the next video opens in the rotation chosen last time (portrait)"
+            else
+                fail "the rotation choice was not remembered ($orient)"
+            fi
+            # Back to automatic for the video tests after this one (stopped, so it is not kept in memory).
+            adb shell am force-stop $PKG; sleep 1
+            adb shell run-as $PKG rm -f shared_prefs/om_video_player.xml 2>/dev/null || true
         else
             shot 12i_video_no_rotate_button
             cp "$OUT/ui.xml" "$OUT/ui_video_controls.xml" 2>/dev/null || true

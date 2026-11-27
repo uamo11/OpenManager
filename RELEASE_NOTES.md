@@ -1,3 +1,8 @@
+# OpenManager v2.0.42: El Video Recuerda su Rotación
+
+### 🎬 Reproductor de video
+- La rotación que elijas con el botón (**horizontal** o **vertical**) se **recuerda** para los siguientes videos. En **automático** (lo de siempre) cada video se abre según su forma.
+
 # OpenManager v2.0.41: El Editor ya no se Cuelga con HTML/CSS
 
 ### 🛠 Editor de texto

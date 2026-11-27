@@ -151,6 +151,13 @@ class VideoPlayerActivity : AppActivity() {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemUI()
+        // The rotation chosen with the button stays for the next videos (user request: someone
+        // who wants portrait should not have to tap it every time). Automatic follows each video.
+        rotationMode = getSharedPreferences(PREFS, MODE_PRIVATE).getInt(KEY_ROTATION, 0).coerceIn(0, 2)
+        when (rotationMode) {
+            1 -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            2 -> requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
+        }
         setContentView(R.layout.activity_video_player)
 
         videoRoot = findViewById(R.id.videoRoot)
@@ -677,6 +684,7 @@ class VideoPlayerActivity : AppActivity() {
     /** The rotate button: automatic → landscape → portrait → automatic. */
     private fun cycleRotation() {
         rotationMode = (rotationMode + 1) % 3
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putInt(KEY_ROTATION, rotationMode).apply()
         val (orientation, label) = when (rotationMode) {
             1 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE to R.string.om_video_rotation_landscape
             2 -> ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT to R.string.om_video_rotation_portrait
@@ -940,6 +948,8 @@ class VideoPlayerActivity : AppActivity() {
     }
 
     companion object {
+        private const val PREFS = "om_video_player"
+        private const val KEY_ROTATION = "rotation_mode"
         const val EXTRA_DISPLAY_NAME = "me.zhanghai.android.files.viewer.video.extra.DISPLAY_NAME"
         private const val TAG = "OMVideoPlayer"
         private const val SEEK_STEP_MS = 10_000L
