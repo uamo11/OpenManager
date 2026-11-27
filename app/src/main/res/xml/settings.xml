@@ -160,6 +160,13 @@
             android:disableDependentsState="true"
             app:iconSpaceReserved="true" />
 
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_single_panel"
+            android:title="@string/settings_single_panel_title"
+            android:summary="@string/settings_single_panel_summary"
+            android:defaultValue="@bool/pref_default_value_single_panel"
+            app:iconSpaceReserved="true" />
+
         <me.zhanghai.android.files.settings.IconMenuPreference
             android:key="@string/pref_key_dual_panel_contrast"
             android:title="@string/settings_dual_panel_contrast_title"

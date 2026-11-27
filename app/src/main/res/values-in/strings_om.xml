@@ -256,6 +256,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">Kontras panel ganda (A / B)</string>
+    <string name="settings_single_panel_title">Satu panel sekaligus</string>
+    <string name="settings_single_panel_summary">Setiap panel memenuhi layar; geser ke samping pada daftar untuk pindah ke panel lain. Pilih file dengan menggeser ikonnya.</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>Kontras standar MT (default)</item>
         <item>Kontras tinggi dengan garis aksen</item>

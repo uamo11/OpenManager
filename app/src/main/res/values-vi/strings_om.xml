@@ -256,6 +256,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">Độ tương phản hai khung (A / B)</string>
+    <string name="settings_single_panel_title">Một bảng mỗi lần</string>
+    <string name="settings_single_panel_summary">Mỗi bảng chiếm toàn màn hình; vuốt ngang trên danh sách để sang bảng kia. Chọn tệp bằng cách vuốt qua biểu tượng của tệp.</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>Tương phản chuẩn MT (mặc định)</item>
         <item>Tương phản cao với đường phân cách màu nhấn</item>

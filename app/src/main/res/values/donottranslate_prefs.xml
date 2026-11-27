@@ -205,6 +205,8 @@
     <bool name="pref_default_value_use_shizuku_install">false</bool>
     <string name="pref_key_install_as_play">key_install_as_play</string>
     <bool name="pref_default_value_install_as_play">false</bool>
+    <string name="pref_key_single_panel">key_single_panel</string>
+    <bool name="pref_default_value_single_panel">false</bool>
     <string name="pref_key_vibrate_on_touch">key_vibrate_on_touch</string>
     <bool name="pref_default_value_vibrate_on_touch">true</bool>
     <string name="pref_key_vibrate_on_job_finished">key_vibrate_on_job_finished</string>

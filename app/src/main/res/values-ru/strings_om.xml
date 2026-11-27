@@ -256,6 +256,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">Контраст двух панелей (A / B)</string>
+    <string name="settings_single_panel_title">Одна панель за раз</string>
+    <string name="settings_single_panel_summary">Каждая панель занимает весь экран; проведите по списку вбок, чтобы перейти к другой. Чтобы выбрать файлы, проведите по их значку.</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>Стандартный контраст MT (по умолчанию)</item>
         <item>Высокий контраст с цветным разделителем</item>

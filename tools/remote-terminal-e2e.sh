@@ -4002,6 +4002,72 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_pin
 
+log "=== One panel at a time, swipe to the other (user request, X-plore style) ==="
+PREFS=/data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+adb shell rm -rf /sdcard/om_single; adb shell mkdir -p /sdcard/om_single/one /sdcard/om_single/two
+adb shell am force-stop $PKG; sleep 1
+adb shell "run-as $PKG sed -i 's#<boolean name=\"key_single_panel\"[^>]*/>##; s#</map>#<boolean name=\"key_single_panel\" value=\"true\" /></map>#' $PREFS"
+adb logcat -c
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_single" >/dev/null; sleep 4
+shot 92_single_panel
+panel_width() {
+    adb shell rm -f /data/local/tmp/ui.xml
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui.xml" 2>/dev/null
+    python3 - "$OUT/ui.xml" "$1" <<'PY2'
+import re, sys
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+for node in re.findall(r"<node [^>]*>", xml):
+    if re.search(r'resource-id="[^"]*:id/%s"' % sys.argv[2], node):
+        x1, y1, x2, y2 = map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', node).groups())
+        print(x2 - x1); sys.exit(0)
+print(0)
+PY2
+}
+wa=$(panel_width containerPanelA); wb=$(panel_width containerPanelB)
+log "      panel widths: A=$wa B=$wb"
+if [ "${wa:-0}" -gt 900 ] && [ "${wb:-0}" = 0 ]; then
+    pass "one-panel mode shows only the active panel, at full width"
+else
+    fail "one-panel mode still shows both panels (A=$wa B=$wb)"
+fi
+adb shell input swipe 850 1400 150 1400 250; sleep 2
+shot 93_single_panel_swiped
+wa=$(panel_width containerPanelA); wb=$(panel_width containerPanelB)
+to2=$(adb logcat -d -s OMPanels 2>/dev/null | grep -c "Showing panel 2" || true)
+log "      after a left swipe: A=$wa B=$wb, log=$to2"
+if [ "${wb:-0}" -gt 900 ] && [ "${wa:-0}" = 0 ]; then
+    pass "a sideways swipe on the list shows the second panel"
+else
+    fail "the swipe did not go to the second panel (A=$wa B=$wb)"
+fi
+# On a file's icon the same swipe selects instead of changing panel.
+before=$(adb logcat -d -s OMPanels 2>/dev/null | grep -c "Showing panel" || true)
+adb shell input swipe 85 580 520 590 300; sleep 2
+after=$(adb logcat -d -s OMPanels 2>/dev/null | grep -c "Showing panel" || true)
+wb=$(panel_width containerPanelB)
+log "      icon swipe: panel switches $before -> $after, B=$wb"
+if [ "$before" = "$after" ] && [ "${wb:-0}" -gt 900 ]; then
+    pass "a swipe across a file's icon does not change panel"
+else
+    fail "a swipe across a file's icon changed panel"
+fi
+adb shell input keyevent KEYCODE_BACK; sleep 1
+adb shell input swipe 300 1400 950 1400 250; sleep 2
+wa=$(panel_width containerPanelA); wb=$(panel_width containerPanelB)
+log "      after a right swipe: A=$wa B=$wb"
+if [ "${wa:-0}" -gt 900 ] && [ "${wb:-0}" = 0 ]; then
+    pass "swiping the other way comes back to the first panel"
+else
+    fail "the swipe back did not return to the first panel (A=$wa B=$wb)"
+fi
+adb logcat -d > "$OUT/logcat_single_panel.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_single_panel.txt"; then fail "crash in one-panel mode"; fi
+adb shell am force-stop $PKG; sleep 1
+adb shell "run-as $PKG sed -i 's#<boolean name=\"key_single_panel\"[^>]*/>##' $PREFS"
+adb shell rm -rf /sdcard/om_single
+
 log "=== HTML preview, then Edit source: a 43 KB page of tables and box-drawing diagrams (user report: out of memory) ==="
 # A synthetic page shaped like the users' (their files are private): CSS with numbers such as .4em
 # (the cause: the highlighter looped on them until out of memory), CSS variables, 19 tables with

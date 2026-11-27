@@ -93,6 +93,7 @@ import me.zhanghai.android.files.storage.SecondaryStorageVolume
 import me.zhanghai.android.files.storage.Storage
 import me.zhanghai.android.files.storage.StorageVolumeListLiveData
 import me.zhanghai.android.files.storage.Storages
+import me.zhanghai.android.files.util.Haptics
 import me.zhanghai.android.files.util.isMounted
 import me.zhanghai.android.files.util.createIntent
 import me.zhanghai.android.files.util.extraPath
@@ -2217,6 +2218,94 @@ class FileListActivity : AppActivity() {
         return false
     }
 
+    private var panelSwipeDownX = 0f
+    private var panelSwipeDownY = 0f
+    private var panelSwipeArmed = false
+    private var panelSwipeConsumed = false
+
+    private val isSinglePanel: Boolean
+        get() = Settings.SINGLE_PANEL.valueCompat
+
+    /** One panel at a time: a sideways swipe on the list shows the other panel (see [PanelSwipe]). */
+    private fun handlePanelSwipe(ev: android.view.MotionEvent): Boolean {
+        if (!this::fragmentA.isInitialized || !this::fragmentB.isInitialized || !this::drawerLayout.isInitialized) {
+            return false
+        }
+        when (ev.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN -> {
+                panelSwipeConsumed = false
+                panelSwipeDownX = ev.rawX
+                panelSwipeDownY = ev.rawY
+                val edge = 24 * resources.displayMetrics.density
+                val width = window.decorView.width
+                // Not from the screen edges (the side menu opens there) nor outside the list.
+                panelSwipeArmed = isSinglePanel && !drawerLayout.isDrawerOpen(GravityCompat.START) &&
+                    ev.rawX > edge && ev.rawX < width - edge &&
+                    activeFragment.isPanelSwipeStart(ev.rawX, ev.rawY)
+            }
+            android.view.MotionEvent.ACTION_POINTER_DOWN -> panelSwipeArmed = false
+            android.view.MotionEvent.ACTION_MOVE -> {
+                if (panelSwipeConsumed) return true
+                if (!panelSwipeArmed) return false
+                val dx = ev.rawX - panelSwipeDownX
+                val dy = ev.rawY - panelSwipeDownY
+                val minDistance = 56 * resources.displayMetrics.density
+                if (PanelSwipe.isScroll(dx, dy, minDistance)) {
+                    panelSwipeArmed = false
+                } else if (PanelSwipe.isSwipe(dx, dy, minDistance)) {
+                    panelSwipeArmed = false
+                    val target = PanelSwipe.target(
+                        activePanelIndex, dx, window.decorView.layoutDirection == View.LAYOUT_DIRECTION_RTL
+                    ) ?: return false
+                    panelSwipeConsumed = true
+                    val cancel = android.view.MotionEvent.obtain(ev).apply {
+                        action = android.view.MotionEvent.ACTION_CANCEL
+                    }
+                    super.dispatchTouchEvent(cancel)
+                    cancel.recycle()
+                    showPanel(target)
+                    return true
+                }
+            }
+            android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> {
+                panelSwipeArmed = false
+                if (panelSwipeConsumed) {
+                    panelSwipeConsumed = false
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    /** Makes panel [index] the active one; in one-panel mode it slides in. */
+    fun showPanel(index: Int) {
+        val panels = findViewById<android.view.ViewGroup>(R.id.panelsContainer)
+        if (panels != null && isSinglePanel) {
+            android.transition.TransitionManager.beginDelayedTransition(
+                panels,
+                android.transition.TransitionSet()
+                    .addTransition(android.transition.Slide(android.view.Gravity.START).addTarget(containerA))
+                    .addTransition(android.transition.Slide(android.view.Gravity.END).addTarget(containerB))
+                    .setDuration(180)
+            )
+        }
+        onPanelFocused(panelFragment(index))
+        Haptics.tap(window.decorView)
+        android.util.Log.i("OMPanels", "Showing panel ${index + 1} single=$isSinglePanel")
+    }
+
+    /** One panel at a time: only the active one is shown, at full width. */
+    private fun applyPanelLayout() {
+        if (!this::containerA.isInitialized || !this::containerB.isInitialized) return
+        val single = isSinglePanel
+        val showA = !single || activePanelIndex == 0
+        val showB = !single || activePanelIndex == 1
+        containerA.visibility = if (showA) View.VISIBLE else View.GONE
+        containerB.visibility = if (showB) View.VISIBLE else View.GONE
+        paneDivider.visibility = if (single) View.GONE else View.VISIBLE
+    }
+
     private val isSecondPanelShown: Boolean
         get() = this::containerB.isInitialized && containerB.isShown
 
@@ -2260,6 +2349,7 @@ class FileListActivity : AppActivity() {
      */
     override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
         if (handleBookmarkSwipe(ev)) return true
+        if (handlePanelSwipe(ev)) return true
         if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN &&
             this::containerA.isInitialized && this::fragmentA.isInitialized && this::fragmentB.isInitialized &&
             this::drawerLayout.isInitialized && !drawerLayout.isDrawerOpen(GravityCompat.START)
@@ -2289,6 +2379,7 @@ class FileListActivity : AppActivity() {
             fragmentB.updateBackCallbackState()
             invalidateOptionsMenu()
         }
+        applyPanelLayout()
     }
 
     private fun observeVisualThemeSettings() {
@@ -2297,6 +2388,7 @@ class FileListActivity : AppActivity() {
         Settings.THEME_COLOR.observe(this) { applyVisualTheme() }
         Settings.MATERIAL_DESIGN_3.observe(this) { applyVisualTheme() }
         Settings.DUAL_PANEL_CONTRAST.observe(this) { applyVisualTheme() }
+        Settings.SINGLE_PANEL.observe(this) { applyPanelLayout() }
     }
 
     private fun applyVisualTheme() {

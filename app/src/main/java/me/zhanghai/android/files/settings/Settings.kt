@@ -338,6 +338,10 @@ object Settings {
             R.bool.pref_default_value_add_bookmarks_top
         )
 
+    /** One panel uses the whole width; a sideways swipe on the list shows the other (user request). */
+    val SINGLE_PANEL: SettingLiveData<Boolean> =
+        BooleanSettingLiveData(R.string.pref_key_single_panel, R.bool.pref_default_value_single_panel)
+
     val BOOKMARK_SWIPE_AWARE: SettingLiveData<Boolean> =
         BooleanSettingLiveData(
             R.string.pref_key_bookmark_swipe_aware,

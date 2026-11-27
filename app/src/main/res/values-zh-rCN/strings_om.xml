@@ -257,6 +257,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">双窗口对比度 (A / B)</string>
+    <string name="settings_single_panel_title">一次显示一个面板</string>
+    <string name="settings_single_panel_summary">每个面板占满整个屏幕；在列表上左右滑动切换到另一个面板。在文件图标上滑动即可选择文件。</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>标准 MT 对比度（默认）</item>
         <item>高对比度并带强调色分隔线</item>

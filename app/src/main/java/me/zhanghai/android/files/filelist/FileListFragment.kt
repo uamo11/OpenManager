@@ -636,6 +636,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 if (file.isParentDirectoryItem || !adapter.isFileSelectable(file)) {
                     return 0
                 }
+                // One panel at a time: a swipe on the row goes to the other panel; the icon selects.
+                if (Settings.SINGLE_PANEL.valueCompat) return 0
                 return ItemTouchHelper.RIGHT
             }
 
@@ -2726,6 +2728,26 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     override fun clearSelectedFiles() {
         lastSelectionAnchorPosition = -1
         viewModel.clearSelectedFiles()
+    }
+
+    private val touchRect = android.graphics.Rect()
+
+    /**
+     * One-panel mode: whether a touch at screen ([rawX], [rawY]) may swipe to the other panel. It
+     * must start on the file list and not on a file's icon (there a sideways swipe selects).
+     */
+    fun isPanelSwipeStart(rawX: Float, rawY: Float): Boolean {
+        if (!this::binding.isInitialized) return false
+        val x = rawX.toInt()
+        val y = rawY.toInt()
+        val list = binding.recyclerView
+        if (!list.isShown || !list.getGlobalVisibleRect(touchRect) || !touchRect.contains(x, y)) return false
+        val location = IntArray(2)
+        list.getLocationOnScreen(location)
+        val child = list.findChildViewUnder(rawX - location[0], rawY - location[1]) ?: return true
+        val holder = list.getChildViewHolder(child) as? FileListAdapter.ViewHolder ?: return true
+        val icon = holder.iconLayout
+        return !(icon.isShown && icon.getGlobalVisibleRect(touchRect) && touchRect.contains(x, y))
     }
 
     override fun selectFile(file: FileItem, selected: Boolean) {

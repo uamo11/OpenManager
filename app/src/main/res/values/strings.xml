@@ -1076,6 +1076,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">Dual panel contrast (A / B)</string>
+    <string name="settings_single_panel_title">One panel at a time</string>
+    <string name="settings_single_panel_summary">Each panel uses the whole screen; swipe sideways on the list to go to the other. Select files by swiping across their icon.</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>Standard MT contrast (Default)</item>
         <item>High contrast with accent divider</item>

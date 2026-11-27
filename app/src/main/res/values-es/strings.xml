@@ -972,6 +972,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">Contraste entre paneles (A / B)</string>
+    <string name="settings_single_panel_title">Un panel a la vez</string>
+    <string name="settings_single_panel_summary">Cada panel ocupa toda la pantalla; desliza de lado sobre la lista para pasar al otro. Para seleccionar, desliza sobre el icono del archivo.</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>Estándar MT (Predeterminado)</item>
         <item>Alto contraste con separador de acento</item>

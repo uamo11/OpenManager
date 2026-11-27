@@ -256,6 +256,8 @@
         <item>MM/dd/yyyy HH:mm:ss</item>
     </string-array>
     <string name="settings_dual_panel_contrast_title">Contraste dos painéis (A / B)</string>
+    <string name="settings_single_panel_title">Um painel por vez</string>
+    <string name="settings_single_panel_summary">Cada painel ocupa a tela toda; deslize para o lado na lista para ir ao outro. Para selecionar arquivos, deslize sobre o ícone deles.</string>
     <string-array name="settings_dual_panel_contrast_entries">
         <item>Contraste padrão MT (padrão)</item>
         <item>Alto contraste com divisor colorido</item>
