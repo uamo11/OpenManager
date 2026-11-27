@@ -1,5 +1,10 @@
 # OpenManager v2.0.40: Gestos de Gboard en el Editor y Ordenar como MT
 
+### 🔍 Búsqueda en un solo diálogo, con historial
+- **Buscar archivos** abre directamente un diálogo como el de MT: nombre con comodines `*` y `?`, **historial** desplegable (mantén pulsada una búsqueda para **fijarla** arriba), **Buscar en subcarpetas**, **Distinguir mayúsculas** y **Expresión regular**.
+- **Búsqueda avanzada**: filtrar por **tamaño** (mín./máx., p. ej. 500K o 2M) y por **texto que contiene el archivo**.
+- Las casillas se recuerdan para la próxima vez. Buscar y reemplazar texto y los duplicados siguen en el menú ⋮.
+
 ### ↕️ Ordenar en un solo diálogo
 - **Ordenar y vista** muestra todo a la vez, como MT: criterio (nombre, tamaño, fecha, tipo) y las casillas «Solo esta carpeta», «Orden inverso» y «Carpetas primero». Se aplica todo con **Aceptar**; antes se cerraba tras cada toque y había que volver a abrirlo para cambiar otra cosa. El título dice si es el panel izquierdo o el derecho, y la vista (lista, cuadrícula, galería) está en el botón **Vista…**.
 

@@ -3074,8 +3074,14 @@ fi
 adb logcat -c
 demo more_menu; sleep 2
 if pos=$(find_text "Search files..." "Buscar archivos..."); then
+    # One dialog as MT's: straight to the name field (no chooser first).
     adb shell input tap $pos; sleep 2
-    pos=$(find_text "Search files by name or extension") && adb shell input tap $pos; sleep 2
+    shot 76d_search_dialog
+    if find_text "Search subfolders" >/dev/null && find_text "Regular expression" >/dev/null; then
+        pass "Search files opens one dialog with name, subfolders, case and regex (as MT)"
+    else
+        fail "Search files did not open the one search dialog"
+    fi
     adb shell input text alpha; sleep 1
     pos=$(find_text "Search") && adb shell input tap $pos; sleep 6
     shot 76b_search_results_count
@@ -3131,6 +3137,42 @@ if pos=$(find_text "Search files..." "Buscar archivos..."); then
 else
     fail "no 'Search files' entry in the ⋮ menu"
 fi
+# Wildcards and this folder only: "alpha*" is the whole name, sub/ is left out.
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_qf" >/dev/null; sleep 4
+demo more_menu; sleep 2
+if pos=$(find_text "Search files..." "Buscar archivos..."); then
+    adb shell input tap $pos; sleep 2
+    adb shell "input text 'alpha*'"; sleep 1
+    pos=$(find_text "Search subfolders") && adb shell input tap $pos; sleep 1
+    pos=$(find_text "Search") && adb shell input tap $pos; sleep 5
+    shot 76e_wildcard_search
+    if find_contains "2 results" >/dev/null && find_text "alphabet.log" >/dev/null && ! find_text "alpha_deep.txt" >/dev/null; then
+        pass "alpha* without subfolders finds alpha.txt and alphabet.log only"
+    else
+        fail "wildcard search in this folder only gave the wrong results"
+    fi
+    # The history keeps both searches, newest first.
+    demo more_menu; sleep 2
+    pos=$(find_text "Search files..." "Buscar archivos...") && adb shell input tap $pos; sleep 2
+    if pos=$(find_text "Search history"); then
+        adb shell input tap $pos; sleep 2
+        shot 76f_search_history
+        if find_text "alpha*" >/dev/null && find_text "alpha" >/dev/null; then
+            pass "the search history lists the earlier searches (alpha*, alpha)"
+        else
+            fail "the search history does not list the earlier searches"
+        fi
+        adb shell input keyevent KEYCODE_BACK; sleep 1
+    else
+        fail "no history button in the search dialog"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 1
+else
+    fail "no 'Search files' entry for the wildcard search"
+fi
+# The dialog remembers its checkboxes: back to the defaults for later tests.
+adb shell run-as $PKG rm -f shared_prefs/om_search_options.xml shared_prefs/om_search_history.xml 2>/dev/null || true
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_qf
 

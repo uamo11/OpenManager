@@ -258,5 +258,7 @@ dependencies {
     }
 
     testImplementation 'junit:junit:4.13.2'
+    // The real org.json for JVM tests (android.jar only has stubs that throw).
+    testImplementation 'org.json:json:20240303'
 }
 

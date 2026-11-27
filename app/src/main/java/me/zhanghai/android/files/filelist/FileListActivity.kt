@@ -23,7 +23,9 @@ import android.os.StatFs
 import android.provider.Settings as AndroidSettings
 import android.text.format.Formatter
 import android.view.KeyEvent
+import android.view.ViewGroup
 import android.view.View
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -3074,45 +3076,166 @@ class FileListActivity : AppActivity() {
         jobDialogText = null
     }
 
-    fun showSearchDialog() {
-        val options = arrayOf(
-            getString(R.string.om_search_opt_filename),
-            getString(R.string.om_search_opt_text_replace),
-            getString(R.string.om_search_opt_duplicates)
-        )
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.om_search_title)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> showFileNameSearchPrompt()
-                    1 -> showFileTextSearchDialog()
-                    2 -> showDuplicateFinderDialog()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
-    }
+    /** ⋮ > Search files: straight to the one search dialog (text search and duplicates have
+     *  their own ⋮ entries). */
+    fun showSearchDialog() = showFileNameSearchPrompt()
 
+    /**
+     * One search dialog as MT's (user request): the name with `*`/`?` and its history (pinned
+     * entries on top), subfolders, case, regular expression, and an advanced part with a size
+     * range and text the file must contain. The checkboxes are remembered.
+     */
     fun showFileNameSearchPrompt() {
-        val input = EditText(this).apply {
-            hint = getString(R.string.om_search_filename_hint)
-            setSingleLine()
-            val padding = (16 * resources.displayMetrics.density).toInt()
-            setPadding(padding, padding, padding, padding)
+        val density = resources.displayMetrics.density
+        val prefs = getSharedPreferences("om_search_options", android.content.Context.MODE_PRIVATE)
+        fun dp(v: Int) = (v * density).toInt()
+        fun label(res: Int) = TextView(this).apply {
+            setText(res)
+            textSize = 13f
+            alpha = 0.75f
+            setPadding(0, dp(10), 0, dp(2))
         }
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.om_search_current_panel_title)
-            .setView(input)
-            .setPositiveButton(R.string.om_search_btn) { _, _ ->
-                val query = input.text.toString().trim()
-                if (query.isNotEmpty()) {
-                    activeFragment.searchFiles(query)
+        val nameInput = EditText(this).apply {
+            setSingleLine()
+            hint = getString(R.string.om_search_filename_hint)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val historyButton = ImageButton(this).apply {
+            setImageResource(R.drawable.ic_expand_more)
+            background = null
+            contentDescription = getString(R.string.om_search_history)
+        }
+        val nameRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            addView(nameInput)
+            addView(historyButton)
+        }
+        fun check(res: Int, key: String, default: Boolean) = CheckBox(this).apply {
+            setText(res)
+            isChecked = prefs.getBoolean(key, default)
+        }
+        val subfolders = check(R.string.om_search_subfolders, "recursive", true)
+        val advanced = check(R.string.om_search_advanced, "advanced", false)
+        val minSize = EditText(this).apply {
+            setSingleLine(); hint = getString(R.string.om_search_size_min_hint)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val maxSize = EditText(this).apply {
+            setSingleLine(); hint = getString(R.string.om_search_size_max_hint)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val contentInput = EditText(this).apply { setSingleLine() }
+        val advancedPart = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(label(R.string.om_search_size_filter))
+            addView(LinearLayout(this@FileListActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(minSize)
+                addView(TextView(this@FileListActivity).apply { text = " – " })
+                addView(maxSize)
+            })
+            addView(label(R.string.om_search_contains))
+            addView(contentInput)
+            isVisible = advanced.isChecked
+        }
+        advanced.setOnCheckedChangeListener { _, on -> advancedPart.isVisible = on }
+        val caseSensitive = check(R.string.om_search_case, "caseSensitive", false)
+        val regex = check(R.string.om_search_regex, "regex", false)
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(22), dp(4), dp(22), 0)
+            addView(label(R.string.om_search_name_label))
+            addView(nameRow)
+            addView(subfolders)
+            addView(advanced)
+            addView(advancedPart)
+            addView(caseSensitive)
+            addView(regex)
+        }
+
+        var history = SearchHistory.load(this)
+        historyButton.setOnClickListener {
+            if (history.isEmpty()) {
+                showToast(R.string.om_search_history_empty)
+                return@setOnClickListener
+            }
+            val popup = androidx.appcompat.widget.ListPopupWindow(this)
+            fun rows() = history.map { if (it.pinned) "📌 ${it.text}" else it.text }
+            val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, rows().toMutableList())
+            popup.setAdapter(adapter)
+            popup.anchorView = nameInput
+            popup.width = nameRow.width.takeIf { it > 0 } ?: ViewGroup.LayoutParams.WRAP_CONTENT
+            popup.isModal = true
+            popup.setOnItemClickListener { _, _, position, _ ->
+                history.getOrNull(position)?.let {
+                    nameInput.setText(it.text)
+                    nameInput.setSelection(it.text.length)
                 }
+                popup.dismiss()
             }
-            .setNegativeButton(R.string.reset) { _, _ ->
-                activeFragment.stopSearching()
+            popup.show()
+            popup.listView?.setOnItemLongClickListener { _, _, position, _ ->
+                val entry = history.getOrNull(position) ?: return@setOnItemLongClickListener false
+                history = SearchHistory.togglePinned(history, entry.text)
+                SearchHistory.save(this, history)
+                adapter.clear()
+                adapter.addAll(rows())
+                true
             }
-            .show()
+            showToast(R.string.om_search_history_hint)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.om_search_current_panel_title)
+            .setView(android.widget.ScrollView(this).apply { addView(content) })
+            .setPositiveButton(R.string.om_search_btn, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setNeutralButton(R.string.reset) { _, _ -> activeFragment.stopSearching() }
+            .create()
+        dialog.setOnShowListener {
+            nameInput.requestFocus()
+            dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val useAdvanced = advanced.isChecked
+                val min = if (useAdvanced) minSize.text.toString() else ""
+                val max = if (useAdvanced) maxSize.text.toString() else ""
+                val minBytes = SearchQuery.parseSize(min)
+                val maxBytes = SearchQuery.parseSize(max)
+                if ((min.isNotBlank() && minBytes == null) || (max.isNotBlank() && maxBytes == null)) {
+                    showToast(R.string.om_search_invalid_size)
+                    return@setOnClickListener
+                }
+                val query = SearchQuery(
+                    text = nameInput.text.toString().trim(),
+                    recursive = subfolders.isChecked,
+                    caseSensitive = caseSensitive.isChecked,
+                    regex = regex.isChecked,
+                    minSize = minBytes,
+                    maxSize = maxBytes,
+                    content = if (useAdvanced) contentInput.text.toString().takeIf { it.isNotEmpty() } else null
+                )
+                if (query.isInvalid) {
+                    showToast(R.string.om_search_invalid_regex)
+                    return@setOnClickListener
+                }
+                if (query.text.isEmpty() && query.content.isNullOrEmpty() && minBytes == null && maxBytes == null) {
+                    return@setOnClickListener
+                }
+                prefs.edit()
+                    .putBoolean("recursive", subfolders.isChecked)
+                    .putBoolean("advanced", advanced.isChecked)
+                    .putBoolean("caseSensitive", caseSensitive.isChecked)
+                    .putBoolean("regex", regex.isChecked)
+                    .apply()
+                if (query.text.isNotEmpty()) {
+                    history = SearchHistory.added(history, query.text)
+                    SearchHistory.save(this, history)
+                }
+                activeFragment.searchFiles(query.encode())
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
     }
 
     fun showFileTextSearchDialog() {
