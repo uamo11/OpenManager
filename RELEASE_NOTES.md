@@ -5,6 +5,10 @@
 - **Búsqueda avanzada**: filtrar por **tamaño** (mín./máx., p. ej. 500K o 2M) y por **texto que contiene el archivo**.
 - Las casillas se recuerdan para la próxima vez. Buscar y reemplazar texto y los duplicados siguen en el menú ⋮.
 
+### 🖼 Imágenes dentro de comprimidos
+- Una imagen dentro de un zip/rar (al tocarla, o con «Abrir con → Visor de imágenes») se abre con el **visor de OM**, no con la galería del sistema.
+- La carpeta **open_cache** ya no crece sin fin: las copias de más de un día se borran solas y nunca pasa de 256 MB.
+
 ### 📂 OpenManager en el selector de archivos de Android
 - Al elegir un archivo desde otra app (por ejemplo, para subirlo a ChatGPT) entrando en **OpenManager**, ahora aparecen también los archivos y carpetas que empiezan por punto cuando el selector tiene activado «Mostrar archivos ocultos». Antes OM los quitaba siempre.
 

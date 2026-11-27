@@ -184,10 +184,20 @@ class OpenFileAsDialogFragment : AppCompatDialogFragment() {
 
             // 3. Image Viewer
             ToolItem("image_viewer", R.string.open_as_image_viewer, R.drawable.ic_open_as_image) {
-                val intent = path.fileProviderUri.createViewIntent("image/*".asMimeType())
-                    .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    .apply { extraPath = path }
-                startActivitySafe(intent)
+                // OM's viewer, not the phone's gallery (user report). Inside an archive the image
+                // is extracted first, as a tap on it does.
+                if (path.isArchivePath) {
+                    me.zhanghai.android.files.filejob.FileJobService.open(
+                        path, "image/*".asMimeType(), false, requireContext()
+                    )
+                } else {
+                    val intent = Intent(requireContext(), me.zhanghai.android.files.viewer.image.ImageViewerActivity::class.java)
+                        .apply {
+                            extraPath = path
+                            me.zhanghai.android.files.viewer.image.ImageViewerActivity.putExtras(this, listOf(path), 0)
+                        }
+                    startActivitySafe(intent)
+                }
                 dismissOrFinishActivity()
             },
 

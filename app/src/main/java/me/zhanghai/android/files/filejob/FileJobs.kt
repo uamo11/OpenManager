@@ -43,6 +43,7 @@ import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.file.MimeType
 import me.zhanghai.android.files.file.asFileSize
 import me.zhanghai.android.files.file.fileProviderUri
+import me.zhanghai.android.files.file.isImage
 import me.zhanghai.android.files.file.loadFileItem
 import me.zhanghai.android.files.filelist.OpenFileAsDialogActivity
 import me.zhanghai.android.files.filelist.OpenFileAsDialogFragment
@@ -1552,6 +1553,18 @@ class OpenFileJob(
             file, R.string.file_open_from_background_title_format,
             R.string.file_open_from_background_text
         ) { file ->
+            if (mimeType.isImage && !withChooser) {
+                // OM's own viewer, not whatever the phone's default is (on MIUI the system gallery
+                // opened instead; user report).
+                return@open Intent(service, me.zhanghai.android.files.viewer.image.ImageViewerActivity::class.java)
+                    .setAction(Intent.ACTION_VIEW)
+                    .setDataAndType(file.fileProviderUri, mimeType.value)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    .apply {
+                        extraPath = file
+                        me.zhanghai.android.files.viewer.image.ImageViewerActivity.putExtras(this, listOf(file), 0)
+                    }
+            }
             file.fileProviderUri.createViewIntent(mimeType)
                 .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                 .apply { extraPath = file }
@@ -1575,6 +1588,22 @@ private val FileJob.cacheDirectory: File
             Environment.getExternalStorageState(it) == Environment.MEDIA_MOUNTED
         } ?: service.cacheDir
 
+/** Keeps open_cache small: copies older than a day go, then the oldest until under the cap. */
+internal fun trimOpenCache(dir: File, maxBytes: Long = 256L * 1024 * 1024, maxAgeMillis: Long = 24L * 60 * 60 * 1000,
+                           now: Long = System.currentTimeMillis()) {
+    val entries = dir.listFiles()?.toMutableList() ?: return
+    for (f in entries.toList()) {
+        if (now - f.lastModified() > maxAgeMillis && f.deleteRecursively()) entries.remove(f)
+    }
+    fun sizeOf(f: File): Long = if (f.isDirectory) f.walkTopDown().filter { it.isFile }.sumOf { it.length() } else f.length()
+    var total = entries.sumOf { sizeOf(it) }
+    for (f in entries.sortedBy { it.lastModified() }) {
+        if (total <= maxBytes) break
+        val size = sizeOf(f)
+        if (f.deleteRecursively()) total -= size
+    }
+}
+
 @Throws(IOException::class)
 private fun FileJob.open(
     file: Path,
@@ -1592,6 +1621,9 @@ private fun FileJob.open(
     )
     val cacheDirectory = Paths.get(cacheDirectory.path, "open_cache")
     cacheDirectory.createDirectories()
+    // Every file opened from an archive was copied here and never removed (user report: it kept
+    // growing). Old copies go first; the one being opened is written fresh after this.
+    trimOpenCache(cacheDirectory.toFile())
     val targetFileName = getTargetFileName(file)
     val targetFile = cacheDirectory.resolveForeign(targetFileName)
     val transferInfo = TransferInfo(scanInfo, cacheDirectory)
