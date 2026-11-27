@@ -4082,9 +4082,9 @@ import math, os, struct, sys, wave
 d = sys.argv[1]; os.makedirs(d, exist_ok=True)
 for name, freq in (("track1.wav", 330), ("track2.wav", 440), ("track10.wav", 550)):
     with wave.open(os.path.join(d, name), "wb") as w:
-        w.setnchannels(1); w.setsampwidth(2); w.setframerate(8000)
+        w.setnchannels(1); w.setsampwidth(2); w.setframerate(8000)  # 3 min: the dumps can take a while
         w.writeframes(b"".join(struct.pack("<h", int(1500 * math.sin(2 * math.pi * freq * i / 8000)))
-                               for i in range(8000 * 30)))
+                               for i in range(8000 * 180)))
 open(os.path.join(d, "notes.txt"), "w").write("not a song")
 PY2
 adb shell rm -rf /sdcard/om_music
