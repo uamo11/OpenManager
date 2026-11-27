@@ -5,6 +5,9 @@
 - **Búsqueda avanzada**: filtrar por **tamaño** (mín./máx., p. ej. 500K o 2M) y por **texto que contiene el archivo**.
 - Las casillas se recuerdan para la próxima vez. Buscar y reemplazar texto y los duplicados siguen en el menú ⋮.
 
+### 📂 OpenManager en el selector de archivos de Android
+- Al elegir un archivo desde otra app (por ejemplo, para subirlo a ChatGPT) entrando en **OpenManager**, ahora aparecen también los archivos y carpetas que empiezan por punto cuando el selector tiene activado «Mostrar archivos ocultos». Antes OM los quitaba siempre.
+
 ### ↕️ Ordenar en un solo diálogo
 - **Ordenar y vista** muestra todo a la vez, como MT: criterio (nombre, tamaño, fecha, tipo) y las casillas «Solo esta carpeta», «Orden inverso» y «Carpetas primero». Se aplica todo con **Aceptar**; antes se cerraba tras cada toque y había que volver a abrirlo para cambiar otra cosa. El título dice si es el panel izquierdo o el derecho, y la vista (lista, cuadrícula, galería) está en el botón **Vista…**.
 

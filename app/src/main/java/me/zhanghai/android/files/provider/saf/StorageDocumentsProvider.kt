@@ -94,7 +94,9 @@ class StorageDocumentsProvider : DocumentsProvider() {
     ): Cursor {
         val result = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
         val parent = fileOf(parentDocumentId)
-        parent.listFiles()?.filter { !it.name.startsWith(".") }?.forEach { addRow(result, it) }
+        // Every file, dot-files included: the system picker hides or shows them with its own
+        // "Show hidden files" switch (user report: switched on, they still never appeared).
+        parent.listFiles()?.forEach { addRow(result, it) }
         return result
     }
 
@@ -108,12 +110,14 @@ class StorageDocumentsProvider : DocumentsProvider() {
         while (pending.isNotEmpty() && found < MAX_SEARCH_RESULTS) {
             val dir = pending.removeFirst()
             for (child in dir.listFiles().orEmpty()) {
-                if (child.name.startsWith(".")) continue
+                val hidden = child.name.startsWith(".")
+                // Hidden matches are returned (the picker filters them as set); hidden folders
+                // are not searched into, some (.thumbnails) are huge.
                 if (child.name.lowercase(Locale.ROOT).contains(needle)) {
                     addRow(result, child)
                     if (++found >= MAX_SEARCH_RESULTS) break
                 }
-                if (child.isDirectory) pending += child
+                if (child.isDirectory && !hidden) pending += child
             }
         }
         return result
