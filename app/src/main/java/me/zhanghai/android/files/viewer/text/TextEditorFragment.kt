@@ -1636,7 +1636,15 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
                     viewModel.retainedSelection?.let { restoreSelection(it[0], it[1]) }
                     viewModel.retainedSelection = null
                 } else if (!viewModel.isTextChanged.value) {
-                    setText(state.data)
+                    val loaded = state.data as? TextEditorViewModel.LoadedText
+                    if (loaded != null && loaded.isReleased) {
+                        // The view came back without its kept copy: read the file again.
+                        viewModel.reload()
+                        return
+                    }
+                    setText(loaded?.text ?: state.data)
+                    // The editor copied it: the bytes and the decoded text are not needed any more.
+                    viewModel.releaseLoaded()
                     pendingRestore?.let { restoreSelection(it[0], it[1]) }
                     pendingRestore = null
                     val gotoLine = requireActivity().intent.getIntExtra("EXTRA_GOTO_LINE", -1)

@@ -44,7 +44,36 @@ class TextEditorViewModel(file: Path) : ViewModel() {
     private val _file = MutableStateFlow(file)
     val file = _file.asStateFlow()
 
-    private val _bytesState = MutableStateFlow<DataState<ByteArray>>(DataState.Loading())
+    /**
+     * The file as read, kept until the editor has its own copy of the text (see [releaseLoaded]):
+     * a 9 MB file used to sit in memory three times (bytes, String and the editor), ~86 MB.
+     */
+    class LoadedBytes(bytes: ByteArray) {
+        @Volatile
+        var bytes: ByteArray? = bytes
+    }
+
+    /** The decoded text until the editor has copied it; empty after [releaseLoaded]. */
+    class LoadedText(text: CharSequence) : CharSequence {
+        @Volatile
+        var text: CharSequence? = text
+            private set
+        val isReleased: Boolean get() = text == null
+        fun release() { text = null }
+        override val length: Int get() = text?.length ?: 0
+        override fun get(index: Int): Char = text!![index]
+        override fun subSequence(startIndex: Int, endIndex: Int): CharSequence =
+            (text ?: "").subSequence(startIndex, endIndex)
+        override fun toString(): String = text?.toString() ?: ""
+    }
+
+    /** Called once the editor holds the text: drops the bytes and the decoded copy. */
+    fun releaseLoaded() {
+        (_bytesState.value as? DataState.Success)?.data?.bytes = null
+        ((_textState.value as? DataState.Success)?.data as? LoadedText)?.release()
+    }
+
+    private val _bytesState = MutableStateFlow<DataState<LoadedBytes>>(DataState.Loading())
 
     val fileSize = MutableStateFlow(0L)
     val isCrlf = MutableStateFlow(false)
@@ -121,7 +150,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
             lastLoadedFileSize = size
             lastLoadedModifiedTime = modTime
             currentCoroutineContext().ensureActive()
-            _bytesState.value = DataState.Success(bytes)
+            _bytesState.value = DataState.Success(LoadedBytes(bytes))
         } catch (e: CancellationException) {
             e.printStackTrace()
         } catch (e: Exception) {
@@ -143,15 +172,20 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                 when (bytesState) {
                     is DataState.Loading -> _textState.value = _textState.value.toLoading()
                     is DataState.Success -> {
+                        // Already handed to the editor and dropped (an encoding change): read again.
+                        val data = bytesState.data.bytes ?: run {
+                            reload()
+                            return@collectLatest
+                        }
                         _textState.value = _textState.value.toLoading()
                         try {
                             val highlighted = withContext(Dispatchers.Default) {
-                                val rawText = if (AxmlDecoder.isAxml(bytesState.data)) {
+                                val rawText = if (AxmlDecoder.isAxml(data)) {
                                     try {
-                                        AxmlDecoder.decode(bytesState.data)
+                                        AxmlDecoder.decode(data)
                                     } catch (e: Exception) {
                                         e.printStackTrace()
-                                        String(bytesState.data, encoding)
+                                        String(data, encoding)
                                     }
                                 } else {
                                     null
@@ -160,7 +194,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                                     // Decoded and CRLF-normalized in one char array: a 20 MB binary
                                     // file, as UTF-16 plus String.replace's copies, ran a 128 MB heap
                                     // out of memory (user crash log, v2.0.42).
-                                    val (text, hadCrlf) = decodeNormalizingLineEndings(bytesState.data, encoding)
+                                    val (text, hadCrlf) = decodeNormalizingLineEndings(data, encoding)
                                     isCrlf.value = hadCrlf
                                     text
                                 } else {
@@ -170,7 +204,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                                 }
                             }
                             currentCoroutineContext().ensureActive()
-                            _textState.value = DataState.Success(highlighted)
+                            _textState.value = DataState.Success(LoadedText(highlighted))
                         } catch (e: CancellationException) {
                             e.printStackTrace()
                         } catch (e: Exception) {
@@ -234,7 +268,7 @@ class TextEditorViewModel(file: Path) : ViewModel() {
                     lastLoadedModifiedTime = newModTime
                     lastLoadedFileSize = bytes.size.toLong()
                     fileSize.value = bytes.size.toLong()
-                    _bytesState.value = DataState.Success(bytes)
+                    _bytesState.value = DataState.Success(LoadedBytes(bytes))
                 }
                 isSelfSaving = false
                 _writeFileState.value = if (successful) {

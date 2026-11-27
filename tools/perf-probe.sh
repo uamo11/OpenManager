@@ -151,11 +151,14 @@ extreme_report
 
 log "Native heap attribution (malloc debug backtraces, Performance Mode ON)"
 adb shell setprop wrap.$PKG LIBC_DEBUG_MALLOC_OPTIONS=backtrace
-for target in filelist.FileListActivity settings.SettingsActivity terminal.TerminalActivity editor; do
+for target in filelist.FileListActivity settings.SettingsActivity terminal.TerminalActivity editor imageviewer; do
     name=${target%%.*}
     adb shell am force-stop $PKG
     if [ "$target" = editor ]; then
         start_cmp $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor
+    elif [ "$target" = imageviewer ]; then
+        start_cmp $PKG/me.zhanghai.android.files.viewer.image.ImageViewerActivity --es DEMO_IMAGE_DIR /sdcard/OM_Extreme/pics
+        for _ in $(seq 1 20); do adb shell input swipe 900 1200 150 1200 120; sleep 0.4; done
     else
         start_cmp $PKG/me.zhanghai.android.files.$target
     fi
@@ -173,10 +176,14 @@ adb shell setprop wrap.$PKG "''"
 adb shell am force-stop $PKG
 
 log "Java heap dumps + hwui caches (Performance Mode ON)"
-for target in filelist.FileListActivity settings.SettingsActivity editor; do
+for target in filelist.FileListActivity settings.SettingsActivity editor bigtext; do
     name=${target%%.*}
     if [ "$target" = editor ]; then
         start_cmp $PKG/me.zhanghai.android.files.filelist.FileListActivity --es SHOW_DEMO_DIALOG editor
+    elif [ "$target" = bigtext ]; then
+        start_cmp $PKG/me.zhanghai.android.files.viewer.text.TextEditorActivity \
+            --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/OM_Extreme/big.txt"
+        sleep 6
     else
         start_cmp $PKG/me.zhanghai.android.files.$target
     fi
