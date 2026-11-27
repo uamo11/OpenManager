@@ -2530,6 +2530,11 @@
     <string name="om_payload_full">完整 OTA</string>
     <string name="om_payload_incremental">增量 OTA</string>
     <string name="om_payload_copy">复制列表</string>
+    <string name="om_payload_extract">提取…</string>
+    <string name="om_payload_extract_title">要提取的分区</string>
+    <string name="om_payload_extracting_format">正在提取 %1$s</string>
+    <string name="om_payload_extracted_format">已提取 %1$d 个分区到 %2$s</string>
+    <string name="om_payload_incremental_cannot">这是增量 OTA：其分区只是对旧分区打补丁，无法单独提取。</string>
     <string name="om_payload_not_payload">不是 Android OTA payload</string>
     <string name="om_theme_switch_dark">切换到深色主题</string>
     <string name="om_theme_switch_light">切换到浅色主题</string>

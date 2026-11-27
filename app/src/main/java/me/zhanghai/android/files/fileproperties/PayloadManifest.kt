@@ -20,15 +20,26 @@ data class PayloadManifest(
     val version: Long,
     val blockSize: Int,
     val isIncremental: Boolean,
-    val partitions: List<Partition>
+    val partitions: List<Partition>,
+    /** Where the data blobs start: header, manifest and metadata signature come first. */
+    val dataStart: Long = 0
 ) {
     data class Partition(
         val name: String,
         val size: Long,
         val operations: Int,
         /** "xz", "bz2", "zstd", "raw", "diff"... the storage kinds of its data, most used first. */
-        val kinds: List<String>
+        val kinds: List<String>,
+        /** Each InstallOperation, to extract the partition. */
+        val operationList: List<Operation> = emptyList()
     )
+
+    /**
+     * One InstallOperation: [type] (0 raw, 1 bz2, 6 zero, 7 discard, 8 xz, 14 zstd…), its blob at
+     * [dataOffset] (from [dataStart]) of [dataLength] bytes, written to [dstExtents] given as
+     * (start block, block count) pairs.
+     */
+    class Operation(val type: Int, val dataOffset: Long, val dataLength: Long, val dstExtents: LongArray)
 
     val totalSize: Long get() = partitions.sumOf { it.size }
 
@@ -48,13 +59,14 @@ data class PayloadManifest(
             if (!isPayload(magic)) throw IOException("Not an OTA payload (no CrAU magic)")
             val version = data.readLong()
             val manifestSize = data.readLong()
-            if (version >= 2) data.readInt() // metadata signature size
+            val signatureSize = if (version >= 2) data.readInt().toLong() and 0xFFFFFFFFL else 0L
             if (manifestSize <= 0 || manifestSize > MAX_MANIFEST) {
                 throw IOException("Bad manifest size $manifestSize")
             }
             val manifest = ByteArray(manifestSize.toInt())
             data.readFully(manifest)
-            return parseManifest(version, manifest)
+            val headerSize = 4L + 8 + 8 + if (version >= 2) 4 else 0
+            return parseManifest(version, manifest).copy(dataStart = headerSize + manifestSize + signatureSize)
         }
 
         /** DeltaArchiveManifest (update_metadata.proto), only the fields shown. */
@@ -86,6 +98,7 @@ data class PayloadManifest(
             var hasOld = false
             val kinds = HashMap<String, Int>()
             var operations = 0
+            val operationList = ArrayList<Operation>()
             val reader = ProtoReader(bytes, from, to)
             while (reader.hasMore()) {
                 val (field, wire) = reader.tag()
@@ -111,10 +124,36 @@ data class PayloadManifest(
                         operations++
                         val op = ProtoReader(bytes, s, e)
                         var type = 0L
+                        var dataOffset = 0L
+                        var dataLength = 0L
+                        val extents = ArrayList<Long>()
                         while (op.hasMore()) {
                             val (f, w) = op.tag()
-                            if (f == 1 && w == 0) type = op.varint() else op.skip(w)
+                            when {
+                                f == 1 && w == 0 -> type = op.varint()
+                                f == 2 && w == 0 -> dataOffset = op.varint()
+                                f == 3 && w == 0 -> dataLength = op.varint()
+                                f == 6 && w == 2 -> {
+                                    // Extent { start_block = 1; num_blocks = 2; }
+                                    val (es, ee) = op.bytesRange()
+                                    val ext = ProtoReader(bytes, es, ee)
+                                    var start = 0L
+                                    var count = 0L
+                                    while (ext.hasMore()) {
+                                        val (ef, ew) = ext.tag()
+                                        when {
+                                            ef == 1 && ew == 0 -> start = ext.varint()
+                                            ef == 2 && ew == 0 -> count = ext.varint()
+                                            else -> ext.skip(ew)
+                                        }
+                                    }
+                                    extents += start
+                                    extents += count
+                                }
+                                else -> op.skip(w)
+                            }
                         }
+                        operationList += Operation(type.toInt(), dataOffset, dataLength, extents.toLongArray())
                         val kind = kindOf(type)
                         kinds[kind] = (kinds[kind] ?: 0) + 1
                     }
@@ -122,7 +161,7 @@ data class PayloadManifest(
                 }
             }
             val sortedKinds = kinds.entries.sortedByDescending { it.value }.map { it.key }
-            return Partition(name, size, operations, sortedKinds) to hasOld
+            return Partition(name, size, operations, sortedKinds, operationList) to hasOld
         }
 
         /** InstallOperation.Type */

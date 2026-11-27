@@ -1,4 +1,8 @@
-# OpenManager v2.0.42: El Video Recuerda su Rotación
+# OpenManager v2.0.42: Extraer Particiones de OTAs y el Video Recuerda su Rotación
+
+### 📦 payload.bin: extraer particiones
+- Al tocar un **payload.bin** (suelto o dentro del zip de la OTA), el botón **Extraer…** deja elegir las particiones (boot, system, vendor…) y las guarda como **.img** en una carpeta junto al archivo (`<nombre>_img`), con progreso y Cancelar, como el «payload dumper» de MT. Lee el payload de una sola pasada, así funciona incluso dentro del zip, y desempaqueta bloques sin comprimir, xz, bz2 y zstd.
+- Las OTAs **incrementales** no se pueden extraer (solo parchean las particiones anteriores); OM lo explica en lugar de fallar.
 
 ### 🎬 Reproductor de video
 - La rotación que elijas con el botón (**horizontal** o **vertical**) se **recuerda** para los siguientes videos. En **automático** (lo de siempre) cada video se abre según su forma.

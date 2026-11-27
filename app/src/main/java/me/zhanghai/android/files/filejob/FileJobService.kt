@@ -143,6 +143,10 @@ class FileJobService : Service() {
             startJob(InstallApkJob(file), context)
         }
 
+        fun extractPayload(payload: Path, names: Set<String>, outDir: java.io.File, context: Context) {
+            startJob(ExtractPayloadJob(payload, names, outDir), context)
+        }
+
         fun open(file: Path, mimeType: MimeType, withChooser: Boolean, context: Context) {
             startJob(OpenFileJob(file, mimeType, withChooser), context)
         }

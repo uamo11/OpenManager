@@ -3447,6 +3447,11 @@
     <string name="om_payload_full">Full OTA</string>
     <string name="om_payload_incremental">Incremental OTA</string>
     <string name="om_payload_copy">Copy list</string>
+    <string name="om_payload_extract">Extract…</string>
+    <string name="om_payload_extract_title">Partitions to extract</string>
+    <string name="om_payload_extracting_format">Extracting %1$s</string>
+    <string name="om_payload_extracted_format">Extracted %1$d partition(s) to %2$s</string>
+    <string name="om_payload_incremental_cannot">This is an incremental OTA: its partitions only patch the old ones and cannot be extracted on their own.</string>
     <string name="om_payload_not_payload">Not an Android OTA payload</string>
     <string name="om_theme_switch_dark">Switch to dark theme</string>
     <string name="om_theme_switch_light">Switch to light theme</string>

@@ -48,13 +48,77 @@ object PayloadInfoDialog {
 
     fun isPayloadName(name: String): Boolean = name.equals("payload.bin", ignoreCase = true)
 
+    /**
+     * The payload from its first byte. Inside an OTA zip it is read through Java's zip reader (stored
+     * and ZIP64, which the archive layer's stream did not handle); the zip closes with the stream.
+     */
+    @Throws(java.io.IOException::class)
+    fun openPayloadStream(path: Path): java.io.InputStream {
+        if (path.isArchivePath) {
+            val zipFile = runCatching { path.archiveFile.toFile() }.getOrNull()
+            if (zipFile != null && zipFile.canRead()) {
+                val zip = java.util.zip.ZipFile(zipFile)
+                val entry = zip.getEntry(path.toString().removePrefix("/"))
+                if (entry != null) {
+                    val raw = zip.getInputStream(entry)
+                    return object : java.io.FilterInputStream(raw) {
+                        override fun close() {
+                            try { super.close() } finally { zip.close() }
+                        }
+                    }
+                }
+                zip.close()
+            }
+        }
+        return path.newInputStream()
+    }
+
+    /** Next to the payload, or next to the OTA zip it is in: `<folder>/<name>_img/`. */
+    fun outputDirFor(path: Path): java.io.File? = runCatching {
+        if (path.isArchivePath) {
+            val zip = path.archiveFile.toFile()
+            java.io.File(zip.parentFile, zip.nameWithoutExtension + "_img")
+        } else {
+            val file = path.toFile()
+            java.io.File(file.parentFile, file.nameWithoutExtension + "_img")
+        }
+    }.getOrNull()
+
+    private fun chooseAndExtract(fragment: Fragment, path: Path, manifest: PayloadManifest) {
+        val context = fragment.requireContext()
+        val partitions = PayloadExtractor.extractable(manifest)
+        if (partitions.isEmpty()) {
+            MaterialAlertDialogBuilder(context)
+                .setMessage(R.string.om_payload_incremental_cannot)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+        val outDir = outputDirFor(path) ?: return
+        val labels = partitions.map {
+            "${it.name}  (${Formatter.formatShortFileSize(context, it.size)})"
+        }.toTypedArray()
+        val checked = BooleanArray(partitions.size) { true }
+        MaterialAlertDialogBuilder(context)
+            .setTitle(R.string.om_payload_extract_title)
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked -> checked[which] = isChecked }
+            .setPositiveButton(R.string.om_payload_extract) { _, _ ->
+                val names = partitions.filterIndexed { i, _ -> checked[i] }.map { it.name }.toSet()
+                if (names.isNotEmpty()) {
+                    me.zhanghai.android.files.filejob.FileJobService.extractPayload(path, names, outDir, context)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     fun show(fragment: Fragment, path: Path) {
         val context = fragment.requireContext()
         fragment.viewLifecycleOwner.lifecycleScope.launch {
             val manifest = withContext(Dispatchers.IO) {
-                runCatching { path.newInputStream().buffered().use { PayloadManifest.read(it) } }
+                runCatching { openPayloadStream(path).buffered().use { PayloadManifest.read(it) } }
                     .recoverCatching { first ->
-                        Log.w("OMPayload", "Archive stream failed, trying the zip directly", first)
+                        Log.w("OMPayload", "Payload stream failed, trying the zip directly", first)
                         readFromZip(path) ?: throw first
                     }
             }.getOrElse {
@@ -90,7 +154,10 @@ object PayloadInfoDialog {
             MaterialAlertDialogBuilder(context)
                 .setTitle(path.fileName?.toString())
                 .setView(scroll)
-                .setPositiveButton(android.R.string.ok, null)
+                .setPositiveButton(R.string.om_payload_extract) { _, _ ->
+                    chooseAndExtract(fragment, path, manifest)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
                 .setNeutralButton(R.string.om_payload_copy) { _, _ ->
                     context.getSystemService<ClipboardManager>()?.copyText(summary + "\n" + table, context)
                 }

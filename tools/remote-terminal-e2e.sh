@@ -3293,7 +3293,7 @@ if pos=$(wait_text 15 "payload.bin"); then
     parsed=$(adb logcat -d -s OMPayload 2>/dev/null | grep "Payload v" | tail -1 | sed 's/.*OMPayload: //')
     log "      $parsed"
     if printf '%s' "$parsed" | grep -q "partitions=3 boot:100663296:xz,system:2147483648:zstd,vendor_boot:67108864:xz" \
-        && find_text "OK" >/dev/null; then
+        && find_text "Extract…" >/dev/null; then
         pass "tapping payload.bin lists its partitions, sizes and compression without extracting"
     else
         fail "payload.bin contents not shown (${parsed:-nothing})"
@@ -3336,6 +3336,61 @@ else
 fi
 adb logcat -d > "$OUT/logcat_payload.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_payload.txt"; then fail "crash opening payload.bin"; fi
+
+log "=== payload.bin: partitions extracted to .img (user report: it could not extract) ==="
+# A real full-OTA payload: boot = raw block, xz block, zero block, bz2 block (4 KiB each).
+expected=$(python3 - "$OUT/payload2.bin" <<'PY2'
+import bz2, hashlib, lzma, struct, sys
+def varint(v):
+    out = bytearray()
+    while v > 0x7F:
+        out.append((v & 0x7F) | 0x80); v >>= 7
+    out.append(v); return bytes(out)
+def fi(f, v): return varint(f << 3) + varint(v)
+def fb(f, b): return varint((f << 3) | 2) + varint(len(b)) + b
+B = 4096
+blocks = [b"A" * B, b"B" * B, b"\0" * B, b"C" * B]
+blobs = [(0, blocks[0]), (8, lzma.compress(blocks[1], format=lzma.FORMAT_XZ)), (6, b""), (1, bz2.compress(blocks[3]))]
+ops, data, offset = b"", b"", 0
+for i, (t, blob) in enumerate(blobs):
+    op = fi(1, t)
+    if blob:
+        op += fi(2, offset) + fi(3, len(blob))
+    op += fb(6, fi(1, i) + fi(2, 1))
+    ops += fb(8, op)
+    data += blob; offset += len(blob)
+part = fb(1, b"boot") + fb(7, fi(1, 4 * B)) + ops
+manifest = fi(3, B) + fb(13, part)
+open(sys.argv[1], "wb").write(b"CrAU" + struct.pack(">QQI", 2, len(manifest), 0) + manifest + data)
+print(hashlib.sha256(b"".join(blocks)).hexdigest())
+PY2
+)
+adb shell rm -rf /sdcard/om_ota2; adb shell mkdir -p /sdcard/om_ota2
+adb push "$OUT/payload2.bin" /sdcard/om_ota2/payload.bin >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_ota2" >/dev/null; sleep 5
+if pos=$(wait_text 15 "payload.bin"); then
+    adb shell input tap $pos; sleep 3
+    if pos=$(find_text "Extract…"); then
+        adb shell input tap $pos; sleep 2
+        shot 79c_payload_choose_partitions
+        pos=$(find_text "Extract…") && adb shell input tap $pos; sleep 8
+        got=$(adb shell sha256sum /sdcard/om_ota2/payload_img/boot.img 2>/dev/null | cut -d' ' -f1)
+        log "      boot.img sha256 ${got:-missing} (expected $expected)"
+        if [ -n "$got" ] && [ "$got" = "$expected" ]; then
+            pass "payload.bin partitions are extracted to .img (raw, xz, zero and bz2 blocks)"
+        else
+            shot 79d_payload_not_extracted
+            fail "payload.bin extraction gave a wrong or no boot.img"
+        fi
+    else
+        fail "no Extract button in the payload dialog"
+    fi
+else
+    fail "payload.bin (extract test) not listed"
+fi
+adb shell rm -rf /sdcard/om_ota2
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_ota
 

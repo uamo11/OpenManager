@@ -2531,6 +2531,11 @@
     <string name="om_payload_full">OTA penuh</string>
     <string name="om_payload_incremental">OTA inkremental</string>
     <string name="om_payload_copy">Salin daftar</string>
+    <string name="om_payload_extract">Ekstrak…</string>
+    <string name="om_payload_extract_title">Partisi yang akan diekstrak</string>
+    <string name="om_payload_extracting_format">Mengekstrak %1$s</string>
+    <string name="om_payload_extracted_format">%1$d partisi diekstrak ke %2$s</string>
+    <string name="om_payload_incremental_cannot">Ini OTA inkremental: partisinya hanya menambal partisi lama dan tidak bisa diekstrak sendiri.</string>
     <string name="om_payload_not_payload">Bukan payload OTA Android</string>
     <string name="om_theme_switch_dark">Beralih ke tema gelap</string>
     <string name="om_theme_switch_light">Beralih ke tema terang</string>

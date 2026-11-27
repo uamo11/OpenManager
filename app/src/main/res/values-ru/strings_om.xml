@@ -2550,6 +2550,11 @@
     <string name="om_payload_full">Полная OTA</string>
     <string name="om_payload_incremental">Инкрементальная OTA</string>
     <string name="om_payload_copy">Копировать список</string>
+    <string name="om_payload_extract">Извлечь…</string>
+    <string name="om_payload_extract_title">Разделы для извлечения</string>
+    <string name="om_payload_extracting_format">Извлечение %1$s</string>
+    <string name="om_payload_extracted_format">Извлечено разделов: %1$d в %2$s</string>
+    <string name="om_payload_incremental_cannot">Это инкрементальное OTA: его разделы лишь исправляют старые и не могут быть извлечены отдельно.</string>
     <string name="om_payload_not_payload">Это не payload OTA для Android</string>
     <string name="om_theme_switch_dark">Переключить на тёмную тему</string>
     <string name="om_theme_switch_light">Переключить на светлую тему</string>

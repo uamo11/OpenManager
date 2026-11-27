@@ -2446,3 +2446,40 @@ private fun FileJob.postWriteNotification(transferInfo: TransferInfo) {
     val progress = transferredSize.toInt()
     postNotification(title, text, null, null, max, progress, false, true)
 }
+
+
+/** Extracts partitions of an OTA payload.bin to .img files, with progress and Cancel. */
+class ExtractPayloadJob(
+    private val payload: Path,
+    private val names: Set<String>,
+    private val outDir: File
+) : FileJob() {
+    @Throws(IOException::class)
+    override fun run() {
+        val manifest = me.zhanghai.android.files.fileproperties.PayloadInfoDialog.openPayloadStream(payload)
+            .buffered().use { me.zhanghai.android.files.fileproperties.PayloadManifest.read(it) }
+        val title = getString(R.string.om_payload_extracting_format, payload.fileName?.toString() ?: "payload.bin")
+        var lastPost = 0L
+        postNotification(title, null, null, null, 1000, 0, true, true)
+        val files = me.zhanghai.android.files.fileproperties.PayloadInfoDialog.openPayloadStream(payload)
+            .buffered(1 shl 20).use { input ->
+                me.zhanghai.android.files.fileproperties.PayloadExtractor.extract(
+                    input, manifest, names, outDir,
+                    onProgress = { done, total ->
+                        val now = System.currentTimeMillis()
+                        if (now - lastPost >= NOTIFICATION_INTERVAL_MILLIS || done == total) {
+                            lastPost = now
+                            val permille = if (total > 0) (done * 1000 / total).toInt() else 0
+                            postNotification(
+                                title, "${done.asFileSize().formatHumanReadable(service)} / " +
+                                    total.asFileSize().formatHumanReadable(service),
+                                null, null, 1000, permille, false, true
+                            )
+                        }
+                    },
+                    isCancelled = { Thread.currentThread().isInterrupted }
+                )
+            }
+        showToast(getString(R.string.om_payload_extracted_format, files.size, outDir.absolutePath))
+    }
+}

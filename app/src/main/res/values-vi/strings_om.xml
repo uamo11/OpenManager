@@ -2625,6 +2625,11 @@
     <string name="om_payload_full">OTA đầy đủ</string>
     <string name="om_payload_incremental">OTA gia tăng</string>
     <string name="om_payload_copy">Sao chép danh sách</string>
+    <string name="om_payload_extract">Trích xuất…</string>
+    <string name="om_payload_extract_title">Phân vùng cần trích xuất</string>
+    <string name="om_payload_extracting_format">Đang trích xuất %1$s</string>
+    <string name="om_payload_extracted_format">Đã trích xuất %1$d phân vùng vào %2$s</string>
+    <string name="om_payload_incremental_cannot">Đây là OTA gia tăng: các phân vùng chỉ vá phân vùng cũ và không thể trích xuất riêng.</string>
     <string name="om_payload_not_payload">Không phải payload OTA Android</string>
     <string name="om_theme_switch_dark">Chuyển sang giao diện tối</string>
     <string name="om_theme_switch_light">Chuyển sang giao diện sáng</string>
