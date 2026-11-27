@@ -3856,7 +3856,8 @@ adb shell am force-stop $PKG; sleep 1
 adb shell rm -f /sdcard/om_editor_test/om_big.bin
 
 log "=== HTML preview, then Edit source: a 43 KB page of tables and box-drawing diagrams (user report: out of memory) ==="
-# A synthetic page shaped like the user's (their file is private): CSS variables, 19 tables with
+# A synthetic page shaped like the users' (their files are private): CSS with numbers such as .4em
+# (the cause: the highlighter looped on them until out of memory), CSS variables, 19 tables with
 # ~700-character rows, and <pre> diagrams drawn with box-drawing characters and arrows.
 python3 - "$OUT/om_page.html" <<'PY2'
 import random, sys
@@ -3864,7 +3865,7 @@ random.seed(7)
 words = "alpha beta gamma delta check verify session token result route queue client server cache".split()
 def sentence(n): return " ".join(random.choice(words) for _ in range(n))
 css = ":root{--ink:#1c2430;--muted:#536170;--bg:#f5f7fa;--card:#fff;--accent:#1759a6;--border:#d8dee6}\n" + "\n".join(
-    f".c{i}{{color:var(--ink);margin:{i}px 0;border:1px solid var(--border)}}" for i in range(25))
+    f".c{i}{{color:var(--ink);margin:.{i % 9 + 1}em 0;opacity:.85;border:1px solid var(--border)}}" for i in range(25))
 diagram = "\n".join([
     "  client ──► gateway ◄── worker",
     "               │",

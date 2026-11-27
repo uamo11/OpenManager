@@ -93,6 +93,32 @@ class FastSyntaxScannerTest {
     }
 
     @Test
+    fun numbersStartingWithADotEndTheScan() {
+        // User reports: an HTML page with CSS such as ".4em" ran the app out of memory in seconds.
+        val html = "<style>h1{margin:.4em 0;font-size:.9rem;opacity:.85}</style><p>x .5 y</p>"
+        for (language in listOf(SyntaxLanguage.HTML, SyntaxLanguage.XML, SyntaxLanguage.JAVA)) {
+            val tokens = FastSyntaxScanner.scan(html, language)
+            assertTrue("$language: no runaway token list", tokens.size <= html.length)
+            assertTrue("$language: no empty token", tokens.all { it.end > it.start })
+        }
+        val numbers = FastSyntaxScanner.scan(".85", SyntaxLanguage.JAVA)
+            .filter { it.color == FastSyntaxScanner.COLOR_NUMBER }
+        assertEquals(1, numbers.size)
+        assertEquals(0, numbers[0].start)
+        assertEquals(3, numbers[0].end)
+    }
+
+    @Test
+    fun theScanAlwaysMovesForward() {
+        // Odd input of every kind ends with at most one token per character.
+        val text = ".\u0000.e.E..5e+.0x.0b<<\"'\\@#\$_\n\r.9.9.9" .repeat(50)
+        for (language in SyntaxLanguage.values()) {
+            val tokens = FastSyntaxScanner.scan(text, language)
+            assertTrue("$language", tokens.size <= text.length)
+        }
+    }
+
+    @Test
     fun testXmlCodeTokenization() {
         val xml = """
             <?xml version="1.0" encoding="utf-8"?>

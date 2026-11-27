@@ -1,4 +1,7 @@
-# OpenManager v2.0.41: Tema Claro sin Huecos
+# OpenManager v2.0.41: El Editor ya no se Cuelga con HTML/CSS
+
+### 🛠 Editor de texto
+- Abrir un **HTML** (o CSS, o código) con números que empiezan por punto, como `.5em` u `opacity:.85`, **cerraba la app** al rato por falta de memoria: el resaltado de sintaxis se quedaba atascado en ese punto. Arreglado, y además el resaltado ya nunca puede quedarse dando vueltas en el mismo sitio.
 
 ### 🎨 Tema claro
 - En **Aplicaciones**, con el tema claro, el botón **Actualizar** era blanco sobre blanco: ahora toma el color del tema como los demás.

@@ -193,7 +193,14 @@ object FastSyntaxScanner {
         val colorAttribute = theme.attributeColor
         val colorOperator = theme.operatorColor
 
+        var lastStart = -1
         while (i < len) {
+            // Safety net: whatever a branch below does, the scan always moves forward.
+            if (i == lastStart) {
+                i++
+                continue
+            }
+            lastStart = i
             val c = text[i]
 
             // 1. Whitespace
@@ -317,6 +324,10 @@ object FastSyntaxScanner {
                     }
                 } else {
                     var hasDot = (c == '.')
+                    // ".5em": the leading dot is part of the number. Left unread, the loop below
+                    // stopped on it at once, the token was empty and the scan never moved on, adding
+                    // tokens until the app ran out of memory (user reports: HTML files crashed it).
+                    if (hasDot) i++
                     while (i < len) {
                         val ch = text[i]
                         if (ch.isDigit() || ch == '_') {
