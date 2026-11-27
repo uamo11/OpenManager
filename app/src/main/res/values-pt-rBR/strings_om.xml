@@ -364,6 +364,8 @@
     <string name="settings_double_confirmation_apk_summary">Exige confirmação dupla antes de instalar um APK com Shizuku/Dhizuku/Root.</string>
     <string name="settings_use_shizuku_install_title">Instalar apk/apks/xapk com Shizuku</string>
     <string name="settings_use_shizuku_install_summary">É preciso instalar e ativar o Shizuku.</string>
+    <string name="settings_install_as_play_title">Instalar como Google Play</string>
+    <string name="settings_install_as_play_summary">Com root ou Shizuku, os apps instalados pelo OM aparecem como instalados pelo Google Play e deixam de pedir reinstalação pela Play.</string>
     <string name="settings_use_root_install_title">Instalar apk/apks/xapk com root</string>
     <string name="settings_use_root_install_summary">Só funciona com privilégios root.</string>
     <string name="settings_installation_priority_title">Ordem de instalação</string>
@@ -1174,6 +1176,10 @@
     <string name="om_action_share">Compartilhar</string>
     <string name="om_action_properties">Propriedades</string>
     <string name="om_action_add_bookmark">Adicionar favorito</string>
+    <string name="om_action_pin_folder">Fixar no topo</string>
+    <string name="om_action_unpin_folder">Desafixar</string>
+    <string name="om_folder_pinned_toast">Fixada: fica no topo desta pasta</string>
+    <string name="om_folder_unpinned_toast">Desafixada</string>
     <string name="om_mt_long_press_hint">Itens com • aceitam toque longo para agir em uma única janela</string>
     <string name="om_tool_encrypt">Criptografar arquivo</string>
     <string name="om_tool_decrypt">Descriptografar arquivo</string>

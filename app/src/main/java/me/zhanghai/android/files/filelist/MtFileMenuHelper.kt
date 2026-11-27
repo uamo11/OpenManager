@@ -291,6 +291,21 @@ object MtFileMenuHelper {
             }
         }
 
+        // 11. Pin a folder to the top of its list
+        val btnPinFolder = view.findViewById<LinearLayout>(R.id.btnPinFolder)
+        if (!isDirectory || !isSingleFile || file.path.isArchivePath) {
+            btnPinFolder.alpha = 0.4f
+            btnPinFolder.isEnabled = false
+        } else {
+            val pinned = file.path.toString() in PinnedFolders.all(context)
+            view.findViewById<TextView>(R.id.tvPinFolderLabel)
+                .setText(if (pinned) R.string.om_action_unpin_folder else R.string.om_action_pin_folder)
+            btnPinFolder.setOnClickListener {
+                dialog.dismissSafely()
+                fragment.togglePinned(file)
+            }
+        }
+
         dialog.show()
     }
 

@@ -3927,6 +3927,43 @@ if app_crashed "$OUT/logcat_hex2.txt"; then fail "crash editing a 60 MB file"; f
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -f /sdcard/om_editor_test/om_big.bin
 
+log "=== Pin a folder to the top of its list (MP Manager users' idea) ==="
+adb shell rm -rf /sdcard/om_pin; adb shell mkdir -p /sdcard/om_pin/a_first /sdcard/om_pin/m_middle /sdcard/om_pin/z_last
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$MAIN" -a android.intent.action.VIEW \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_pin" >/dev/null; sleep 4
+row_y() { find_text "$1" | cut -d' ' -f2; }
+if pos=$(wait_text 10 "z_last"); then
+    adb shell input swipe $pos $pos 1000; sleep 2
+    if pin=$(find_text "Pin to top"); then
+        adb shell input tap $pin; sleep 3
+        shot 89_folder_pinned
+        yz=$(row_y z_last); ya=$(row_y a_first)
+        log "      z_last at y=${yz:-?}, a_first at y=${ya:-?}"
+        if [ -n "$yz" ] && [ -n "$ya" ] && [ "$yz" -lt "$ya" ] && find_contains "📌" >/dev/null; then
+            pass "a pinned folder moves to the top of its list with a pin"
+        else
+            fail "the pinned folder did not move to the top"
+        fi
+        # Unpin: back to its place.
+        pos=$(find_text "z_last") && adb shell input swipe $pos $pos 1000; sleep 2
+        pos=$(find_text "Unpin") && adb shell input tap $pos; sleep 3
+        yz=$(row_y z_last); ya=$(row_y a_first)
+        if [ -n "$yz" ] && [ -n "$ya" ] && [ "$yz" -gt "$ya" ]; then
+            pass "unpinning puts the folder back in its place"
+        else
+            fail "the folder stayed on top after Unpin"
+        fi
+    else
+        fail "no Pin to top entry in a folder's menu"
+        adb shell input keyevent KEYCODE_BACK
+    fi
+else
+    fail "om_pin folders not listed"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_pin
+
 log "=== HTML preview, then Edit source: a 43 KB page of tables and box-drawing diagrams (user report: out of memory) ==="
 # A synthetic page shaped like the users' (their files are private): CSS with numbers such as .4em
 # (the cause: the highlighter looped on them until out of memory), CSS variables, 19 tables with

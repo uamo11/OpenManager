@@ -364,6 +364,8 @@
     <string name="settings_double_confirmation_apk_summary">Cần xác nhận hai lần trước khi cài APK bằng Shizuku/Dhizuku/Root.</string>
     <string name="settings_use_shizuku_install_title">Cài apk/apks/xapk bằng Shizuku</string>
     <string name="settings_use_shizuku_install_summary">Cần cài và kích hoạt Shizuku.</string>
+    <string name="settings_install_as_play_title">Cài đặt như Google Play</string>
+    <string name="settings_install_as_play_summary">Với root hoặc Shizuku, ứng dụng cài từ OM sẽ ghi nguồn là Google Play, nên không còn yêu cầu cài lại từ Play.</string>
     <string name="settings_use_root_install_title">Cài apk/apks/xapk bằng root</string>
     <string name="settings_use_root_install_summary">Chỉ có tác dụng khi có quyền root.</string>
     <string name="settings_installation_priority_title">Thứ tự ưu tiên cài đặt</string>
@@ -1174,6 +1176,10 @@
     <string name="om_action_share">Chia sẻ</string>
     <string name="om_action_properties">Thuộc tính</string>
     <string name="om_action_add_bookmark">Thêm dấu trang</string>
+    <string name="om_action_pin_folder">Ghim lên đầu</string>
+    <string name="om_action_unpin_folder">Bỏ ghim</string>
+    <string name="om_folder_pinned_toast">Đã ghim: luôn ở đầu thư mục này</string>
+    <string name="om_folder_unpinned_toast">Đã bỏ ghim</string>
     <string name="om_mt_long_press_hint">Menu có • hỗ trợ nhấn giữ để thao tác trong một cửa sổ</string>
     <string name="om_tool_encrypt">Mã hóa tệp</string>
     <string name="om_tool_decrypt">Giải mã tệp</string>

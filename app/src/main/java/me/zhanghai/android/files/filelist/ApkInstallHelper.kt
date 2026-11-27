@@ -10,6 +10,7 @@ import android.provider.Settings
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import me.zhanghai.android.files.util.valueCompat
 import me.zhanghai.android.files.R
 import me.zhanghai.android.files.file.FileItem
 import me.zhanghai.android.files.provider.common.newInputStream
@@ -107,10 +108,21 @@ object ApkInstallHelper {
         }
     }
 
+    /**
+     * `-i com.android.vending` when the user wants root/Shizuku installs recorded as from Google Play
+     * (MP Manager users' idea: some apps otherwise ask to be reinstalled from Play).
+     */
+    internal fun installAsPlay(): Boolean =
+        runCatching { me.zhanghai.android.files.settings.Settings.INSTALL_AS_PLAY.valueCompat }
+            .getOrDefault(false)
+
+    private fun playInstallerFlag(): String = if (installAsPlay()) "-i com.android.vending " else ""
+
     fun buildMultiApkPmSessionScript(
         stagingDir: String,
         stagedFiles: List<Pair<String, Long>>,
-        sdkInt: Int
+        sdkInt: Int,
+        asPlay: Boolean = false
     ): String {
         val escapedDir = stagingDir.escapeShellArg()
         if (stagedFiles.isEmpty()) {
@@ -119,7 +131,7 @@ object ApkInstallHelper {
         val normalizedDir = stagingDir.trimEnd('/')
         val grantPermFlag = if (sdkInt >= 23) " -g" else ""
         val bypassLowTargetFlag = if (sdkInt >= 34) " --bypass-low-target-sdk-block" else ""
-        val flags = "-r -d -t$grantPermFlag$bypassLowTargetFlag"
+        val flags = "-r -d -t$grantPermFlag$bypassLowTargetFlag${if (asPlay) " -i com.android.vending" else ""}"
 
         return buildString {
             append("CREATE_OUT=$(pm install-create ").append(flags).append(" 2>&1)\n")
@@ -263,7 +275,8 @@ object ApkInstallHelper {
             val sessionScript = buildMultiApkPmSessionScript(
                 stagingDir = remoteStagingDir,
                 stagedFiles = stagedSizes,
-                sdkInt = Build.VERSION.SDK_INT
+                sdkInt = Build.VERSION.SDK_INT,
+                asPlay = installAsPlay()
             )
             val fullScript = buildString {
                 append(copyCommands.joinToString(" && "))
@@ -309,7 +322,7 @@ object ApkInstallHelper {
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
         val bypassLowTargetFlag = if (Build.VERSION.SDK_INT >= 34) "--bypass-low-target-sdk-block " else ""
         // Flags: -r (replace existing), -d (allow downgrade), -t (allow test packages), -g (grant permissions)
-        val installCmd = "pm install -r -d -t $grantPermFlag$bypassLowTargetFlag${targetTmpPath.escapeShellArg()}"
+        val installCmd = "pm install -r -d -t $grantPermFlag$bypassLowTargetFlag${playInstallerFlag()}${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
             "cp ${apkFile.absolutePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",
@@ -386,7 +399,7 @@ object ApkInstallHelper {
 
         val grantPermFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) "-g " else ""
         val bypassLowTargetFlag = if (Build.VERSION.SDK_INT >= 34) "--bypass-low-target-sdk-block " else ""
-        val installCmd = "pm install -r -d -t $grantPermFlag$bypassLowTargetFlag${targetTmpPath.escapeShellArg()}"
+        val installCmd = "pm install -r -d -t $grantPermFlag$bypassLowTargetFlag${playInstallerFlag()}${targetTmpPath.escapeShellArg()}"
 
         val commands = listOf(
             "cp ${apkFile.absolutePath.escapeShellArg()} ${targetTmpPath.escapeShellArg()}",

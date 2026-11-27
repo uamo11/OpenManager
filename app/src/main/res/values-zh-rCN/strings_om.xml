@@ -365,6 +365,8 @@
     <string name="settings_double_confirmation_apk_summary">使用 Shizuku/Dhizuku/Root 安装 APK 前需要二次确认。</string>
     <string name="settings_use_shizuku_install_title">使用 Shizuku 安装 apk/apks/xapk</string>
     <string name="settings_use_shizuku_install_summary">需要安装并激活 Shizuku。</string>
+    <string name="settings_install_as_play_title">以 Google Play 身份安装</string>
+    <string name="settings_install_as_play_summary">使用 Root 或 Shizuku 时，从 OM 安装的应用来源显示为 Google Play，不再提示从 Play 重新安装。</string>
     <string name="settings_use_root_install_title">使用 root 安装 apk/apks/xapk</string>
     <string name="settings_use_root_install_summary">仅在拥有 root 权限时生效。</string>
     <string name="settings_installation_priority_title">安装优先级说明</string>
@@ -1175,6 +1177,10 @@
     <string name="om_action_share">分享</string>
     <string name="om_action_properties">属性</string>
     <string name="om_action_add_bookmark">添加书签</string>
+    <string name="om_action_pin_folder">置顶</string>
+    <string name="om_action_unpin_folder">取消置顶</string>
+    <string name="om_folder_pinned_toast">已置顶：在此文件夹中始终显示在最上方</string>
+    <string name="om_folder_unpinned_toast">已取消置顶</string>
     <string name="om_mt_long_press_hint">带 • 的菜单支持长按在单个窗口中操作</string>
     <string name="om_tool_encrypt">加密文件</string>
     <string name="om_tool_decrypt">解密文件</string>

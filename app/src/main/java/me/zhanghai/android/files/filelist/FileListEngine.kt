@@ -62,7 +62,8 @@ object FileListEngine {
         isSearching: Boolean,
         parentItem: FileItem?,
         previousList: List<FileItem>?,
-        computeDiff: Boolean
+        computeDiff: Boolean,
+        pinned: Set<String> = emptySet()
     ): PreparedFileList {
         val filtered = ArrayList<FileItem>(rawFiles.size)
         var dirCount = 0
@@ -82,15 +83,23 @@ object FileListEngine {
         if (!isSearching && filtered.size > 1) {
             filtered.sortWith(sortOptions.createComparator())
         }
+        val ordered = if (!isSearching && pinned.isNotEmpty()) {
+            PinnedFolders.pinnedFirst(
+                filtered, pinned,
+                pathOf = { it.path.toString() }, nameOf = { it.path.fileName?.toString() ?: "" }
+            )
+        } else {
+            filtered
+        }
 
         val prependParent = !isSearching && parentItem != null
         val displayList: List<FileItem> = if (prependParent) {
-            ArrayList<FileItem>(filtered.size + 1).apply {
+            ArrayList<FileItem>(ordered.size + 1).apply {
                 add(parentItem!!)
-                addAll(filtered)
+                addAll(ordered)
             }
         } else {
-            filtered
+            ordered
         }
 
         val mapCapacity = ((displayList.size * 4) / 3 + 1).coerceAtLeast(16)

@@ -427,6 +427,13 @@
             android:defaultValue="@bool/pref_default_value_use_root_install"
             app:iconSpaceReserved="true" />
 
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_install_as_play"
+            android:title="@string/settings_install_as_play_title"
+            android:summary="@string/settings_install_as_play_summary"
+            android:defaultValue="@bool/pref_default_value_install_as_play"
+            app:iconSpaceReserved="true" />
+
         <me.zhanghai.android.files.settings.IconMenuPreference
             android:key="@string/pref_key_open_apk_default_action"
             android:title="@string/settings_open_apk_default_action_title"

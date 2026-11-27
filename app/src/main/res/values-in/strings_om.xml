@@ -364,6 +364,8 @@
     <string name="settings_double_confirmation_apk_summary">Perlu konfirmasi ganda sebelum memasang APK dengan Shizuku/Dhizuku/Root.</string>
     <string name="settings_use_shizuku_install_title">Pasang apk/apks/xapk dengan Shizuku</string>
     <string name="settings_use_shizuku_install_summary">Shizuku harus dipasang dan diaktifkan.</string>
+    <string name="settings_install_as_play_title">Instal sebagai Google Play</string>
+    <string name="settings_install_as_play_summary">Dengan root atau Shizuku, aplikasi yang diinstal dari OM tercatat dari Google Play, jadi tidak lagi meminta instal ulang dari Play.</string>
     <string name="settings_use_root_install_title">Pasang apk/apks/xapk dengan root</string>
     <string name="settings_use_root_install_summary">Hanya berlaku dengan hak root.</string>
     <string name="settings_installation_priority_title">Urutan prioritas pemasangan</string>
@@ -1174,6 +1176,10 @@
     <string name="om_action_share">Bagikan</string>
     <string name="om_action_properties">Properti</string>
     <string name="om_action_add_bookmark">Tambah bookmark</string>
+    <string name="om_action_pin_folder">Sematkan di atas</string>
+    <string name="om_action_unpin_folder">Lepas sematan</string>
+    <string name="om_folder_pinned_toast">Disematkan: selalu di atas folder ini</string>
+    <string name="om_folder_unpinned_toast">Sematan dilepas</string>
     <string name="om_mt_long_press_hint">Menu bertanda • bisa ditekan lama untuk bekerja di satu jendela</string>
     <string name="om_tool_encrypt">Enkripsi file</string>
     <string name="om_tool_decrypt">Dekripsi file</string>

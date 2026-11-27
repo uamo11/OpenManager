@@ -184,6 +184,12 @@ object Settings {
         R.bool.pref_default_value_use_root_install
     )
 
+    /** Root/Shizuku installs record Google Play as the installer (`pm install -i`). */
+    val INSTALL_AS_PLAY: SettingLiveData<Boolean> = BooleanSettingLiveData(
+        R.string.pref_key_install_as_play,
+        R.bool.pref_default_value_install_as_play
+    )
+
     val USE_SHIZUKU_INSTALL: SettingLiveData<Boolean> = BooleanSettingLiveData(
         R.string.pref_key_use_shizuku_install,
         R.bool.pref_default_value_use_shizuku_install

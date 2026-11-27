@@ -1,3 +1,11 @@
+# OpenManager v2.0.43: Carpetas Fijadas e Instalar como Google Play
+
+### 📌 Carpetas fijadas arriba
+- Mantén pulsada una carpeta → **Fijar arriba**: queda siempre al principio de su carpeta (las fijadas, por nombre), con un 📌. **Desfijar** la devuelve a su sitio. Idea de los usuarios de MP Manager.
+
+### 📲 Instalar como Google Play
+- Nuevo ajuste **Instalar como Google Play**: con root o Shizuku, las apps instaladas desde OM figuran como instaladas desde Google Play (`pm install -i com.android.vending`), así dejan de pedir que las reinstales desde Play.
+
 # OpenManager v2.0.42: Extraer Particiones de OTAs y el Video Recuerda su Rotación
 
 ### 📦 payload.bin: extraer particiones

@@ -1982,6 +1982,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
         val isSharedStorage = !isSearching &&
             (pathStr.startsWith("/storage/") || pathStr.startsWith("/sdcard"))
         val previousList = adapter.list
+        val pinned = PinnedFolders.all(requireContext())
+        adapter.pinnedPaths = pinned
         val gen = ++listPrepareGeneration
         listPrepareJob?.cancel()
 
@@ -1994,7 +1996,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 isSearching = isSearching,
                 parentItem = parentItem,
                 previousList = previousList,
-                computeDiff = true
+                computeDiff = true,
+                pinned = pinned
             )
             adapter.searchRoot = if (isSearching) path else null
             adapter.applyPreparedList(prepared, isSearching, isSharedStorage)
@@ -2014,7 +2017,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 isSearching = isSearching,
                 parentItem = parentItem,
                 previousList = previousList,
-                computeDiff = true
+                computeDiff = true,
+                pinned = pinned
             )
             withContext(Dispatchers.Main) {
                 if (gen != listPrepareGeneration || !isAdded || view == null) {
@@ -2477,6 +2481,14 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
     fun shareFiles(files: FileItemSet) {
         shareFiles(files.map { it.path }, files.map { it.mimeType })
         viewModel.selectFiles(files, false)
+    }
+
+    /** Pins or unpins a folder to the top of this list (MT-style menu). */
+    fun togglePinned(file: FileItem) {
+        val pinned = PinnedFolders.toggle(requireContext(), file.path.toString())
+        showToast(if (pinned) R.string.om_folder_pinned_toast else R.string.om_folder_unpinned_toast)
+        adapter.clearDescriptions()
+        updateAdapterFileList()
     }
 
     fun selectAllFiles() {

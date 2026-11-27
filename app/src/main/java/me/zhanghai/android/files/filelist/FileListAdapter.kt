@@ -117,6 +117,13 @@ class FileListAdapter(
         PerformanceModeManager.currentBudget.fileListDescriptionCacheSize
     )
 
+    /** Folders pinned to the top: their description starts with a pin. */
+    var pinnedPaths: Set<String> = emptySet()
+
+    fun clearDescriptions() {
+        descriptionCache.evictAll()
+    }
+
     fun trimCachesForUltraPerformance() {
         dateFormatCache.evictAll()
         descriptionCache.evictAll()
@@ -760,7 +767,12 @@ class FileListAdapter(
                     val sizeStr = FileListEngine.formatCompactFileSize(attributes.size())
                     "$lastModificationTime  $sizeStr"
                 }
-                val formattedDesc = if (permStr != null) "$baseDesc  $permStr" else baseDesc
+                val withPerm = if (permStr != null) "$baseDesc  $permStr" else baseDesc
+                val formattedDesc = if (isDirectory && pinnedPaths.isNotEmpty() && path.toString() in pinnedPaths) {
+                    "📌 $withPerm"
+                } else {
+                    withPerm
+                }
                 if (appDirectoryPackageName == null || AppMetadataCache.hasLabelEntry(appDirectoryPackageName)) {
                     descriptionCache.put(file, formattedDesc)
                 }
