@@ -22,5 +22,6 @@
         android:id="@+id/action_refresh"
         android:icon="@drawable/reset_icon_white_24dp"
         android:title="@string/refresh"
+        app:iconTint="?colorControlNormal"
         app:showAsAction="ifRoom" />
 </menu>

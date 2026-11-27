@@ -5,6 +5,9 @@
 - **Búsqueda avanzada**: filtrar por **tamaño** (mín./máx., p. ej. 500K o 2M) y por **texto que contiene el archivo**.
 - Las casillas se recuerdan para la próxima vez. Buscar y reemplazar texto y los duplicados siguen en el menú ⋮.
 
+### 🎨 Detalles
+- En **Aplicaciones**, con el tema claro, el botón **Actualizar** era blanco sobre blanco: ahora toma el color del tema como los demás.
+
 ### ☑️ Seleccionar todo en un toque
 - La barra de abajo, al seleccionar archivos, tiene ahora un botón **Seleccionar todo** (antes estaba en ⋮ o manteniendo pulsada la ✕). Si ya está todo seleccionado, el mismo botón quita la selección.
 
