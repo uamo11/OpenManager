@@ -37,7 +37,8 @@ jobs:
   e2e:
     name: SSH & Telnet against real servers
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # The suite grows with every round (it was ~42 min in v2.0.43).
+    timeout-minutes: 60
     steps:
     - uses: actions/checkout@v4
       with:

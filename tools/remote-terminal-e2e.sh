@@ -4052,10 +4052,10 @@ adb logcat -c
 for act in filelist.SmartOpenActivity viewer.saveas.SaveAsActivity viewer.text.TextEditorActivity \
     viewer.image.ImageViewerActivity viewer.video.VideoPlayerActivity viewer.audio.AudioPlayerActivity \
     viewer.docx.DocxViewerActivity settings.SettingsActivity ftpserver.FtpServerActivity; do
-    adb shell am force-stop $PKG; sleep 1
-    adb shell am start -n "$PKG/me.zhanghai.android.files.$act" >/dev/null 2>&1; sleep 3
+    adb shell am force-stop $PKG
+    adb shell am start -n "$PKG/me.zhanghai.android.files.$act" >/dev/null 2>&1; sleep 2
     adb shell am start -n "$PKG/me.zhanghai.android.files.$act" -a android.intent.action.VIEW \
-        -d "file:///sdcard/om_does_not_exist.bin" -t application/octet-stream >/dev/null 2>&1; sleep 3
+        -d "file:///sdcard/om_does_not_exist.bin" -t application/octet-stream >/dev/null 2>&1; sleep 2
 done
 adb shell am force-stop $PKG; sleep 1
 adb logcat -d > "$OUT/logcat_odd_intents.txt" 2>/dev/null || true
