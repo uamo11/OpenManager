@@ -367,6 +367,12 @@
     <string name="settings_use_shizuku_install_summary">需要安装并激活 Shizuku。</string>
     <string name="settings_install_as_play_title">以 Google Play 身份安装</string>
     <string name="settings_install_as_play_summary">使用 Root 或 Shizuku 时，从 OM 安装的应用来源显示为 Google Play，不再提示从 Play 重新安装。</string>
+    <string name="settings_category_vibration_title">📳 振动</string>
+    <string name="settings_category_vibration_summary">OM 何时振动</string>
+    <string name="settings_vibrate_on_touch_title">触摸时振动</string>
+    <string name="settings_vibrate_on_touch_summary">选择文件、长按和复制文本时轻微振动</string>
+    <string name="settings_vibrate_on_job_finished_title">任务完成时振动</string>
+    <string name="settings_vibrate_on_job_finished_summary">复制、移动、解压或删除完成时振动一次；失败时振动两次</string>
     <string name="settings_use_root_install_title">使用 root 安装 apk/apks/xapk</string>
     <string name="settings_use_root_install_summary">仅在拥有 root 权限时生效。</string>
     <string name="settings_installation_priority_title">安装优先级说明</string>

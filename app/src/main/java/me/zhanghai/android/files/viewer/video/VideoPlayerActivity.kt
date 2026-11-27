@@ -713,7 +713,7 @@ class VideoPlayerActivity : AppActivity() {
         if (!p.isPlaying) return
         isSpeedHeld = true
         p.setPlaybackSpeed(VideoGestures.HOLD_SPEED)
-        videoRoot.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+        me.zhanghai.android.files.util.Haptics.longPress(videoRoot)
         handler.removeCallbacks(hideSeekFeedbackRunnable)
         showGestureFeedback(formatSpeed(VideoGestures.HOLD_SPEED), R.drawable.ic_gesture_fast_forward_32dp)
         if (me.zhanghai.android.files.BuildConfig.DEBUG) Log.i(TAG, "Gesture speed hold ${VideoGestures.HOLD_SPEED}")

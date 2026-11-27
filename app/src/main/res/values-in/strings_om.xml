@@ -366,6 +366,12 @@
     <string name="settings_use_shizuku_install_summary">Shizuku harus dipasang dan diaktifkan.</string>
     <string name="settings_install_as_play_title">Instal sebagai Google Play</string>
     <string name="settings_install_as_play_summary">Dengan root atau Shizuku, aplikasi yang diinstal dari OM tercatat dari Google Play, jadi tidak lagi meminta instal ulang dari Play.</string>
+    <string name="settings_category_vibration_title">📳 Getaran</string>
+    <string name="settings_category_vibration_summary">Kapan OM bergetar</string>
+    <string name="settings_vibrate_on_touch_title">Getar saat disentuh</string>
+    <string name="settings_vibrate_on_touch_summary">Memilih file, tekan lama, dan teks yang disalin sedikit bergetar</string>
+    <string name="settings_vibrate_on_job_finished_title">Getar saat tugas selesai</string>
+    <string name="settings_vibrate_on_job_finished_summary">Satu getaran saat salin, pindah, ekstrak, atau hapus selesai; dua jika gagal</string>
     <string name="settings_use_root_install_title">Pasang apk/apks/xapk dengan root</string>
     <string name="settings_use_root_install_summary">Hanya berlaku dengan hak root.</string>
     <string name="settings_installation_priority_title">Urutan prioritas pemasangan</string>

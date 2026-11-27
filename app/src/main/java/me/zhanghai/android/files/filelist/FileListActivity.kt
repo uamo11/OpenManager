@@ -1219,7 +1219,7 @@ class FileListActivity : AppActivity() {
         }
         // Long press: choose local shell or an SSH/Telnet profile.
         findViewById<View>(R.id.drawerItemTerminal)?.setOnLongClickListener {
-            it.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+            me.zhanghai.android.files.util.Haptics.longPress(it)
             drawerLayout.closeDrawer(GravityCompat.START)
             me.zhanghai.android.files.terminal.remote.TerminalLaunchChooser.show(this) {
                 activeFragment.openTerminal()
@@ -1922,7 +1922,7 @@ class FileListActivity : AppActivity() {
             btnBottomHome to BottomBarLongPress.Button.HOME
         )) {
             view.setOnLongClickListener {
-                it.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                me.zhanghai.android.files.util.Haptics.longPress(it)
                 val action = BottomBarLongPress.actionFor(this, button)
                 if (action == BottomBarLongPress.Action.NONE) {
                     BottomBarLongPress.choose(this, button) { chosen ->

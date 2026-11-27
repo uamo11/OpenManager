@@ -190,6 +190,18 @@ object Settings {
         R.bool.pref_default_value_install_as_play
     )
 
+    /** OM's own touch vibrations (selecting, long presses); see Haptics. */
+    val VIBRATE_ON_TOUCH: SettingLiveData<Boolean> = BooleanSettingLiveData(
+        R.string.pref_key_vibrate_on_touch,
+        R.bool.pref_default_value_vibrate_on_touch
+    )
+
+    /** A buzz when a copy, move, extraction or other file task finishes. */
+    val VIBRATE_ON_JOB_FINISHED: SettingLiveData<Boolean> = BooleanSettingLiveData(
+        R.string.pref_key_vibrate_on_job_finished,
+        R.bool.pref_default_value_vibrate_on_job_finished
+    )
+
     val USE_SHIZUKU_INSTALL: SettingLiveData<Boolean> = BooleanSettingLiveData(
         R.string.pref_key_use_shizuku_install,
         R.bool.pref_default_value_use_shizuku_install

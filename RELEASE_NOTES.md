@@ -1,3 +1,10 @@
+# OpenManager v2.0.44: Vibración Opcional
+
+### 📳 Vibración (idea de usuarios de MP Manager)
+- **Nuevo grupo «📳 Vibración» en Ajustes**, con dos opciones:
+  - **Vibrar al tocar** (activada): un toque al seleccionar cada archivo (también al arrastrar sobre varias filas), al seleccionar todo o invertir la selección, al copiar una ruta o nombre y en las pulsaciones largas. Si la desactivas, OM deja de vibrar también en las pulsaciones largas de la lista.
+  - **Vibrar al terminar una tarea** (desactivada): una vibración al terminar una copia, movimiento, extracción o borrado; dos si falló. No vibra si cancelas.
+
 # OpenManager v2.0.43: Estabilidad, Carpetas Fijadas e Instalar como Google Play
 
 ### 🛠 Estabilidad

@@ -1090,6 +1090,12 @@
     <string name="settings_use_shizuku_install_summary">Es necesario instalar y activar Shizuku.</string>
     <string name="settings_install_as_play_title">Instalar como Google Play</string>
     <string name="settings_install_as_play_summary">Con root o Shizuku, las apps instaladas desde OM figuran como instaladas desde Google Play, así dejan de pedir reinstalarse desde Play.</string>
+    <string name="settings_category_vibration_title">📳 Vibración</string>
+    <string name="settings_category_vibration_summary">Cuándo vibra OM</string>
+    <string name="settings_vibrate_on_touch_title">Vibrar al tocar</string>
+    <string name="settings_vibrate_on_touch_summary">Seleccionar archivos, las pulsaciones largas y el texto copiado vibran un poco</string>
+    <string name="settings_vibrate_on_job_finished_title">Vibrar al terminar una tarea</string>
+    <string name="settings_vibrate_on_job_finished_summary">Una vibración al terminar una copia, movimiento, extracción o borrado; dos si falló</string>
     <string name="settings_use_root_install_title">Usar root para instalar apk/apks/xapk</string>
     <string name="settings_use_root_install_summary">Solo surte efecto con privilegios de root.</string>
     <string name="settings_installation_priority_title">Descripción de prioridad de instalación</string>

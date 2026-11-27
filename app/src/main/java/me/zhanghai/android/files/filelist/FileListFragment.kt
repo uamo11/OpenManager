@@ -34,7 +34,6 @@ import android.widget.TextView
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.view.HapticFeedbackConstants
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContract
@@ -145,6 +144,7 @@ import me.zhanghai.android.files.ui.bindToLifecycle
 import me.zhanghai.android.files.ui.dismissSafely
 import me.zhanghai.android.files.ui.isUiAlive
 import me.zhanghai.android.files.ui.runWithProgressDialog
+import me.zhanghai.android.files.util.Haptics
 import me.zhanghai.android.files.util.DebouncedRunnable
 import me.zhanghai.android.files.util.Failure
 import me.zhanghai.android.files.util.Loading
@@ -439,7 +439,7 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
                 lastSelectionAnchorPosition = position
             }
         }
-        view?.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        Haptics.tick(view)
         adapter.notifyItemChanged(position)
     }
 
@@ -2492,10 +2492,12 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
 
     fun selectAllFiles() {
         adapter.selectAllFiles()
+        Haptics.tap(view)
     }
 
     fun invertSelection() {
         adapter.invertSelection()
+        Haptics.tap(view)
     }
 
     private fun onPasteStateChanged(pasteState: PasteState) {
@@ -2737,6 +2739,8 @@ class FileListFragment : Fragment(), BreadcrumbLayout.Listener, FileListAdapter.
             }
         }
         viewModel.selectFile(file, selected)
+        // A tick per file, as MT: tapping while selecting or dragging across the rows.
+        Haptics.tick(view)
     }
 
     override fun selectFiles(files: FileItemSet, selected: Boolean) {

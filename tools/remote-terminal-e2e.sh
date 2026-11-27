@@ -3723,6 +3723,35 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_job
 
+log "=== Optional vibration when a task finishes (MP Manager users' idea) ==="
+PREFS=/data/data/$PKG/shared_prefs/${PKG}_preferences.xml
+adb shell am force-stop $PKG; sleep 1
+adb shell "run-as $PKG sed -i 's#<boolean name=\"key_vibrate_on_job_finished\"[^>]*/>##; s#</map>#<boolean name=\"key_vibrate_on_job_finished\" value=\"true\" /></map>#' $PREFS"
+adb shell rm -rf /sdcard/om_buzz; adb shell mkdir -p /sdcard/om_buzz/dst
+adb shell "dd if=/dev/zero of=/sdcard/om_buzz/small.bin bs=1024 count=64" >/dev/null 2>&1
+adb logcat -c
+adb shell am start -W -n "$MAIN" >/dev/null 2>&1; sleep 4
+adb shell am start -n "$MAIN" --es DEMO_COPY_FROM "file:///storage/emulated/0/om_buzz/small.bin" \
+    --es DEMO_COPY_TO "file:///storage/emulated/0/om_buzz/dst" >/dev/null 2>&1
+buzz=""
+for _ in $(seq 1 20); do
+    buzz=$(adb logcat -d -s OMHaptics 2>/dev/null | grep "Task finished" | tail -1 | sed 's/.*OMHaptics: //')
+    [ -n "$buzz" ] && break
+    sleep 0.5
+done
+adb shell dumpsys vibrator > "$OUT/dumpsys_vibrator.txt" 2>/dev/null || true
+log "      ${buzz:-no buzz logged}; vibrator records for OM: $(grep -c "$PKG" "$OUT/dumpsys_vibrator.txt")"
+if printf '%s' "$buzz" | grep -q "no vibrator"; then
+    log "SKIP  this emulator has no vibrator (the setting was read and the task end was seen)"
+elif printf '%s' "$buzz" | grep -q "failed=false" && grep -q "$PKG" "$OUT/dumpsys_vibrator.txt"; then
+    pass "with the setting on, a finished copy vibrates once"
+else
+    fail "no vibration when a copy finished with the setting on (${buzz:-nothing logged})"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell "run-as $PKG sed -i 's#<boolean name=\"key_vibrate_on_job_finished\"[^>]*/>##' $PREFS"
+adb shell rm -rf /sdcard/om_buzz
+
 log "=== Image viewer: 1,000 images from a search, light theme menu, background (user report) ==="
 python3 - "$OUT/om_many" <<'PY2'
 import os, struct, sys, zlib

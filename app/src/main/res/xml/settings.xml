@@ -343,6 +343,29 @@
             app:iconSpaceReserved="true" />
     </PreferenceCategory>
 
+    <!-- VIBRATION / VIBRACIÓN -->
+    <PreferenceCategory
+        android:key="key_category_vibration"
+        android:title="@string/settings_category_vibration_title"
+        android:summary="@string/settings_category_vibration_summary"
+        app:layout="@layout/preference_category_mp"
+        app:iconSpaceReserved="false">
+
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_vibrate_on_touch"
+            android:title="@string/settings_vibrate_on_touch_title"
+            android:summary="@string/settings_vibrate_on_touch_summary"
+            android:defaultValue="@bool/pref_default_value_vibrate_on_touch"
+            app:iconSpaceReserved="true" />
+
+        <SwitchPreferenceCompat
+            android:key="@string/pref_key_vibrate_on_job_finished"
+            android:title="@string/settings_vibrate_on_job_finished_title"
+            android:summary="@string/settings_vibrate_on_job_finished_summary"
+            android:defaultValue="@bool/pref_default_value_vibrate_on_job_finished"
+            app:iconSpaceReserved="true" />
+    </PreferenceCategory>
+
     <!-- 4. RECYCLE BIN / PAPELERA DE RECICLAJE -->
     <PreferenceCategory
         android:key="key_category_recycle_bin"

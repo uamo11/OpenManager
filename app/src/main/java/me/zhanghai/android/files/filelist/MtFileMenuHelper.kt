@@ -10,7 +10,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -113,7 +112,7 @@ object MtFileMenuHelper {
             }
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("File Path", fullPath))
-            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            me.zhanghai.android.files.util.Haptics.tap(view)
             Toast.makeText(context, context.getString(R.string.om_mt_path_copied_format, fullPath), Toast.LENGTH_SHORT).show()
         }
 
@@ -125,7 +124,7 @@ object MtFileMenuHelper {
             }
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
             clipboard?.setPrimaryClip(ClipData.newPlainText("File Name", nameToCopy))
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            me.zhanghai.android.files.util.Haptics.longPress(view)
             Toast.makeText(context, context.getString(R.string.om_mt_name_copied_format, nameToCopy), Toast.LENGTH_SHORT).show()
             true
         }

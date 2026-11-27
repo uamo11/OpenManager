@@ -19,10 +19,12 @@ abstract class FileJob {
     fun runOn(service: FileJobService) {
         this.service = service
         var failed = false
+        var canceled = false
         try {
             run()
         } catch (e: InterruptedIOException) {
             // Canceled by the user.
+            canceled = true
             e.printStackTrace()
         } catch (e: Exception) {
             failed = true
@@ -37,6 +39,7 @@ abstract class FileJob {
         } finally {
             service.notificationManager.cancel(id)
             FileJobProgress.finish(id, failed)
+            if (!canceled) me.zhanghai.android.files.util.Haptics.jobFinished(service, failed)
         }
     }
 

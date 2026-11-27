@@ -626,6 +626,12 @@ class FileListAdapter(
         val isParent = file.isParentDirectoryItem
         val isDirectory = file.attributes.isDirectory
         val isEnabled = isFileSelectable(file) || isDirectory
+        // The system's own long-press buzz follows OM's "Vibrate on touch" too.
+        val haptics = me.zhanghai.android.files.util.Haptics.touchEnabled()
+        if (holder.itemLayout.isHapticFeedbackEnabled != haptics) {
+            holder.itemLayout.isHapticFeedbackEnabled = haptics
+            holder.iconLayout.isHapticFeedbackEnabled = haptics
+        }
         if (holder.itemLayout.isEnabled != isEnabled) {
             holder.itemLayout.isEnabled = isEnabled
         }

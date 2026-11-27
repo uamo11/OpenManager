@@ -62,7 +62,7 @@ class IconSwipeSelectHelper(
                         active = true
                         lastPosition = anchorPosition
                         rv.parent?.requestDisallowInterceptTouchEvent(true)
-                        rv.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                        me.zhanghai.android.files.util.Haptics.longPress(rv)
                         return true
                     }
                     candidate = false

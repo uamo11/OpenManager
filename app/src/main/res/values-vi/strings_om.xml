@@ -366,6 +366,12 @@
     <string name="settings_use_shizuku_install_summary">Cần cài và kích hoạt Shizuku.</string>
     <string name="settings_install_as_play_title">Cài đặt như Google Play</string>
     <string name="settings_install_as_play_summary">Với root hoặc Shizuku, ứng dụng cài từ OM sẽ ghi nguồn là Google Play, nên không còn yêu cầu cài lại từ Play.</string>
+    <string name="settings_category_vibration_title">📳 Rung</string>
+    <string name="settings_category_vibration_summary">Khi nào OM rung</string>
+    <string name="settings_vibrate_on_touch_title">Rung khi chạm</string>
+    <string name="settings_vibrate_on_touch_summary">Chọn tệp, nhấn giữ và sao chép văn bản sẽ rung nhẹ</string>
+    <string name="settings_vibrate_on_job_finished_title">Rung khi tác vụ hoàn tất</string>
+    <string name="settings_vibrate_on_job_finished_summary">Rung một lần khi sao chép, di chuyển, giải nén hoặc xóa xong; hai lần nếu thất bại</string>
     <string name="settings_use_root_install_title">Cài apk/apks/xapk bằng root</string>
     <string name="settings_use_root_install_summary">Chỉ có tác dụng khi có quyền root.</string>
     <string name="settings_installation_priority_title">Thứ tự ưu tiên cài đặt</string>
