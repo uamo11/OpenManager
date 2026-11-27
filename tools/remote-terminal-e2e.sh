@@ -4124,7 +4124,11 @@ adb shell am start -n $PKG/me.zhanghai.android.files.viewer.audio.AudioPlayerAct
     --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_music/track2.wav" >/dev/null 2>&1
 sleep 5
 shot 90_music_player
-state=$(music_state); sub=$(music_subtitle)
+state=$(music_state)
+# uiautomator cannot read a screen that redraws every second: pause (media key, as a headset
+# does) to read it, then play again for the background checks.
+adb shell input keyevent KEYCODE_MEDIA_PAUSE; sleep 2
+sub=$(music_subtitle)
 log "      playing state=${state:-none} · ${sub:-no subtitle}"
 if [ "$state" = 3 ] && printf '%s' "$sub" | grep -q "2 of 3"; then
     pass "the music player plays the 2nd of the folder's 3 songs (track1, track2, track10; not the .txt)"
@@ -4132,7 +4136,7 @@ else
     fail "the music player did not play the folder as a list (state=$state, $sub)"
 fi
 if pos=$(music_node btnAudioNext); then
-    adb shell input tap $pos; sleep 3
+    adb shell input tap $pos; sleep 2
     sub=$(music_subtitle)
     log "      after Next: $sub"
     if printf '%s' "$sub" | grep -q "3 of 3"; then
@@ -4143,6 +4147,7 @@ if pos=$(music_node btnAudioNext); then
 else
     fail "no Next button in the music player"
 fi
+adb shell input keyevent KEYCODE_MEDIA_PLAY; sleep 2
 adb shell input keyevent KEYCODE_BACK; sleep 4
 state=$(music_state)
 adb shell dumpsys notification --noredact 2>/dev/null | tr -d '\r' > "$OUT/notifications_music.txt"
@@ -4158,6 +4163,7 @@ fi
 adb shell am start -n $PKG/me.zhanghai.android.files.viewer.audio.AudioPlayerActivity \
     --ez me.zhanghai.android.files.extra.AUDIO_ATTACH true >/dev/null 2>&1
 sleep 3
+adb shell input keyevent KEYCODE_MEDIA_PAUSE; sleep 2
 title=""
 for _ in 1 2 3; do
     adb shell rm -f /data/local/tmp/ui.xml
@@ -4165,15 +4171,17 @@ for _ in 1 2 3; do
     [ -n "$title" ] && break
     sleep 1
 done
-if pos=$(music_node btnAudioClose); then
-    adb shell input tap $pos; sleep 3
-fi
+close_pos=$(music_node btnAudioClose || true)
+adb shell input keyevent KEYCODE_MEDIA_PLAY; sleep 2
+playing_before=$(music_state)
+[ -n "$close_pos" ] && adb shell input tap $close_pos
+sleep 3
 state=$(music_state)
-log "      reopened on: ${title:-?}; after X: state=${state:-none}"
-if printf '%s' "$title" | grep -q "track10" && [ "$state" != 3 ]; then
+log "      reopened on: ${title:-?}; playing before X: ${playing_before:-none}; after X: state=${state:-none}"
+if printf '%s' "$title" | grep -q "track10" && [ "$playing_before" = 3 ] && [ "$state" != 3 ]; then
     pass "the window reopens on the song playing, and X stops the music"
 else
-    fail "reopening showed ${title:-nothing} or X did not stop the music (state=$state)"
+    fail "reopening showed ${title:-nothing} or X did not stop the music (before=$playing_before, after=$state)"
 fi
 adb logcat -d > "$OUT/logcat_music.txt" 2>/dev/null || true
 if app_crashed "$OUT/logcat_music.txt"; then fail "crash in the music player"; else pass "no crash in the music player"; fi
