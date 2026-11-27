@@ -1812,6 +1812,8 @@
     <string name="om_dex_no_file_loaded">Nenhum arquivo carregado</string>
     <string name="om_dex_write_dest_error">Erro ao gravar no destino</string>
     <string name="om_dex_class_details_format">%1$s%2$d métodos  •  %3$d campos</string>
+    <string name="om_dex_folder_classes_format">%1$d classes</string>
+    <string name="om_dex_packages_as_folders">Pacotes como pastas</string>
     <string name="om_dex_no_valid_java">Nenhum código Java válido para exportar</string>
     <string name="om_dex_saved_as_format">Salvo como %1$s</string>
     <string name="om_dex_save_file_error_format">Erro ao salvar o arquivo: %1$s</string>

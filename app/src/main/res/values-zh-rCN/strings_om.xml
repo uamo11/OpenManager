@@ -1814,6 +1814,8 @@
     <string name="om_dex_no_file_loaded">未加载文件</string>
     <string name="om_dex_write_dest_error">写入目标位置出错</string>
     <string name="om_dex_class_details_format">%1$s%2$d 个方法  •  %3$d 个字段</string>
+    <string name="om_dex_folder_classes_format">%1$d 个类</string>
+    <string name="om_dex_packages_as_folders">按包显示为文件夹</string>
     <string name="om_dex_no_valid_java">没有可导出的有效 Java 代码</string>
     <string name="om_dex_saved_as_format">已另存为 %1$s</string>
     <string name="om_dex_save_file_error_format">保存文件出错：%1$s</string>

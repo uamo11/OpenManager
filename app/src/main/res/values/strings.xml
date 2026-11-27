@@ -2725,6 +2725,8 @@
     <string name="om_dex_no_file_loaded">No file loaded</string>
     <string name="om_dex_write_dest_error">Error writing to destination</string>
     <string name="om_dex_class_details_format">%1$s%2$d methods  •  %3$d fields</string>
+    <string name="om_dex_folder_classes_format">%1$d classes</string>
+    <string name="om_dex_packages_as_folders">Packages as folders</string>
     <string name="om_dex_no_valid_java">No valid Java code to export</string>
     <string name="om_dex_saved_as_format">Saved as %1$s</string>
     <string name="om_dex_save_file_error_format">Error saving file: %1$s</string>

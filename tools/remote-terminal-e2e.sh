@@ -4152,6 +4152,79 @@ fi
 adb shell am force-stop $PKG; sleep 1
 adb shell rm -rf /sdcard/om_html2
 
+log "=== DEX editor: classes as folders by package (user request, as MT) ==="
+python3 - "$APK" "$OUT/classes.dex" <<'PY2'
+import sys, zipfile
+with zipfile.ZipFile(sys.argv[1]) as z:
+    open(sys.argv[2], "wb").write(z.read("classes.dex"))
+PY2
+adb shell rm -rf /sdcard/om_dex; adb shell mkdir -p /sdcard/om_dex
+adb push "$OUT/classes.dex" /sdcard/om_dex/classes.dex >/dev/null
+adb shell am force-stop $PKG; sleep 1
+adb logcat -c
+adb shell am start -n $PKG/me.zhanghai.android.files.viewer.dex.DexEditorActivity \
+    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_dex/classes.dex" >/dev/null 2>&1
+loaded=""
+for _ in $(seq 1 60); do
+    loaded=$(adb logcat -d -s OMDex 2>/dev/null | grep "Loaded classes=" | tail -1 | sed 's/.*OMDex: //')
+    [ -n "$loaded" ] && break
+    sleep 1
+done
+sleep 2
+log "      ${loaded:-the DEX did not load in 60 s}"
+shot 94_dex_packages
+dex_rows() {
+    adb shell rm -f /data/local/tmp/ui.xml
+    adb shell uiautomator dump /data/local/tmp/ui.xml >/dev/null 2>&1
+    adb shell cat /data/local/tmp/ui.xml > "$OUT/ui_dex.xml" 2>/dev/null
+    python3 - "$OUT/ui_dex.xml" <<'PY2'
+import re, sys, html
+xml = open(sys.argv[1], encoding="utf-8", errors="replace").read()
+nodes = re.findall(r"<node [^>]*>", xml)
+def text(n): return html.unescape((re.search(r' text="([^"]*)"', n) or [None, ""])[1])
+def bounds(n): return tuple(map(int, re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n).groups()))
+badges = [n for n in nodes if ':id/tvClassBadge"' in n]
+names = [text(n) for n in nodes if ':id/tvClassName"' in n]
+folder = next((n for n in badges if text(n) == "P"), None)
+tap = ""
+if folder:
+    x1, y1, x2, y2 = bounds(folder)
+    tap = "%d %d" % ((x1 + x2) // 2 + 300, (y1 + y2) // 2)
+print(sum(1 for n in badges if text(n) == "P"), "|", ",".join(names[:6]), "|", tap)
+PY2
+}
+r=$(dex_rows)
+folders=$(echo "$r" | cut -d'|' -f1 | tr -d ' '); names=$(echo "$r" | cut -d'|' -f2); tap=$(echo "$r" | cut -d'|' -f3)
+log "      DEX root: $folders folders on screen · $names"
+if [ "${folders:-0}" -ge 2 ]; then
+    pass "the DEX editor shows packages as folders at the root"
+else
+    fail "the DEX editor root shows no package folders ($r)"
+fi
+if [ -n "$(echo $tap | tr -d ' ')" ]; then
+    adb shell input tap $tap; sleep 2
+    opened=$(adb logcat -d -s OMDex 2>/dev/null | grep "Package '" | tail -1 | sed 's/.*OMDex: //')
+    r=$(dex_rows); names=$(echo "$r" | cut -d'|' -f2)
+    log "      opened: $opened · $names"
+    if printf '%s' "$opened" | grep -q "Package '[^']\+' rows=[1-9]" && printf '%s' "$names" | grep -q "^ *\.\.,"; then
+        pass "tapping a package opens it like a folder, with .. on top"
+    else
+        fail "tapping a package folder did not open it ($opened / $names)"
+    fi
+    adb shell input keyevent KEYCODE_BACK; sleep 2
+    back=$(adb logcat -d -s OMDex 2>/dev/null | grep "Package '" | tail -1 | sed 's/.*OMDex: //')
+    if printf '%s' "$back" | grep -q "Package '' rows="; then
+        pass "Back goes up to the root of the packages"
+    else
+        fail "Back did not go up a package ($back)"
+    fi
+fi
+adb logcat -d > "$OUT/logcat_dex.txt" 2>/dev/null || true
+if app_crashed "$OUT/logcat_dex.txt"; then fail "crash in the DEX editor"; fi
+adb shell am force-stop $PKG; sleep 1
+adb shell rm -rf /sdcard/om_dex
+rm -f "$OUT/classes.dex"
+
 log "=== Music player: the folder as a playlist, keeps playing in the background (user request) ==="
 python3 - "$OUT/om_music" <<'PY2'
 import math, os, struct, sys, wave

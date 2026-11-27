@@ -1812,6 +1812,8 @@
     <string name="om_dex_no_file_loaded">Tidak ada file yang dimuat</string>
     <string name="om_dex_write_dest_error">Error menulis ke tujuan</string>
     <string name="om_dex_class_details_format">%1$s%2$d metode  •  %3$d field</string>
+    <string name="om_dex_folder_classes_format">%1$d kelas</string>
+    <string name="om_dex_packages_as_folders">Paket sebagai folder</string>
     <string name="om_dex_no_valid_java">Tidak ada kode Java valid untuk diekspor</string>
     <string name="om_dex_saved_as_format">Disimpan sebagai %1$s</string>
     <string name="om_dex_save_file_error_format">Error menyimpan file: %1$s</string>

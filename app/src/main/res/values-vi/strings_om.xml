@@ -1812,6 +1812,8 @@
     <string name="om_dex_no_file_loaded">Chưa tải tệp nào</string>
     <string name="om_dex_write_dest_error">Lỗi khi ghi vào đích</string>
     <string name="om_dex_class_details_format">%1$s%2$d phương thức  •  %3$d trường</string>
+    <string name="om_dex_folder_classes_format">%1$d lớp</string>
+    <string name="om_dex_packages_as_folders">Gói dạng thư mục</string>
     <string name="om_dex_no_valid_java">Không có mã Java hợp lệ để xuất</string>
     <string name="om_dex_saved_as_format">Đã lưu thành %1$s</string>
     <string name="om_dex_save_file_error_format">Lỗi khi lưu tệp: %1$s</string>

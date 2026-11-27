@@ -1812,6 +1812,8 @@
     <string name="om_dex_no_file_loaded">Файл не загружен</string>
     <string name="om_dex_write_dest_error">Ошибка записи в место назначения</string>
     <string name="om_dex_class_details_format">%1$sметодов: %2$d  •  полей: %3$d</string>
+    <string name="om_dex_folder_classes_format">Классов: %1$d</string>
+    <string name="om_dex_packages_as_folders">Пакеты как папки</string>
     <string name="om_dex_no_valid_java">Нет корректного кода Java для экспорта</string>
     <string name="om_dex_saved_as_format">Сохранено как %1$s</string>
     <string name="om_dex_save_file_error_format">Ошибка сохранения файла: %1$s</string>

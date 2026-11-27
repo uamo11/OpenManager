@@ -1,4 +1,8 @@
-# OpenManager v2.0.47: Editor HEX Fluido
+# OpenManager v2.0.47: Editor HEX Fluido y DEX por Carpetas
+
+### 🗂 Editor DEX (petición de usuario, como MT)
+- **Las clases se ven como carpetas por paquete** y se navegan como archivos: tocar un paquete entra en él, «..» o Atrás sube. Los paquetes vacíos con un solo hijo se juntan (`com.google.android`) para llegar antes al código. La búsqueda sigue buscando en todas las clases.
+- En el menú, «Paquetes como carpetas» vuelve a la lista plana si la prefieres.
 
 ### ⚡ Editor HEX (reporte de usuario: desplazarse iba a tirones)
 - Cada fila del editor HEX se dibuja ahora directamente, sin cajas de texto ni estilos: desplazarse con el dedo o arrastrando la barra lateral por archivos enormes es mucho más fluido, sobre todo en teléfonos modestos. Se ve igual que antes (mismas columnas, colores, selección, coincidencias de búsqueda y bytes modificados).

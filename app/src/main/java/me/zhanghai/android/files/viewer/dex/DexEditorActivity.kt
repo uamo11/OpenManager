@@ -44,8 +44,26 @@ class DexEditorActivity : AppActivity() {
     private var lastDexModified: Long = 0L
 
     private val allClasses = mutableListOf<DexClassModel>()
-    private val displayedClasses = mutableListOf<DexClassModel>()
+    private val displayedClasses = mutableListOf<ClassRow>()
     private lateinit var classAdapter: ClassesAdapter
+
+    /** Rows of the Classes tab: packages are folders (see [DexPackageTree]). */
+    sealed class ClassRow {
+        object Up : ClassRow()
+        data class Folder(val folder: DexPackageTree.Folder) : ClassRow()
+        data class Class(val model: DexClassModel) : ClassRow()
+    }
+
+    private var packageTree = DexPackageTree(emptyList<DexClassModel>()) { it.packageName }
+    private var currentPackage = ""
+    private val showAsTree: Boolean
+        get() = getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_TREE, true)
+
+    private val upPackageCallback = object : androidx.activity.OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() {
+            openPackage(packageTree.parentShown(currentPackage))
+        }
+    }
 
     private val allStrings = mutableListOf<DexStringModel>()
     private val displayedStrings = mutableListOf<DexStringModel>()
@@ -120,8 +138,10 @@ class DexEditorActivity : AppActivity() {
         classAdapter = ClassesAdapter(
             displayedClasses,
             onClick = { classModel -> openClassEditor(classModel, 0) },
-            onLongClick = { classModel -> showClassActionDialog(classModel) }
+            onLongClick = { classModel -> showClassActionDialog(classModel) },
+            onFolder = { pkg -> openPackage(pkg) }
         )
+        onBackPressedDispatcher.addCallback(this, upPackageCallback)
         binding.rvClasses.layoutManager = LinearLayoutManager(this)
         binding.rvClasses.adapter = classAdapter
 
@@ -147,6 +167,13 @@ class DexEditorActivity : AppActivity() {
                     lastDexModified = prepared.lastModified()
                     allClasses.clear()
                     allClasses.addAll(classes)
+                    packageTree = DexPackageTree(allClasses) { it.packageName }
+                    // A reload (after editing a class) stays in the same folder when it still exists.
+                    if (currentPackage.isNotEmpty() && packageTree.classes(currentPackage).isEmpty() &&
+                        packageTree.folders(currentPackage).isEmpty()
+                    ) {
+                        currentPackage = ""
+                    }
 
                     allStrings.clear()
                     allStrings.addAll(strings)
@@ -157,6 +184,7 @@ class DexEditorActivity : AppActivity() {
 
                     binding.progressBar.visibility = View.GONE
                     filterContent()
+                    android.util.Log.i("OMDex", "Loaded classes=${classes.size} strings=${strings.size} rows=${displayedClasses.size}")
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -173,18 +201,27 @@ class DexEditorActivity : AppActivity() {
 
         if (activeTab == 0) {
             displayedClasses.clear()
-            if (q.isEmpty()) {
-                displayedClasses.addAll(allClasses)
+            if (q.isEmpty() && showAsTree) {
+                // Folders first, then the classes of this package, like a file list.
+                if (currentPackage.isNotEmpty()) displayedClasses.add(ClassRow.Up)
+                packageTree.folders(currentPackage).mapTo(displayedClasses) { ClassRow.Folder(it) }
+                packageTree.classes(currentPackage).sortedBy { it.simpleName.lowercase() }
+                    .mapTo(displayedClasses) { ClassRow.Class(it) }
+            } else if (q.isEmpty()) {
+                allClasses.mapTo(displayedClasses) { ClassRow.Class(it) }
             } else {
+                // A search looks through every package.
                 for (cls in allClasses) {
                     if (cls.simpleName.lowercase().contains(q) ||
                         cls.packageName.lowercase().contains(q) ||
                         cls.descriptor.lowercase().contains(q)
                     ) {
-                        displayedClasses.add(cls)
+                        displayedClasses.add(ClassRow.Class(cls))
                     }
                 }
             }
+            upPackageCallback.isEnabled = q.isEmpty() && showAsTree && currentPackage.isNotEmpty()
+            updatePackageSubtitle()
             classAdapter.notifyDataSetChanged()
             binding.tvEmpty.visibility = if (displayedClasses.isEmpty()) View.VISIBLE else View.GONE
         } else {
@@ -200,6 +237,22 @@ class DexEditorActivity : AppActivity() {
             }
             stringAdapter.notifyDataSetChanged()
             binding.tvEmpty.visibility = if (displayedStrings.isEmpty()) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun openPackage(pkg: String) {
+        currentPackage = pkg
+        filterContent()
+        binding.rvClasses.scrollToPosition(0)
+        android.util.Log.i("OMDex", "Package '${pkg}' rows=${displayedClasses.size}")
+    }
+
+    private fun updatePackageSubtitle() {
+        if (allClasses.isEmpty()) return
+        binding.toolbar.subtitle = if (activeTab == 0 && showAsTree && currentPackage.isNotEmpty() && searchQuery.isBlank()) {
+            currentPackage
+        } else {
+            getString(R.string.om_dex_subtitle_format, allClasses.size, allStrings.size)
         }
     }
 
@@ -281,6 +334,7 @@ class DexEditorActivity : AppActivity() {
             }
         })
 
+        menu.findItem(R.id.action_dex_tree)?.isChecked = showAsTree
         return true
     }
 
@@ -292,6 +346,14 @@ class DexEditorActivity : AppActivity() {
             }
             R.id.action_save -> {
                 saveDex()
+                return true
+            }
+            R.id.action_dex_tree -> {
+                val tree = !showAsTree
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_TREE, tree).apply()
+                item.isChecked = tree
+                currentPackage = ""
+                filterContent()
                 return true
             }
             R.id.action_export_java -> {
@@ -395,12 +457,15 @@ class DexEditorActivity : AppActivity() {
 
     companion object {
         const val EXTRA_INITIAL_TAB = "extra_initial_tab"
+        private const val PREFS = "om_dex_editor"
+        private const val KEY_TREE = "packages_as_folders"
     }
 
     inner class ClassesAdapter(
-        private val items: List<DexClassModel>,
+        private val items: List<ClassRow>,
         private val onClick: (DexClassModel) -> Unit,
-        private val onLongClick: (DexClassModel) -> Unit
+        private val onLongClick: (DexClassModel) -> Unit,
+        private val onFolder: (String) -> Unit
     ) : RecyclerView.Adapter<ClassesAdapter.ViewHolder>() {
 
         inner class ViewHolder(val binding: ItemDexClassBinding) : RecyclerView.ViewHolder(binding.root)
@@ -410,33 +475,59 @@ class DexEditorActivity : AppActivity() {
             return ViewHolder(b)
         }
 
+        private fun badge(holder: ViewHolder, letter: String, color: Int) {
+            val view = holder.binding.tvClassBadge
+            view.text = letter
+            val bg = view.background as? GradientDrawable
+                ?: GradientDrawable().apply { shape = GradientDrawable.OVAL }
+            bg.setColor(color)
+            view.background = bg
+        }
+
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val item = items[position]
-            with(holder.binding) {
-                tvClassBadge.text = item.badgeLetter
-                val bg = tvClassBadge.background as? GradientDrawable
-                    ?: GradientDrawable().apply { shape = GradientDrawable.OVAL }
-                bg.setColor(item.badgeColor)
-                tvClassBadge.background = bg
+            when (val row = items[position]) {
+                is ClassRow.Up -> with(holder.binding) {
+                    badge(holder, "↑", FOLDER_COLOR)
+                    tvClassName.text = ".."
+                    tvClassPackage.text = DexPackageTree.parentOf(currentPackage).ifEmpty { "/" }
+                    tvAccessFlags.text = ""
+                    tvClassDetails.text = ""
+                    root.setOnClickListener { onFolder(packageTree.parentShown(currentPackage)) }
+                    root.setOnLongClickListener(null)
+                }
+                is ClassRow.Folder -> with(holder.binding) {
+                    badge(holder, "P", FOLDER_COLOR)
+                    tvClassName.text = row.folder.label
+                    tvClassPackage.text = row.folder.fullName
+                    tvAccessFlags.text = ""
+                    tvClassDetails.text = getString(R.string.om_dex_folder_classes_format, row.folder.classCount)
+                    root.setOnClickListener { onFolder(row.folder.fullName) }
+                    root.setOnLongClickListener(null)
+                }
+                is ClassRow.Class -> with(holder.binding) {
+                    val item = row.model
+                    badge(holder, item.badgeLetter, item.badgeColor)
+                    tvClassName.text = item.simpleName
+                    tvClassPackage.text = if (item.packageName.isNotEmpty()) item.packageName else "<default package>"
+                    tvAccessFlags.text = item.accessFlagsString
 
-                tvClassName.text = item.simpleName
-                tvClassPackage.text = if (item.packageName.isNotEmpty()) item.packageName else "<default package>"
-                tvAccessFlags.text = item.accessFlagsString
+                    val superName = formatType(item.superclass)
+                    val superStr = if (superName.isNotEmpty() && superName != "java.lang.Object") "extends $superName  •  " else ""
+                    tvClassDetails.text = getString(R.string.om_dex_class_details_format, superStr, item.methodCount, item.fieldCount)
 
-                val superName = formatType(item.superclass)
-                val superStr = if (superName.isNotEmpty() && superName != "java.lang.Object") "extends $superName  •  " else ""
-                tvClassDetails.text = getString(R.string.om_dex_class_details_format, superStr, item.methodCount, item.fieldCount)
-
-                root.setOnClickListener { onClick(item) }
-                root.setOnLongClickListener {
-                    onLongClick(item)
-                    true
+                    root.setOnClickListener { onClick(item) }
+                    root.setOnLongClickListener {
+                        onLongClick(item)
+                        true
+                    }
                 }
             }
         }
 
         override fun getItemCount(): Int = items.size
     }
+
+    private val FOLDER_COLOR = android.graphics.Color.parseColor("#F9A825")
 
     inner class StringsAdapter(
         private val items: List<DexStringModel>,
