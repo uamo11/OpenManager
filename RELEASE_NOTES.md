@@ -1,3 +1,8 @@
+# OpenManager v2.0.47: Editor HEX Fluido
+
+### ⚡ Editor HEX (reporte de usuario: desplazarse iba a tirones)
+- Cada fila del editor HEX se dibuja ahora directamente, sin cajas de texto ni estilos: desplazarse con el dedo o arrastrando la barra lateral por archivos enormes es mucho más fluido, sobre todo en teléfonos modestos. Se ve igual que antes (mismas columnas, colores, selección, coincidencias de búsqueda y bytes modificados).
+
 # OpenManager v2.0.46: Un Panel a la Vez
 
 ### 🛠 Actualizaciones de la app

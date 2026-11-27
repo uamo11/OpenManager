@@ -3901,7 +3901,7 @@ sub = [b(n) for n in nodes if re.search(r' text="60\.00 MB', n)]
 sub_h = (sub[0][3] - sub[0][1]) / d if sub else 0
 buttons = [html.unescape(re.search(r' text="([^"]*)"', n).group(1)) for n in nodes
            if 'Button' in n and re.search(r' text="(EDIT|Edit|Editar|HEX|Hex|TXT|Txt)"', n)]
-ascii_right = max([b(n)[2] for n in nodes if re.search(r':id/tvAscii"', n)] or [width + 1])
+ascii_right = max([b(n)[2] for n in nodes if re.search(r':id/hexRow"', n)] or [width + 1])
 ok = sub_h >= 15 and not buttons and ascii_right <= width
 print("ok" if ok else "bad", round(sub_h, 1), "|".join(buttons) or "-", ascii_right, width)
 PY2
@@ -3912,6 +3912,16 @@ PY2
     else
         fail "HEX editor layout ($hexui)"
     fi
+    # Scrolling (user report: laggy): fast flings and a drag of the side thumb through 60 MB.
+    adb shell dumpsys gfxinfo $PKG reset >/dev/null 2>&1
+    for _ in $(seq 1 12); do adb shell input swipe 540 1900 540 500 80; sleep 0.3; done
+    adb shell input swipe 1060 600 1060 1800 1500; sleep 1
+    adb shell dumpsys gfxinfo $PKG > "$OUT/gfx_hex.txt" 2>/dev/null
+    jank=$(grep -m1 "Janky frames:" "$OUT/gfx_hex.txt" | sed 's/^ *//')
+    p50=$(grep -m1 "50th percentile:" "$OUT/gfx_hex.txt" | sed 's/^ *//')
+    p90=$(grep -m1 "90th percentile:" "$OUT/gfx_hex.txt" | sed 's/^ *//')
+    log "      HEX scrolling (emulator, no GPU): ${jank:-?} · ${p50:-?} · ${p90:-?}"
+    shot 72b_hex_scrolled
 else
     fail "no 'Open in HEX editor' button"
 fi
