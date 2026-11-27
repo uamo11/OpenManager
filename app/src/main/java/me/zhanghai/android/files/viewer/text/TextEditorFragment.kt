@@ -292,8 +292,14 @@ class TextEditorFragment : Fragment(), ConfirmReloadDialogFragment.Listener,
         editor.setHighlightBracketPair(true)
         editor.isCursorAnimationEnabled = !PerformanceModeManager.isEnabled
         editor.props.stickyScroll = false
-        // Code: no spelling suggestions or autocorrect from the keyboard.
-        editor.props.disallowSuggestions = true
+        // Code: no spelling suggestions or autocorrect from the keyboard, asked the standard way.
+        // sora's disallowSuggestions went further: it hid the text around the cursor and refused
+        // setSelection, which broke Gboard's spacebar (move the cursor) and backspace (delete
+        // words) swipes (user report).
+        editor.props.disallowSuggestions = false
+        editor.inputType = android.text.InputType.TYPE_CLASS_TEXT or
+            android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or
+            android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
         editor.setScaleTextSizes(
             spToPx(TextEditorSettings.MIN_FONT_SIZE), spToPx(TextEditorSettings.MAX_FONT_SIZE)
         )
