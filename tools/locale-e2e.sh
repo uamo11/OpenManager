@@ -79,6 +79,21 @@ adb shell am force-stop $PKG; sleep 1
 
 log "=== Language picked from the app's list (Settings > Language > Chinese) ==="
 adb shell am start -W -n "$SETTINGS" >/dev/null 2>&1; sleep 4
+# The last setting must scroll above the navigation bar (it stayed under it on Android 12).
+for _ in $(seq 1 25); do adb shell input swipe 540 1800 540 500 120; done
+sleep 2
+screen_h=$(adb shell wm size | grep -o "[0-9]*x[0-9]*" | tail -1 | cut -dx -f2)
+last=$(find_contains "Language" "Idioma" || true)
+last_y=${last#* }
+log "      at the end of Settings: Language at y=${last_y:-?} of ${screen_h:-?}"
+if [ -n "$last" ] && [ "${last_y:-9999}" -lt $(( ${screen_h:-2400} - 200 )) ]; then
+    pass "the last setting (Language) scrolls above the navigation bar"
+else
+    shot 00_settings_end
+    fail "Language stays under the navigation bar at the end of Settings"
+fi
+adb shell am force-stop $PKG; sleep 1
+adb shell am start -W -n "$SETTINGS" >/dev/null 2>&1; sleep 4
 pos=$(scroll_to 30 "Language" "Idioma") || {
     # A swipe now and then gets lost on the slow emulator: the settings search finds it too.
     log "      Language not reached by scrolling, using the settings search"

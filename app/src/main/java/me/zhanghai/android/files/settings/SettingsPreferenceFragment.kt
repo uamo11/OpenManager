@@ -351,14 +351,30 @@ class SettingsPreferenceFragment : PreferenceFragmentCompat() {
             // and hard to tap: the list scrolls them above it.
             clipToPadding = false
             val basePadding = paddingBottom
-            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(this) { v, insets ->
+            // The window's own insets: on Android 12 a parent consumed the dispatched ones, so the
+            // listener got none and Language stayed under the bar (seen in the locale E2E).
+            fun applyBottomInset(v: View, dispatched: androidx.core.view.WindowInsetsCompat?) {
+                val insets = androidx.core.view.ViewCompat.getRootWindowInsets(v) ?: dispatched ?: return
                 val bottom = insets.getInsets(
                     androidx.core.view.WindowInsetsCompat.Type.navigationBars() or
                         androidx.core.view.WindowInsetsCompat.Type.ime()
                 ).bottom
-                v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, basePadding + bottom)
+                if (v.paddingBottom != basePadding + bottom) {
+                    v.setPadding(v.paddingLeft, v.paddingTop, v.paddingRight, basePadding + bottom)
+                }
+            }
+            androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(this) { v, insets ->
+                applyBottomInset(v, insets)
                 insets
             }
+            addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    v.post { applyBottomInset(v, null) }
+                }
+
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+            if (isAttachedToWindow) post { applyBottomInset(this, null) }
             androidx.core.view.ViewCompat.requestApplyInsets(this)
         }
         val palette = OpenManagerPalette.from(requireContext())

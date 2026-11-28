@@ -1,5 +1,9 @@
 # OpenManager v2.0.47: Editor HEX Fluido y DEX por Carpetas
 
+### 🛠 Estabilidad y memoria (pruebas extremas con Ultra RAM)
+- **Editor de texto:** un archivo grande quedaba tres veces en memoria (los bytes, el texto y el del editor): uno de 9 MB ocupaba ~86 MB. Ahora se sueltan las copias en cuanto el editor tiene el texto, para que los teléfonos con poca memoria no se queden sin ella.
+- **Ajustes:** en Android 12 el último ajuste («Idioma») quedaba tapado por la barra de navegación; ahora se puede subir por encima.
+
 ### 🗂 Editor DEX (petición de usuario, como MT)
 - **Las clases se ven como carpetas por paquete** y se navegan como archivos: tocar un paquete entra en él, «..» o Atrás sube. Los paquetes vacíos con un solo hijo se juntan (`com.google.android`) para llegar antes al código. La búsqueda sigue buscando en todas las clases.
 - En el menú, «Paquetes como carpetas» vuelve a la lista plana si la prefieres.
