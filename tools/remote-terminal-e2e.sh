@@ -4162,8 +4162,9 @@ adb shell rm -rf /sdcard/om_dex; adb shell mkdir -p /sdcard/om_dex
 adb push "$OUT/classes.dex" /sdcard/om_dex/classes.dex >/dev/null
 adb shell am force-stop $PKG; sleep 1
 adb logcat -c
-adb shell am start -n $PKG/me.zhanghai.android.files.viewer.dex.DexEditorActivity \
-    --es "$PKG.extra.PATH_URI" "file:///storage/emulated/0/om_dex/classes.dex" >/dev/null 2>&1
+# Not an exported screen: started as root, as the HEX checks do.
+adb shell "su 0 am start -n $PKG/me.zhanghai.android.files.viewer.dex.DexEditorActivity \
+    --es $PKG.extra.PATH_URI file:///storage/emulated/0/om_dex/classes.dex" >/dev/null 2>&1
 loaded=""
 for _ in $(seq 1 60); do
     loaded=$(adb logcat -d -s OMDex 2>/dev/null | grep "Loaded classes=" | tail -1 | sed 's/.*OMDex: //')
